@@ -1,0 +1,42 @@
+instruments:
+  hardware:
+    type: sample_specific.station.hardware_quad_dot.hardware
+    enable_forced_reconnect: true
+  
+  gates:
+    type: core_tools.drivers.gates.gates
+    enable_forced_reconnect: true
+
+  AWG1:
+    type: qcodes_contrib_drivers.drivers.Keysight.SD_common.SD_AWG_Async.SD_AWG_Async
+    enable_forced_reconnect : True
+    init:
+      chassis : 0
+      slot : 2
+      channels : 4
+      triggers : 8
+
+  AWG2:
+    type: qcodes_contrib_drivers.drivers.Keysight.SD_common.SD_AWG_Async.SD_AWG_Async
+    enable_forced_reconnect : True
+    init:
+      chassis : 0
+      slot : 3
+      channels : 4
+      triggers : 8
+
+  AWG3:
+    type: qcodes_contrib_drivers.drivers.Keysight.SD_common.SD_AWG_Async.SD_AWG_Async
+    enable_forced_reconnect : True
+    init:
+      chassis : 0
+      slot : 4
+      channels : 4
+      triggers : 8
+
+  dig:
+    type: core_tools.drivers.M3102A.SD_DIG
+    enable_forced_reconnect: true
+    init:
+      chassis: 0
+      slot: 5
