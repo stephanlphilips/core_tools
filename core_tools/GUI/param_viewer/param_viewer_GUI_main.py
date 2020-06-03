@@ -1,4 +1,4 @@
-from V2_software.drivers.virtual_gates.GUI.param_viewer_GUI_window import Ui_MainWindow
+from core_tools.GUI.param_viewer.param_viewer_GUI_window import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
 

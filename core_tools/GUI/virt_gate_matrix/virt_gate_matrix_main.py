@@ -1,4 +1,4 @@
-from V2_software.drivers.virtual_gates.GUI.virt_gate_matrix_window import Ui_MainWindow
+from core_tools.GUI.virt_gate_matrix.virt_gate_matrix_window import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
 
