@@ -13,7 +13,7 @@ from .data_getter import scan_generator_Virtual
 from .plotter.plotting_functions import _1D_live_plot, _2D_live_plot
 from qcodes import MultiParameter
 from qcodes.measure import Measure
-from qtt.utilities.tools import addPPTslide
+from core_tools.utility.powerpoint import addPPTslide
 import time
 import logging
 

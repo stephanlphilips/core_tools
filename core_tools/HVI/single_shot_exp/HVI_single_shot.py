@@ -4,7 +4,7 @@ define a function that loads the HVI file that will be used thoughout the experi
 import keysightSD1
 import core_tools.HVI.single_shot_exp as ct
 
-HVI_ID = "HVI_single_shot_test.HVI"
+HVI_ID = "HVI_single_shot.HVI"
 
 
 def load_HVI(AWGs, channel_map, *args,**kwargs):
@@ -24,7 +24,7 @@ def load_HVI(AWGs, channel_map, *args,**kwargs):
 
 			
 	HVI = keysightSD1.SD_HVI()
-	error = HVI.open(ct.__file__[:-11] + "HVI_single_shot_test.HVI")
+	error = HVI.open(ct.__file__[:-11] + "HVI_single_shot.HVI")
 	print(error)
 
 	error = HVI.assignHardwareWithUserNameAndSlot("Module 0",0,2)
@@ -32,6 +32,10 @@ def load_HVI(AWGs, channel_map, *args,**kwargs):
 	error = HVI.assignHardwareWithUserNameAndSlot("Module 1",0,3)
 	print(error)
 	error = HVI.assignHardwareWithUserNameAndSlot("Module 2",0,4)
+	print(error)
+	error = HVI.assignHardwareWithUserNameAndSlot("Module 3",0,5)
+	print(error)
+	error = HVI.assignHardwareWithUserNameAndSlot("Module 4",0,6)
 	print(error)
 
 	error = HVI.compile()
@@ -87,23 +91,19 @@ def excute_HVI(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 
 	for awgname, awg in AWGs.items():
 		err = awg.awg.writeRegisterByNumber(2, int(nrep))
-		print(err)
 		err = awg.awg.writeRegisterByNumber(3, int(length))
-		print(err)
 
-	# dig = kwargs['digitizer'] 
-	# dig_wait = kwargs['dig_wait']
+	dig = kwargs['digitizer'] 
+	dig_wait = kwargs['dig_wait']
+	print(dig_wait)
+	delay_1 = int(dig_wait/10)
+	err = dig.SD_AIN.writeRegisterByNumber(2, int(nrep))
+	err = dig.SD_AIN.writeRegisterByNumber(4, int(delay_1))
+	err = dig.SD_AIN.writeRegisterByNumber(3, int(length-delay_1-2))
 
-	# delay_1 = int(dig_wait/10)
-	# dig.writeRegisterByNumber(2, int(nrep))
-	# dig.writeRegisterByNumber(4, int(delay_1))
-	# dig.writeRegisterByNumber(3, int(length-delay_1-2))
-
-	# if 'averaging' in kwargs:
-	# 	dig.set_meas_time(kwargs['t_measure'])
-	# 	dig.set_MAV_filter(16,1)
+	if 'averaging' in kwargs:
+		dig.set_meas_time(kwargs['t_measure'], fourchannel=True)
+		dig.set_MAV_filter(16,1, fourchannel=True)
 	# start sequence
 	err = AWGs['AWG1'].awg.writeRegisterByNumber(1, 0)
-	print(err)
 	err = AWGs['AWG1'].awg.writeRegisterByNumber(0,int(1))
-	print(err)

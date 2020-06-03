@@ -5,8 +5,8 @@ Created on Fri Aug  9 16:50:02 2019
 @author: V2
 """
 from qcodes import MultiParameter
-from projects.keysight_measurement.HVI.ChargeStabilityDiagram.HVI_charge_stability_diagram import load_HVI, set_and_compile_HVI, excute_HVI, HVI_ID
-from projects.keysight_measurement.M3102A import DATA_MODE
+from core_tools.HVI.charge_stability_diagram.HVI_charge_stability_diagram import load_HVI, set_and_compile_HVI, excute_HVI, HVI_ID
+from core_tools.drivers.M3102A import DATA_MODE
 import matplotlib.pyplot as plt
 import numpy as np
 import time

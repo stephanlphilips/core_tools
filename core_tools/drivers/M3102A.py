@@ -1,6 +1,5 @@
 from qcodes import Instrument, MultiParameter
 from dataclasses import dataclass
-from si_prefix import si_format
 import warnings
 import logging
 import time
@@ -62,7 +61,6 @@ class line_trace(MultiParameter):
     """
     def __init__(self, name, instrument, inst_name , raw=False):
         self.my_instrument = instrument
-        self.name = name
         super().__init__(name=inst_name,
                          names = (name +'_ch1', name +'_ch2'),
                          shapes=((1,),(1,)),
@@ -85,11 +83,10 @@ class line_trace(MultiParameter):
         """
         generate channels mask for start multiple control functions
         """
-        channel_mask = list('0000') # TODO make general version for n channels
+        channel_mask = 0
 
         for i in self.channels:
-            channel_mask[-i] = '1'
-        channel_mask = int(''.join(channel_mask), 2)
+            channel_mask += 1 << (i - 1)
 
         return channel_mask
 
@@ -102,103 +99,132 @@ class line_trace(MultiParameter):
 
         return self.get_data()
 
-    def get_data(self):
-        """
-        Get data from the cards
 
-        TODO : IMPLEMENT BUFFERING METHODS for faster data transfers.
-        """
+    def _read_channel_data(self, channel_number, channel_data_raw):
+        start = time.perf_counter()
+        i = 0
+        points_aquired = 0
+        while points_aquired < len(channel_data_raw):
+            np_ready = self.my_instrument.SD_AIN.DAQcounterRead(channel_number)
+            check_error(np_ready)
+
+            if np_ready + points_aquired > len(channel_data_raw):
+                np_ready = len(channel_data_raw) - points_aquired
+                logging.error("more data points in digitizer ram then what is being collected.")
+
+
+            if np_ready > 0:
+                # Always read with a timeout to prevent infinite blocking of HW (and reboot of system).
+                # There are np_ready points available. This can be read in 1 second.
+                req_points = self.my_instrument.SD_AIN.DAQread(channel_number, np_ready, 1000)
+                check_error(req_points)
+                if not type(req_points) is int and len(req_points) != np_ready:
+                    logging.error(f'DAQread failure. ready:{np_ready} read:{len(req_points)}')
+
+                channel_data_raw[points_aquired: points_aquired + np_ready] = req_points
+                points_aquired = points_aquired + np_ready
+                i = 0
+
+            if np_ready == 0:
+                i+=1
+                time.sleep(0.001)
+                if i > 100:
+                    logging.error(f"digitizer did not manage to collect enough data points for channel {channel_number}, "
+                                  f"returning zeros. ({points_aquired})")
+                    break
+
+        logging.info(f'channel {channel_number}: retrieved {points_aquired} points in {(time.perf_counter()-start)*1000:3.1f} ms')
+
+
+    def _get_data_normal(self):
         data_out = tuple()
 
         for channel_property in self.my_instrument.channel_properties.values():
-            start = time.perf_counter()
-            if self.my_instrument.mode == MODES.AVERAGE and channel_property.number in [2,4]:
-                continue
             if channel_property.active == False:
                 continue
 
             # make flat data structures.
-            if self.my_instrument.mode == MODES.AVERAGE:
-                channel_data_raw = np.zeros( [ channel_property.cycles*10], np.uint16)
-            else:
-                channel_data_raw = np.zeros( [ channel_property.cycles*channel_property.points_per_cycle], np.double)
+            channel_data_raw = np.zeros([channel_property.cycles*channel_property.points_per_cycle], np.double)
 
-            # get data out of the buffer
-            np_ready = self.my_instrument.SD_AIN.DAQcounterRead(channel_property.number)
-            check_error(np_ready)
+            self._read_channel_data(channel_property.number, channel_data_raw)
 
-            i = 0
-            points_aquired = 0
-            while points_aquired < len(channel_data_raw):
-#                print('np_ready = %i' % np_ready)
-                if np_ready + points_aquired > len(channel_data_raw):
-                    np_ready = len(channel_data_raw) - points_aquired
-                    logging.error("more data points in digitizer ram then what is being collected.")
+            # format the data with correct amplitude
+            # convert 16-bit to relative scale (-1.0 .. 1.0)
+            f = 1 / 32768
+            # multiply with the relevant channel amplitude (standard in volt -> mV!)
+            f *= channel_property.full_scale*1000
+            # inplace multiplication on numpy array is fast
+            channel_data_raw *= f
 
+            # reshape for [repetitions, time] and average
+            channel_data_raw = channel_data_raw.reshape([channel_property.cycles, channel_property.points_per_cycle])
 
-                if np_ready > 0:
-                    # Always read with a timeout to prevent infinite blocking of HW (and reboot of system).
-                    # There are np_ready points available. This can be read in 1 second.
-                    req_points = self.my_instrument.SD_AIN.DAQread(channel_property.number, np_ready, 1000)
-                    check_error(req_points)
-                    if not type(req_points) is int and len(req_points) != np_ready:
-                        logging.error(f'DAQread failure. ready:{np_ready} read:{len(req_points)}')
-
-                    channel_data_raw[points_aquired: points_aquired + np_ready] = req_points
-                    points_aquired = points_aquired + np_ready
-                    i = 0
-
-                if np_ready == 0:
-                    i+=1
-                    time.sleep(0.001)
-                    if i > 100:
-                        logging.error(f"digitizer did not manage to collect enough data points, returning zeros. {points_aquired}, {channel_property}")
-                        break
-
-                np_ready = self.my_instrument.SD_AIN.DAQcounterRead(channel_property.number)
-
-            logging.info(f'channel {channel_property.number}: retrieved {points_aquired} points in {(time.perf_counter()-start)*1000:3.1f} ms')
-
-            # format the data
-            if self.my_instrument.mode == MODES.AVERAGE:
-                # note that we are acquirering two channels at the same time in this mode..
-                channel_data_raw = channel_data_raw.reshape([channel_property.cycles, 10]).transpose().astype(np.int32)
-                channel_data = np.empty([2,channel_property.cycles])
-                channel_data[0] = ((channel_data_raw[1] & 2**16-1) << 16) | (channel_data_raw[0] & 2**16-1)
-                channel_data[1] = ((channel_data_raw[3] & 2**16-1) << 16) | (channel_data_raw[2] & 2**16-1)
-
-                # correct amplitude,
-                channel_data[0] *= 5 * 2/(channel_property.t_measure-160)*channel_property.full_scale / 2**15 # outputs V, 5 for the aquisition in blocks of 5
-                channel_data[1] *= 5 * 2/(channel_property.t_measure-160)*channel_property.full_scale / 2**15 # outputs V
-
-                # make sure only the data of the wanted channel is returned.
-                if channel_property.number in self.channels:
-                    if self.my_instrument.data_mode in [DATA_MODE.AVERAGE_CYCLES, DATA_MODE.AVERAGE_TIME_AND_CYCLES]:
-                       data_out += (np.average(channel_data[0]), )
-                    else:
-                        data_out += (channel_data[0], )
-
-                if channel_property.number + 1 in self.channels:
-                    if self.my_instrument.data_mode in [DATA_MODE.AVERAGE_CYCLES, DATA_MODE.AVERAGE_TIME_AND_CYCLES]:
-                       data_out += (np.average(channel_data[1]), )
-                    else:
-                        data_out += (channel_data[1], )
-            else:
-                # correct amplitude,
-                channel_data_raw /= 32768. #convert bit to relative scale (-1/1)
-                channel_data_raw *= channel_property.full_scale*1000 #multiply with the relevant channel amplitude (standard in volt -> mV!)
-                channel_data_raw = channel_data_raw.reshape([channel_property.cycles, channel_property.points_per_cycle])
-
-                if self.my_instrument.data_mode == DATA_MODE.FULL:
-                    data_out += (channel_data_raw, )
-                elif self.my_instrument.data_mode == DATA_MODE.AVERAGE_TIME:
-                    data_out += (np.average(channel_data_raw, axis = 1), )
-                elif self.my_instrument.data_mode == DATA_MODE.AVERAGE_CYCLES:
-                    data_out += (np.average(channel_data_raw, axis = 0), )
-                elif self.my_instrument.data_mode == DATA_MODE.AVERAGE_TIME_AND_CYCLES:
-                    data_out += (np.average(channel_data_raw), )
+            if self.my_instrument.data_mode == DATA_MODE.FULL:
+                data_out += (channel_data_raw, )
+            elif self.my_instrument.data_mode == DATA_MODE.AVERAGE_TIME:
+                data_out += (np.average(channel_data_raw, axis = 1), )
+            elif self.my_instrument.data_mode == DATA_MODE.AVERAGE_CYCLES:
+                data_out += (np.average(channel_data_raw, axis = 0), )
+            elif self.my_instrument.data_mode == DATA_MODE.AVERAGE_TIME_AND_CYCLES:
+                data_out += (np.average(channel_data_raw), )
 
         return data_out
+
+
+    def _get_data_average(self):
+        data_out = tuple()
+
+         # note that we are acquirering two channels at the same time in this mode.
+        for channel_property in self.my_instrument.channel_properties.values():
+            # averaging mode: channels are read in pairs.
+            if channel_property.number in [2,4]:
+                # even numbers are read with odd channel.
+                continue
+            if channel_property.number not in self.channels and channel_property.number+1 not in self.channels:
+                # don't read anything if both channels not active.
+                continue
+
+            # make flat data structures.
+            channel_data_raw = np.zeros([channel_property.cycles*10], np.uint16)
+
+            self._read_channel_data(channel_property.number, channel_data_raw)
+
+            # format the data
+            channel_data_raw = channel_data_raw.reshape([channel_property.cycles, 10]).transpose().astype(np.int32)
+            channel_data = np.empty([2,channel_property.cycles])
+            channel_data[0] = ((channel_data_raw[1] & 2**16-1) << 16) | (channel_data_raw[0] & 2**16-1)
+            channel_data[1] = ((channel_data_raw[3] & 2**16-1) << 16) | (channel_data_raw[2] & 2**16-1)
+
+            # correct amplitude,
+            # outputs V, 5 for the aquisition in blocks of 5
+            channel_data[0] *= 5 * 2/(channel_property.t_measure-160)*channel_property.full_scale / 2**15
+            channel_data[1] *= 5 * 2/(channel_property.t_measure-160)*channel_property.full_scale / 2**15
+
+            # only add the data of the selected channels.
+            if channel_property.number in self.channels:
+                if self.my_instrument.data_mode in [DATA_MODE.AVERAGE_CYCLES, DATA_MODE.AVERAGE_TIME_AND_CYCLES]:
+                   data_out += (np.average(channel_data[0]), )
+                else:
+                    data_out += (channel_data[0], )
+
+            if channel_property.number + 1 in self.channels:
+                if self.my_instrument.data_mode in [DATA_MODE.AVERAGE_CYCLES, DATA_MODE.AVERAGE_TIME_AND_CYCLES]:
+                   data_out += (np.average(channel_data[1]), )
+                else:
+                    data_out += (channel_data[1], )
+
+        return data_out
+
+
+    def get_data(self):
+        """
+        Get data from the cards
+        """
+        if self.my_instrument.mode == MODES.NORMAL:
+            return self._get_data_normal()
+        else:
+            return self._get_data_average()
+
 
     def start_digitizers(self):
         # start digizers.
@@ -277,13 +303,11 @@ class SD_DIG(Instrument):
         super().__init__(name)
         """
         init keysight digitizer
-
         Args:
             name (str) : name of the digitizer
             chassis (int) : chassis number
             slot (int) : slot in the chassis where the digitizer is.
             n_channels (int) : number of channels on the digitizer card.
-
         NOTE: channels start for number 1! (e.g. channel 1, channel 2, channel 3, channel 4)
         """
         self.SD_AIN = keysightSD1.SD_AIN()
@@ -350,7 +374,7 @@ class SD_DIG(Instrument):
     def set_operating_mode(self, operation_mode):
         """
         Modes for operation
-
+        Only affects daq start and daq trigger in get_raw().
         Args:
             operation_mode (int) : mode of operation
                 0 : use software triggers (does call start and trigger in software)
@@ -362,7 +386,6 @@ class SD_DIG(Instrument):
     def set_active_channels(self, channels):
         """
         set the active channels:
-
         Args:
             channels (list) : channels numbers that need to be used
         """
@@ -393,7 +416,6 @@ class SD_DIG(Instrument):
     def set_daq_settings(self, channel, n_cycles, t_measure, sample_rate = 500e6, DAQ_trigger_delay = 0, DAQ_trigger_mode = 1):
         """
         quickset for the daq settings
-
         Args:
             n_cycles (int) : number of trigger to record.
             t_measure (float) : time to measure (unit : ns)
@@ -455,7 +477,6 @@ class SD_DIG(Instrument):
     def daq_flush(self, daq, verbose=False):
         """
         Flush the specified DAQ
-
         Args:
             daq (int)       : the DAQ you are flushing
         """
@@ -463,7 +484,6 @@ class SD_DIG(Instrument):
 
     def daq_stop(self, daq, verbose=False):
         """ Stop acquiring data on the specified DAQ
-
         Args:
             daq (int)       : the DAQ you are disabling
         """
@@ -472,7 +492,6 @@ class SD_DIG(Instrument):
     def writeRegisterByNumber(self, regNumber, varValue):
         """
         Write to a register of the AWG, by reffreing to the register number
-
         Args:
             regNumber (int) : number of the registry (0 to 16)
             varValue (int/double) : value to be written into the registry
@@ -483,7 +502,6 @@ class SD_DIG(Instrument):
 
     def daq_start_multiple(self, daq_mask, verbose=False):
         """ Start acquiring data or waiting for a trigger on the specified DAQs
-
         Args:
             daq_mask (int)  : the input DAQs you are enabling, composed as a bitmask
                               where the LSB is for DAQ_0, bit 1 is for DAQ_1 etc.
@@ -492,7 +510,6 @@ class SD_DIG(Instrument):
 
     def daq_trigger_multiple(self, daq_mask, verbose=False):
         """ Manually trigger the specified DAQs
-
         Args:
             daq_mask (int)  : the DAQs you are triggering, composed as a bitmask
                               where the LSB is for DAQ_0, bit 1 is for DAQ_1 etc.
@@ -541,7 +558,6 @@ class SD_DIG(Instrument):
     def set_digitizer_software(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL, channels = [1,2], Vmax = 2, fourchannel = False):
         """
         quick set of minumal settings to make it work.
-
         Args:
             t_measure (float) : time to measure in ns
             cycles (int) : number of cycles
@@ -568,7 +584,6 @@ class SD_DIG(Instrument):
     def set_digitizer_analog_trg(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL, channels = [1,2], Vmax = 2):
         """
         quick set of minumal settings to make it work.
-
         Args:
             t_measure (float) : time to measure in ns
             cycles (int) : number of cycles
@@ -592,10 +607,9 @@ class SD_DIG(Instrument):
             self.set_meas_time(t_measure)
             self.set_MAV_filter(16,1)
 
-    def set_digitizer_HVI(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL, channels = [1,2], Vmax = 2):
+    def set_digitizer_HVI(self, t_measure, cycles, sample_rate=500e6, data_mode=DATA_MODE.FULL, channels=[1,2], Vmax=2):
         """
-        quick set of minumal settings to make it work.
-
+        quick set of minimal settings to make it work.
         Args:
             t_measure (float) : time to measure in ns
             cycles (int) : number of cycles
@@ -617,8 +631,8 @@ class SD_DIG(Instrument):
 if __name__ == '__main__':
 #%%
           # load digitizer
-    digitizer1.close()
-    digitizer1 = SD_DIG("digitizer1", chassis = 0, slot = 5)
+    # digitizer1.close()
+    digitizer1 = SD_DIG("digitizer1", chassis = 0, slot = 6)
 
     # clear all ram (normally not needed, but just to sure)
     digitizer1.daq_flush(1)
@@ -626,44 +640,45 @@ if __name__ == '__main__':
     digitizer1.daq_flush(3)
     digitizer1.daq_flush(4)
 
-    digitizer1.set_aquisition_mode(MODES.AVERAGE)
+    # digitizer1.set_aquisition_mode(MODES.AVERAGE)
 
     #%%
     # simple example
-
+    digitizer1.set_digitizer_software(1e3, 10, sample_rate=500e6, data_mode=DATA_MODE.AVERAGE_TIME_AND_CYCLES, channels=[1,2], Vmax=0.25, fourchannel=False)
+    print(digitizer1.measure())
     ####################################
     #  settings (feel free to change)  #
-    ####################################
-    t_list = np.logspace(2.3, 2.7, 20)
-    res =[]
-    for t in t_list:
-        cycles = 1000
-        t_measure = t #e3 # ns
-        ####################################
+    # ####################################
+    # t_list = np.logspace(2.3, 2.7, 20)
+    # res =[]
+    # for t in t_list:
+    #     cycles = 1000
+    #     t_measure = t #e3 # ns
+    #     ####################################
 
 
-        # show some multiparameter properties
-        # print(digitizer1.measure.shapes)
-        # print(digitizer1.measure.setpoint_units)
-        # print(digitizer1.measure.setpoints)
-        # # measure the parameter
-        digitizer1.set_digitizer_software(t_measure, cycles, data_mode=DATA_MODE.FULL, channels = [1,2])
-        digitizer1.set_MAV_filter()
-        data = digitizer1.measure()
-        #    print(data)
-    #    plt.clf()
-        #    plt.plot(data[0][:,2], 'o-')
-        #    plt.plot(data[0][:,3], 'o-')
-    #    plt.plot(data[1], 'o-')
-        # print(data[0].shape, data[1].shape)
+    #     # show some multiparameter properties
+    #     # print(digitizer1.measure.shapes)
+    #     # print(digitizer1.measure.setpoint_units)
+    #     # print(digitizer1.measure.setpoints)
+    #     # # measure the parameter
+    #     digitizer1.set_digitizer_software(t_measure, cycles, data_mode=DATA_MODE.FULL, channels = [1,2])
+    #     digitizer1.set_MAV_filter()
+    #     data = digitizer1.measure()
+    #     #    print(data)
+    # #    plt.clf()
+    #     #    plt.plot(data[0][:,2], 'o-')
+    #     #    plt.plot(data[0][:,3], 'o-')
+    # #    plt.plot(data[1], 'o-')
+    #     # print(data[0].shape, data[1].shape)
 
-        res.append(np.mean(data[1]))
+    #     res.append(np.mean(data[1]))
 
-    #t_list = t_list-166
-    #res = np.array(res)/np.array(t_list)
-    plt.figure(2)
-    plt.clf()
-    plt.plot(t_list, res, 'o-')
+    # #t_list = t_list-166
+    # #res = np.array(res)/np.array(t_list)
+    # plt.figure(2)
+    # plt.clf()
+    # plt.plot(t_list, res, 'o-')
 
     #def fit_func(x, m, q):
     #    return x*m+q
