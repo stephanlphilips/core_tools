@@ -146,7 +146,7 @@ class harware_parent(qc.Instrument):
             vg_meta = {}
             vg_meta['real_gate_names'] = vg.real_gate_names
             vg_meta['virtual_gate_names'] = vg.virtual_gate_names
-            vg_meta['virtual_gate_matrix'] = vg_mat            
+            vg_meta['virtual_gate_matrix'] = str(vg_mat)
             vg_snap[vg.name] = vg_meta
         self.snap = {'AWG_to_DAC': self.AWG_to_dac_conversion,
                  'dac_gate_map': self.dac_gate_map,
