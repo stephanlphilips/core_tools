@@ -266,10 +266,6 @@ try:
                 fig = plt.figure(fig)
                 fig.savefig(fname)
             elif isinstance(fig, QtWidgets.QWidget):
-                # generic method
-                figtemp = fig.plotwin.grab()
-                figtemp.save(fname)
-            elif isinstance(fig, QtWidgets.QWidget):
                 try:
                     figtemp = QtGui.QPixmap.grabWidget(fig)
                 except:
