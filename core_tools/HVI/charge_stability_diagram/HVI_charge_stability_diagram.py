@@ -8,7 +8,7 @@ try:
 except:
     warnings.warn("\nAttemting to use a file that needs Keysight AWG libraries. Please install if you need them.\n")
 
-import V2_software.HVI_files.charge_stability_diagram as ct
+import core_tools.HVI.charge_stability_diagram as ct
 import time
 
 HVI_ID = "HVI_charge_stability_diagram.HVI"
@@ -33,12 +33,12 @@ def load_HVI(AWGs, channel_map, *args,**kwargs):
 	HVI = keysightSD1.SD_HVI()
 	a = HVI.open(ct.__file__[:-11] + "HVI_charge_stability_diagram.HVI")
 
-	error = HVI.assignHardwareWithUserNameAndSlot("Module 0",0,2)
-	error = HVI.assignHardwareWithUserNameAndSlot("Module 1",0,3)
-	error = HVI.assignHardwareWithUserNameAndSlot("Module 2",0,4)
-	error = HVI.assignHardwareWithUserNameAndSlot("Module 3",0,5)
-	error = HVI.assignHardwareWithUserNameAndSlot("Module 4",0,6)
-	
+	error1 = HVI.assignHardwareWithUserNameAndSlot("Module 0",0,2)
+	error2 = HVI.assignHardwareWithUserNameAndSlot("Module 1",0,3)
+	error3 = HVI.assignHardwareWithUserNameAndSlot("Module 2",0,4)
+	error4 = HVI.assignHardwareWithUserNameAndSlot("Module 3",0,5)
+	error5 = HVI.assignHardwareWithUserNameAndSlot("Module 4",0,6)
+	print(a, error1, error2, error3, error4, error5)
 	HVI.compile()
 	HVI.load()
 
@@ -87,7 +87,7 @@ def excute_HVI(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 	length = int(playback_time/10 + 20)
 
 	for awgname, awg in AWGs.items():
-		awg.writeRegisterByNumber(3, int(length))
+		awg.awg.writeRegisterByNumber(3, int(length))
 
 	dig = kwargs['digitizer'] 
 	t_single_point = kwargs['t_measure']
@@ -95,12 +95,12 @@ def excute_HVI(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 
 	t_single_point_formatted = int((t_single_point)/10) # divide by 10 since 100MHz clock (160 ns HVI overhead)
 
-	dig.writeRegisterByNumber(2, npt)
-	dig.writeRegisterByNumber(3, t_single_point_formatted)
-	
+	dig.SD_AIN.writeRegisterByNumber(2, npt)
+	dig.SD_AIN.writeRegisterByNumber(3, t_single_point_formatted)
+
 	if 'averaging' in kwargs:
-		dig.set_meas_time(kwargs['t_measure'])
-		dig.set_MAV_filter(16,1)
+		dig.set_meas_time(kwargs['t_measure'], fourchannel = True)
+		dig.set_MAV_filter(16,1, fourchannel = True)
 
 	HVI.start()
 

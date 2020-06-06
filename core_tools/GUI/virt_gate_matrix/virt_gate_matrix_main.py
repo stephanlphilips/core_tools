@@ -1,4 +1,4 @@
-from V2_software.drivers.virtual_gates.GUI.virt_gate_matrix_window import Ui_MainWindow
+from core_tools.GUI.virt_gate_matrix.virt_gate_matrix_window import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
 
@@ -163,7 +163,8 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
             tableWidget.setHorizontalHeaderItem(i, item)
             item.setText(_translate("MainWindow", virtual_gate_set.virtual_gate_names[i]))
             
-        tableWidget.horizontalHeader().setDefaultSectionSize(60)
+        tableWidget.horizontalHeader().setDefaultSectionSize(65)
+        tableWidget.horizontalHeader().setMaximumSectionSize(100)
         tableWidget.horizontalHeader().setMinimumSectionSize(30)
         tableWidget.verticalHeader().setDefaultSectionSize(37)
         gridLayout.addWidget(tableWidget, 0, 0, 1, 1)
@@ -180,11 +181,11 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 font.setPointSize(11)
                 doubleSpinBox.setFont(font)
                 doubleSpinBox.setSizePolicy(sizePolicy)
-                doubleSpinBox.setMinimumSize(QtCore.QSize(20, 0))
-                doubleSpinBox.setMaximumSize(QtCore.QSize(60, 100))
+                doubleSpinBox.setMinimumSize(QtCore.QSize(30, 0))
+                doubleSpinBox.setMaximumSize(QtCore.QSize(100, 100))
                 doubleSpinBox.setWrapping(False)
                 doubleSpinBox.setFrame(False)
-                doubleSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+                # doubleSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
                 doubleSpinBox.setPrefix("")
                 doubleSpinBox.setMaximum(5.0)
                 doubleSpinBox.setMinimum(-5.0)
