@@ -1,3 +1,4 @@
+README.md
 setup.py
 core_tools/__init__.py
 core_tools.egg-info/PKG-INFO
@@ -34,13 +35,8 @@ core_tools/GUI/param_viewer/param_viewer_GUI_window.py
 core_tools/HVI/__init__.py
 core_tools/HVI/charge_stability_diagram/HVI_charge_stability_diagram.py
 core_tools/HVI/charge_stability_diagram/__init__.py
-core_tools/HVI/charge_stability_diagram_fast/HVI_charge_stability_diagram.py
-core_tools/HVI/charge_stability_diagram_fast/__init__.py
 core_tools/HVI/single_shot_exp/HVI_single_shot.py
 core_tools/HVI/single_shot_exp/__init__.py
-core_tools/HVI/single_shot_exp_SD_corr/HVI_single_shot.py
-core_tools/HVI/single_shot_exp_SD_corr/__init__.py
-core_tools/HVI/single_shot_exp_SD_corr/generate_SD_corr_sequence.py
 core_tools/sweeps/__init__.py
 core_tools/sweeps/pulse_lib_sweep.py
 core_tools/sweeps/Modulated_scans/DEMOD_tests.py
