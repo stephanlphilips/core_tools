@@ -209,7 +209,8 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def update_v_gates(self, matrix, update_list):
         for i,j, spin_box in update_list:
-            spin_box.setValue(matrix[i,j])
+            if not spin_box.hasFocus():
+                spin_box.setValue(matrix[i,j])
 
 if __name__ == "__main__":
     import sys
