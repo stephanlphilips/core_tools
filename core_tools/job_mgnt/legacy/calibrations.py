@@ -1,9 +1,10 @@
+from datetime import datetime
+
 import threading as th
 import time, logging, importlib, os, time
 import inspect
 import os
 import sqlite3
-from datetime import datetime
 
 class CalibrationMaster():
     # Parent class for all the calibration classes.
@@ -29,10 +30,9 @@ class CalibrationMaster():
         self.my_database = None
     
     def __connect(self):
-        # Get path where the database is saved.
         module_location = inspect.getmodule(self).__file__
         filename_db = os.path.splitext(module_location)[0] + '.sqlite'
-        # connect to your database
+
         db = sqlite3.connect(filename_db)
         cursor = db.cursor()
         return db, cursor
