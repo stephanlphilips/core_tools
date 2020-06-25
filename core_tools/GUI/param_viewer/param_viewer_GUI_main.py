@@ -5,6 +5,7 @@ from functools import partial
 from qcodes import Station
 import numpy as np
 from dataclasses import dataclass
+import logging
 
 @dataclass
 class param_data_obj:
@@ -15,13 +16,16 @@ class param_data_obj:
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, station, gates_object = None):
+    def __init__(self, station, gates_object = None, max_diff = 100):
         if type(station) is not Station:
             raise Exception('Syntax changed, to support RF_settings now supply station')
         self.real_gates = list()
         self.virtual_gates = list()
         self.rf_settings = list()
         self.station = station
+        self.max_diff = max_diff
+        self.locked = False
+        
         if gates_object:
             self.gates_object = gates_object
         else:
@@ -58,7 +62,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             for gate_name in virt_gate_set.virtual_gate_names:
                 param = getattr(self.gates_object, gate_name)
                 self._add_gate(param, True)
-
+        
+        self.lock.stateChanged.connect(lambda: self._update_lock(self.lock.isChecked()))
         self.step_size.valueChanged.connect(partial(self._update_step, self.step_size.value))
         self._finish_gates_GUI()
 
@@ -118,6 +123,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         
         # TODO collect boundaries out of the harware
         set_input.setRange(-1e9,1e9)
+        set_input.setValue(parameter()/division)
         set_input.valueChanged.connect(partial(self._set_set, parameter, set_input.value,division))
         set_input.setKeyboardTracking(False)
         set_input.setSingleStep(step_size)
@@ -163,6 +169,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         
         # TODO collect boundaries out of the harware
         voltage_input.setRange(-4000,4000.0)
+        voltage_input.setValue(parameter())
         voltage_input.valueChanged.connect(partial(self._set_gate, parameter, voltage_input.value))
         voltage_input.setKeyboardTracking(False)
         layout.addWidget(voltage_input, i, 1, 1, 1)
@@ -178,11 +185,19 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def _set_gate(self, gate, value):
         # TODO add support if out of range.
-        gate.set(value())
+        logging.info(f'setting {gate} to {value():.1f}')
+        if value() - gate() < self.max_diff:
+            if not self.locked:
+                gate.set(value())
+            else:
+                logging.warning(f'not changing voltage, PV is locked!')
+        else:
+            logging.warning(f'not setting {gate} to {value():.1f}, difference {value() - gate():.0f} mV larger than allowed (self.max_diff:.0f) mV')
 
     def _set_set(self, setting, value, division):
         # TODO add support if out of range.
         setting.set(value()*division)
+        logging.info(f'setting {setting} to {value():.1f} times {division:.1f}')
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
         self.gates_object.hardware.sync_data()
 
@@ -231,26 +246,6 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             # do not update when a user clicks on it.
             if not param.gui_input_param.hasFocus():
                 param.gui_input_param.setValue(param.param_parameter()/param.division)
-
-        
-
-if __name__ == "__main__":
-    import sys
-    import qcodes as qc
-    from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example 
-    from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
-    from V2_software.drivers.virtual_gates.instrument_drivers.gates import gates
-
-    my_dac_1 = virtual_dac("dac_a", "virtual")
-    my_dac_2 = virtual_dac("dac_b", "virtual")
-    my_dac_3 = virtual_dac("dac_c", "virtual")
-    my_dac_4 = virtual_dac("dac_d", "virtual")
-
-    hw =  hardware_example("hw")
-    my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
-
-    # app = QtWidgets.QApplication(sys.argv)
-    # MainWindow = QtWidgets.QMainWindow()
-    ui = param_viewer(my_gates)
-    # MainWindow.show()
-    # sys.exit(app.exec_())
+            
+    def _update_lock(self, locked):
+        self.locked = locked

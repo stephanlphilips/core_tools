@@ -36,7 +36,7 @@
              <x>0</x>
              <y>0</y>
              <width>756</width>
-             <height>495</height>
+             <height>470</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_6">
@@ -161,6 +161,20 @@
        </layout>
       </widget>
      </widget>
+    </item>
+    <item row="1" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QCheckBox" name="lock">
+        <property name="text">
+         <string>Lock parameter viewer</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
