@@ -266,10 +266,6 @@ try:
                 fig = plt.figure(fig)
                 fig.savefig(fname)
             elif isinstance(fig, QtWidgets.QWidget):
-                # generic method
-                figtemp = fig.plotwin.grab()
-                figtemp.save(fname)
-            elif isinstance(fig, QtWidgets.QWidget):
                 try:
                     figtemp = QtGui.QPixmap.grabWidget(fig)
                 except:
@@ -309,7 +305,7 @@ try:
                 notes = '\n' + extranotes + '\n' + notes
             if gates is not None:
                 notes = 'gates: ' + str(gates.allvalues()) + '\n\n' + notes
-        if isinstance(notes, qcodes.DataSet):
+        if isinstance(notes, qcodes.data.data_set.DataSet):
             notes = reshape_metadata(notes, printformat='s', add_gates=True)
 
         if notes is not None:
