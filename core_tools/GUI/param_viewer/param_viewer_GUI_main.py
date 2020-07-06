@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
 from core_tools.GUI.param_viewer.param_viewer_GUI_window import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
+import qcodes as qc
 from qcodes import Station
 import numpy as np
 from dataclasses import dataclass
@@ -15,7 +17,7 @@ class param_data_obj:
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, station, gates_object = None):
+    def __init__(self, station : Station, gates_object: Optional[object] = None):
         if type(station) is not Station:
             raise Exception('Syntax changed, to support RF_settings now supply station')
         self.real_gates = list()
@@ -73,7 +75,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     def _update_step(self, value):
         self.update_step(value())
 
-    def update_step(self, value):
+    def update_step(self, value : float):
+        """ Update step size of the parameter GUI elements with the specified value """
         self._step_size = value
         for gate in self.real_gates:
             gate.gui_input_param.setSingleStep(value)
@@ -82,13 +85,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.step_size.setValue(value)
 
-    def _add_RFset(self, parameter):
-        '''
-        add a new gate.
+    def _add_RFset(self, parameter : qc.Parameter):
+        ''' Add a new RF.
 
         Args:
             parameter (QCoDeS parameter object) : parameter to add.
-            virtual (bool) : True in case this is a virtual gate.
         '''
 
         i = len(self.rf_settings)
@@ -130,7 +131,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         layout.addWidget(set_unit, i, 2, 1, 1)
         self.rf_settings.append(param_data_obj(parameter,  set_input, division))
 
-    def _add_gate(self, parameter, virtual):
+    def _add_gate(self, parameter : qc.Parameter, virtual : bool):
         '''
         add a new gate.
 
