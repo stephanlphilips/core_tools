@@ -12,7 +12,7 @@ import time
 class fake_digitizer(MultiParameter):
         """docstring for fake_digitizer"""
         def __init__(self, name):
-            super().__init__(name=name, names = ("chan 1", "chan 2"), shapes = tuple([(20,20)]*2),
+            super().__init__(name=name, names = ("chan_1", "chan_2"), shapes = tuple([(20,20)]*2),
                         labels = ("chan 1", "chan 2"), units =("mV", "mV"),
                         docstring='1D scan parameter for digitizer')
 
