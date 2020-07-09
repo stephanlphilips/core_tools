@@ -2,13 +2,11 @@
 
 # Form implementation generated from reading ui file 'param_viewer_GUI_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.13.1
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -28,7 +26,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 758, 491))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 756, 495))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout_6 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_6.setObjectName("gridLayout_6")
@@ -46,6 +44,15 @@ class Ui_MainWindow(object):
         self.layout_virtual.setObjectName("layout_virtual")
         self.gridLayout_5.addLayout(self.layout_virtual, 0, 0, 1, 1)
         self.tab_menu.addTab(self.virtualgates, "")
+        self.RFsettings = QtWidgets.QWidget()
+        self.RFsettings.setObjectName("RFsettings")
+        self.layoutWidget = QtWidgets.QWidget(self.RFsettings)
+        self.layoutWidget.setGeometry(QtCore.QRect(10, 10, 761, 501))
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.layout_RF = QtWidgets.QGridLayout(self.layoutWidget)
+        self.layout_RF.setContentsMargins(0, 0, 0, 0)
+        self.layout_RF.setObjectName("layout_RF")
+        self.tab_menu.addTab(self.RFsettings, "")
         self.settings = QtWidgets.QWidget()
         self.settings.setObjectName("settings")
         self.gridLayout_3 = QtWidgets.QGridLayout(self.settings)
@@ -80,7 +87,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.tab_menu, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 20))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -96,16 +103,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.tab_menu.setTabText(self.tab_menu.indexOf(self.realgates), _translate("MainWindow", "Normal gates"))
         self.tab_menu.setTabText(self.tab_menu.indexOf(self.virtualgates), _translate("MainWindow", "Virtual Gates"))
+        self.tab_menu.setTabText(self.tab_menu.indexOf(self.RFsettings), _translate("MainWindow", "RF Settings"))
         self.label.setText(_translate("MainWindow", "Voltage step"))
         self.label_2.setText(_translate("MainWindow", "mV"))
         self.tab_menu.setTabText(self.tab_menu.indexOf(self.settings), _translate("MainWindow", "Settings"))
 
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())

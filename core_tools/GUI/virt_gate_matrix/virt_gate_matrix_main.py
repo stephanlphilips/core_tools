@@ -1,3 +1,4 @@
+from typing import List
 from core_tools.GUI.virt_gate_matrix.virt_gate_matrix_window import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
@@ -18,7 +19,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         self.gates_object.hardware.AWG_to_dac_conversion = pulse_lib.AWG_to_dac_ratio
         # reassigning since python pointers do not really work in python :( (<3<3<3 c++)
         pulse_lib.AWG_to_dac_ratio = self.gates_object.hardware.AWG_to_dac_conversion
-        
+
         # set graphical user interface
         self.app = QtCore.QCoreApplication.instance()
         if self.app is None:
@@ -31,7 +32,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         for gate in pulse_lib.AWG_to_dac_ratio:
             if gate not in pulse_lib.awg_markers:
                 self.add_gate(gate)
-        
+
 
         self.add_spacer()
 
@@ -80,13 +81,13 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         db_ratio.setValue(20*np.log10(self.pulse_lib.AWG_to_dac_ratio[gate_name]))
         db_ratio.valueChanged.connect(partial(self.update_db_ratio, gate_name))
         self.verticalLayout_3.addWidget(db_ratio)
-        
+
         self.AWG_attentuation_local_data[gate_name] = (v_ratio, db_ratio)
 
     def update_db_ratio(self, gate_name):
         '''
         On change of the db ratio, update the voltage ratio to the corresponding value + update in the virtual gate matrixes.
-        
+
         Args:
             gate_name (str) : name of the gate the is being updated
         '''
@@ -100,7 +101,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
     def update_v_ratio(self, gate_name):
         '''
         On change of the voltage ratio, update the db ratio to the corresponding value + update in the virtual gate matrixes.
-        
+
         Args:
             gate_name (str) : name of the gate the is being updated
         '''
@@ -156,19 +157,19 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         tableWidget.setRowCount(len(virtual_gate_set))
         for i in range(len(virtual_gate_set)):
             item = QtWidgets.QTableWidgetItem()
-            tableWidget.setVerticalHeaderItem(i, item)
+            tableWidget.setHorizontalHeaderItem(i, item)
             item.setText(_translate("MainWindow", virtual_gate_set.real_gate_names[i]))
 
             item = QtWidgets.QTableWidgetItem()
-            tableWidget.setHorizontalHeaderItem(i, item)
+            tableWidget.setVerticalHeaderItem(i, item)
             item.setText(_translate("MainWindow", virtual_gate_set.virtual_gate_names[i]))
-            
+
         tableWidget.horizontalHeader().setDefaultSectionSize(65)
         tableWidget.horizontalHeader().setMaximumSectionSize(100)
         tableWidget.horizontalHeader().setMinimumSectionSize(30)
         tableWidget.verticalHeader().setDefaultSectionSize(37)
         gridLayout.addWidget(tableWidget, 0, 0, 1, 1)
-        
+
         update_list = []
         for i in range(len(virtual_gate_set)):
             for j in range(len(virtual_gate_set)):
@@ -192,7 +193,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setSingleStep(0.01)
                 doubleSpinBox.setDecimals(3)
                 doubleSpinBox.setValue(virtual_gate_set.virtual_gate_matrix[i,j])
-                doubleSpinBox.setObjectName("doubleSpinBox")
+                doubleSpinBox.setObjectName(f'doubleSpinBox-{i}-{j}')
                 doubleSpinBox.valueChanged.connect(partial(self.linked_result, virtual_gate_set.virtual_gate_matrix, i, j, doubleSpinBox))
                 update_list.append((i,j, doubleSpinBox))
                 tableWidget.setCellWidget(i, j, doubleSpinBox)
@@ -207,15 +208,22 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         matrix[i,j] = spin_box.value()
         self.gates_object.hardware.sync_data()
 
-    def update_v_gates(self, matrix, update_list):
-        for i,j, spin_box in update_list:
-            spin_box.setValue(matrix[i,j])
+    def update_v_gates(self, matrix : np.ndarray, update_list : List[QtWidgets.QDoubleSpinBox]):
+        """ Update the virtual gate matrix elements
+
+        Args:
+            matrix: Array with new values
+            update_list: List with GUI boxes
+        """
+        for row, column, spin_box in update_list:
+            if not spin_box.hasFocus():
+                spin_box.setValue(matrix[row, column])
 
 if __name__ == "__main__":
     import sys
     from V2_software.pulse_lib_config.Init_pulse_lib_debug import return_pulse_lib
     import qcodes as qc
-    from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example 
+    from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
     from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
     from V2_software.drivers.virtual_gates.instrument_drivers.gates import gates
 

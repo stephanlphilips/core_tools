@@ -35,8 +35,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>758</width>
-             <height>491</height>
+             <width>756</width>
+             <height>495</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_6">
@@ -58,6 +58,22 @@
          <layout class="QGridLayout" name="layout_virtual"/>
         </item>
        </layout>
+      </widget>
+      <widget class="QWidget" name="RFsettings">
+       <attribute name="title">
+        <string>RF Settings</string>
+       </attribute>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>761</width>
+          <height>501</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="layout_RF"/>
+       </widget>
       </widget>
       <widget class="QWidget" name="settings">
        <attribute name="title">
@@ -154,7 +170,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
