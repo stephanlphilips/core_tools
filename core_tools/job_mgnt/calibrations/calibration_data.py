@@ -9,11 +9,11 @@ class data_mgr():
 
         '''
         self.filename_db = db_location + '.sqlite'
+        self.cal_object = cls_object
         self.table_name = cls_object.__class__.__name__
         
-        # self.set_param = cls_object.set_param
-        # self.get_param = cls_object.get_param
-
+        self.__update_table()
+    
     def __connect(self):
         db = sqlite3.connect(self.filename_db)
         cursor = db.cursor()
@@ -48,45 +48,26 @@ class data_mgr():
         db.close()
         return mydata
 
-    def update_table(self):
+    def __update_table(self):
         '''
         function that will construct if not already there the database where the data will be saved. 
         Note that is is no problem running this when no update is strictly needed (e.g. when you start up the module)
         NOTE: that existing fields will not be updated. Use stash_table to rename it and create a new one if you want to do that.
         '''
-        # Get data that needs to be saved.
-        base_colomns = [('Time_human_readable','TEXT', 'a.u.')]
-        all_colls = base_colomns + self.calibration_params
-
-        # Connect to the database.
-        db, cursor = self.__connect()
-
-        # Check if table exists of data
-        cursor.execute("select count(*) from sqlite_master where type='table' and name='%s'"% self.table_name)
-        exists = True if cursor.fetchall()[0][0]==1 else False
-
-        if not exists:
-            cursor.execute('CREATE TABLE %s (time DOUBLE PRIMARY KEY)' %self.table_name)
-            cursor.execute('CREATE TABLE %s (varname TEXT, unit TEXT)' %(self.table_name + '_units'))
-            cursor.execute("INSERT INTO %s VALUES ('%s', '%s')" % (self.table_name + '_units', 'time', 's'))
+        generate_table =  "CREATE TABLE IF NOT EXISTS {} (\
+                    id data_type PRIMARY KEY,\
+                    meas_time TEXT not NULL)".format(self.table_name)
+        self.__exec_command(generate_table)
 
         # Get current columns in the data base:
-        cursor.execute("PRAGMA table_info('%s')"%self.table_name)
-        db_colomn_info = cursor.fetchall()
-        db_colomn_names= [i[1].lower() for i in db_colomn_info]
-        # Check if all the wanted coloms are there (suppose users made up their mind about the datype they want to use...)
+        db_paramters = self.cal_object.set_vals.get_db_column_names() + self.cal_object.get_vals.get_db_column_names()
+        db_column_info = self.__query_db("PRAGMA table_info('%s')"%self.table_name)
+        db_column_names= [db_column_name[1].lower() for db_column_name in db_column_info]
+        
+        column_to_add = [param_name for param_name in db_paramters if param_name[0].lower() not in db_column_names]
 
-        columms_to_add = [i for i in all_colls if i[0].lower() not in db_colomn_names]
-
-        # Add missing colomn to table
-        for i in columms_to_add:
-            cursor.execute("ALTER TABLE %s ADD COLUMN '%s' %s" % (self.table_name, i[0], i[1]))
-            cursor.execute("INSERT INTO %s VALUES ('%s', '%s')" % (self.table_name + '_units', i[0], i[2]))
-
-        # commit changes
-        db.commit()
-        # Close conn
-        db.close()
+        for param in column_to_add:
+            self.__exec_command("ALTER TABLE {} ADD COLUMN {} {}".format(self.table_name, param, 'DOUBLE'))
 
     def stash_table(self):
         '''
@@ -95,21 +76,13 @@ class data_mgr():
         heck if the table has the right entries.
         '''
         time = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-        db, cursor = self.__connect()
-        cursor.execute("ALTER TABLE %s RENAME TO %s"%(self.table_name, self.table_name + '_' + time))
-        cursor.execute("ALTER TABLE %s RENAME TO %s"%(self.table_name+ '_units', self.table_name + '_units' + '_' + time))
-        db.commit()
-        db.close()
+        self.__exec_command("ALTER TABLE %s RENAME TO %s"%(self.table_name, self.table_name + '_' + time))
 
     def delete_table(self):
         '''
         Delete the current table.
         '''
-        db, cursor = self.__connect()
-        cursor.execute("DROP TABLE %s"% self.table_name)
-        cursor.execute("DROP TABLE %s"% (self.table_name + '_units'))
-        db.commit()
-        db.close()
+        self.__exec_command("DROP TABLE %s"% self.table_name)
 
     def get_all_parameter_names(self):
         '''
@@ -117,10 +90,10 @@ class data_mgr():
         '''
         db, cursor = self.__connect()
         cursor.execute("PRAGMA table_info('%s')"%self.table_name)
-        db_colomn_info = cursor.fetchall()
-        db_colomn_names= [i[1].lower() for i in db_colomn_info]
+        db_column_info = cursor.fetchall()
+        db_column_names= [i[1].lower() for i in db_column_info]
         db.close()
-        return db_colomn_names
+        return db_column_names
 
     def save_calib_results(self, data_tuple):
         '''
@@ -201,4 +174,18 @@ class data_mgr():
             return list(self.__query_db(cmd)[0][1:])
 
 if __name__ == '__main__':
-    d = data_mgr('test', 'test/')
+
+    class value_mgr():
+        def __init__(self, *args):
+            self.vals = tuple(args)
+
+        def get_db_column_names(self):
+            return self.vals 
+
+    class test_cal():
+        def __init__(self):
+            self.set_vals = value_mgr('frequency', 'amplitude')
+            self.get_vals = value_mgr('omega_qubit_1')
+
+    d = data_mgr(test_cal(), 'test/my_test_db')
+    print(d.get_all_parameter_names())
