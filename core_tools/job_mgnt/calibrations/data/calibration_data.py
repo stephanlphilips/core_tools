@@ -1,3 +1,5 @@
+from core_tools.job_mgnt.calibrations.data.calibration_querier import querier
+
 import sqlite3
 import time
 
@@ -15,6 +17,7 @@ class data_mgr():
 
         self.__update_table()
         self.current_line = None
+        self.query = querier(self, cls_object)
 
     def __connect(self):
         db = sqlite3.connect(self.filename_db)
@@ -33,7 +36,7 @@ class data_mgr():
         db.commit()
         db.close()
 
-    def __query_db(self, cmd):
+    def _query_db(self, cmd):
         '''
         Aks for values in the database/execute command in the database.
 
@@ -65,9 +68,9 @@ class data_mgr():
 
         # Get current columns in the data base:
         db_paramters = self.cal_object.set_vals.get_db_column_names() + self.cal_object.get_vals.get_db_column_names()
-        db_column_info = self.__query_db("PRAGMA table_info('%s')"%self.table_name)
+        db_column_info = self._query_db("PRAGMA table_info('%s')"%self.table_name)
         db_column_names= [db_column_name[1].lower() for db_column_name in db_column_info]
-        column_to_add = [param_name for param_name in db_paramters if param_name.lower() not in db_column_names]
+        column_to_add = [param_name for param_name in db_paramters if str(param_name).lower() not in db_column_names]
 
         for param in column_to_add:
             self.__exec_command("ALTER TABLE {} ADD COLUMN {} {}".format(self.table_name, param, 'DOUBLE'))
@@ -93,7 +96,7 @@ class data_mgr():
         '''
         cmd = 'INSERT INTO {} (start_time, success) values ({}, TRUE)'.format(self.table_name, time.time())
         self.__exec_command(cmd)
-        self.current_line = self.__query_db('SELECT id from {} order by ROWID DESC limit 1'.format(self.table_name))[0][0]
+        self.current_line = self._query_db('SELECT id from {} order by ROWID DESC limit 1'.format(self.table_name))[0][0]
 
     def write(self, parameter, value):
         ''' 
@@ -127,25 +130,28 @@ class data_mgr():
         '''
         checks if the current db is empty
         '''
-        pass
-
-    def query(self):
-        # --> make into object.
-        pass
+        pass      
+        
 
 if __name__ == '__main__':
+    from core_tools.job_mgnt.calibrations.data.calibration_parameter import CalibrationParameter
 
     class value_mgr():
         def __init__(self, *args):
             self.vals = tuple(args)
 
         def get_db_column_names(self):
-            return self.vals 
+            val = []
+            for i in self.vals:
+                val.append(str(i))
+            return val
+        def get_param(self):
+            return self.vals
 
     class test_cal():
         def __init__(self):
-            self.set_vals = value_mgr('frequency', 'amplitude')
-            self.get_vals = value_mgr('omega_qubit_1')
+            self.set_vals = value_mgr(CalibrationParameter('frequency'), CalibrationParameter('amplitude'))
+            self.get_vals = value_mgr(CalibrationParameter('omega_qubit_1'))
 
     d = data_mgr(test_cal(), 'my_test_db')
     # d.write('frequency', 1e6)
@@ -157,4 +163,20 @@ if __name__ == '__main__':
     # d.write('omega_qubit_1', 1.23e2)
     # d.write('amplitude', 0.201)
     # d.finish_data_entry(False)
-    
+
+    # specify which field to get from the database
+    d.query.frequency.get()
+    d.query.amplitude.get()
+    d.query.start_time.get()
+
+    # specify some conditions (optional)
+    # d.query.amplitude > 100 # putting a condition is a implicit get
+    d.query.success == True
+    d.query.frequency != None
+
+    # sort data on specific element. (default sorting on excecution time)
+    d.query.frequency.sort('DESC')
+
+    # specify the number of entries to return (optional)
+    d.query.n_results(50)
+    print(d.query.get())
