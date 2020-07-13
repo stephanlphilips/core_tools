@@ -70,7 +70,9 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(partial(self._update_parameters))
         self.timer.start(500)
-
+        
+        self.setWindowTitle('Parameter viewer')
+        
         self.show()
         if instance_ready == False:
             self.app.exec()
