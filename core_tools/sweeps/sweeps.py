@@ -21,6 +21,7 @@ class scan_generic(metaclass=job_meta):
             reset_param (bool) : reset the setpoint parametes to their original value after the meaurement 
         '''
         self.meas = Measurement()
+        self.name = ''
 
         self.set_vars = []
         self.m_instr = []
@@ -44,9 +45,17 @@ class scan_generic(metaclass=job_meta):
             self.meas.register_parameter(instr, setpoints=tuple(set_points[::-1]))
                 
         self.n_tot = 1
+
+        if len(self.set_vars) == 0:
+            self.name = '0D_' + self.m_instr[0].name[:10]
+        else:
+            self.name += '{}D_'.format(len(self.set_vars))
+
         for swp_info in self.set_vars:
             self.n_tot *= swp_info.n_points
-
+            self.name += '{} '.format(swp_info.param.name[:10])
+        self.meas.name = self.name
+        
     def run(self):
         '''
         run function
@@ -198,6 +207,4 @@ if __name__ == '__main__':
     param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'))
     data_1D = param_1D.get()
     do0D(param_2D).run()
-    # do1D(x, 0, 100, 50, 0.1 , my_param, reset_param=True).run()
-    # do2D(x, 0, 20, 20, 0.0, y, 0, 80, 30, 0.01, my_param).run()
-    # do2D(x, 0, 20, 20, 0.0, timer, 0, 80, 30, 0.1, my_param).run()
+    do1D(x, 0,5,100, 0.01, param_1D).run()
