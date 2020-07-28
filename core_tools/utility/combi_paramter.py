@@ -28,7 +28,7 @@ def make_combiparameter(*args):
         *args : list of gates or parameters
         (e.g. make_combiparameter("A1", "A3", station.gates.B1 ))
     """
-    station = station = qc.Station.default
+    station = qc.Station.default
     parameters = []
     for i in args:
         if type(i) == str:

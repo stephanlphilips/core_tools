@@ -2,11 +2,12 @@ from core_tools.utility.digitizer_param_conversions import IQ_to_scalar, down_sa
 
 from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Keysight import construct_1D_scan_fast
 from core_tools.HVI.single_shot_exp.HVI_single_shot import load_HVI, set_and_compile_HVI, excute_HVI, HVI_ID
-from core_tools.sweeps.pulse_lib_sweep import spin_qubit_exp
+from core_tools.sweeps.sweeps_old.pulse_lib_sweep import spin_qubit_exp
 from core_tools.utility.mk_digitizer_param import get_digitizer_param
 from core_tools.utility.dig_utility import autoconfig_digitizer
 from core_tools.drivers.M3102_firmware_loader import M3102A_CLEAN, M3102A_AVG
 from core_tools.drivers.M3102A import DATA_MODE
+from core_tools.drivers.M3102_firmware_loader import firmware_loader, M3102A_CLEAN, M3102A_AVG
 
 import qcodes as qc
 
@@ -96,13 +97,13 @@ def run_PSB_exp(name, segment, t_meas, n_rep, raw_traces, phase):
     station = qc.Station.default
     
     if raw_traces == False:
-        autoconfig_digitizer(M3102A_AVG)
+        autoconfig_digitizer(station.dig, M3102A_AVG, 'average')
         data_mode = DATA_MODE.AVERAGE_TIME_AND_CYCLES
         if n_rep == 1:
             data_mode = DATA_MODE.AVERAGE_CYCLES
         station.dig.set_data_handling_mode(data_mode)
     else:
-        autoconfig_digitizer(M3102A_CLEAN)
+        autoconfig_digitizer(station.dig, M3102A_CLEAN, 'normal')
         data_mode = DATA_MODE.FULL
         station.dig.set_data_handling_mode(data_mode)
         
@@ -114,7 +115,7 @@ def run_PSB_exp(name, segment, t_meas, n_rep, raw_traces, phase):
     if raw_traces == True:
         down_sampled_seq = down_sampler(IQ_meas_param, 5e6)
 
-    my_seq = station.pulse.mk_sequence([segment])
+    my_seq = station.pulse.mk_sequence(segment)
     
     settings = dict()
     settings['averaging'] = True
@@ -132,12 +133,9 @@ def run_PSB_exp(name, segment, t_meas, n_rep, raw_traces, phase):
         my_exp = spin_qubit_exp(name, my_seq, IQ_meas_param)
     data = my_exp.run()
 
-    elzerman_pulse = None
-    my_exp = None
-    my_seq = None
     station.pulse.uploader.release_memory()
 
-    autoconfig_digitizer(M3102A_AVG)
+    autoconfig_digitizer(station.dig, M3102A_AVG, 'average')
 
     return data
 

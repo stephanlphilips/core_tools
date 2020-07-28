@@ -191,7 +191,8 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setMinimum(-5.0)
                 doubleSpinBox.setSingleStep(0.01)
                 doubleSpinBox.setDecimals(3)
-                doubleSpinBox.setValue(virtual_gate_set.virtual_gate_matrix[i,j])
+                inverted_matrix = np.linalg.inv(virtual_gate_set.virtual_gate_matrix)
+                doubleSpinBox.setValue(inverted_matrix[i,j])
                 doubleSpinBox.setObjectName("doubleSpinBox")
                 doubleSpinBox.valueChanged.connect(partial(self.linked_result, virtual_gate_set.virtual_gate_matrix, i, j, doubleSpinBox))
                 update_list.append((i,j, doubleSpinBox))
@@ -203,14 +204,22 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         timer.start(2000)
         self.timers.append(timer)
 
+
     def linked_result(self, matrix, i, j, spin_box):
-        matrix[i,j] = spin_box.value()
+
+        matrix_no_view = np.asarray(matrix)
+        matrix_inv = np.linalg.inv(matrix_no_view)
+        matrix_inv[i,j] = spin_box.value()
+        matrix_nrml = np.linalg.inv(matrix_inv)
+        matrix_no_view[:, :] = matrix_nrml
+
         self.gates_object.hardware.sync_data()
 
     def update_v_gates(self, matrix, update_list):
+        matrix_inv = np.linalg.inv(np.asarray(matrix))
         for i,j, spin_box in update_list:
             if not spin_box.hasFocus():
-                spin_box.setValue(matrix[i,j])
+                spin_box.setValue(matrix_inv[i,j])
 
 if __name__ == "__main__":
     import sys
