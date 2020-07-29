@@ -63,9 +63,10 @@ class data_mgr():
         db_paramters = self.cal_object.set_vals.get_db_column_names() + self.cal_object.get_vals.get_db_column_names()
         db_column_info = self.__query_db("PRAGMA table_info('%s')"%self.table_name)
         db_column_names= [db_column_name[1].lower() for db_column_name in db_column_info]
-        
-        column_to_add = [param_name for param_name in db_paramters if param_name[0].lower() not in db_column_names]
-
+        print(db_paramters)
+        print(db_column_info)        
+        column_to_add = [param_name for param_name in db_paramters if param_name.lower() not in db_column_names]
+        print(column_to_add)
         for param in column_to_add:
             self.__exec_command("ALTER TABLE {} ADD COLUMN {} {}".format(self.table_name, param, 'DOUBLE'))
 
@@ -73,7 +74,6 @@ class data_mgr():
         '''
         e.g. when you make a new sample.
         save to self.table_name.date
-        heck if the table has the right entries.
         '''
         time = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
         self.__exec_command("ALTER TABLE %s RENAME TO %s"%(self.table_name, self.table_name + '_' + time))
@@ -83,17 +83,6 @@ class data_mgr():
         Delete the current table.
         '''
         self.__exec_command("DROP TABLE %s"% self.table_name)
-
-    def get_all_parameter_names(self):
-        '''
-        Get all the parameters that are currently in use. Note that SQLite is case insensitive.
-        '''
-        db, cursor = self.__connect()
-        cursor.execute("PRAGMA table_info('%s')"%self.table_name)
-        db_column_info = cursor.fetchall()
-        db_column_names= [i[1].lower() for i in db_column_info]
-        db.close()
-        return db_column_names
 
     def save_calib_results(self, data_tuple):
         '''
