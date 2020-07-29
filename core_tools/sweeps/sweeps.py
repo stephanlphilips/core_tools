@@ -21,6 +21,7 @@ class scan_generic(metaclass=job_meta):
             reset_param (bool) : reset the setpoint parametes to their original value after the meaurement 
         '''
         self.meas = Measurement()
+        self.name = ''
 
         self.set_vars = []
         self.m_instr = []
@@ -44,9 +45,17 @@ class scan_generic(metaclass=job_meta):
             self.meas.register_parameter(instr, setpoints=tuple(set_points[::-1]))
                 
         self.n_tot = 1
+
+        if len(self.set_vars) == 0:
+            self.name = '0D_' + self.m_instr[0].name[:10]
+        else:
+            self.name += '{}D_'.format(len(self.set_vars))
+
         for swp_info in self.set_vars:
             self.n_tot *= swp_info.n_points
-
+            self.name += '{} '.format(swp_info.param.name[:10])
+        self.meas.name = self.name
+        
     def run(self):
         '''
         run function
@@ -160,10 +169,28 @@ if __name__ == '__main__':
         def set_raw(self, val):
             self._count = val
 
+    class dummy_multi_parameter_2dawg(qc.MultiParameter):
+        def __init__(self, name, label=None, unit=None):
+            
+            super().__init__(name=name,
+                             instrument=None,
+                             names=("test12","test1234"),
+                             shapes=( tuple() , tuple() ),
+                             labels=( "digitzer_response",  "D2"),
+                             units=("unit1", "unit2"), )
+            self.setpoints = ( tuple(),  tuple())
+            self.setpoint_shapes = ( tuple(),   tuple())
+            self.setpoint_labels = ( ("I channel", ),   ('Q channel', ))
+            self.setpoint_units = ( ("mV", ),   ("mV", ))
+            self.setpoint_names = ( ("I_channel", ),   ("Q_channel", ))
+            self.i = 2
+        def get_raw(self):
+            self.i +=1
+            return (self.i, self.i+100)
 
     now = str(datetime.datetime.now())
-    tutorial_db_path = os.path.join(os.getcwd(), 'linking_datasets_tutorial.db')
-    initialise_or_create_database_at(tutorial_db_path)
+    path = os.path.join(os.getcwd(), 'test.db')
+    initialise_or_create_database_at(path)
     load_or_create_experiment('tutorial ' + now, 'no sample')
     my_param = MyCounter('test_instr')
     from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
@@ -173,7 +200,11 @@ if __name__ == '__main__':
     y = qc.Parameter(name='y', label='Voltage_y', unit='V',
               set_cmd=None, get_cmd=None)
     timer = ElapsedTimeParameter('time')
-    # do0D(my_param).run()
-    # do1D(x, 0, 100, 50, 0.1 , my_param, reset_param=True).run()
-    do2D(x, 0, 20, 20, 0.0, y, 0, 80, 30, 0.01, my_param).run()
-    do2D(x, 0, 20, 20, 0.0, timer, 0, 80, 30, 0.1, my_param).run()
+    my_param_multi_test =dummy_multi_parameter_2dawg('param')
+
+    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast,construct_2D_scan_fast, fake_digitizer
+    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'))
+    param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'))
+    data_1D = param_1D.get()
+    do0D(param_2D).run()
+    do1D(x, 0,5,100, 0.01, param_1D).run()
