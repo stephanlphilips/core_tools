@@ -12,6 +12,7 @@ import os
 import glob
 from qcodes.plots.pyqtgraph import QtPlot
 import datetime
+import pickle
 
 class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
     """docstring for virt_gate_matrix_GUI"""
@@ -65,9 +66,17 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         self.splitted = False
         self.filtered = False
         self.active_params = []
+        self.pickle_path = datadir + os.path.sep + 'pickle_dv'
+        
+        try:
+            self.datafiles_list = pickle.load( open( self.pickle_path, "rb" ) )
+            refresh_data = False
+        except:
+            refresh_data = True
+            logging.warning("no pickle found, indexing all files once")
         
         # add default directory
-        self.addDirectory(datadir)
+        self.addDirectory(datadir, full_index = refresh_data)
                
         # Launch app
         self.show()
@@ -102,7 +111,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         except Exception as e:
             logging.warning(e)
 
-    def setDatadir(self, newindex):
+    def setDatadir(self, newindex, full_index = True):
         logging.info(f'Setting datadir with index: {newindex}')
         oldindex = self.datadirindex
         self.datadirindex = newindex
@@ -114,7 +123,10 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
 
         self.menuFolder.actions()[oldindex + 1].setText(self.menuFolder.actions()[oldindex + 1].text()[2:])
         self.menuFolder.actions()[newindex + 1].setText('>>' + self.menuFolder.actions()[newindex + 1].text())
-        self.updateLogs()
+        if full_index:
+            self.updateLogs()
+        else:
+            self.updateLogs(filter_str = '')
     
     def selectDirectory(self):
         from qtpy.QtWidgets import QFileDialog
@@ -124,7 +136,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
             datadir = d.selectedFiles()[0]
             self.addDirectory(datadir)
             
-    def addDirectory(self,datadir):
+    def addDirectory(self,datadir, full_index = True):
         newindex = len(self.datadirlist)
         self.datadirlist.append(datadir)
         if len(self.datadirlist) == 1:
@@ -132,7 +144,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         new_act = QtWidgets.QAction(datadir, self)
         new_act.triggered.connect(partial(self.setDatadir,newindex))
         self.menuFolder.addAction(new_act)
-        self.setDatadir(newindex)
+        self.setDatadir(newindex, full_index = full_index)
     
     def updateLogs(self, filter_str = None):
         ''' Update the list of measurements '''
@@ -150,7 +162,8 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         else:
             dd = self.datafiles_list
             dd = [s for s in dd if filter_str in s]
-            self.filtered = True
+            if filter_str != '':
+                self.filtered = True
             
         
         logging.info(f'DataViewer: found {len(dd)} files')
@@ -476,7 +489,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         addPPT_dataset(self.dataset, customfig=self.qplot)
 
     def clipboardCallback(self):
-        self.qplot.copyToClipboard()
+        self.app.clipboard().setPixmap(self.qplot.win.grab())
 
     def getArrayStr(self, metadata):
         params = []
@@ -608,3 +621,4 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                     
                     if df in '\t'.join(self.datafiles_list):
                         break # Don't check old folders
+            pickle.dump(self.datafiles_list, open(self.pickle_path, "wb" ) )
