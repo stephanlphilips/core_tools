@@ -63,7 +63,7 @@ def get_digitizer_param(digitizer, t_measure, n_rep, data_mode = DATA_MODE.AVERA
 
     Note that you should regenerate the parameter each time before starting a new measurement/loop. This should be cleaned up later a bit by doing some more stuff in HVI.
     """
-    sample_rate = 500e6 #stardard rate for V2 atm.
+    sample_rate = 100e6 #stardard rate for V2 atm.
     
     digitizer.set_digitizer_HVI(t_measure, n_rep, sample_rate = sample_rate, data_mode = data_mode, channels =  channels)
 

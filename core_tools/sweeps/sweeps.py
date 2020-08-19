@@ -39,6 +39,8 @@ class scan_generic(metaclass=job_meta):
                     self.meas.register_parameter(var.param)
                     set_points.append(var.param)
                 self.set_vars += set_vars_pulse_lib
+            elif arg is None:
+                continue
             else:
                 self.m_instr.append(arg)
         for instr in self.m_instr:
@@ -202,9 +204,15 @@ if __name__ == '__main__':
     timer = ElapsedTimeParameter('time')
     my_param_multi_test =dummy_multi_parameter_2dawg('param')
 
-    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast,construct_2D_scan_fast, fake_digitizer
-    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'))
-    param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'))
-    data_1D = param_1D.get()
-    do0D(param_2D).run()
-    do1D(x, 0,5,100, 0.01, param_1D).run()
+    from sweep_utility import sweep_info
+
+    s = sweep_info(x,10,100,10,0)
+    print(s.param(5))
+    print(s.param)
+    s.param = 5
+    # from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast,construct_2D_scan_fast, fake_digitizer
+    # param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'))
+    # param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'))
+    # data_1D = param_1D.get()
+    # do0D(param_2D).run()
+    # do1D(x, 0,5,100, 0.01, param_1D).run()

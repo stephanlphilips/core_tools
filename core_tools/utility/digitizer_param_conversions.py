@@ -47,15 +47,15 @@ class IQ_to_scalar(MultiParameter):
     parameter that converts IQ data of the digitizer into scalar data
     NOTE : ONLY ONE IQ CHANNEL PAIR SUPPORTED ATM !!!
     '''
-    def __init__(self, digitizer, phase_rotation):
+    def __init__(self, digitizer_meas_param, phase_rotation):
         '''
         Args:
             digitizer (MultiParameter) : instrument class of the digitizer
             phase_rotation (double) : rotation in the IQ plane (will keep only I)
         '''
-        self.dig = digitizer
+        self.dig = digitizer_meas_param
         self.phase_rotation = phase_rotation
-        self.sample_rate = digitizer.sample_rate
+        self.sample_rate = digitizer_meas_param.sample_rate
 
         names = ('RF_readout_amplitude',)
         super().__init__('IQ_to_scalar_convertor', names=names, shapes=(self.dig.shapes[0],),
@@ -141,6 +141,63 @@ class down_sampler(MultiParameter):
     def update_shape(self):
         self.shapes, self.setpoints = self.get_shape()
 
+class data_reshaper(MultiParameter):
+    '''
+    reshapes the dataarray of the incomming array.
+    '''
+    def __init__(self, N, digitizer):
+        '''
+        Args:
+            N (int) : number of slices
+            digitizer (MultiParameter) : instrument class of the digitizer
+        '''
+        self.N = int(N)
+        self.dig = digitizer
+        self.sample_rate = digitizer.sample_rate
+
+        names, shapes, labels, units = [],[],[],[]
+        for name, label, unit, shape in zip(self.dig.names, self.dig.labels,self.dig.units, self.dig.shapes):
+            shape = [*shape]
+            shape[0] = int(shape[0]/self.N)
+            
+            for nth_qubit in range(self.N):
+                names += ['{}_qubit_{}'.format(name, nth_qubit)]
+                labels += ['{}_qubit_{}'.format(label, nth_qubit)]
+                units += ['{}_qubit_{}'.format(unit, nth_qubit)]
+
+                shapes += [tuple(shape)]
+
+        setpoints, setpoint_names, setpoint_labels, setpoint_units = [],[],[],[]
+        for i in range(len(self.dig.setpoints)):
+            setpoint = [*self.dig.setpoints[i]]
+
+            setpoint[0] = setpoint[0][0:int(len(setpoint[0])/self.N)]
+
+            for nth_qubit in range(self.N):
+                setpoints += [tuple(setpoint)]
+                setpoint_names += [self.dig.setpoint_names[i]]
+                setpoint_labels += [self.dig.setpoint_labels[i]]
+                setpoint_units += [self.dig.setpoint_units[i]]
+
+
+        super().__init__('{}_reshaped_{}'.format(self.dig.name, self.N), names=tuple(names), shapes=tuple(shapes),
+                         labels=tuple(labels), units=tuple(units),
+                         setpoints=tuple(setpoints),
+                         setpoint_names=tuple(setpoint_names),
+                         setpoint_labels=tuple(setpoint_labels),
+                         setpoint_units=tuple(setpoint_units))
+
+    def get_raw(self):
+        data_in = self.dig.get_raw()
+        data_out = []
+
+        # print(data_in)
+        for data_slice in data_in:
+            for N in range(self.N):
+                data_out += [data_slice[N::self.N]]
+
+        return tuple(data_out)
+
 class Elzerman_param(MultiParameter):
     """
     parameter that aims to detect blibs.
@@ -164,9 +221,9 @@ class Elzerman_param(MultiParameter):
         setpoints = tuple()
 
         for i in range(len(digitizer.names)):
-            names += ("readout_signal_ch{}".format(i), )
+            names += ("qubit_{}".format(i), )
             shapes += ((), )
-            labels += ('Spin probability' ,)
+            labels += ('Spin probability qubit {}'.format(i+1) ,)
             units += ('%', )
             
             setpoints += ((),)
@@ -204,7 +261,21 @@ def filter_data(data, cutoff, fs, pass_zero, order = 4):
 
 
 if __name__ == '__main__':
-    a = np.zeros([1000])
-    a[100:400] = 1
+    from projects.keysight_measurement.M3102A import SD_DIG, DATA_MODE
+    from core_tools.utility.mk_digitizer_param import get_digitizer_param
 
-    filter_data(a, 10e3, 2e6, 'highpass')
+    dig = SD_DIG('name', 1, 6)
+
+    # dig.set_digitizer_software(1e3, 500*2)
+    param = get_digitizer_param(dig, 50, 20*2, data_mode=DATA_MODE.FULL)
+    print(param)
+    param_scalar = IQ_to_scalar(param, 0)
+    print(param_scalar)
+
+    param_scaled_1 = data_reshaper(1, param)
+    param_scaled_2 = data_reshaper(2, param_scalar)
+
+    param_elzerman = Elzerman_param(param_scaled_2, 0, True)
+
+    print(param_elzerman.names)
+    print(param_elzerman.setpoint_names)

@@ -4,10 +4,10 @@ define a function that loads the HVI file that will be used thoughout the experi
 import keysightSD1
 import core_tools.HVI.single_shot_exp as ct
 
-HVI_ID = "HVI_single_shot.HVI"
+HVI_ID_1 = "HVI_single_shot_1qubit.HVI"
 
 
-def load_HVI(AWGs, channel_map, *args,**kwargs):
+def load_HVI_1(AWGs, channel_map, *args,**kwargs):
 	"""
 	load a HVI file on the AWG.
 	Args:
@@ -24,7 +24,7 @@ def load_HVI(AWGs, channel_map, *args,**kwargs):
 
 			
 	HVI = keysightSD1.SD_HVI()
-	error = HVI.open(ct.__file__[:-11] + "HVI_single_shot.HVI")
+	error = HVI.open(ct.__file__[:-11] + "HVI_single_shot_1qubit.HVI")
 	print(error)
 
 	error = HVI.assignHardwareWithUserNameAndSlot("Module 0",1,2)
@@ -56,7 +56,7 @@ def load_HVI(AWGs, channel_map, *args,**kwargs):
 define a function that applies the settings to a HVI file and then compiles it before the experiment.
 """
 
-def set_and_compile_HVI(HVI, playback_time, n_rep, *args, **kwargs):
+def set_and_compile_HVI_1(HVI, playback_time, n_rep, *args, **kwargs):
 	"""
 	Function that set values to the currently loaded HVI script and then performs a compile step.
 	Args:
@@ -78,7 +78,7 @@ This function is optional, if not defined, there will be just two calls,
 So only define if you want to set custom settings just before the experiment starts. Note that you can access most settings via HVI itselves, so it is better to do it via there.
 """
 
-def excute_HVI(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
+def excute_HVI_1(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 	"""
 	load HVI code.
 	Args:
@@ -89,7 +89,7 @@ def excute_HVI(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 	"""
 
 	nrep = int(n_rep)
-	length = int(playback_time/10 + 200) # extra delay, seems to be needef or the digitizer.
+	length = int(playback_time/10 + 200) # extra delay, seems to be needed for the digitizer.
 
 	for awgname, awg in AWGs.items():
 		err = awg.awg.writeRegisterByNumber(2, int(nrep))
@@ -97,7 +97,7 @@ def excute_HVI(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 
 	dig = kwargs['digitizer'] 
 	dig_wait = kwargs['dig_wait_1']
-	print(dig_wait)
+
 	delay_1 = int(dig_wait/10)
 	err = dig.SD_AIN.writeRegisterByNumber(2, int(nrep))
 	err = dig.SD_AIN.writeRegisterByNumber(4, int(delay_1))

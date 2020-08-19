@@ -1,35 +1,9 @@
 from dataclasses import dataclass
 from qcodes import Parameter
+import numpy as np
 
 class KILL_EXP(Exception):
     pass
-
-@dataclass
-class sweep_info():
-    '''
-    data class that hold the sweep info for one of the paramters.
-    -- also contains a looper - (should this one move to somewhere else?)
-    '''
-    _param : Parameter = None
-    start : float = 0
-    stop : float = 0
-    n_points : int = 50
-    delay : float = 0
-
-    def __post_init__(self):
-        self.param = self._param
-
-    @property
-    def param(self):
-        return self._param
-
-    @param.setter
-    def param(self, input_param):
-        self.param_val = input_param.get()
-        self._param = input_param
-
-    def reset_param(self):
-        self._param.set(self.param_val)
 
 def get_measure_data(m_instr):
     '''
@@ -47,10 +21,9 @@ def get_measure_data(m_instr):
     return my_data
 
 class PulseLibParameter(Parameter):
-    setpoints = None
-    flat_index = 0
 
     def add_setpoints(self, setpoints, sequencer, lowest_level):
+        self.flat_index = 0
         self.setpoints = setpoints
         self.sequencer = sequencer
         self.lowest_level = lowest_level
@@ -66,14 +39,14 @@ class PulseLibParameter(Parameter):
 
     def set_raw(self, value):
         if self.lowest_level:
-            if self.flat_index == 0:
-                self.sequencer.upload(np.unravel_index(flat_index, self.sequencer.shape))
-
-            index = np.unravel_index(flat_index, self.shape)
+            # if self.flat_index == 0:
+            self.sequencer.upload(np.unravel_index(self.flat_index, self.sequencer.shape))
+            
+            index = np.unravel_index(self.flat_index, self.sequencer.shape)
             self.sequencer.play(index)
 
-            if flat_index < np.prod(self.shape) - 1:
-                self.sequencer.upload(np.unravel_index(flat_index+1, self.shape))
+            # if self.flat_index < np.prod(self.sequencer.shape) - 1:
+                # self.sequencer.upload(np.unravel_index(self.flat_index+1, self.sequencer.shape))
 
             self.sequencer.uploader.wait_until_AWG_idle()
 
@@ -99,5 +72,47 @@ def pulselib_2_qcodes(awg_sequence):
         set_param.append(sweep_info(param, n_points = len(awg_sequence.setpoints[i])))
 
     set_param[0].param.lowest_level=True
-
     return set_param[::-1]
+
+
+@dataclass
+class sweep_info():
+    '''
+    data class that hold the sweep info for one of the paramters.
+    '''
+    param : Parameter = None
+    start : float = 0
+    stop : float = 0
+    n_points : int = 50
+    delay : float = 0
+
+    def __post_init__(self):
+        self.orignal_value = None
+        if not isinstance(self.param, PulseLibParameter):
+            self.orignal_value = self.param()
+
+    def reset_param(self):
+        if self.orignal_value is not None:
+            self.param.set(self.orignal_value)
+
+
+def check_OD_scan(sequence, minstr):
+    '''
+    function that checks if the awg sequence is 0D or not. In case of 0D if will wrap the sequence around the minstr its get function.
+    '''
+    if sequence.shape != (1,):
+        return sequence, minstr
+
+    def wrap_getter(get_raw_function):
+        def meas(*args, **kwargs):
+            sequence.upload([0])
+            sequence.play([0])
+
+            data = get_raw_function(*args, **kwargs)
+
+            return data
+        return meas
+
+    minstr.get = wrap_getter(minstr.get)
+
+    return None, minstr

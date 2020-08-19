@@ -1,4 +1,4 @@
-from core_tools.utility.digitizer_param_conversions import IQ_to_scalar, down_sampler, Elzerman_param, get_phase_compentation_IQ_signal
+from core_tools.utility.digitizer_param_conversions import IQ_to_scalar, down_sampler,data_reshaper, Elzerman_param, get_phase_compentation_IQ_signal
 
 from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Keysight import construct_1D_scan_fast
 from core_tools.HVI.single_shot_exp.HVI_single_shot import load_HVI, set_and_compile_HVI, excute_HVI, HVI_ID
@@ -34,6 +34,7 @@ def run_readout_exp(name, segment, t_meas, n_rep, show_raw_traces, threshold, bl
         segment (segment_container) : segment to be played on the AWG
         t_meas (double) : measurement time to set to the digitizer (will be removed when digitzer updates)
         n_rep (double) : number times a experiment needs to be repeated
+        n_qubit (int) : number of qubit to be measured
         show_raw_traces (bool) : show raw traces
         threshold (double) : threadhold for the detection
         blib_down (bool) : direction of the blib (if true, downward blib expected).
@@ -68,15 +69,11 @@ def run_readout_exp(name, segment, t_meas, n_rep, show_raw_traces, threshold, bl
     if show_raw_traces == True:
         my_exp = spin_qubit_exp(name, my_seq, down_sampled_seq)
     else:
-        my_exp = spin_qubit_exp(name, my_seq, elzerman_det)
+        my_exp = spin_qubit_exp(name, my_seq, Elzerman_param)
     data = my_exp.run()
 
-    elzerman_pulse = None
-    my_exp = None
-    my_seq = None
-    station.pulse.uploader.release_memory()
-
     return data
+
 
 
 def run_PSB_exp(name, segment, t_meas, n_rep, raw_traces, phase):
