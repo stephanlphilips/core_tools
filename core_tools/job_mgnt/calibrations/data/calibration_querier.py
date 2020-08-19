@@ -102,3 +102,39 @@ class querier():
         # format data
 
         return data
+
+class my_write:
+    '''
+    descriptor for a write object
+    '''
+    def __init__(self, name, data_mgr):
+        self.name = name
+        self.data_mgr = data_mgr
+        self.value = None
+    def __get__(self, obj, objtype):
+        return self.value
+
+    def __set__(self, obj, value):
+        self.value = value
+        self.data_mgr._write(self.name, value)
+
+class writer():
+    '''
+    class to prefrom a write to the database
+    '''
+    def __init__(self, data_mgr, cal_object):
+        self.data_mgr = data_mgr
+
+        db_paramters = return_std_paramters()
+        db_paramters += cal_object.set_vals.get_param() + cal_object.get_vals.get_param()
+
+        for param in db_paramters:
+            setattr(self, param.name, my_write(param.name, self.data_mgr))
+
+        self.query = my_query()
+
+    def commit(self, success =  True):
+        '''
+        commit a write to the database
+        '''
+        self.data_mgr.finish_data_entry(success)

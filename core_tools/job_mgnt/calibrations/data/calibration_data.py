@@ -1,4 +1,4 @@
-from core_tools.job_mgnt.calibrations.data.calibration_querier import querier
+from core_tools.job_mgnt.calibrations.data.calibration_querier import querier, writer
 
 import sqlite3
 import time
@@ -18,7 +18,8 @@ class data_mgr():
         self.__update_table()
         self.current_line = None
         self.query = querier(self, cls_object)
-
+        self.write = writer(self, cls_object)
+        
     def __connect(self):
         db = sqlite3.connect(self.filename_db)
         cursor = db.cursor()
@@ -98,7 +99,7 @@ class data_mgr():
         self.__exec_command(cmd)
         self.current_line = self._query_db('SELECT id from {} order by ROWID DESC limit 1'.format(self.table_name))[0][0]
 
-    def write(self, parameter, value):
+    def _write(self, parameter, value):
         ''' 
         Write data to the table
         
@@ -122,15 +123,9 @@ class data_mgr():
         Args:
             status (bool) : True = success, False = fail
         '''
-        self.write('end_time', time.time())
-        self.write('success', status)
-        self.current_line = None
-
-    def empty(self):
-        '''
-        checks if the current db is empty
-        '''
-        pass      
+        self._write('end_time', time.time())
+        self._write('success', status)
+        self.current_line = None    
         
 
 if __name__ == '__main__':
@@ -154,15 +149,15 @@ if __name__ == '__main__':
             self.get_vals = value_mgr(CalibrationParameter('omega_qubit_1'))
 
     d = data_mgr(test_cal(), 'my_test_db')
-    # d.write('frequency', 1e6)
-    # d.write('frequency', 1e9) # overwrite a value ..
-    # d.write('amplitude', 0.1)
-    # d.finish_data_entry(True)
 
-    # d.write('frequency', 1e6)
-    # d.write('omega_qubit_1', 1.23e2)
-    # d.write('amplitude', 0.201)
-    # d.finish_data_entry(False)
+    
+    d.write.amplitude = 0.1
+    d.write.frequency = 1e6
+    d.write.commit(success=True) # write if the operation/calibration was successful
+
+    d.write.amplitude = 10
+    d.write.omega_qubit_1 = 1e6
+    d.write.commit(False) # write if the operation/calibration was successful
 
     # specify which field to get from the database
     d.query.frequency.get()
