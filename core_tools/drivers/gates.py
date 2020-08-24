@@ -52,7 +52,7 @@ class gates(qc.Instrument):
 			if voltage < min_voltage or voltage > max_voltage:
 				raise ValueError("Voltage boundaries violated, trying to set gate {} to {}mV. \nThe limit is set to {} to {} mV.\nThe limit can be changed by updating the hardware class".format(gate_name, voltage, min_voltage, max_voltage))
 
-		self.dac_sources[dac_location[0]]._set_dac(dac_location[1] - 1, voltage)
+		getattr(self.dac_sources[dac_location[0]], 'dac{}'.format(int(dac_location[1])) )(voltage)
 
 	def _get_voltage(self, gate_name):
 		'''
@@ -61,7 +61,7 @@ class gates(qc.Instrument):
 			gate_name (str) : name of the gate to set 
 		'''
 		dac_location = self.hardware.dac_gate_map[gate_name]
-		return self.dac_sources[dac_location[0]]._get_dac(dac_location[1] - 1)
+		return getattr(self.dac_sources[dac_location[0]], 'dac{}'.format(int(dac_location[1])) )()
 
 	def _set_voltage_virt(self, gate_name, virt_gate_obj, voltage):
 		'''
@@ -185,6 +185,6 @@ if __name__ == '__main__':
 	print(my_gates.vB0())
 	print(np.array(my_gates.hardware.virtual_gates['general'].virtual_gate_matrix))
 
-	my_gates.update_virtual_gate_entry("general", "B0", ["B0", "B1", "B2",], [1,0.8,0.3])
-	
+	# my_gates.update_virtual_gate_entry("general", "B0", ["B0", "B1", "B2",], [1,0.8,0.3])
 	print(np.array(my_gates.hardware.virtual_gates['general'].virtual_gate_matrix))
+	print(my_dac_1)
