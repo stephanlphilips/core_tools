@@ -83,20 +83,20 @@ class looper():
 
         flat_index = 0
 
-        self.awg_sequencer.upload(np.unravel_index(flat_index, self.shape))
-        try:
-            self.awg_sequencer.upload(np.unravel_index(flat_index + 1, self.shape))
-        except:
-            pass
+        # self.awg_sequencer.upload(np.unravel_index(flat_index, self.shape))
+        # try:
+        #     self.awg_sequencer.upload(np.unravel_index(flat_index + 1, self.shape))
+        # except:
+        #     pass
 
         for flat_index in range(np.prod(self.shape)):
             
             index = np.unravel_index(flat_index, self.shape)
-            print(index)
+            self.awg_sequencer.upload(np.unravel_index(flat_index, self.shape))
             self.awg_sequencer.play(index)
 
-            if flat_index < np.prod(self.shape) - 2:
-                self.awg_sequencer.upload(np.unravel_index(flat_index+2, self.shape))
+            # if flat_index < np.prod(self.shape) - 2:
+            #     self.awg_sequencer.upload(np.unravel_index(flat_index+2, self.shape))
 
             self.awg_sequencer.uploader.wait_until_AWG_idle()
             self.save_data(flat_index)
