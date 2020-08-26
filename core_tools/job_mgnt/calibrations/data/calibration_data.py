@@ -3,6 +3,7 @@ from core_tools.job_mgnt.calibrations.data.calibration_querier import querier, w
 import sqlite3
 import time
 
+
 class data_mgr():
     def __init__(self, cls_object, db_location):
         '''
@@ -52,6 +53,7 @@ class data_mgr():
         mydata = cursor.fetchall()
         db.commit()
         db.close()
+
         return mydata
 
     def __update_table(self):
@@ -168,10 +170,11 @@ if __name__ == '__main__':
     # d.query.amplitude > 100 # putting a condition is a implicit get
     d.query.success == True
     d.query.frequency != None
-
     # sort data on specific element. (default sorting on excecution time)
     d.query.frequency.sort('DESC')
 
     # specify the number of entries to return (optional)
     d.query.n_results(50)
-    print(d.query.get())
+    ds = (d.query.get())
+    print(ds.start_time)
+    print(ds.frequency)
