@@ -15,13 +15,7 @@ def inv_cap_to_cap_mat(inv_cap):
     '''
     inv_cap_no_view = np.asarray(inv_cap)
     cap = np.linalg.inv(inv_cap_no_view)
-    cap_no_norm = np.zeros(inv_cap_no_view.shape)
-
-    # unnormalize
-    for i in range(cap.shape[0]):
-        cap_no_norm[i, :] = cap[i]/np.sum(cap[i, :])
-
-    return np.round(cap_no_norm,3)
+    return cap
 
 def cap_to_inv_cap_mat(cap):
     '''
@@ -31,13 +25,7 @@ def cap_to_inv_cap_mat(cap):
         inv_cap (np.ndarray) : matrix representing the inverse of the capacitance of the dots (normalized).
     '''
     cap_no_view = np.asarray(cap)
-    inv_cap_no_view = np.linalg.inv(cap)
-    inv_cap_no_norm = np.zeros(inv_cap_no_view.shape)
-    # unnormalize
-    for i in range(inv_cap_no_view.shape[0]):
-        inv_cap_no_norm[i, :] = inv_cap_no_view[i, :]/inv_cap_no_view[i,i]
-
-    return np.round(inv_cap_no_norm,3)
+    return np.linalg.inv(cap_no_view)
 
 class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
@@ -226,35 +214,28 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setMinimum(-5.0)
                 doubleSpinBox.setSingleStep(0.01)
                 doubleSpinBox.setDecimals(3)
-                inverted_matrix = np.linalg.inv(virtual_gate_set.virtual_gate_matrix)
+                inverted_matrix = np.linalg.inv(virtual_gate_set.virtual_gate_matrix_no_norm)
                 doubleSpinBox.setValue(inverted_matrix[i,j])
                 doubleSpinBox.setObjectName("doubleSpinBox")
-                doubleSpinBox.valueChanged.connect(partial(self.linked_result, virtual_gate_set.virtual_gate_matrix, i, j, doubleSpinBox))
+                doubleSpinBox.valueChanged.connect(partial(self.linked_result, virtual_gate_set.virtual_gate_matrix_no_norm, i, j, doubleSpinBox))
                 update_list.append((i,j, doubleSpinBox))
                 tableWidget.setCellWidget(i, j, doubleSpinBox)
 
         # make a timer to refresh the data in the plot when the matrix is changed externally.
         timer = QtCore.QTimer()
-        timer.timeout.connect(partial(self.update_v_gates, virtual_gate_set.virtual_gate_matrix, update_list))
+        timer.timeout.connect(partial(self.update_v_gates, virtual_gate_set.virtual_gate_matrix_no_norm, update_list))
         timer.start(2000)
         self.timers.append(timer)
 
 
-    def linked_result(self, matrix, i, j, spin_box):
-        
+    def linked_result(self, matrix, i, j, spin_box):     
+        matrix_no_view = np.asarray(matrix)
         inv_cap = cap_to_inv_cap_mat(matrix)
         inv_cap[i,j] = spin_box.value()
         cap_mat = inv_cap_to_cap_mat(inv_cap)
-        matrix_no_view = np.asarray(matrix)
         matrix_no_view[:, :] = cap_mat
         print(inv_cap)
         print(matrix_no_view)
-
-        # matrix_no_view = np.asarray(matrix)
-        # matrix_inv = np.linalg.inv(matrix_no_view)
-        # matrix_inv[i,j] = spin_box.value()
-        # matrix_nrml = np.linalg.inv(matrix_inv)
-        # matrix_no_view[:, :] = matrix_nrml
 
         self.gates_object.hardware.sync_data()
 
@@ -277,7 +258,7 @@ if __name__ == "__main__":
     import qcodes as qc
     from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
     from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
-    from V2_software.drivers.virtual_gates.instrument_drivers.gates import gates
+    from core_tools.drivers.gates import gates
 
     my_dac_1 = virtual_dac("dac_a", "virtual")
     my_dac_2 = virtual_dac("dac_b", "virtual")
