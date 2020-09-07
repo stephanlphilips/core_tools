@@ -1,8 +1,8 @@
 from core_tools.job_mgnt.calibrations.data.calibration_parameter import CalibrationParameter
-
+import matplotlib.pyplot as plt
 from dataclasses import dataclass, field
 from typing import List
-
+import numpy as np
 import sqlite3
 import time
 
@@ -53,7 +53,8 @@ class my_query:
 
     def generate_query(self, table_name):
         column_names = ''
-        for column in set(self.columns_to_fetch):
+        column_names_set = list(set(self.columns_to_fetch))
+        for column in column_names_set:
             column_names += column + ', '
         column_names = column_names[:-2]
 
@@ -66,8 +67,8 @@ class my_query:
             cmd += 'WHERE {} \n'.format(self.where.get_cmd())
         
         cmd += 'ORDER BY {}\nLIMIT {};'.format(self.order_by,self.limit)
-        print(cmd)
-        return cmd
+
+        return cmd, column_names_set
 
 class querier():
     '''
@@ -96,12 +97,10 @@ class querier():
         self.my_query.limit = n
 
     def get(self):
-        cmd = self.my_query.generate_query(self.data_mgr.table_name)
+        cmd, variables = self.my_query.generate_query(self.data_mgr.table_name)
         data = self.data_mgr._query_db(cmd)
 
-        # format data
-
-        return data
+        return data_obj(self,variables, data)
 
 class my_write:
     '''
@@ -138,3 +137,43 @@ class writer():
         commit a write to the database
         '''
         self.data_mgr.finish_data_entry(success)
+
+
+class data_obj():
+    '''
+    data object that generated at the end of a query, to easily access the data
+    '''
+    def __init__(self, query_obj, variables, query_result):
+        self.variables = dict()
+
+        for variable_idx in range(len(variables)):
+            variable = variables[variable_idx]
+            self.variables[variable] = getattr(query_obj, variable)
+            
+            data = np.zeros([len(query_result)])
+            for i in range(data.size):
+                data[i] = query_result[i][variable_idx]
+            setattr(self, variable, data)
+
+    def __repr__(self):
+        representation = 'Data present in this object :: \n\n'
+        for variable in self.variables.keys():
+            representation += '\t{}\n'.format(variable)
+
+        return representation
+
+    def plot(self, A, B):
+        '''
+        plot two variables in the data object. 
+
+        Args:
+            A (str) : name of the variable on the X axis
+            B (str) : name of the variable on the Y axis
+        '''
+        data_a = getattr(self, A)
+        plot_info_a = self.variables[A]
+        data_b = getattr(self, B)
+        plot_info_b = self.variables[B]
+
+        plt.plot(data_a, data_b)
+        plt.show()

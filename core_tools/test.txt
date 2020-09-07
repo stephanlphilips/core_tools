@@ -1,0 +1,22 @@
+running develop
+running egg_info
+writing new_dataset.egg-info/PKG-INFO
+writing dependency_links to new_dataset.egg-info/dependency_links.txt
+writing top-level names to new_dataset.egg-info/top_level.txt
+reading manifest file 'new_dataset.egg-info/SOURCES.txt'
+writing manifest file 'new_dataset.egg-info/SOURCES.txt'
+running build_ext
+building 'data.lib.data_storage_class' extension
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -fno-semantic-interposition -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -fPIC -I/usr/lib/python3.8/site-packages/numpy/core/include -I./data/lib -I/usr/include/python3.8 -c data/lib/data_storage_class.cpp -o build/temp.linux-x86_64-3.8/data/lib/data_storage_class.o
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -fno-semantic-interposition -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -fPIC -I/usr/lib/python3.8/site-packages/numpy/core/include -I./data/lib -I/usr/include/python3.8 -c data/lib/utility.cpp -o build/temp.linux-x86_64-3.8/data/lib/utility.o
+running develop
+running egg_info
+writing new_dataset.egg-info/PKG-INFO
+writing dependency_links to new_dataset.egg-info/dependency_links.txt
+writing top-level names to new_dataset.egg-info/top_level.txt
+reading manifest file 'new_dataset.egg-info/SOURCES.txt'
+writing manifest file 'new_dataset.egg-info/SOURCES.txt'
+running build_ext
+building 'data.lib.data_storage_class' extension
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -fno-semantic-interposition -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -fPIC -I/usr/lib/python3.8/site-packages/numpy/core/include -I./data/lib -I/usr/include/python3.8 -c data/lib/data_storage_class.cpp -o build/temp.linux-x86_64-3.8/data/lib/data_storage_class.o
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -fno-semantic-interposition -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -march=x86-64 -mtune=generic -O3 -pipe -fno-plt -fPIC -I/usr/lib/python3.8/site-packages/numpy/core/include -I./data/lib -I/usr/include/python3.8 -c data/lib/utility.cpp -o build/temp.linux-x86_64-3.8/data/lib/utility.o

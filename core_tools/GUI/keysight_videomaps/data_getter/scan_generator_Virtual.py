@@ -85,7 +85,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     # 2us needed to rearm digitizer
     # 100ns HVI waiting time
     step_eff = 2000 + 120 + t_step
-
+ 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
     vp2 = swing2/2

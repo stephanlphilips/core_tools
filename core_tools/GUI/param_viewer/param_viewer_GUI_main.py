@@ -228,7 +228,7 @@ if __name__ == "__main__":
     import qcodes as qc
     from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
     from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
-    from V2_software.drivers.virtual_gates.instrument_drivers.gates import gates
+    from core_tools.drivers.gates import gates
 
     my_dac_1 = virtual_dac("dac_a", "virtual")
     my_dac_2 = virtual_dac("dac_b", "virtual")

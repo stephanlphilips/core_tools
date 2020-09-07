@@ -5,6 +5,38 @@ from functools import partial
 
 import numpy as np
 
+
+def inv_cap_to_cap_mat(inv_cap):
+    '''
+    convert the normalized inverted capacitance matrix to the capacitance matrix.
+    
+    Args:
+        inv_cap (np.ndarray) : matrix representing the inverse of the capacitance of the dots.
+    '''
+    inv_cap_no_view = np.asarray(inv_cap)
+    inv_cap_no_norm = np.zeros(inv_cap_no_view.shape)
+    # unnormalize
+    for i in range(inv_cap_no_view.shape[0]):
+        inv_cap_no_norm[i] = inv_cap_no_view[i]/np.sum(inv_cap_no_view[i])
+
+    return np.linalg.inv(inv_cap_no_norm)
+
+def cap_to_inv_cap_mat(cap):
+    '''
+    convert capacitance matrix to the normalized inverted capacitance matrix.
+    
+    Args:
+        inv_cap (np.ndarray) : matrix representing the inverse of the capacitance of the dots (normalized).
+    '''
+    cap_no_view = np.asarray(cap)
+    inv_cap_no_view = np.linalg.inv(cap)
+    inv_cap_no_norm = np.zeros(inv_cap_no_view.shape)
+    # unnormalize
+    for i in range(inv_cap_no_view.shape[0]):
+        inv_cap_no_norm[i] = inv_cap_no_view[i]/inv_cap_no_view[i,i]
+
+    return inv_cap_no_norm
+
 class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
     def __init__(self, gates_object, pulse_lib):
@@ -158,11 +190,11 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         for i in range(len(virtual_gate_set)):
             item = QtWidgets.QTableWidgetItem()
             tableWidget.setHorizontalHeaderItem(i, item)
-            item.setText(_translate("MainWindow", virtual_gate_set.real_gate_names[i]))
+            item.setText(_translate("MainWindow", virtual_gate_set.virtual_gate_names[i]))
 
             item = QtWidgets.QTableWidgetItem()
             tableWidget.setVerticalHeaderItem(i, item)
-            item.setText(_translate("MainWindow", virtual_gate_set.virtual_gate_names[i]))
+            item.setText(_translate("MainWindow", virtual_gate_set.real_gate_names[i]))
 
         tableWidget.horizontalHeader().setDefaultSectionSize(65)
         tableWidget.horizontalHeader().setMaximumSectionSize(100)
@@ -207,12 +239,20 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def linked_result(self, matrix, i, j, spin_box):
-
+        
+        inv_cap = cap_to_inv_cap_mat(matrix)
+        inv_cap[i,j] = spin_box.value()
+        cap_mat = inv_cap_to_cap_mat(inv_cap)
         matrix_no_view = np.asarray(matrix)
-        matrix_inv = np.linalg.inv(matrix_no_view)
-        matrix_inv[i,j] = spin_box.value()
-        matrix_nrml = np.linalg.inv(matrix_inv)
-        matrix_no_view[:, :] = matrix_nrml
+        matrix_no_view[:, :] = cap_mat
+        print(inv_cap)
+        print(matrix_no_view)
+
+        # matrix_no_view = np.asarray(matrix)
+        # matrix_inv = np.linalg.inv(matrix_no_view)
+        # matrix_inv[i,j] = spin_box.value()
+        # matrix_nrml = np.linalg.inv(matrix_inv)
+        # matrix_no_view[:, :] = matrix_nrml
 
         self.gates_object.hardware.sync_data()
 
@@ -223,10 +263,10 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
             matrix: Array with new values
             update_list: List with GUI boxes
         """
-        matrix_inv = np.linalg.inv(np.asarray(matrix))
+        inv_cap = cap_to_inv_cap_mat(matrix)
         for i,j, spin_box in update_list:
             if not spin_box.hasFocus():
-                spin_box.setValue(matrix_inv[i,j])
+                spin_box.setValue(inv_cap[i,j])
 
 
 if __name__ == "__main__":
