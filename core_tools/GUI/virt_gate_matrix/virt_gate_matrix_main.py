@@ -14,12 +14,14 @@ def inv_cap_to_cap_mat(inv_cap):
         inv_cap (np.ndarray) : matrix representing the inverse of the capacitance of the dots.
     '''
     inv_cap_no_view = np.asarray(inv_cap)
-    inv_cap_no_norm = np.zeros(inv_cap_no_view.shape)
-    # unnormalize
-    for i in range(inv_cap_no_view.shape[0]):
-        inv_cap_no_norm[i] = inv_cap_no_view[i]/np.sum(inv_cap_no_view[i])
+    cap = np.linalg.inv(inv_cap_no_view)
+    cap_no_norm = np.zeros(inv_cap_no_view.shape)
 
-    return np.linalg.inv(inv_cap_no_norm)
+    # unnormalize
+    for i in range(cap.shape[0]):
+        cap_no_norm[i, :] = cap[i]/np.sum(cap[i, :])
+
+    return np.round(cap_no_norm,3)
 
 def cap_to_inv_cap_mat(cap):
     '''
@@ -33,9 +35,9 @@ def cap_to_inv_cap_mat(cap):
     inv_cap_no_norm = np.zeros(inv_cap_no_view.shape)
     # unnormalize
     for i in range(inv_cap_no_view.shape[0]):
-        inv_cap_no_norm[i] = inv_cap_no_view[i]/inv_cap_no_view[i,i]
+        inv_cap_no_norm[i, :] = inv_cap_no_view[i, :]/inv_cap_no_view[i,i]
 
-    return inv_cap_no_norm
+    return np.round(inv_cap_no_norm,3)
 
 class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
