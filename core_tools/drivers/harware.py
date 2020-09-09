@@ -21,7 +21,8 @@ class virtual_gate:
         '''
         self.name = name
         self.real_gate_names = real_gate_names
-        self.virtual_gate_matrix = np.eye(len(real_gate_names)).data
+        self._virtual_gate_matrix = np.eye(len(real_gate_names)).data
+        self.virtual_gate_matrix_no_norm = np.eye(len(real_gate_names)).data
         if virtual_gate_names !=  None:
             self.virtual_gate_names = virtual_gate_names
         else:
@@ -31,6 +32,16 @@ class virtual_gate:
 
         if len(self.real_gate_names) != len(self.virtual_gate_names):
             raise ValueError("number of real gates and virtual gates is not equal, please fix the input.")
+
+    @property
+    def virtual_gate_matrix(self):
+        cap_no_norm = np.asarray(self.virtual_gate_matrix_no_norm)
+        cap = np.asarray(self._virtual_gate_matrix)
+
+        for i in range(cap.shape[0]):
+            cap[i, :] = cap_no_norm[i]/np.sum(cap_no_norm[i, :])
+
+        return self._virtual_gate_matrix
 
     def __len__(self):
         '''
@@ -43,14 +54,16 @@ class virtual_gate:
         overwrite state methods so object becomes pickable.
         '''
         state = self.__dict__.copy()
-        state["virtual_gate_matrix"] = np.asarray(self.virtual_gate_matrix)
+        state["_virtual_gate_matrix"] = np.asarray(self._virtual_gate_matrix)
+        state["virtual_gate_matrix_no_norm"] = np.asarray(self.virtual_gate_matrix_no_norm)
         return state
 
     def __setstate__(self, new_state):
         '''
         overwrite state methods so object becomes pickable.
         '''
-        new_state["virtual_gate_matrix"] = np.asarray(new_state["virtual_gate_matrix"]).data
+        new_state["_virtual_gate_matrix"] = np.asarray(new_state["_virtual_gate_matrix"]).data
+        new_state["virtual_gate_matrix_no_norm"] = np.asarray(new_state["virtual_gate_matrix_no_norm"]).data
         self.__dict__.update(new_state)
 
 class virtual_gates_mgr(list):
