@@ -15,14 +15,25 @@
 
 struct data_item
 {
+	long param_id;
+
+	// proporties describing the relation betweeen all the data
+	int nth_set;
+	long param_id_m_param;
+	bool setpoint;
+	bool setpoint_local;
+	std::string name_gobal;
+
+	// properties describing the data
 	std::string name;
 	std::string label;
 	std::string unit;
-	std::vector<std::string> dependency;
+	std::string dependency; //JSON
+	std::string shape; //JSON
+	
+	// effective data
 	double* raw_data;
-	std::vector<int> shape;
-
-	int data_size_flat();
+	int size;
 };
 
 struct data_set_raw
@@ -44,6 +55,9 @@ struct data_set_raw
 
 	std::string snapshot;
 	std::string metadata;
+
+	bool completed;
+    int writecount;
 };
 
 

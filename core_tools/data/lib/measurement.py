@@ -23,7 +23,8 @@ general structure:
     When the last result is added, the final sync to the db is performed and you are done.
 '''
 
-from data_stroarge_class_python_mockup import setpoint_dataset, m_param_dataset
+from data_class import setpoint_dataclass, m_param_dataclass
+from data_stroarge_class_python_mockup import create_new_data_set
 import qcodes as qc
 import numpy as np
 
@@ -52,10 +53,10 @@ class Measurement:
         setpoint_parameter_spec = None
 
         if isinstance(parameter, qc.Parameter):
-            setpoint_parameter_spec = setpoint_dataset(id(parameter), n_points, parameter.name, 
+            setpoint_parameter_spec = setpoint_dataclass(id(parameter), n_points, parameter.name, 
                 [parameter.name], [parameter.label], [parameter.unit], list(((), )), None)
         if isinstance(parameter, qc.MultiParameter):
-            setpoint_parameter_spec = setpoint_dataset(id(parameter), n_points, parameter.name,
+            setpoint_parameter_spec = setpoint_dataclass(id(parameter), n_points, parameter.name,
                 list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes), None)
 
         self.setpoints[setpoint_parameter_spec.id_info] = setpoint_parameter_spec
@@ -76,19 +77,19 @@ class Measurement:
         m_param_parameter_spec = None
 
         if isinstance(parameter, qc.Parameter):
-            m_param_parameter_spec = m_param_dataset(id(parameter), parameter.name, 
+            m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
                 [parameter.name], [parameter.label], [parameter.unit], list(((), )), [], [])
 
             my_setpoints = []
 
         if isinstance(parameter, qc.MultiParameter):
-            m_param_parameter_spec = m_param_dataset(id(parameter), parameter.name, 
+            m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
                 list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes), [], [])
 
             setpoint_local_parameter_spec = None
             for i in range(len(parameter.setpoint_names)):
                 my_setpoints = []
-                setpoint_local_parameter_spec = setpoint_dataset(id(parameter.setpoint_names[i][0]), np.NaN, 
+                setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][0]), np.NaN, 
                     'local_var', list(parameter.setpoint_names[i]), list(parameter.setpoint_labels[i]),
                     list(parameter.setpoint_units[i]), [], [])
                 for j in range(len(parameter.setpoints[i])):
@@ -120,15 +121,16 @@ class Measurement:
         for arg in args:
             args_dict[id(arg[0])] = arg
 
-        self.dataset.add_results(args)
+        self.dataset.add_results(self.m_param, *args)
 
     def __enter__(self):
         # generate dataset
-        self.dataset = generate_data_set(self.setpoints, self.m_param)
+        self.dataset = create_new_data_set(*self.m_param.values())
         return self
 
     def  __exit__(self, exc_type, exc_value, exc_traceback):
         # save data
+        self.dataset.mark_completed()
 
         if exc_type is None:
             return True
@@ -193,24 +195,22 @@ if __name__ == '__main__':
     meas.register_set_parameter(a1, 50)
     meas.register_set_parameter(a2, 50)
 
-    meas.register_get_parameter(m3, a1, a2)
+    meas.register_get_parameter(m4, a1, a2)
 
     m_param_1 = list(meas.m_param.values())[0]
     print(id(m_param_1))
     input_data  = {    }
-    input_data[id(m3)] = [[25], [50]]
+    input_data[id(m4)] = [[25], [50]]
     input_data[id(a1)] = [10]
     input_data[id(a2)] = [5]
 
     m_param_1.init_data_set()
     m_param_1.write_data(input_data)
     m_param_1.write_data(input_data)
-    print(id(m_param_1))
-    # list(meas.m_param.values())[1].init_data_set()
-    # list(meas.m_param.values())[2].init_data_set()
+    # print(m_param_1)
 
-    # with meas as ds:
-    #     # ds = 'blub'
-    #     print(ds)
-    #     # raise Exception('exception raised').with_traceback(None)
-    #     # 5/0
+    with meas as ds:
+        # ds = 'blub'
+        print(ds)
+        # raise Exception('exception raised').with_traceback(None)
+        # 5/0

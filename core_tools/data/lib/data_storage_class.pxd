@@ -5,14 +5,23 @@ from libcpp cimport bool
 
 cdef extern from "data_class.h":
 	struct data_item:
+		long param_id
+		int nth_set
+		long param_id_m_param
+		bool setpoint
+		bool setpoint_local
+		string name_gobal
+
 		string name
 		string label
 		string unit
-		vector[string] dependency
-		vector[int] shape
+		string dependency
+		string shape
+
 		double *raw_data
 
 		int data_size_flat()
+		int size
 
 	struct data_set_raw:
 		vector[data_item] data_entries
@@ -32,6 +41,9 @@ cdef extern from "data_class.h":
 
 		string snapshot
 		string metadata
+
+		bool completed
+		int writecount
 
 	struct measurement_overview_set:
 		vector[int] exp_id
