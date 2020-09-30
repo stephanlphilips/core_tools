@@ -17,6 +17,7 @@ class data_item:
     shape : str
     raw_data :  np.ndarray
     size : int
+    data_writer : any = None
 
 class dataclass_raw_parent:
     __cursors = None
@@ -36,7 +37,7 @@ class dataclass_raw_parent:
         data_in = input_data[self.id_info]
 
         for i in range(len(data_in)):
-            data = np.asarray(data_in[i]).flatten()
+            data = np.ravel(np.asarray(data_in[i]))
             self.data[i][self.cursor[i] : self.cursor[i] + data.size] = data
             self.cursor[i] += data.size
 

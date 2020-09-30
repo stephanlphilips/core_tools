@@ -23,8 +23,8 @@ general structure:
     When the last result is added, the final sync to the db is performed and you are done.
 '''
 
-from data_class import setpoint_dataclass, m_param_dataclass
-from data_stroarge_class_python_mockup import create_new_data_set
+from core_tools.data.lib.data_class import setpoint_dataclass, m_param_dataclass
+from core_tools.data.data_set import create_new_data_set
 import qcodes as qc
 import numpy as np
 

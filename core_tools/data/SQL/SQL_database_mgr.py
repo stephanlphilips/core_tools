@@ -1,44 +1,32 @@
-'''
-database manager ::
-
-This class is reponsible for:
-	* establishing the connection witht the databae
-	* queries of measurement that are present in the database
-	* loading of measurements from the database (e.g. load a dataset)
-	* saving measurements.
-		* the raw data is saved in a different calls in raw_data_mgr.py
-
-Note that can only be one measurement manager per python session.
-'''
-import psycopg2
 from core_tools.data.SQL.connector import SQL_descriptor, sample_info
+import psycopg2
 import time
 import json
 
 class query_generator:
 	@staticmethod
 	def generate_overview_of_measurements_table():
-		statement = "CREATE TABLE if not EXISTS measurements_overview ("+
-			"id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,"+
-			"set_up varchar(1024) NOT NULL,"+
-			"project varchar(1024) NOT NULL,"+
-			"sample varchar(1024) NOT NULL,"+
-			"start_time TIMESTAMP,"+
-			"stop_time TIMESTAMP,"+
-			"exp_name varchar(1024) NOT NULL,"+
-			"exp_data_location varchar(1024),"+
-			"snapshot JSON,"+
-			"metadata JSON);"
+		statement = "CREATE TABLE if not EXISTS measurements_overview ("
+		statement += "id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,"
+		statement += "set_up varchar(1024) NOT NULL,"
+		statement += "project varchar(1024) NOT NULL,"
+		statement += "sample varchar(1024) NOT NULL,"
+		statement += "start_time TIMESTAMP,"
+		statement += "stop_time TIMESTAMP,"
+		statement += "exp_name varchar(1024) NOT NULL,"
+		statement += "exp_data_location varchar(1024),"
+		statement += "snapshot JSON,"
+		statement += "metadata JSON);"
 		return statement
 
 	@staticmethod
 	def insert_new_measurement_in_overview_table(exp_name):
-		statement = "INSERT INTO measurements_overview "+ 
-		"(set_up, project, sample, exp_name) VALUES ('" + 
-			str(SQL_descriptor.set_up) + "', '" + 
-			str(SQL_descriptor.project) + "', '" + 
-			str(SQL_descriptor.sample) + "', '" + 
-			exp_name + "');"
+		statement = "INSERT INTO measurements_overview "
+		statement += "(set_up, project, sample, exp_name) VALUES ('"
+		statement += str(SQL_descriptor.set_up) + "', '"
+		statement += str(SQL_descriptor.project) + "', '"
+		statement += str(SQL_descriptor.sample) + "', '"
+		statement += exp_name + "');"
 		return statement
 
 	@staticmethod
@@ -74,21 +62,30 @@ class query_generator:
 
 	@staticmethod
 	def make_new_data_table(name):
-		statement= "CREATE TABLE {} ( ".format(name ) +
-			"id INT NOT NULL, " +
-			"param_id BIGINT, " +
-			"nth_set INT, " +
-			"param_id_m_param BIGINT, " +
-			"setpoint BOOL, " +
-			"setpoint_local BOOL, " +
-			"name_gobal varchar(1024), " +
-			"name varchar(1024) NOT NULL," +
-			"label varchar(1024) NOT NULL," +
-			"unit varchar(1024) NOT NULL," +
-			"depencies varchar(1024), " +
-			"shape jsonb, " +
-			"size INT, " +
-			"oid INT );" +
+		statement = "CREATE TABLE {} ( ".format(name )
+		statement += "id INT NOT NULL, "
+		statement += "param_id BIGINT, "
+		statement += "nth_set INT, "
+		statement += "param_id_m_param BIGINT, "
+		statement += "setpoint BOOL, "
+		statement += "setpoint_local BOOL, "
+		statement += "name_gobal varchar(1024), "
+		statement += "name varchar(1024) NOT NULL,"
+		statement += "label varchar(1024) NOT NULL,"
+		statement += "unit varchar(1024) NOT NULL,"
+		statement += "depencies varchar(1024), "
+		statement += "shape jsonb, "
+		statement += "size INT, "
+		statement += "oid INT );"
+		return statement
+
+	def insert_measurement_spec_in_meas_table(measurement_table, data_item):
+		statement = "INSERT INTO {} "
+		statement += "(param_id nth_set, param_id_m_param, setpoint, setpoint_local, name_gobal, name, label, unit, depencies, shape, size,oid) VALUES ('"
+		statement += str(SQL_descriptor.set_up) + "', '"
+		statement += str(SQL_descriptor.project) + "', '"
+		statement += str(SQL_descriptor.sample) + "', '"
+		statement += exp_name + "');"
 		return statement
 
 class SQL_database_manager:
@@ -154,7 +151,7 @@ class SQL_database_manager:
 	def fetch_dataset(run_id):
 		pass
 
-		
+
 	def commit(self, force = False):
 		'''
 		commit non-timecritical updates to the database (e.g. updates of measurements) (update rate 200ms).
@@ -166,3 +163,7 @@ class SQL_database_manager:
 		if current_time - self.last_commit > 0.2 or force==True:
 			self.conn.commit()
 			self.last_commit=current_time
+
+if __name__ == '__main__':
+	a =  query_generator.generate_overview_of_measurements_table()
+	print(a)
