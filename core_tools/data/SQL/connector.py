@@ -2,7 +2,6 @@
 definition of storage locations and initializer for storage.
 '''
 
-
 class SQL_descriptor(object):
 	def __init__(self, descr):
 		self.val = descr
@@ -29,26 +28,26 @@ class sample_info:
 		sample_info.sample = sample
 
 class SQL_conn_info:
-	server = SQL_descriptor(None)
+	host = SQL_descriptor(None)
 	port = SQL_descriptor(None)
 	user = SQL_descriptor(None)
 	passwd = SQL_descriptor(None)
 	dbname = SQL_descriptor(None)
 
-	def __init__(self, server, port, user, passwd):
-		SQL_conn_info.server = server
+	def __init__(self, host, port, user, passwd):
+		SQL_conn_info.host = host
 		SQL_conn_info.port = port
 		SQL_conn_info.user = user
 		SQL_conn_info.passwd = passwd
 		SQL_conn_info.dbname = dbname
 
 
-def set_up_data_storage(server, port, user, passwd, dbname, project, set_up, sample):
+def set_up_data_storage(host, port, user, passwd, dbname, project, set_up, sample):
 	'''
 	Set up the specification for the datastorage needed to store/retrieve measurements.
 	
 	Args:
-		server (str) : server that is used for storage, e.g. "localhost" for local or "spin_data.tudelft.nl" for global storage
+		host (str) : host that is used for storage, e.g. "localhost" for local or "spin_data.tudelft.nl" for global storage
 		port (int) : port number to connect through, the default it 5421
 		user (str) : name of the user to connect with
 		passwd (str) : password of the user
@@ -58,5 +57,6 @@ def set_up_data_storage(server, port, user, passwd, dbname, project, set_up, sam
 		set_up (str) : set up at which the data has been measured
 		sample (str) : sample name 
 	'''
-	SQL_conn_info(server, port, user, passwd, dbname)
+	SQL_conn_info(host, port, user, passwd, dbname)
 	sample_info(project, set_up, sample)
+

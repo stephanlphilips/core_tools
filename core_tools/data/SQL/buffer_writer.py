@@ -22,12 +22,17 @@ class buffer_writer:
 
 	def __load_blocks(n):
 		'''
-		load empty blocks in the buffer to prevent defragmentation
+		load empty blocks in the buffer to prevent defragmentation.
+
+		Args:
+			n (int) : number of writes to be performed
 		'''
 		if self.cursor + n > self.blocks_written:
 			self.lobject.seek(self.blocks_written)
 
-			if self.input_buffer.size - self.blocks_written <125000:
+			if n > 125000:
+				pass #write is large than the number of blocks reserved -> skip.
+			elif self.input_buffer.size - self.blocks_written <125000:
 				scratch_data = np.empty([self.input_buffer.size - self.blocks_written]).fill(np.NaN)
 				self.lobject.write(scratch_data.tobytes())
 				self.blocks_written += scratch_data.size
@@ -42,6 +47,8 @@ class buffer_writer:
 
 class buffer_reader:
 	def __init__(self, SQL_conn, oid, shape):
+		'''
+		'''
 		self.conn = SQL_conn
 		self.buffer = np.empty(shape).fill(np.NaN)
 

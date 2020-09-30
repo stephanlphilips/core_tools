@@ -2,7 +2,7 @@ Spin Qubit dataset documentation
 ================================
 
 This a light weight dataset that has been made to support common spin qubit measurement practices.
-The front end of the dataset has been made to resemble the qcodes dataset. The back-end uses a different database, which allows for non-local and fast storage of larger measurements (>100Mb).
+The front end of the dataset has been made to resemble the qcodes dataset. The back-end uses a different database, which allows for non-local and fast storage/access of small and large measurements (>100Mb).
 
 
 In this document the set up, creation, loading and browsing of dataset's is discussed.
@@ -40,7 +40,7 @@ Steps:
 ... * createuser myusername
 ... * ALTER ...
 ... * createdb mydbname
-
+ 
 You should be ready to go now and be able to use the database.
 In python you can run:
 ```python

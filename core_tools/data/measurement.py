@@ -142,6 +142,7 @@ class Measurement:
 
 if __name__ == '__main__':
     import qcodes as qc
+    from core_tools.sweeps.sweeps import do0D
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer, construct_1D_scan_fast, construct_2D_scan_fast
     class MyCounter(qc.Parameter):
         def __init__(self, name):
