@@ -6,7 +6,7 @@
 #include <string>
 #include <cstring>
 
-#include "mysql_connection.h"
+#include <mysqlx/xdevapi.h>
 
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>

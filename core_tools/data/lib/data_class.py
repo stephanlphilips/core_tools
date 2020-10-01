@@ -40,9 +40,9 @@ class dataclass_raw_parent:
             self.data[i][self.cursor[i] : self.cursor[i] + data.size] = data
             self.cursor[i] += data.size
 
-    def to_c_data(self, m_param_id, setpoint, setpoint_local, dependencies=[]):
+    def to_SQL_data_structure(self, m_param_id, setpoint, setpoint_local, dependencies=[]):
         '''
-        disassembele the dataset into a c data set
+        disassembele the dataset into a sql like structure
 
         Args:
             m_param_id (int): id of the measurement parameter where this data belongs to.
@@ -111,15 +111,15 @@ class m_param_dataclass(dataclass_raw_parent):
         for setpoint in self.setpoints:
             setpoint.write_data(input_data)
 
-    def to_c_data(self):
+    def to_SQL_data_structure(self):
         data_items = []
 
-        data_items += super().to_c_data(self.id_info, False, False, self.dependencies)
+        data_items += super().to_SQL_data_structure(self.id_info, False, False, self.dependencies)
         for setpt in self.setpoints:
-            data_items += setpt.to_c_data(self.id_info, True, False)
+            data_items += setpt.to_SQL_data_structure(self.id_info, True, False)
 
         for setpt in self.setpoints:
-            data_items += setpt.to_c_data(self.id_info, False, True)
+            data_items += setpt.to_SQL_data_structure(self.id_info, False, True)
 
         return data_items
 

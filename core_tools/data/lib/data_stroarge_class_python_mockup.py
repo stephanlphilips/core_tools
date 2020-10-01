@@ -15,7 +15,8 @@ def create_new_data_set(*m_params):
     ds = data_set_raw([], 'SQL_table_name', 50, 'exp_name', 'set_up', 'project', 'sample')
 
     for m_param in m_params:
-        ds.data_entries += m_param.to_c_data()
+        m_param.init_data_set()
+        ds.data_entries += m_param.to_SQL_data_structure()
 
     return data_set(ds)
 
