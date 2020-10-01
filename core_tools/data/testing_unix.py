@@ -3,54 +3,28 @@ import numpy as np
 conn = psycopg2.connect("dbname=test user=stephan")
 cur = conn.cursor()
 
+conn.commit()
 
-cur.execute("SELECT * FROM pg_largeobject;")
-
-res = cur.fetchall()
-print(res)
-# conn.commit()
+from core_tools.data.SQL.connector import sample_info
+from core_tools.data.SQL.connector import set_up_data_storage
 
 
-def make_new_lobject(conn):
-	o = conn.lobject(0,'wb')
-	print("new_file_id = {}".format(o.oid))
-	return o, o.oid
-
-def open_lobject(conn, oid):
-	o = conn.lobject(oid,'wb')
-	return o, o.oid
-
-def write_numpy_array(conn, o, data_array):
-	char_data = data_array.tobytes()
-	o.seek(0)
-	o.write(char_data)
-	conn.commit()
-
-def load_numpy_array(conn, oid):
-	o = conn.lobject(oid,'wb')
-	binary_data = o.read()
-	data = np.frombuffer(binary_data)
-	return data
+set_up_data_storage('localhost', 5432, 'stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
 
 
-string = 'this is a random sentence that I just storred in a text file in the the database...'
+def insert_new_measurement_in_overview_table(exp_name):
+		statement = "INSERT INTO measurements_overview "
+		statement += "(set_up, project, sample, exp_name) VALUES ('"
+		statement += str(sample_info.set_up) + "', '"
+		statement += str(sample_info.project) + "', '"
+		statement += str(sample_info.sample) + "', '"
+		statement += exp_name + "');"
+		return statement
 
-data = np.linspace(0,50,500).reshape(10,50)
+def get_last_meas_id_in_overview_table():
+		return "SELECT MAX(id) FROM measurements_overview;" 
 
-# o, oid = make_new_lobject(conn)
-o, oid = open_lobject(conn, 16411)
-write_numpy_array(conn, o, data)
-new_data = load_numpy_array(conn, o.oid)
-print(new_data.reshape(10,50))
-# o = conn.lobject(16409, 'wb')
-# print(o.oid)
-# print(o.mode)
-# print(o.tell())
-# print(o.seek(160))
-# o.write(string)
-# print(o.tell())
-# print(o.seek(0))
-# print(o.read())
-
-# o.close()
-# conn.commit()
+stmt = get_last_meas_id_in_overview_table()
+cur.execute(stmt)
+print(cur.fetchone()[0])
+conn.commit()

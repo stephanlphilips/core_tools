@@ -34,7 +34,7 @@ class SQL_conn_info:
 	passwd = SQL_descriptor(None)
 	dbname = SQL_descriptor(None)
 
-	def __init__(self, host, port, user, passwd):
+	def __init__(self, host, port, user, passwd, dbname):
 		SQL_conn_info.host = host
 		SQL_conn_info.port = port
 		SQL_conn_info.user = user

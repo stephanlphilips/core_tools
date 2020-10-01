@@ -1,4 +1,4 @@
-from core_tools.data.SQL.connector import SQL_descriptor, sample_info
+from core_tools.data.SQL.connector import SQL_conn_info, sample_info
 import psycopg2
 import time
 import json
@@ -7,7 +7,7 @@ class query_generator:
 	@staticmethod
 	def generate_overview_of_measurements_table():
 		statement = "CREATE TABLE if not EXISTS measurements_overview ("
-		statement += "id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,"
+		statement += "id SERIAL,"
 		statement += "set_up varchar(1024) NOT NULL,"
 		statement += "project varchar(1024) NOT NULL,"
 		statement += "sample varchar(1024) NOT NULL,"
@@ -23,9 +23,9 @@ class query_generator:
 	def insert_new_measurement_in_overview_table(exp_name):
 		statement = "INSERT INTO measurements_overview "
 		statement += "(set_up, project, sample, exp_name) VALUES ('"
-		statement += str(SQL_descriptor.set_up) + "', '"
-		statement += str(SQL_descriptor.project) + "', '"
-		statement += str(SQL_descriptor.sample) + "', '"
+		statement += str(sample_info.set_up) + "', '"
+		statement += str(sample_info.project) + "', '"
+		statement += str(sample_info.sample) + "', '"
 		statement += exp_name + "');"
 		return statement
 
@@ -82,9 +82,9 @@ class query_generator:
 	def insert_measurement_spec_in_meas_table(measurement_table, data_item):
 		statement = "INSERT INTO {} "
 		statement += "(param_id nth_set, param_id_m_param, setpoint, setpoint_local, name_gobal, name, label, unit, depencies, shape, size,oid) VALUES ('"
-		statement += str(SQL_descriptor.set_up) + "', '"
-		statement += str(SQL_descriptor.project) + "', '"
-		statement += str(SQL_descriptor.sample) + "', '"
+		statement += str(SQL_conn_info.set_up) + "', '"
+		statement += str(SQL_conn_info.project) + "', '"
+		statement += str(SQL_conn_info.sample) + "', '"
 		statement += exp_name + "');"
 		return statement
 
@@ -101,8 +101,8 @@ class SQL_database_manager:
 
 	def __init__(self):
 		if self.conn == None:
-			self.conn = psycopg2.connect(dbname=SQL_descriptor.dbname, user=SQL_descriptor.user, 
-				password=SQL_descriptor.passwd, host=SQL_descriptor.host, port=SQL_descriptor.port)
+			self.conn = psycopg2.connect(dbname=SQL_conn_info.dbname, user=SQL_conn_info.user, 
+				password=SQL_conn_info.passwd, host=SQL_conn_info.host, port=SQL_conn_info.port)
 			self.last_commit = time.time()
 
 	def __init_database(self):
@@ -165,5 +165,9 @@ class SQL_database_manager:
 			self.last_commit=current_time
 
 if __name__ == '__main__':
-	a =  query_generator.generate_overview_of_measurements_table()
-	print(a)
+	from core_tools.data.SQL.connector import set_up_data_storage
+
+	set_up_data_storage('localhost', 5432, 'stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
+
+	test = SQL_database_manager()
+	
