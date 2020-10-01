@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
+import numbers
 import json
 
 @dataclass
@@ -20,13 +21,14 @@ class data_item:
 
 class dataclass_raw_parent:
     __cursors = None
+    __data_writer : any = None
 
     def write_data(self, input_data):
         '''
         write data to memory of the measurement
 
         Args:
-            input_data : dict formatted as e.g. write_data({'id(parameter_1)' : parameter_1.get(), id(parameter_2) : parameter_2.get(), ..})
+            input_data (dict): dict formatted as e.g. write_data({'id(parameter_1)' : parameter_1.get(), id(parameter_2) : parameter_2.get(), ..})
         '''
         if self.id_info not in input_data.keys():
             txt = 'Key not found. A write is attempted to a parameter that has not been declaired yet. '
@@ -35,10 +37,17 @@ class dataclass_raw_parent:
         
         data_in = input_data[self.id_info]
 
-        for i in range(len(data_in)):
-            data = np.asarray(data_in[i]).flatten()
-            self.data[i][self.cursor[i] : self.cursor[i] + data.size] = data
-            self.cursor[i] += data.size
+        if len(self.data) == 1:
+            # data in is not a iterator
+            data = np.ravel(np.asarray(data_in))
+            self.data[0][self.cursor[0] : self.cursor[0] + data.size] = data
+            self.cursor[0] += data.size
+        else:
+            # data_in expected to be a iterator
+            for i in range(len(data_in)):
+                data = np.ravel(np.asarray(data_in[i]))
+                self.data[i][self.cursor[i] : self.cursor[i] + data.size] = data
+                self.cursor[i] += data.size
 
     def to_SQL_data_structure(self, m_param_id, setpoint, setpoint_local, dependencies=[]):
         '''

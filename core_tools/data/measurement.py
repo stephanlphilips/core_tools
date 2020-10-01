@@ -23,8 +23,8 @@ general structure:
     When the last result is added, the final sync to the db is performed and you are done.
 '''
 
-from data_class import setpoint_dataclass, m_param_dataclass
-from data_stroarge_class_python_mockup import create_new_data_set
+from core_tools.data.lib.data_class import setpoint_dataclass, m_param_dataclass
+from core_tools.data.data_set import create_new_data_set
 import qcodes as qc
 import numpy as np
 
@@ -119,11 +119,9 @@ class Measurement:
         
         args_dict = {}
         for arg in args:
-            args_dict[id(arg[0])] = arg
-            print(arg)
-            print(id(arg[0]))
+            args_dict[id(arg[0])] = arg[1]
 
-        self.dataset.add_result(self.m_param, args_dict)
+        self.dataset.add_result(args_dict)
 
     def __enter__(self):
         # generate dataset
@@ -144,6 +142,7 @@ class Measurement:
 
 if __name__ == '__main__':
     import qcodes as qc
+    from core_tools.sweeps.sweeps import do0D
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer, construct_1D_scan_fast, construct_2D_scan_fast
     class MyCounter(qc.Parameter):
         def __init__(self, name):
@@ -210,8 +209,11 @@ if __name__ == '__main__':
     # m_param_1.write_data(input_data)
     # m_param_1.write_data(input_data)
     # print(m_param_1)
-
+    print(m4.inter_delay )
+    # print("loading_meas")
     with meas as ds:
         for i in range(50):
             for j in range(50):
                 ds.add_result((a1, i), (a2, i), (m4, m4.get()))
+
+    # print("done")
