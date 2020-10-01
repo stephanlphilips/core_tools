@@ -15,7 +15,8 @@ def create_new_data_set(*m_params):
     ds = data_set_raw([], 'SQL_table_name', 0, 'exp_name', 'set_up', 'project', 'sample')
 
     for m_param in m_params:
-        ds.data_entries += m_param.to_c_data()
+        m_param.init_data_set()
+        ds.data_entries += [m_param]
 
     return data_set(ds)
 
@@ -99,15 +100,14 @@ class data_set:
         '''
         self.__data_set_raw.completed = True
 
-    def add_result(self, m_params, input_data):
+    def add_result(self, input_data):
         '''
         Add results to the dataset
 
         Args:
-            m_params (list) : list with the meaurement parameters for this experiment.
             input_data (dict<int, list<np.ndarray>>) : dict with as key the id of the measured parameter and the data that is measured.
         '''
-        for m_param in m_params:
+        for m_param in self.__data_set_raw.data_entries:
             if m_param.id_info in input_data.keys():
                 m_param.write_data(input_data)
 

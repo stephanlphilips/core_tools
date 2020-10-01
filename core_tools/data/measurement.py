@@ -107,7 +107,7 @@ class Measurement:
 
         self.m_param[m_param_parameter_spec.id_info] = m_param_parameter_spec
 
-    def add_result(*args):
+    def add_result(self, *args):
         '''
         add results to the data_set
         
@@ -119,9 +119,9 @@ class Measurement:
         
         args_dict = {}
         for arg in args:
-            args_dict[id(arg[0])] = arg
+            args_dict[id(arg[0])] = arg[1]
 
-        self.dataset.add_results(self.m_param, *args)
+        self.dataset.add_result(args_dict)
 
     def __enter__(self):
         # generate dataset
@@ -199,19 +199,21 @@ if __name__ == '__main__':
     meas.register_get_parameter(m4, a1, a2)
 
     m_param_1 = list(meas.m_param.values())[0]
-    print(id(m_param_1))
-    input_data  = {    }
-    input_data[id(m4)] = [[25], [50]]
-    input_data[id(a1)] = [10]
-    input_data[id(a2)] = [5]
+    # print(id(m_param_1))
+    # input_data  = {    }
+    # input_data[id(m4)] = [[25], [50]]
+    # input_data[id(a1)] = [10]
+    # input_data[id(a2)] = [5]
 
-    m_param_1.init_data_set()
-    m_param_1.write_data(input_data)
-    m_param_1.write_data(input_data)
+    # m_param_1.init_data_set()
+    # m_param_1.write_data(input_data)
+    # m_param_1.write_data(input_data)
     # print(m_param_1)
-
+    print(m4.inter_delay )
+    # print("loading_meas")
     with meas as ds:
-        # ds = 'blub'
-        print(ds)
-        # raise Exception('exception raised').with_traceback(None)
-        # 5/0
+        for i in range(50):
+            for j in range(50):
+                ds.add_result((a1, i), (a2, i), (m4, m4.get()))
+
+    # print("done")

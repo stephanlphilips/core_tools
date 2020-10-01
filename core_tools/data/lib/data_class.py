@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
+import numbers
 import json
 
 @dataclass
@@ -17,17 +18,17 @@ class data_item:
     shape : str
     raw_data :  np.ndarray
     size : int
-    data_writer : any = None
 
 class dataclass_raw_parent:
     __cursors = None
+    __data_writer : any = None
 
     def write_data(self, input_data):
         '''
         write data to memory of the measurement
 
         Args:
-            input_data : dict formatted as e.g. write_data({'id(parameter_1)' : parameter_1.get(), id(parameter_2) : parameter_2.get(), ..})
+            input_data (dict): dict formatted as e.g. write_data({'id(parameter_1)' : parameter_1.get(), id(parameter_2) : parameter_2.get(), ..})
         '''
         if self.id_info not in input_data.keys():
             txt = 'Key not found. A write is attempted to a parameter that has not been declaired yet. '
@@ -36,14 +37,21 @@ class dataclass_raw_parent:
         
         data_in = input_data[self.id_info]
 
-        for i in range(len(data_in)):
-            data = np.ravel(np.asarray(data_in[i]))
-            self.data[i][self.cursor[i] : self.cursor[i] + data.size] = data
-            self.cursor[i] += data.size
+        if len(self.data) == 1:
+            # data in is not a iterator
+            data = np.ravel(np.asarray(data_in))
+            self.data[0][self.cursor[0] : self.cursor[0] + data.size] = data
+            self.cursor[0] += data.size
+        else:
+            # data_in expected to be a iterator
+            for i in range(len(data_in)):
+                data = np.ravel(np.asarray(data_in[i]))
+                self.data[i][self.cursor[i] : self.cursor[i] + data.size] = data
+                self.cursor[i] += data.size
 
-    def to_c_data(self, m_param_id, setpoint, setpoint_local, dependencies=[]):
+    def to_SQL_data_structure(self, m_param_id, setpoint, setpoint_local, dependencies=[]):
         '''
-        disassembele the dataset into a c data set
+        disassembele the dataset into a sql like structure
 
         Args:
             m_param_id (int): id of the measurement parameter where this data belongs to.
@@ -112,15 +120,15 @@ class m_param_dataclass(dataclass_raw_parent):
         for setpoint in self.setpoints:
             setpoint.write_data(input_data)
 
-    def to_c_data(self):
+    def to_SQL_data_structure(self):
         data_items = []
 
-        data_items += super().to_c_data(self.id_info, False, False, self.dependencies)
+        data_items += super().to_SQL_data_structure(self.id_info, False, False, self.dependencies)
         for setpt in self.setpoints:
-            data_items += setpt.to_c_data(self.id_info, True, False)
+            data_items += setpt.to_SQL_data_structure(self.id_info, True, False)
 
         for setpt in self.setpoints:
-            data_items += setpt.to_c_data(self.id_info, False, True)
+            data_items += setpt.to_SQL_data_structure(self.id_info, False, True)
 
         return data_items
 
