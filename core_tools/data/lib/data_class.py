@@ -1,7 +1,10 @@
-from dataclasses import dataclass
+from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
+from core_tools.data.SQL.buffer_writer import buffer_writer, buffer_reader
+from dataclasses import dataclass, field
 import numpy as np
 import numbers
 import json
+
 
 @dataclass
 class data_item:
@@ -16,12 +19,32 @@ class data_item:
     unit : str
     dependency : str
     shape : str
-    raw_data :  np.ndarray
     size : int
 
 class dataclass_raw_parent:
-    __cursors = None
-    __data_writer : any = None
+    def generate_data_buffer(self, setpoint_shape=[]):
+        '''
+        generate the buffers that are needed to write the data to the database.
+
+        Args:
+            setpoint_shape (list) : shape of the setpoints (if applicable) (measurent param is measured exactly the same amount of times than the setpoint)
+        '''
+        SQL_mgr = SQL_database_manager()
+
+        for i in range(len(self.shapes)):
+            shape = setpoint_shape + list(self.shapes[i])
+            
+            if i <= len(self.oid): # write data
+                arr = np.full(shape, np.nan, order='C')
+                data_buffer = buffer_writer(SQL_mgr.conn, arr)
+                self.oid.append(data_buffer.oid)
+            else: # load data
+                oid = self.oid[i]
+                data_buffer = buffer_reader(SQL_mgr.conn, oid, shape)
+                arr = data_buffer.buffer
+
+            self.data.append(arr)
+            self.data_buffer.append(data_buffer)
 
     def write_data(self, input_data):
         '''
@@ -36,18 +59,16 @@ class dataclass_raw_parent:
             raise KeyError(txt)
         
         data_in = input_data[self.id_info]
-
+                
         if len(self.data) == 1:
             # data in is not a iterator
             data = np.ravel(np.asarray(data_in))
-            self.data[0][self.cursor[0] : self.cursor[0] + data.size] = data
-            self.cursor[0] += data.size
+            self.data_buffer[0].write(data.size, data)
         else:
             # data_in expected to be a iterator
             for i in range(len(data_in)):
                 data = np.ravel(np.asarray(data_in[i]))
-                self.data[i][self.cursor[i] : self.cursor[i] + data.size] = data
-                self.cursor[i] += data.size
+                self.data_buffer[i].write(data.size, data)
 
     def to_SQL_data_structure(self, m_param_id, setpoint, setpoint_local, dependencies=[]):
         '''
@@ -68,17 +89,6 @@ class dataclass_raw_parent:
 
         return data_items
 
-    @property
-    def cursor(self):
-        if self.__cursors is None:
-            self.__cursors = [0] * len(self.data)
-
-        return self.__cursors
-
-    @cursor.setter
-    def cursor(self, value):
-        self.__cursors = value
-
 @dataclass
 class setpoint_dataclass(dataclass_raw_parent):
     id_info : id
@@ -88,7 +98,9 @@ class setpoint_dataclass(dataclass_raw_parent):
     labels : list
     units : list
     shapes : list
-    data : list = None
+    data : list = field(default_factory=lambda: [])
+    oid : list = field(default_factory=lambda: [])
+    data_buffer : list = field(default_factory=lambda: [])
 
     def __repr__(self):
         description = "id :: {} \tname :: {}\tnpt :: {}\n".format(self.id_info, self.name, self.npt)
@@ -106,7 +118,10 @@ class m_param_dataclass(dataclass_raw_parent):
     shapes : list
     setpoints : list
     setpoints_local : list
-    data : list = None
+    data : list = field(default_factory=lambda: [])
+    oid : list = field(default_factory=lambda: [])
+    data_buffer : list = field(default_factory=lambda: [])
+    __initialized : bool = False
 
     def write_data(self, input_data):
         '''
@@ -120,7 +135,7 @@ class m_param_dataclass(dataclass_raw_parent):
         for setpoint in self.setpoints:
             setpoint.write_data(input_data)
 
-    def to_SQL_data_structure(self):
+    def __to_SQL_data_structure(self):
         data_items = []
 
         data_items += super().to_SQL_data_structure(self.id_info, False, False, self.dependencies)
@@ -132,23 +147,34 @@ class m_param_dataclass(dataclass_raw_parent):
 
         return data_items
 
-    def init_data_set(self):
+    def init_data_dataclass(self):
         '''
-        initialize the arrays in the dataset. This are all flat arrays.
+        initialize the arrays in the dataset.
         '''
         setpoint_shape = []
         for setpoint in self.setpoints:
             setpoint_shape += [setpoint.npt]
-            setpoint.data = list()
+            setpoint.generate_data_buffer()  
 
-            for shape in setpoint.shapes:
-                arr = np.full([setpoint.npt] + list(shape), np.nan, order='C').flatten()
-                setpoint.data.append(arr)
+        self.generate_data_buffer(setpoint_shape)
+        self.__initialized = True
 
-        self.data = list()
-        for shape in self.shapes:
-            arr = np.full(setpoint_shape + list(shape), np.nan, order='C').flatten()
-            self.data.append(arr)
+    def register_data(self, table_name):
+        '''
+        register the oid's in the database
+
+        Args:
+            table_name (str) : name generated for the measurement by the SQL_database_manager
+        '''
+        if self.__initialized == False:
+            raise ValueError('dataclass is not initialized. Please run data_class.init_data_dataclass() and then try to register the data in the database.')
+        
+        db_mgr = SQL_database_manager()
+        data_items = self.__to_SQL_data_structure()
+
+        for data_item in data:
+            db_mgr.write_row(table_name, data_item)
+
 
     @property
     def dependencies(self):

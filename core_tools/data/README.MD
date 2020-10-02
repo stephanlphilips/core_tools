@@ -1,16 +1,28 @@
 Spin Qubit dataset documentation
 ================================
 
-This a light weight dataset that has been made to support common spin qubit measurement practices.
+This is a light weight dataset that has been made to support common spin qubit measurement practices.
 The front end of the dataset has been made to resemble the qcodes dataset. The back-end uses a different database, which allows for non-local and fast storage/access of small and large measurements (>100Mb).
 
 
 In this document the set up, creation, loading and browsing of dataset's is discussed.
+# current status
+
+* create postgres general measurement tables -> done
+* set up measurement object similar to the one in qcodes -> done
+* create a dataset -> done
+* set up a buffer system that can write to the database -> done
+* add easy access operators to the dataset -> TODO
+* loading a dataset -> TODO
+* query tool for all the data -> TODO
+* GUI to diplay data -> TODO 
+
+* possible future concept :: push local to external database
 
 # Set up
-The set up the connection to the server there are two options:
-1. A PostgreSQL dataserver has been set up of the group where you are working in. Ask the server details to the server admin and you should be good to go.
-2. Install your local PostgreSQL server.
+To set up the connection to the server, there are two options:
+1. A PostgreSQL dataserver has been set up for the group where you are working in. Ask the server details to the server admin and you are good to go.
+2. Install your own local PostgreSQL server.
 
 ## Option 1 (recommended)
 Run the following code in your python console:
@@ -91,4 +103,15 @@ with meas as ds:
     		meas.add_result( (a1, a1.get()), (a2, a2.get()), (m4, m4.get()))
 ```
 
+#Loading a dataset
+This can be done using two lines:
+
+```python
+# register a measurement
+from core_tools.data.lib.SQL import data_mgr
+
+ds = data_mgr.load_id(my_id)
+```
+
+#Browsing for data
 

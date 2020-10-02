@@ -1,16 +1,21 @@
-import psycopg2
-import numpy as np
-conn = psycopg2.connect("dbname=test user=stephan")
-cur = conn.cursor()
-import json
-conn.commit()
-import time
-from core_tools.data.SQL.connector import sample_info
-from core_tools.data.SQL.connector import set_up_data_storage
+class query_generator:
+	@staticmethod
+	def generate_overview_of_measurements_table():
+		statement = "CREATE TABLE if not EXISTS measurements_overview ("
+		statement += "id SERIAL,"
+		statement += "set_up varchar(1024) NOT NULL,"
+		statement += "project varchar(1024) NOT NULL,"
+		statement += "sample varchar(1024) NOT NULL,"
+		statement += "start_time TIMESTAMP,"
+		statement += "stop_time TIMESTAMP,"
+		statement += "exp_name varchar(1024) NOT NULL,"
+		statement += "exp_data_location varchar(1024),"
+		statement += "snapshot JSON,"
+		statement += "metadata JSON);"
+		return statement
 
-set_up_data_storage('localhost', 5432, 'stephan', 'magicc', 'test', '5dot', 'XLD', 'SQ19_blabla')
-
-def insert_new_measurement_in_overview_table(exp_name):
+	@staticmethod
+	def insert_new_measurement_in_overview_table(exp_name):
 		statement = "INSERT INTO measurements_overview "
 		statement += "(set_up, project, sample, exp_name) VALUES ('"
 		statement += str(sample_info.set_up) + "', '"
@@ -19,10 +24,11 @@ def insert_new_measurement_in_overview_table(exp_name):
 		statement += exp_name + "');"
 		return statement
 
-def get_last_meas_id_in_overview_table():
-		return "SELECT MAX(id) FROM measurements_overview;" 
+	@staticmethod
+	def get_last_meas_id_in_overview_table():
+		return "SELECT MAX(id) FROM measurements_overview;"
 
-def fill_meas_info_in_overview_table(meas_id, measurement_table_name=None, start_time=None, stop_time=None, metadata=None, snapshot=None):
+	def fill_meas_info_in_overview_table(meas_id, measurement_table_name=None, start_time=None, stop_time=None, metadata=None, snapshot=None):
 		'''
 		fill in the addional data in a record of the measurements overview table.
 
@@ -49,7 +55,8 @@ def fill_meas_info_in_overview_table(meas_id, measurement_table_name=None, start
 
 		return statement
 
-def make_new_data_table(name):
+	@staticmethod
+	def make_new_data_table(name):
 		statement = "CREATE TABLE {} ( ".format(name )
 		statement += "id INT NOT NULL, "
 		statement += "param_id BIGINT, "
@@ -67,16 +74,11 @@ def make_new_data_table(name):
 		statement += "oid INT );"
 		return statement
 
-state = ['a', 1 , 100]
-
-# stmt = insert_new_measurement_in_overview_table('test_table')
-# cur.execute(stmt)
-
-stmt = make_new_data_table('test_table_name')
-cur.execute(stmt)
-# meas_id = cur.fetchone()[0]
-
-# stmt = fill_meas_info_in_overview_table(meas_id, 'test_table_name', start_time=time.time(), snapshot=json.dumps(state))
-# cur.execute(stmt)
-
-conn.commit()
+	def insert_measurement_spec_in_meas_table(measurement_table, data_item):
+		statement = "INSERT INTO {} "
+		statement += "(param_id nth_set, param_id_m_param, setpoint, setpoint_local, name_gobal, name, label, unit, depencies, shape, size,oid) VALUES ('"
+		statement += str(SQL_conn_info.set_up) + "', '"
+		statement += str(SQL_conn_info.project) + "', '"
+		statement += str(SQL_conn_info.sample) + "', '"
+		statement += exp_name + "');"
+		return statement

@@ -121,6 +121,8 @@ class Measurement:
         for arg in args:
             args_dict[id(arg[0])] = arg[1]
 
+        print('prep results')
+
         self.dataset.add_result(args_dict)
 
     def __enter__(self):
@@ -144,6 +146,10 @@ if __name__ == '__main__':
     import qcodes as qc
     from core_tools.sweeps.sweeps import do0D
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer, construct_1D_scan_fast, construct_2D_scan_fast
+    from core_tools.data.SQL.connector import set_up_data_storage
+
+    set_up_data_storage('localhost', 5432, 'stephan', 'magicc', 'test', '5dot', 'XLD', 'SQ19_blabla')
+
     class MyCounter(qc.Parameter):
         def __init__(self, name):
             # only name is required
@@ -193,12 +199,13 @@ if __name__ == '__main__':
     m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
 
     meas = Measurement()
-    meas.register_set_parameter(a1, 50)
-    meas.register_set_parameter(a2, 50)
+    meas.register_set_parameter(a1, 2)
+    meas.register_set_parameter(a2, 2)
 
-    meas.register_get_parameter(m4, a1, a2)
+    meas.register_get_parameter(m1, a1, a2)
 
     m_param_1 = list(meas.m_param.values())[0]
+    print(m1.name)
     # print(id(m_param_1))
     # input_data  = {    }
     # input_data[id(m4)] = [[25], [50]]
@@ -209,11 +216,13 @@ if __name__ == '__main__':
     # m_param_1.write_data(input_data)
     # m_param_1.write_data(input_data)
     # print(m_param_1)
-    print(m4.inter_delay )
+    # print(m4.inter_delay)
     # print("loading_meas")
     with meas as ds:
-        for i in range(50):
-            for j in range(50):
-                ds.add_result((a1, i), (a2, i), (m4, m4.get()))
+        for i in range(2):
+            for j in range(2):
+                z = m1.get()
+                print('results', i ,j, z)
+                ds.add_result((a1, i), (a2, j), (m1, z))
 
     # print("done")

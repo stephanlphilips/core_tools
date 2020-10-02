@@ -15,7 +15,7 @@ def create_new_data_set(*m_params):
     ds = data_set_raw([], 'SQL_table_name', 0, 'exp_name', 'set_up', 'project', 'sample')
 
     for m_param in m_params:
-        m_param.init_data_set()
+        m_param.init_data_dataclass()
         ds.data_entries += [m_param]
 
     return data_set(ds)
