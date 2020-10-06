@@ -36,6 +36,7 @@ class Measurement:
         self.setpoints = dict()
         self.m_param = dict()
         self.dataset = None
+        self.name = 'todo'
 
     def register_set_parameter(self, parameter, n_points):
         '''
@@ -54,10 +55,10 @@ class Measurement:
 
         if isinstance(parameter, qc.Parameter):
             setpoint_parameter_spec = setpoint_dataclass(id(parameter), n_points, parameter.name, 
-                [parameter.name], [parameter.label], [parameter.unit], list(((), )), None)
+                [parameter.name], [parameter.label], [parameter.unit])
         if isinstance(parameter, qc.MultiParameter):
             setpoint_parameter_spec = setpoint_dataclass(id(parameter), n_points, parameter.name,
-                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes), None)
+                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
         self.setpoints[setpoint_parameter_spec.id_info] = setpoint_parameter_spec
 
@@ -78,23 +79,26 @@ class Measurement:
 
         if isinstance(parameter, qc.Parameter):
             m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
-                [parameter.name], [parameter.label], [parameter.unit], list(((), )), [], [])
+                [parameter.name], [parameter.label], [parameter.unit])
 
             my_setpoints = []
 
         if isinstance(parameter, qc.MultiParameter):
             m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
-                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes), [], [])
+                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
             setpoint_local_parameter_spec = None
             for i in range(len(parameter.setpoint_names)):
                 my_setpoints = []
-                setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][0]), np.NaN, 
+                # a bit of a local hack, in setpoints, sometimes copies are made of the setpoint name
+                # this can cause in uniquess of the keys, therefore the extra multiplications (should more or less ensure uniqueness).
+                #cleaner solution?
+                setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][0])*10*(i+1), np.NaN, 
                     'local_var', list(parameter.setpoint_names[i]), list(parameter.setpoint_labels[i]),
                     list(parameter.setpoint_units[i]), [], [])
                 for j in range(len(parameter.setpoints[i])):
                     data_array = parameter.setpoints[i][j]
-                    setpoint_local_parameter_spec.data.append(np.asarray(data_array, order='C').flatten())
+                    setpoint_local_parameter_spec.data.append(np.asarray(data_array, order='C'))
                     shape = ( parameter.shapes[i][j],)
                     setpoint_local_parameter_spec.shapes.append(shape)
 
@@ -121,13 +125,11 @@ class Measurement:
         for arg in args:
             args_dict[id(arg[0])] = arg[1]
 
-        print('prep results')
-
         self.dataset.add_result(args_dict)
 
     def __enter__(self):
         # generate dataset
-        self.dataset = create_new_data_set(*self.m_param.values())
+        self.dataset = create_new_data_set(self.name, *self.m_param.values())
         return self
 
     def  __exit__(self, exc_type, exc_value, exc_traceback):
@@ -198,14 +200,18 @@ if __name__ == '__main__':
     m3 = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
     m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
 
-    meas = Measurement()
-    meas.register_set_parameter(a1, 2)
-    meas.register_set_parameter(a2, 2)
+    x = 10
+    y = 10
 
-    meas.register_get_parameter(m1, a1, a2)
+    m_param = m1
+    meas = Measurement()
+    meas.register_set_parameter(a1, x)
+    meas.register_set_parameter(a2, y)
+
+    meas.register_get_parameter(m_param, a1, a2)
 
     m_param_1 = list(meas.m_param.values())[0]
-    print(m1.name)
+    # print(m1.name)
     # print(id(m_param_1))
     # input_data  = {    }
     # input_data[id(m4)] = [[25], [50]]
@@ -214,15 +220,15 @@ if __name__ == '__main__':
 
     # m_param_1.init_data_set()
     # m_param_1.write_data(input_data)
-    # m_param_1.write_data(input_data)
+    # m_param_1.write_data(input_data)measurement_parameters_raw
     # print(m_param_1)
     # print(m4.inter_delay)
     # print("loading_meas")
     with meas as ds:
-        for i in range(2):
-            for j in range(2):
-                z = m1.get()
-                print('results', i ,j, z)
-                ds.add_result((a1, i), (a2, j), (m1, z))
-
+        for i in range(x):
+            for j in range(y):
+                z = m_param.get()
+                # print('results', i ,j, z)
+                ds.add_result((a1, i), (a2, j), (m_param, z))
+        pass
     # print("done")

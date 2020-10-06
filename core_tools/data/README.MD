@@ -11,14 +11,13 @@ In this document the set up, creation, loading and browsing of dataset's is disc
 * create postgres general measurement tables -> done
 * set up measurement object similar to the one in qcodes -> done
 * create a dataset -> done
-* set up a buffer system that can write to the database -> done
+* set up a buffer system that can write to the database -> done (~500 us needed per write operation (add_result call))
 * add easy access operators to the dataset -> TODO
 * loading a dataset -> TODO
 * query tool for all the data -> TODO
+* index database for fast searches + add keyword feature
 * GUI to diplay data -> TODO 
-
 * possible future concept :: push local to external database
-
 # Set up
 To set up the connection to the server, there are two options:
 1. A PostgreSQL dataserver has been set up for the group where you are working in. Ask the server details to the server admin and you are good to go.

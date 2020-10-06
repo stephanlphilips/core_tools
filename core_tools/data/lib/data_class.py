@@ -1,25 +1,11 @@
 from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
 from core_tools.data.SQL.buffer_writer import buffer_writer, buffer_reader
+from core_tools.data.data_set import m_param_raw
 from dataclasses import dataclass, field
 import numpy as np
 import numbers
 import json
 
-
-@dataclass
-class data_item:
-    param_id : int
-    nth_set : int
-    param_id_m_param : int #unique identifier for this m_param
-    setpoint : bool
-    setpoint_local : bool
-    name_gobal : str
-    name : str
-    label : str
-    unit : str
-    dependency : str
-    shape : str
-    size : int
 
 class dataclass_raw_parent:
     def generate_data_buffer(self, setpoint_shape=[]):
@@ -33,17 +19,20 @@ class dataclass_raw_parent:
 
         for i in range(len(self.shapes)):
             shape = setpoint_shape + list(self.shapes[i])
-            
             if i <= len(self.oid): # write data
-                arr = np.full(shape, np.nan, order='C')
+                if len(self.data) > i: #this is statement is kinda dirty..
+                    arr=self.data[i]
+                else:
+                    arr = np.full(shape, np.nan, order='C')
+                    self.data.append(arr)
                 data_buffer = buffer_writer(SQL_mgr.conn, arr)
                 self.oid.append(data_buffer.oid)
             else: # load data
                 oid = self.oid[i]
                 data_buffer = buffer_reader(SQL_mgr.conn, oid, shape)
                 arr = data_buffer.buffer
+                self.data.append(arr)
 
-            self.data.append(arr)
             self.data_buffer.append(data_buffer)
 
     def write_data(self, input_data):
@@ -80,24 +69,24 @@ class dataclass_raw_parent:
             setpoint_local (bool) : is this data a local setpoint (e.g. of a multiparameter)
             dependencies (str<JSON>) : json of the dependencies
         '''
-        data_items = []
-
+        data_items = list()
         for i in range(len(self.data)):
-            data_items +=[data_item(self.id_info, i, m_param_id, setpoint, setpoint_local,
-                self.name, json.dumps(self.names[i]), json.dumps(self.labels[i]),
-                json.dumps(self.units[i]), dependencies, json.dumps(self.shapes[i]), self.data[i], self.data[i].size)]
+            data_items +=[m_param_raw(self.id_info, i, m_param_id, setpoint, setpoint_local,
+                self.name, self.names[i], self.labels[i],
+                self.units[i], dependencies[i], json.dumps(self.data[i].shape), self.data[i].size, self.oid[i], self.data_buffer[i])]
 
         return data_items
 
 @dataclass
 class setpoint_dataclass(dataclass_raw_parent):
     id_info : id
-    npt : int
+    npt : np.NaN
     name : str
     names : list
     labels : list
     units : list
-    shapes : list
+    shapes : list = field(default_factory=lambda: list( ((),) ))
+    nth_set : int = 0
     data : list = field(default_factory=lambda: [])
     oid : list = field(default_factory=lambda: [])
     data_buffer : list = field(default_factory=lambda: [])
@@ -108,6 +97,13 @@ class setpoint_dataclass(dataclass_raw_parent):
 
         return description
 
+    @property
+    def dependencies(self):
+        dep_tot = []
+        for i in range(len(self.data)):
+            dep_tot.append([])
+        return dep_tot
+
 @dataclass 
 class m_param_dataclass(dataclass_raw_parent):
     id_info : id 
@@ -115,9 +111,9 @@ class m_param_dataclass(dataclass_raw_parent):
     names : list
     labels : list
     units : list
-    shapes : list
-    setpoints : list
-    setpoints_local : list
+    shapes : list = field(default_factory=lambda: list(((),)))
+    setpoints : list = field(default_factory=lambda: [])
+    setpoints_local : list = field(default_factory=lambda: [])
     data : list = field(default_factory=lambda: [])
     oid : list = field(default_factory=lambda: [])
     data_buffer : list = field(default_factory=lambda: [])
@@ -135,15 +131,15 @@ class m_param_dataclass(dataclass_raw_parent):
         for setpoint in self.setpoints:
             setpoint.write_data(input_data)
 
-    def __to_SQL_data_structure(self):
+    def to_SQL_data_structure(self):
         data_items = []
 
         data_items += super().to_SQL_data_structure(self.id_info, False, False, self.dependencies)
-        for setpt in self.setpoints:
-            data_items += setpt.to_SQL_data_structure(self.id_info, True, False)
+        for setpt in self.setpoints_local:
+            data_items += setpt.to_SQL_data_structure(self.id_info, False, True, setpt.dependencies)
 
         for setpt in self.setpoints:
-            data_items += setpt.to_SQL_data_structure(self.id_info, False, True)
+            data_items += setpt.to_SQL_data_structure(self.id_info, True, False, setpt.dependencies)
 
         return data_items
 
@@ -154,36 +150,32 @@ class m_param_dataclass(dataclass_raw_parent):
         setpoint_shape = []
         for setpoint in self.setpoints:
             setpoint_shape += [setpoint.npt]
-            setpoint.generate_data_buffer()  
+
+        for setpoint in self.setpoints:
+            setpoint.generate_data_buffer(setpoint_shape)  
+
+        for setpoint_local in self.setpoints_local:
+            setpoint_local.generate_data_buffer()  
 
         self.generate_data_buffer(setpoint_shape)
         self.__initialized = True
 
-    def register_data(self, table_name):
-        '''
-        register the oid's in the database
-
-        Args:
-            table_name (str) : name generated for the measurement by the SQL_database_manager
-        '''
-        if self.__initialized == False:
-            raise ValueError('dataclass is not initialized. Please run data_class.init_data_dataclass() and then try to register the data in the database.')
-        
-        db_mgr = SQL_database_manager()
-        data_items = self.__to_SQL_data_structure()
-
-        for data_item in data:
-            db_mgr.write_row(table_name, data_item)
-
-
     @property
     def dependencies(self):
+        # setpoints external depencies
         dep = []
         for setpt in self.setpoints:
             dep.append(setpt.id_info)
-        for setpt in self.setpoints_local:
-            dep.append(setpt.id_info)
-        return dep
+
+        # setpoints internal dependencies
+        dep_tot = []
+        for setpt_loc in self.setpoints_local:
+            dep_tot.append(dep + [setpt_loc.id_info])
+        
+        if dep_tot == []:
+            return dep
+
+        return dep_tot
     
     def __repr__(self):
         description = "\n########################\nMeasurement dataset info\n########################\nid :: {} \nname :: {}\n\n".format(self.id_info, self.name)

@@ -24,10 +24,12 @@ class buffer_writer:
 			self.lobject.write((self.buffer[self.cursor:self.cursor+n]).tobytes())
 			self.cursor += n
 		except:
-			self.lobject = conn.lobject(self.oid, 'w')
+			self.lobject = self.conn.lobject(self.oid, 'w')
 			self.lobject.seek(self.cursor*8)
-			self.write(n)
+			self.write(n, data)
 
+	def close(self):
+		self.lobject.close()
 
 	def __load_blocks(self, n):
 		'''
