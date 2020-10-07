@@ -1,5 +1,5 @@
 '''
-contains the descriptors that are used to generate the fast access data_sets
+
 '''
 
 import numpy as np

@@ -1,5 +1,6 @@
 from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
 from core_tools.data.SQL.connector import sample_info
+from core_tools.data.ds.data_set_raw import m_param_raw, data_set_raw
 from dataclasses import dataclass, field
 import numpy as np
 import time
@@ -25,51 +26,6 @@ def create_new_data_set(experiment_name, *m_params):
     SQL_mgr.register_measurement(ds)
 
     return data_set(ds)
-
-@dataclass
-class data_set_raw:
-    exp_id : int = None
-    exp_name : str = None
-
-    set_up : str = field(default_factory=lambda: sample_info.set_up)
-    project : str = field(default_factory=lambda: sample_info.project)
-    sample : str = field(default_factory=lambda: sample_info.sample)
-    
-    SQL_datatable : str = None
-    measurement_parameters : list = field(default_factory=lambda: [])
-    measurement_parameters_raw : list = field(default_factory=lambda: [])
-    
-    UNIX_start_time : int = None
-    UNIX_stop_time : int = None
-    
-    uploaded_complete : bool = None
-    
-    snapshot : str = None
-    metadata : str = None
-
-    completed : bool = False
-    writecount : int = 0
-
-    def sync_buffers(self):
-        for m_param in self.measurement_parameters_raw:
-            m_param.data_buffer.sync()
-
-@dataclass
-class m_param_raw:
-    param_id : int
-    nth_set : int
-    param_id_m_param : int #unique identifier for this m_param
-    setpoint : bool
-    setpoint_local : bool
-    name_gobal : str
-    name : str
-    label : str
-    unit : str
-    dependency : str
-    shape : str
-    size : int
-    oid : int
-    data_buffer : any
 
 class data_set_desciptor(object):
     def __init__(self, variable, is_time=False, is_JSON=False):
@@ -110,17 +66,12 @@ class data_set:
 
     def __init__(self, ds_raw):
         self.id = None
-        self.__initialized = False
         self.__data_set_raw = ds_raw
         self.__property_managment_list = []
 
         self.last_commit = time.time()
 
     def __init_properties(self):
-        # make easy_access_properties x,y,z, z1,z2, y2, ...
-        pass
-
-    def __generate_data_variables(self):
         pass
 
     def add_metadata(self, metadata):
@@ -154,6 +105,9 @@ class data_set:
     def __write_to_db(self, force = False):
         '''
         update values every 200ms to the database.
+
+        Args:
+            force (bool) : enforce the update
         '''
         current_time = time.time() 
         if current_time - self.last_commit > 0.2 or force==True:
@@ -171,13 +125,3 @@ if __name__ == '__main__':
     print(ds.project)
     
     dc = data_set(ds)
-
-    # print(dc.run_id)
-    # print(dc.run_timestamp_raw)
-    # print(dc.snapshot)
-    # print(dc.run_timestamp)
-
-    # a = setpoint_dataclass(5, 10, 30, [50], [50], [50], [50])
-    # print(setpoint_dataclass(5, 10, 30, [50], [50], [50], [50]))
-    # print(a)
-

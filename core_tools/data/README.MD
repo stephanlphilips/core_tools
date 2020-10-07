@@ -105,7 +105,7 @@ with meas as ds:
 dataset = meas.dataset
 ```
 
-#Loading a dataset
+# Loading a dataset
 This can be done using two lines:
 
 ```python
@@ -114,13 +114,32 @@ from core_tools.data.lib.SQL import data_mgr
 
 ds = data_mgr.load_id(my_id)
 ```
-#browsing data in the dataset
+# Browsing data in the dataset
 To quickly see what is present in the dataset, can print it,
 ```python
 print(ds)
 ```
 This shows a output like:
-...
+```
+dataset :: my_measurement_name
+
+id = 1256
+TrueID = 1225565471200
+
+| idn   | label | unit  | size      |
+------------------------------------- 
+| m1    | 'I1'  | 'A'   | (100,100) |
+|  x    | 'P1'  | 'mV'  | (100,)    |
+|  y    | 'P2'  | 'mV'  | (100,)    |
+
+| m2    | 'I2'  | 'A'   | (100)     |
+|  x    | 'P1'  | 'mV'  | (100,)    |
+
+database : vandersypen
+set_up : XLD
+project : 6dot
+sample_name : SQ19
+```
 
 The contents can be browsed efficiently using the shorthand syntax.
 * measurement parameters are denoted as m1, m2 (e.g. ds.m1, ds.m2). This will give you access to the data. If there are multiple setpoints, the data will be organized as m1a, m1b, ...
@@ -160,5 +179,5 @@ ds.m1.x.name
 
 ...
 ```
-#Browsing for data
+# Browsing for data
 

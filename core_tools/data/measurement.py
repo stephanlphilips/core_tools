@@ -24,7 +24,7 @@ general structure:
 '''
 
 from core_tools.data.lib.data_class import setpoint_dataclass, m_param_dataclass
-from core_tools.data.data_set import create_new_data_set
+from core_tools.data.ds.data_set import create_new_data_set
 import qcodes as qc
 import numpy as np
 

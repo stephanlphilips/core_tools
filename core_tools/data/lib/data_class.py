@@ -1,6 +1,6 @@
 from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
 from core_tools.data.SQL.buffer_writer import buffer_writer, buffer_reader
-from core_tools.data.data_set import m_param_raw
+from core_tools.data.ds.data_set_raw import m_param_raw
 from dataclasses import dataclass, field
 import numpy as np
 import numbers
