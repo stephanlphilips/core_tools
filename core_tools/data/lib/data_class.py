@@ -52,12 +52,12 @@ class dataclass_raw_parent:
         if len(self.data) == 1:
             # data in is not a iterator
             data = np.ravel(np.asarray(data_in))
-            self.data_buffer[0].write(data.size, data)
+            self.data_buffer[0].write(data)
         else:
             # data_in expected to be a iterator
             for i in range(len(data_in)):
                 data = np.ravel(np.asarray(data_in[i]))
-                self.data_buffer[i].write(data.size, data)
+                self.data_buffer[i].write(data)
 
     def to_SQL_data_structure(self, m_param_id, setpoint, setpoint_local, dependencies=[]):
         '''

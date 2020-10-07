@@ -8,25 +8,29 @@ class buffer_writer:
 		self.lobject = self.conn.lobject(0,'w')
 		self.oid = self.lobject.oid
 		self.cursor = 0
+		self.cursor_db = 0
 		self.blocks_written = 0
 
-	def write(self, n, data):
+	def write(self, data):
 		'''
-		write n points to the large object file
+		write n points to the buffer (no upload yet)
 		
 		Args:
-			n (int) : number of floats to be written
 			data (np.ndarray, ndim=1, dtype=double) : data to write
 		'''
+		self.buffer[self.cursor:self.cursor+data.size] = data
+		self.cursor += data.size
+
+	def sync(self):
 		try:
-			self.__load_blocks(n)
-			self.buffer[self.cursor:self.cursor+n] = data
-			self.lobject.write((self.buffer[self.cursor:self.cursor+n]).tobytes())
-			self.cursor += n
+			if self.cursor - self.cursor_db != 0:
+				self.__load_blocks(self.cursor - self.cursor_db)
+				self.lobject.write((self.buffer[self.cursor_db:self.cursor]).tobytes())
+				self.cursor_db += self.cursor - self.cursor_db
 		except:
 			self.lobject = self.conn.lobject(self.oid, 'w')
-			self.lobject.seek(self.cursor*8)
-			self.write(n, data)
+			self.lobject.seek(self.cursor_db*8)
+			self.sync()
 
 	def close(self):
 		self.lobject.close()

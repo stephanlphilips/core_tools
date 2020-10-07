@@ -11,7 +11,7 @@ In this document the set up, creation, loading and browsing of dataset's is disc
 * create postgres general measurement tables -> done
 * set up measurement object similar to the one in qcodes -> done
 * create a dataset -> done
-* set up a buffer system that can write to the database -> done (~500 us needed per write operation (add_result call))
+* set up a buffer system that can write to the database -> done (~15 us needed per write operation (add_result call))
 * add easy access operators to the dataset -> TODO
 * loading a dataset -> TODO
 * query tool for all the data -> TODO
@@ -100,6 +100,9 @@ with meas as ds:
     		a2(j)
     		# measure + write the results
     		meas.add_result( (a1, a1.get()), (a2, a2.get()), (m4, m4.get()))
+
+# get the dataset
+dataset = meas.dataset
 ```
 
 #Loading a dataset
@@ -111,6 +114,51 @@ from core_tools.data.lib.SQL import data_mgr
 
 ds = data_mgr.load_id(my_id)
 ```
+#browsing data in the dataset
+To quickly see what is present in the dataset, can print it,
+```python
+print(ds)
+```
+This shows a output like:
+...
 
+The contents can be browsed efficiently using the shorthand syntax.
+* measurement parameters are denoted as m1, m2 (e.g. ds.m1, ds.m2). This will give you access to the data. If there are multiple setpoints, the data will be organized as m1a, m1b, ...
+* setpoints can be called by calling m1.x, m1.y (or m1.x1, m1.x2 if there are multiple setpoints)
+* measurement object have the options for data reduction (e.g. slicing and averaging)
+⋅⋅* slicing e.g. m1.slice('x', 5) (take a slice of the fith element on the x axis) (alternative syntax[m1[5]], in this case, one dimension is remove, so y becomes x and you can call [m1[5].x to get the x axis of the graph).
+..* averaging, same principle as slicing, expect that all elements on one axis are now averaged (e.g. m1.average(x))
+
+Practical example:
+```python
+
+# get x, y, and z data:
+x = ds.m1.x
+y = ds.m1.y
+z = ds.m1 #or if you like you can also call m1.z
+
+# get the fist slice on the x direction
+x = ds.m1[0].x
+y = ds.m1[0] #or if you like you can also call m1.y
+
+# get the fist slice on the y direction
+x = ds.m1[:,0].x
+y = ds.m1[:,0] #or if you like you can also call m1.y
+
+# average the y direction
+x = ds.m1.average('y').x
+y = ds.m1.average('y') #or if you like you can also call m1.y
+
+# getting units and so on:
+ds.m1.unit
+ds.m1.label
+ds.m1.name
+
+ds.m1.x.unit
+ds.m1.x.label
+ds.m1.x.name
+
+...
+```
 #Browsing for data
 

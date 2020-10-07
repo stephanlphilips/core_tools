@@ -200,8 +200,8 @@ if __name__ == '__main__':
     m3 = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
     m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
 
-    x = 10
-    y = 10
+    x = 100
+    y = 100
 
     m_param = m1
     meas = Measurement()
@@ -224,11 +224,16 @@ if __name__ == '__main__':
     # print(m_param_1)
     # print(m4.inter_delay)
     # print("loading_meas")
+
+    import time
+
+    t0  =time.time()
     with meas as ds:
         for i in range(x):
             for j in range(y):
                 z = m_param.get()
                 # print('results', i ,j, z)
                 ds.add_result((a1, i), (a2, j), (m_param, z))
-        pass
-    # print("done")
+
+    t1  =time.time()
+    print(t1-t0)

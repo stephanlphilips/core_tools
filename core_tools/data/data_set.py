@@ -50,6 +50,10 @@ class data_set_raw:
     completed : bool = False
     writecount : int = 0
 
+    def sync_buffers(self):
+        for m_param in self.measurement_parameters_raw:
+            m_param.data_buffer.sync()
+
 @dataclass
 class m_param_raw:
     param_id : int
@@ -154,6 +158,8 @@ class data_set:
         current_time = time.time() 
         if current_time - self.last_commit > 0.2 or force==True:
             self.last_commit=current_time
+
+            self.__data_set_raw.sync_buffers()
             SQL_mgr = SQL_database_manager()
             SQL_mgr.update_write_cursors(self.__data_set_raw)
 
