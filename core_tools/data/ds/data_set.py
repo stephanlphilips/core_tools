@@ -1,10 +1,8 @@
 from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
-from core_tools.data.SQL.connector import sample_info
-from core_tools.data.ds.data_set_raw import m_param_raw, data_set_raw
-from dataclasses import dataclass, field
-import numpy as np
-import time
+from core_tools.data.ds.data_set_raw import data_set_raw
+
 import datetime
+import time
 import json
 
 def create_new_data_set(experiment_name, *m_params):
@@ -116,12 +114,3 @@ class data_set:
             self.__data_set_raw.sync_buffers()
             SQL_mgr = SQL_database_manager()
             SQL_mgr.update_write_cursors(self.__data_set_raw)
-
-
-if __name__ == '__main__':
-    sample_info("project", "set_up", "sample")
-    ds = data_set_raw(exp_name='test')
-
-    print(ds.project)
-    
-    dc = data_set(ds)

@@ -1,3 +1,6 @@
+from core_tools.data.SQL.connector import sample_info
+from dataclasses import dataclass, field
+
 @dataclass
 class data_set_raw:
     exp_id : int = None

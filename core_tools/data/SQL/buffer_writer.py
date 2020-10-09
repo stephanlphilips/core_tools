@@ -91,37 +91,3 @@ class buffer_reader:
 
 		data = np.frombuffer(binary_data)
 		self.buffer.flat[start:start+data.size] = data
-
-if __name__ == '__main__':
-	import psycopg2
-	import numpy as np
-	conn = psycopg2.connect("dbname=test user=stephan")
-	import time
-	test_data = np.full([10,10], np.NaN)
-	print(test_data[:])
-
-	bw = buffer_writer(conn, test_data)
-
-	for i in range(10):
-		data = np.full([10], i)
-		bw.write(data.size, data)
-
-	print(test_data)
-	# t = time.time()
-	
-	# for i in range(0,8):
-	# 	bw.write(10000)
-	# 	if i%4==0:
-	# 		conn.commit()
-	
-	# t1 = time.time()
-
-	# print(t1-t)
-	# conn.commit()
-	# print(bw.oid)
-
-	# oid = bw.oid
-	# read_buffer = buffer_reader(conn, oid, (80000,))
-	# conn.commit()
-	# read_buffer.update_buffer(800,1200)
-	# print(read_buffer.buffer)

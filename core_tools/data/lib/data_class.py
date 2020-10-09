@@ -173,7 +173,7 @@ class m_param_dataclass(dataclass_raw_parent):
             dep_tot.append(dep + [setpt_loc.id_info])
         
         if dep_tot == []:
-            return dep
+            return [dep]
 
         return dep_tot
     
