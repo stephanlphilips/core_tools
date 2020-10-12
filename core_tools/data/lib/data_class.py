@@ -59,7 +59,7 @@ class dataclass_raw_parent:
                 data = np.ravel(np.asarray(data_in[i]))
                 self.data_buffer[i].write(data)
 
-    def to_SQL_data_structure(self, m_param_id, setpoint, setpoint_local, dependencies=[]):
+    def to_SQL_data_structure(self, m_param_id, setpoint, setpoint_local, nth_dim=0, dependencies=[]):
         '''
         disassembele the dataset into a sql like structure
 
@@ -67,11 +67,12 @@ class dataclass_raw_parent:
             m_param_id (int): id of the measurement parameter where this data belongs to.
             setpoint (bool): is this data a setpoint?
             setpoint_local (bool) : is this data a local setpoint (e.g. of a multiparameter)
+            nth_dim (int) : if two setpoints are taken, that both x and y have e.g. the dimension 100x100
             dependencies (str<JSON>) : json of the dependencies
         '''
         data_items = list()
         for i in range(len(self.data)):
-            data_items +=[m_param_raw(self.id_info, i, m_param_id, setpoint, setpoint_local,
+            data_items +=[m_param_raw(self.id_info, i, nth_dim, m_param_id, setpoint, setpoint_local,
                 self.name, self.names[i], self.labels[i],
                 self.units[i], dependencies[i], json.dumps(self.data[i].shape), self.data[i].size, self.oid[i], self.data_buffer[i])]
 
@@ -134,13 +135,15 @@ class m_param_dataclass(dataclass_raw_parent):
     def to_SQL_data_structure(self):
         data_items = []
 
-        data_items += super().to_SQL_data_structure(self.id_info, False, False, self.dependencies)
-        for setpt_list in self.setpoints_local:
+        data_items += super().to_SQL_data_structure(self.id_info, False, False, -1, self.dependencies)
+        for i in range(len(self.setpoints_local)):
+            setpt_list = self.setpoints_local[i]
             for setpt in setpt_list:
-                data_items += setpt.to_SQL_data_structure(self.id_info, False, True, setpt.dependencies)
+                data_items += setpt.to_SQL_data_structure(self.id_info, False, True, i, setpt.dependencies)
 
-        for setpt in self.setpoints:
-            data_items += setpt.to_SQL_data_structure(self.id_info, True, False, setpt.dependencies)
+        for i in range(len(self.setpoints)):
+            setpt = self.setpoints[i]
+            data_items += setpt.to_SQL_data_structure(self.id_info, True, False, i, setpt.dependencies)
 
         return data_items
 

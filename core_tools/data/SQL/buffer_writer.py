@@ -96,4 +96,25 @@ class buffer_reference:
 	object in case a user want to take a copy of the reader/writer
 	'''
 	def __init__(self, data):
-		self.buffer = data
+		self._buffer = data
+		self.buffer_lambda = buffer_reference.__empty_lambda
+
+	@property
+	def buffer(self):
+		return self.buffer_lambda(self._buffer)
+
+	@staticmethod
+	def __empty_lambda(data):
+		return data
+
+	@staticmethod
+	def averaging_lambda(dim):
+		def avg_lambda(data):
+			return np.average(data, axis=dim)
+		return avg_lambda
+
+	@staticmethod
+	def slice_lambda(*args):
+		def slice_lambda(data):
+			return data[tuple(args)]
+		return slice_lambda

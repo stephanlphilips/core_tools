@@ -210,7 +210,7 @@ if __name__ == '__main__':
     m_param_1 = list(meas.m_param.values())[0]
     # print(m1.name)
     # print(id(m_param_1))
-    # input_data  = {    }
+    # input_data = {    }
     # input_data[id(m4)] = [[25], [50]]
     # input_data[id(a1)] = [10]
     # input_data[id(a2)] = [5]

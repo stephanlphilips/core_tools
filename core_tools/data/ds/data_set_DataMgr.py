@@ -57,7 +57,6 @@ class dataset_data_description():
     unit = data_descriptor()
     label = data_descriptor()
     name = data_descriptor()
-    shape = data_descriptor()
 
     def __init__(self, name, m_param_raw, m_params_raw_collection):
         '''
@@ -69,8 +68,8 @@ class dataset_data_description():
         self.__raw_data = m_param_raw
         self.__raw_data_org =  m_params_raw_collection
         self.__repr_attr_overview = []
-        self.ndim = len(m_param_raw.dependency) + 1
         self.__populate_data()
+
 
     def __populate_data(self):
         for i in range(len(self.__raw_data.dependency)):
@@ -81,14 +80,13 @@ class dataset_data_description():
                 dataDescription = dataset_data_description('', raw_data[j], self.__raw_data_org)
                 
                 name = string.ascii_lowercase[23+i] + str(j+1)
-
                 self.__setattr__(name, dataDescription)
                 if j == 0:
                     self.__setattr__(string.ascii_lowercase[23+i], dataDescription)
                     if len(raw_data) == 1:
                         name = string.ascii_lowercase[23+i]
-                
-                if self.ndim < 3:
+
+                if self.ndim > 2:
                     self.__setattr__(string.ascii_lowercase[8+i] + str(j+1), dataDescription)
                     if len(raw_data) == 1:
                         self.__setattr__(string.ascii_lowercase[8+i], dataDescription)
@@ -100,31 +98,83 @@ class dataset_data_description():
 
             self.__repr_attr_overview += [repr_attr_overview]
 
-        if self.ndim <= 3:
-            name  = string.ascii_lowercase[23+self.ndim-1]
+        if self.ndim <= 2:
+            name = string.ascii_lowercase[23+self.ndim-1]
+            if len(self.__raw_data.dependency) != 0:
+                name = string.ascii_lowercase[23+self.ndim]
         else:
             name  = string.ascii_lowercase[8+self.ndim-1]
 
         self.__setattr__(name, self)
-        self.__repr_attr_overview += [[(name, self)]]
 
     def __call__(self):
-        return self.__raw_data.data_buffer.data
+        if self.__raw_data.setpoint is True or self.__raw_data.setpoint_local is True:
+            if self.__raw_data.data_buffer.buffer.ndim > 1: #over dimensioned
+                idx = [0] * self.__raw_data.data_buffer.buffer.ndim
+                idx[self.__raw_data.nth_dim] = slice(None)
+
+                return self.__raw_data.data_buffer.buffer[tuple(idx[::-1])]
+
+        return self.__raw_data.data_buffer.buffer
+
+    @property
+    def shape(self):
+        return self().shape
+
+    @property
+    def ndim(self):
+        return len(self.shape)
+
+    def full(self):
+        return self.__raw_data.data_buffer.buffer
 
     def average(self, dim):
-        pass
+        '''
+        average the array across 1 dimension
+
+        arg:
+            dim (str/int) : 0 ('x'), 1 ('y') , ...
+        '''
+        if isinstance(dim, str):
+            dim = list(string.ascii_lowercase).index(dim) - 23
+
+        if dim > self.ndim:
+            raise ValueError("you are trying to average over a dimension that does not exists")
+
+        raw_data_org_copy = copy.copy(self.__raw_data_org)
+        raw_data_cpy = raw_data_org_copy.get(self.__raw_data.param_id, self.__raw_data.nth_set)
+        raw_data_cpy.dependency.pop(dim)
+        raw_data_cpy.data_buffer.buffer_lambda =  raw_data_cpy.data_buffer.averaging_lambda(raw_data_cpy.data_buffer.buffer.ndim-1-dim)
+
+        return dataset_data_description(self.name, raw_data_cpy, raw_data_org_copy)
+
 
     def slice(self, dim, i):
-        pass
+        '''
+        take the ith slice of dimension i
+        '''
+        print(dim, i)
+        return self
+
+
+    def __getitem__(self, args):
+        slices = None
+        for i in range(len(args)):
+            if isinstance(args[i], int):
+                slices = (i, args[i])
+        if slices is None:
+            return self
+
+        return self.slice(slices[0], slices[1])[tuple(args[len(args)-slices[0]-1:])]
 
     def __repr__(self):
         output_print = ""
-        output_print += "| " + "{:<15}".format(self.name) + " | " + "{:<15}".format(self.label) + " | " +  "{:<8}".format(self.unit)+ " | " +  "{:<25}".format(self.shape) + "|\n"
+        output_print += "| " + "{:<15}".format(self.name) + " | " + "{:<15}".format(self.label) + " | " +  "{:<8}".format(self.unit)+ " | " +  "{:<25}".format(str(self.shape)) + "|\n"
         for i in self.__repr_attr_overview:
             for j in i:
                 dataDescription = j[1]
                 if dataDescription.ndim == 1:
-                    output_print +=  "|  " +  "{:<14}".format(j[0]) + " | " +  "{:<15}".format(dataDescription.label) + " | " +   "{:<8}".format(dataDescription.unit)+ " | " +  "{:<25}".format(dataDescription.shape) + "|\n"
+                    output_print +=  "|  " +  "{:<14}".format(j[0]) + " | " +  "{:<15}".format(dataDescription.label) + " | " +   "{:<8}".format(dataDescription.unit)+ " | " +  "{:<25}".format(str(dataDescription.shape)) + "|\n"
 
         return output_print
 
@@ -173,15 +223,27 @@ if __name__ == '__main__':
         
 
     from core_tools.data.ds.data_set_raw import m_param_raw
+    from core_tools.data.SQL.buffer_writer import buffer_reference
 
-    a = m_param_raw(param_id=1636274596872, nth_set=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_1', label='keithley 1', unit='pA', dependency=[1635967634696, 1635967635080], shape='[100, 100, 10]', size=100000, oid=16478, data_buffer=None) 
-    b = m_param_raw(param_id=1636274596872, nth_set=1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_2', label='keithley 2', unit='pA', dependency=[1635967634696, 1635967635080, 32719381726400], shape='[100, 100, 10]', size=100000, oid=16479, data_buffer=None) 
-    c = m_param_raw(param_id=16359690863200, nth_set=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=True, name_gobal='local_var', name='P1', label='P1', unit='m', dependency=[], shape='[10]', size=10, oid=16476, data_buffer=None) 
-    d = m_param_raw(param_id=32719381726400, nth_set=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=True, name_gobal='local_var', name='P2', label='P2', unit='m', dependency=[], shape='[10]', size=10, oid=16477, data_buffer=None) 
-    e = m_param_raw(param_id=1635967634696, nth_set=0, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name1', name='name1', label='B field', unit='mT', dependency=[], shape='[100, 100]', size=10000, oid=16474, data_buffer=None) 
-    f = m_param_raw(param_id=1635967635080, nth_set=0, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name2', name='name2', label='P1', unit='mV', dependency=[], shape='[100, 100]', size=10000, oid=16475, data_buffer=None)
 
-    l = m_param_origanizer([a,b,c,d,e,f])
+
+    data1 = buffer_reference(np.zeros([100, 100]))
+    data2 = buffer_reference(np.zeros([100, 100, 10]))
+    data3 = buffer_reference(np.zeros([10]))
+    data4 = buffer_reference(np.zeros([100,100]))
+    data4.buffer[0,:] = -5
+    data4.buffer[:,0] = 5
+
+
+    a = m_param_raw(param_id=1636274596872, nth_set=0, nth_dim=-1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_1', label='keithley 1', unit='pA', dependency=[1635967634696, 1635967635080], shape='[100, 100]', size=100000, oid=16478, data_buffer=data1) 
+    b = m_param_raw(param_id=1636274596872, nth_set=1, nth_dim=-1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_2', label='keithley 2', unit='pA', dependency=[1635967634696, 1635967635080, 32719381726400], shape='[100, 100, 10]', size=100000, oid=16479, data_buffer=data2) 
+    c = m_param_raw(param_id=16359690863200, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=True, name_gobal='local_var', name='P1', label='fast gate', unit='mV', dependency=[], shape='[10]', size=10, oid=16476, data_buffer=data3) 
+    d = m_param_raw(param_id=32719381726400, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=True, name_gobal='local_var', name='P2', label='fast gate', unit='mV', dependency=[], shape='[10]', size=10, oid=16477, data_buffer=data3) 
+    e = m_param_raw(param_id=1635967634696, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name1', name='name1', label='B field', unit='mT', dependency=[], shape='[100, 100]', size=10000, oid=16474, data_buffer=data4) 
+    f = m_param_raw(param_id=1635967635080, nth_set=0, nth_dim=1, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name2', name='name2', label='slow gate 1', unit='mV', dependency=[], shape='[100, 100]', size=10000, oid=16475, data_buffer=data4)
+    g = m_param_raw(param_id=1635967635080, nth_set=1, nth_dim=1, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name2', name='name2', label='slow gate 2', unit='mV', dependency=[], shape='[100, 100]', size=10000, oid=16475, data_buffer=data4)
+
+    l = m_param_origanizer([a,b,c,d,e,f,g])
 
 
     ds = data_set_property_intializer(l)
@@ -189,29 +251,8 @@ if __name__ == '__main__':
     # print(ds.m1a.label)
     # print(ds.m1b.unit)
     # print(ds.m1b.label)
-
-    ''' representation of the dataset.
-
-    dataset :: my_measurement_name
-
-    id = 1256
-    TrueID = 1225565471200
-
-    | idn   | label | unit  | size      |
-    ------------------------------------- 
-    | m1    | 'I1'  | 'A'   | (100,100) |
-    | * x   | 'P1'  | 'mV'  | (100,)    |
-    | * y   | 'P2'  | 'mV'  | (100,)    |
-
-    | m2    | 'I2'  | 'A'   | (100)     |
-    | * x   | 'P1'  | 'mV'  | (100,)    |
-
-    | m3a   | 'I2'  | 'A'   | (100)     |
-    |  x    | 'P2'  | 'mV'  | (100,)    |
-
-    | m3b   | 'I2'  | 'A'   | (100)     |
-    |  x1   | 'P1'  | 'mV'  | (100,)    |
-    |  x2   | 'P1'  | 'mV'  | (100,)    |
-
-    
-    '''
+    print(ds.m1a.average('x'))
+    print(ds.m1a[0,:])
+    # print(ds.m1a[:,0])
+    # print(ds.m1a.y())
+    # print(ds.m1a.z())

@@ -34,7 +34,8 @@ class data_set_raw:
 @dataclass
 class m_param_raw:
     param_id : int
-    nth_set : int
+    nth_set : int # if part of a set
+    nth_dim : int # non-local setpoints are recorded in higher dimensions, so this needs to be tracked.
     param_id_m_param : int #unique identifier for this m_param
     setpoint : bool
     setpoint_local : bool
@@ -49,7 +50,7 @@ class m_param_raw:
     data_buffer : any
 
     def __copy__(self):
-        data_buffer = fake_data_buffer(self.data_buffer.buffer)
-        return buffer_reference(copy.copy(self.param_id), copy.copy(self.nth_set), copy.copy(self.param_id_m_param), copy.copy(self.setpoint), 
+        data_buffer = buffer_reference(self.data_buffer.buffer)
+        return m_param_raw(copy.copy(self.param_id), copy.copy(self.nth_set), copy.copy(self.nth_dim), copy.copy(self.param_id_m_param), copy.copy(self.setpoint), 
             copy.copy(self.setpoint_local), copy.copy(self.name_gobal), copy.copy(self.name), copy.copy(self.label),
             copy.copy(self.unit), copy.copy(self.dependency), copy.copy(self.shape), copy.copy(self.size), copy.copy(self.oid), data_buffer)
