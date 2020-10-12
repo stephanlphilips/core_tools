@@ -81,29 +81,26 @@ class Measurement:
             m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
                 [parameter.name], [parameter.label], [parameter.unit])
 
-            my_setpoints = []
-
         if isinstance(parameter, qc.MultiParameter):
             m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
                 list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
             setpoint_local_parameter_spec = None
             for i in range(len(parameter.setpoint_names)):
-                my_setpoints = []
-                # a bit of a local hack, in setpoints, sometimes copies are made of the setpoint name
-                # this can cause in uniquess of the keys, therefore the extra multiplications (should more or less ensure uniqueness).
-                #cleaner solution?
-                setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][0])*10*(i+1), np.NaN, 
-                    'local_var', list(parameter.setpoint_names[i]), list(parameter.setpoint_labels[i]),
-                    list(parameter.setpoint_units[i]), [], [])
+                my_local_setpoints = []
                 for j in range(len(parameter.setpoints[i])):
+                    # a bit of a local hack, in setpoints, sometimes copies are made of the setpoint name
+                    # this can cause in uniquess of the keys, therefore the extra multiplications (should more or less ensure uniqueness).
+                    #cleaner solution?
+                    setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][j])*10*(i+1), np.NaN, 
+                        'local_var', list(parameter.setpoint_names[i][j]), list(parameter.setpoint_labels[i][j]),
+                        list(parameter.setpoint_units[i][j]), [], [])
                     data_array = parameter.setpoints[i][j]
                     setpoint_local_parameter_spec.data.append(np.asarray(data_array, order='C'))
                     shape = ( parameter.shapes[i][j],)
                     setpoint_local_parameter_spec.shapes.append(shape)
-
-                m_param_parameter_spec.setpoints_local.append(setpoint_local_parameter_spec)
-
+                    my_local_setpoints.append(setpoint_local_parameter_spec)
+                m_param_parameter_spec.setpoints_local.append(my_local_setpoints)
 
 
         for setpoint in setpoints:
@@ -203,7 +200,7 @@ if __name__ == '__main__':
     x = 100
     y = 100
 
-    m_param = m1
+    m_param = m4
     meas = Measurement()
     meas.register_set_parameter(a1, x)
     meas.register_set_parameter(a2, y)

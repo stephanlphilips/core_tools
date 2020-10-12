@@ -59,7 +59,6 @@ class buffer_writer:
 			# reset writing position
 			self.lobject.seek(self.cursor*8)
 
-
 class buffer_reader:
 	def __init__(self, SQL_conn, oid, shape):
 		'''
@@ -91,3 +90,10 @@ class buffer_reader:
 
 		data = np.frombuffer(binary_data)
 		self.buffer.flat[start:start+data.size] = data
+
+class buffer_reference:
+	'''
+	object in case a user want to take a copy of the reader/writer
+	'''
+	def __init__(self, data):
+		self.buffer = data

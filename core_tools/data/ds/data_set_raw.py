@@ -1,5 +1,7 @@
 from core_tools.data.SQL.connector import sample_info
+from core_tools.data.SQL.buffer_writer import buffer_reference
 from dataclasses import dataclass, field
+import copy
 
 @dataclass
 class data_set_raw:
@@ -45,3 +47,9 @@ class m_param_raw:
     size : int
     oid : int
     data_buffer : any
+
+    def __copy__(self):
+        data_buffer = fake_data_buffer(self.data_buffer.buffer)
+        return buffer_reference(copy.copy(self.param_id), copy.copy(self.nth_set), copy.copy(self.param_id_m_param), copy.copy(self.setpoint), 
+            copy.copy(self.setpoint_local), copy.copy(self.name_gobal), copy.copy(self.name), copy.copy(self.label),
+            copy.copy(self.unit), copy.copy(self.dependency), copy.copy(self.shape), copy.copy(self.size), copy.copy(self.oid), data_buffer)

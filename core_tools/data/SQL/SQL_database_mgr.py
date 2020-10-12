@@ -20,7 +20,9 @@ class SQL_database_manager:
 		if self.conn == None:
 			self.conn = psycopg2.connect(dbname=SQL_conn_info.dbname, user=SQL_conn_info.user, 
 				password=SQL_conn_info.passwd, host=SQL_conn_info.host, port=SQL_conn_info.port)
+			self.__init_database()
 			self.last_commit = time.time()
+
 
 	def __init_database(self):
 		'''

@@ -135,8 +135,9 @@ class m_param_dataclass(dataclass_raw_parent):
         data_items = []
 
         data_items += super().to_SQL_data_structure(self.id_info, False, False, self.dependencies)
-        for setpt in self.setpoints_local:
-            data_items += setpt.to_SQL_data_structure(self.id_info, False, True, setpt.dependencies)
+        for setpt_list in self.setpoints_local:
+            for setpt in setpt_list:
+                data_items += setpt.to_SQL_data_structure(self.id_info, False, True, setpt.dependencies)
 
         for setpt in self.setpoints:
             data_items += setpt.to_SQL_data_structure(self.id_info, True, False, setpt.dependencies)
@@ -154,26 +155,26 @@ class m_param_dataclass(dataclass_raw_parent):
         for setpoint in self.setpoints:
             setpoint.generate_data_buffer(setpoint_shape)  
 
-        for setpoint_local in self.setpoints_local:
-            setpoint_local.generate_data_buffer()  
+        for setpoint_local_list in self.setpoints_local:
+            for setpoint_local in setpoint_local_list:
+                setpoint_local.generate_data_buffer()  
 
         self.generate_data_buffer(setpoint_shape)
         self.__initialized = True
 
     @property
     def dependencies(self):
-        # setpoints external depencies
-        dep = []
-        for setpt in self.setpoints:
-            dep.append(setpt.id_info)
+        dep_tot= []
+        for i in range(len(self.data)):
+            dep = []
+            for setpt in self.setpoints:
+                dep.append(setpt.id_info)
 
-        # setpoints internal dependencies
-        dep_tot = []
-        for setpt_loc in self.setpoints_local:
-            dep_tot.append(dep + [setpt_loc.id_info])
-        
-        if dep_tot == []:
-            return [dep]
+            if len(self.setpoints_local) > i:
+                for setpt_l in self.setpoints_local[i]:
+                    dep.append(setpt_l.id_info)
+                    
+            dep_tot.append(dep)
 
         return dep_tot
     

@@ -19,7 +19,7 @@ def create_new_data_set(experiment_name, *m_params):
         m_param.init_data_dataclass()
         ds.measurement_parameters += [m_param]
         ds.measurement_parameters_raw += m_param.to_SQL_data_structure()
-
+    print(ds.measurement_parameters_raw)
     SQL_mgr = SQL_database_manager()
     SQL_mgr.register_measurement(ds)
 
