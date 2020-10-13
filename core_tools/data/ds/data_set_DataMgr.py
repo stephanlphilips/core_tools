@@ -153,8 +153,20 @@ class dataset_data_description():
         '''
         take the ith slice of dimension i
         '''
-        print(dim, i)
-        return self
+        if isinstance(dim, str):
+            dim = list(string.ascii_lowercase).index(dim) - 23
+
+        if dim > self.ndim:
+            raise ValueError("you are trying to average over a dimension that does not exists")
+
+        idx = [slice(None)]*self.ndim
+        idx[dim] = i
+        raw_data_org_copy = copy.copy(self.__raw_data_org)
+        raw_data_cpy = raw_data_org_copy.get(self.__raw_data.param_id, self.__raw_data.nth_set)
+        raw_data_cpy.dependency.pop(dim)
+        raw_data_cpy.data_buffer.buffer_lambda =  raw_data_cpy.data_buffer.slice_lambda(idx)
+
+        return dataset_data_description(self.name, raw_data_cpy, raw_data_org_copy)
 
 
     def __getitem__(self, args):
@@ -165,7 +177,7 @@ class dataset_data_description():
         if slices is None:
             return self
 
-        return self.slice(slices[0], slices[1])[tuple(args[len(args)-slices[0]-1:])]
+        return self.slice(slices[0], slices[1])[tuple(args[slices[0]+1:])]
 
     def __repr__(self):
         output_print = ""
@@ -179,6 +191,9 @@ class dataset_data_description():
         return output_print
 
 class data_set_property_intializer():
+    '''
+    mockup of dataclass for development purposes-- dont use this class.
+    '''
     def __init__(self, m_params):
         self.__repr_attr_overview = []
         # m_meas_id's
@@ -231,8 +246,8 @@ if __name__ == '__main__':
     data2 = buffer_reference(np.zeros([100, 100, 10]))
     data3 = buffer_reference(np.zeros([10]))
     data4 = buffer_reference(np.zeros([100,100]))
-    data4.buffer[0,:] = -5
-    data4.buffer[:,0] = 5
+    data1.buffer[0,:] = -5
+    data1.buffer[:,0] = 5
 
 
     a = m_param_raw(param_id=1636274596872, nth_set=0, nth_dim=-1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_1', label='keithley 1', unit='pA', dependency=[1635967634696, 1635967635080], shape='[100, 100]', size=100000, oid=16478, data_buffer=data1) 
@@ -247,12 +262,15 @@ if __name__ == '__main__':
 
 
     ds = data_set_property_intializer(l)
-    print(ds)
+    print(ds.m1a())
     # print(ds.m1a.label)
     # print(ds.m1b.unit)
     # print(ds.m1b.label)
-    print(ds.m1a.average('x'))
-    print(ds.m1a[0,:])
+    # print(ds.m1a.average('x'))
+    print(ds.m1a[:,0]())
+    print(ds.m1a[0,:]())
+    print(ds.m1a[:,:]())
+    print(ds.m1a.slice('x', 0)())
     # print(ds.m1a[:,0])
     # print(ds.m1a.y())
     # print(ds.m1a.z())

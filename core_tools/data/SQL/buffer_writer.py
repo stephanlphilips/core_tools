@@ -114,7 +114,7 @@ class buffer_reference:
 		return avg_lambda
 
 	@staticmethod
-	def slice_lambda(*args):
+	def slice_lambda(args):
 		def slice_lambda(data):
 			return data[tuple(args)]
 		return slice_lambda

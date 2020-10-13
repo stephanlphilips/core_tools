@@ -232,5 +232,6 @@ if __name__ == '__main__':
                 # print('results', i ,j, z)
                 ds.add_result((a1, i), (a2, j), (m_param, z))
 
+        print(ds.dataset)
     t1  =time.time()
     print(t1-t0)

@@ -1,4 +1,4 @@
-from core_tools.data.SQL.connector import sample_info
+from core_tools.data.SQL.connector import sample_info, SQL_conn_info
 from core_tools.data.SQL.buffer_writer import buffer_reference
 from dataclasses import dataclass, field
 import copy
@@ -11,6 +11,8 @@ class data_set_raw:
     set_up : str = field(default_factory=lambda: sample_info.set_up)
     project : str = field(default_factory=lambda: sample_info.project)
     sample : str = field(default_factory=lambda: sample_info.sample)
+
+    database : str = field(default_factory=lambda: SQL_conn_info.dbname)
     
     SQL_datatable : str = None
     measurement_parameters : list = field(default_factory=lambda: [])

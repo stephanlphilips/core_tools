@@ -1,9 +1,11 @@
 from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
 from core_tools.data.ds.data_set_raw import data_set_raw
+from core_tools.data.ds.data_set_DataMgr import m_param_origanizer, dataset_data_description
 
 import datetime
-import time
+import string
 import json
+import time
 
 def create_new_data_set(experiment_name, *m_params):
     '''
@@ -39,9 +41,10 @@ class data_set_desciptor(object):
         return getattr(getattr(obj,"_data_set__data_set_raw"), self.var)
 
 class data_set:
-    run_id = data_set_desciptor('exp_id')
+    exp_id = data_set_desciptor('exp_id')
     running = data_set_desciptor('uploaded_complete')
     
+    dbname = data_set_desciptor('dbname')
     table_name = data_set_desciptor('SQL_table_name')
     name = data_set_desciptor('exp_name')
     
@@ -65,12 +68,42 @@ class data_set:
     def __init__(self, ds_raw):
         self.id = None
         self.__data_set_raw = ds_raw
-        self.__property_managment_list = []
-
+        print(ds_raw)
+        self.__repr_attr_overview = []
+        self.__init_properties(m_param_origanizer(ds_raw.measurement_parameters_raw))
         self.last_commit = time.time()
 
-    def __init_properties(self):
-        pass
+    def __init_properties(self, data_set_content):
+        '''
+        populates the dataset with the measured parameter in the raw dataset
+
+        Args:
+            data_set_content (m_param_origanizer) : m_param_raw raw objects in their mamagement object 
+        '''
+        m_id = data_set_content.get_m_param_id()
+
+        for i in range(len(m_id)): #this is not pretty.
+            n_sets = len(data_set_content[m_id[i]])
+            repr_attr_overview = []
+            for j in range(n_sets):
+                ds_descript = dataset_data_description('', data_set_content.get(m_id[i],  j), data_set_content)
+
+                name = 'm' + str(i+1) + string.ascii_lowercase[j]
+                setattr(self, name, ds_descript)
+
+                if j == 0:
+                    setattr(self, 'm' + str(i+1), ds_descript)
+                
+                if j == 0 and n_sets==1: #consistent printing
+                    repr_attr_overview += [('m' + str(i+1), ds_descript)]
+                    ds_descript.name = 'm' + str(i+1)
+                else:
+                    repr_attr_overview += [(name, ds_descript)]
+                    ds_descript.name = name
+
+            self.__repr_attr_overview += [repr_attr_overview]
+
+    
 
     def add_metadata(self, metadata):
         pass
@@ -113,4 +146,18 @@ class data_set:
 
             self.__data_set_raw.sync_buffers()
             SQL_mgr = SQL_database_manager()
-            SQL_mgr.update_write_cursors(self.__data_set_raw)
+            SQL_mgr.update_write_cursors(self.__data_set_raw)   
+
+    def __repr__(self):
+        output_print = "DataSet :: {}\n\nid = {}\nTrueID = 1225565471200\n\n".format(self.name, self.run_id)
+        output_print += "| idn             | label           | unit     | size                     |\n"
+        output_print += "---------------------------------------------------------------------------\n"
+        for i in self.__repr_attr_overview:
+            for j in i:
+                output_print += j[1].__repr__()
+                output_print += "\n"
+        output_print += "database : \n".format("self.table_name")
+        output_print += "set_up : \n".format(self.project)
+        output_print += "project : \n".format(self.set_up)
+        output_print += "sample_name : \n".format(self.sample_name)
+        return output_print

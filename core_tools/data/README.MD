@@ -18,6 +18,7 @@ In this document the set up, creation, loading and browsing of dataset's is disc
 - [ ] index database for fast searches + add keyword feature
 - [ ] GUI to diplay data 
 - [ ] possible future concept :: push local to external database
+- [ ] feature : add start and stop also to slicing (e.g. ds.m1[:, 5:10:20] --> slices dataset and its setpoints)
 
 # Set up
 To set up the connection to the server, there are two options:
