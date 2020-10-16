@@ -30,3 +30,11 @@
 # two systems are writing to the same table locally, both tables get out of sync
 	# --> measurement ID's of one of the two systems have to be adjusted in order for the tables to be able to merge.
 
+import time
+from uuid import getnode as get_mac
+
+def generate_uuid():
+	ms_time = int(time.time()*1000)*1000000
+	return ms_time + get_mac()%99999999
+
+print(generate_uuid())
