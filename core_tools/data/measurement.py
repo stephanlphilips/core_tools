@@ -32,11 +32,11 @@ class Measurement:
     '''
     class used to describe a measurement.
     '''
-    def __init__(self):
+    def __init__(self, name):
         self.setpoints = dict()
         self.m_param = dict()
         self.dataset = None
-        self.name = 'todo'
+        self.name = name
 
     def register_set_parameter(self, parameter, n_points):
         '''
@@ -200,8 +200,8 @@ if __name__ == '__main__':
     x = 100
     y = 100
 
-    m_param = m4
-    meas = Measurement()
+    m_param = m1
+    meas = Measurement('no name')
     meas.register_set_parameter(a1, x)
     meas.register_set_parameter(a2, y)
 
@@ -232,6 +232,6 @@ if __name__ == '__main__':
                 # print('results', i ,j, z)
                 ds.add_result((a1, i), (a2, j), (m_param, z))
 
-        print(ds.dataset)
     t1  =time.time()
+    print(meas.dataset)
     print(t1-t0)

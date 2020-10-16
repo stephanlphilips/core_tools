@@ -183,3 +183,43 @@ ds.m1.x.name
 ```
 # Browsing for data
 
+
+
+# Developer information
+
+## Database structure
+
+The user has two configurations to operate in, 
+* local database
+* local database + server side database (network connection needed)
+
+The serverside configuration offers the advantage that you can access the data of your experiments from any device. The serverside is combined with a local database, in order to be able to keep operating when the network is down.
+
+When operating only locally, no features are lost. Mainly you don't have back up and you can't access the data with a device that is not your measurement computer.
+
+To accommodate a structure that can dynamically switch between both modes, the following tables are made :
+
+### Client side
+* global_measurement_overview : contains all the local measurements performed. Used for queries when the server is unavailable (e.g. no network).
+* projects_set_up_sample table : local table containing all the data of the current sample being measured. This tables are kept on the system, even if you switch sample (the data linking to it might be removed if you set a storage limit (only data that has been moved to the server))
+* project_set_up_sample overview : simple table summarizing all the projects_set_up_sample on the client side
+* projects_set_up_sample_id tables : tables containing the raw data of all the local experiments
+
+### Server side
+* global_measurement_overview : same as for client side, only much bigger (this will have consequences, see further)
+* projects_set_up_sample : synced version of the client side (see conflicts section for more information on how conflicts between two set ups measuring on the same sample at the same time are handled.) 
+* project_set_up_sample overview : simple table summarizing all the projects_set_up_sample on the server side
+* projects_set_up_sample_id tables : tables containing the raw data of all experiments.
+
+Ensure scalability: fast searches. In order to sort through less data in searches, additional tables are build, containing views of the global_measurement_overview table (note that this are physical tables and not views).
+* project table
+* set_up table
+* project_set_up table
+* project_set_up_sample table
+
+General question:
+* should the measured data be in a different schema?
+
+### Conflict resolution
+When looking a this scheme there is one error that can be made and is irritating to solve. Two systems are writing to the same table locally, both tables get out of sync --> measurement ID's of one of the two systems have to be adjusted in order for the tables to be able to merge.
+

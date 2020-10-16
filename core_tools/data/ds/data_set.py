@@ -21,7 +21,7 @@ def create_new_data_set(experiment_name, *m_params):
         m_param.init_data_dataclass()
         ds.measurement_parameters += [m_param]
         ds.measurement_parameters_raw += m_param.to_SQL_data_structure()
-    print(ds.measurement_parameters_raw)
+
     SQL_mgr = SQL_database_manager()
     SQL_mgr.register_measurement(ds)
 
@@ -41,7 +41,6 @@ class data_set_desciptor(object):
         return getattr(getattr(obj,"_data_set__data_set_raw"), self.var)
 
 class data_set:
-    exp_id = data_set_desciptor('exp_id')
     running = data_set_desciptor('uploaded_complete')
     
     dbname = data_set_desciptor('dbname')
@@ -68,7 +67,6 @@ class data_set:
     def __init__(self, ds_raw):
         self.id = None
         self.__data_set_raw = ds_raw
-        print(ds_raw)
         self.__repr_attr_overview = []
         self.__init_properties(m_param_origanizer(ds_raw.measurement_parameters_raw))
         self.last_commit = time.time()
@@ -149,7 +147,7 @@ class data_set:
             SQL_mgr.update_write_cursors(self.__data_set_raw)   
 
     def __repr__(self):
-        output_print = "DataSet :: {}\n\nid = {}\nTrueID = 1225565471200\n\n".format(self.name, self.run_id)
+        output_print = "DataSet :: {}\n\nid = {}\nTrueID = 1225565471200\n\n".format(self.name, self.exp_id)
         output_print += "| idn             | label           | unit     | size                     |\n"
         output_print += "---------------------------------------------------------------------------\n"
         for i in self.__repr_attr_overview:

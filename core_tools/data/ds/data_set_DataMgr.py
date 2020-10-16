@@ -109,13 +109,13 @@ class dataset_data_description():
 
     def __call__(self):
         if self.__raw_data.setpoint is True or self.__raw_data.setpoint_local is True:
-            if self.__raw_data.data_buffer.buffer.ndim > 1: #over dimensioned
-                idx = [0] * self.__raw_data.data_buffer.buffer.ndim
+            if self.__raw_data.data_buffer.data.ndim > 1: #over dimensioned
+                idx = [0] * self.__raw_data.data_buffer.data.ndim
                 idx[self.__raw_data.nth_dim] = slice(None)
 
-                return self.__raw_data.data_buffer.buffer[tuple(idx[::-1])]
+                return self.__raw_data.data_buffer.data[tuple(idx[::-1])]
 
-        return self.__raw_data.data_buffer.buffer
+        return self.__raw_data.data_buffer.data
 
     @property
     def shape(self):
@@ -126,7 +126,7 @@ class dataset_data_description():
         return len(self.shape)
 
     def full(self):
-        return self.__raw_data.data_buffer.buffer
+        return self.__raw_data.data_buffer.data
 
     def average(self, dim):
         '''
@@ -144,7 +144,7 @@ class dataset_data_description():
         raw_data_org_copy = copy.copy(self.__raw_data_org)
         raw_data_cpy = raw_data_org_copy.get(self.__raw_data.param_id, self.__raw_data.nth_set)
         raw_data_cpy.dependency.pop(dim)
-        raw_data_cpy.data_buffer.buffer_lambda =  raw_data_cpy.data_buffer.averaging_lambda(raw_data_cpy.data_buffer.buffer.ndim-1-dim)
+        raw_data_cpy.data_buffer.buffer_lambda =  raw_data_cpy.data_buffer.averaging_lambda(raw_data_cpy.data_buffer.data.ndim-1-dim)
 
         return dataset_data_description(self.name, raw_data_cpy, raw_data_org_copy)
 
@@ -246,8 +246,8 @@ if __name__ == '__main__':
     data2 = buffer_reference(np.zeros([100, 100, 10]))
     data3 = buffer_reference(np.zeros([10]))
     data4 = buffer_reference(np.zeros([100,100]))
-    data1.buffer[0,:] = -5
-    data1.buffer[:,0] = 5
+    data1.data[0,:] = -5
+    data1.data[:,0] = 5
 
 
     a = m_param_raw(param_id=1636274596872, nth_set=0, nth_dim=-1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_1', label='keithley 1', unit='pA', dependency=[1635967634696, 1635967635080], shape='[100, 100]', size=100000, oid=16478, data_buffer=data1) 
