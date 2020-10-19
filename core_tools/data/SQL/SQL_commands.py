@@ -3,9 +3,10 @@ import json
 
 class query_generator:
 	@staticmethod
-	def generate_overview_of_measurements_table():
-		statement = "CREATE TABLE if not EXISTS measurements_overview ("
+	def generate_measurement_table(table_name):
+		statement = "CREATE TABLE if not EXISTS {} (".format(table_name)
 		statement += "id SERIAL,"
+		statement += "uuid BIGINT,"
 		statement += "set_up varchar(1024) NOT NULL,"
 		statement += "project varchar(1024) NOT NULL,"
 		statement += "sample varchar(1024) NOT NULL,"
@@ -16,12 +17,23 @@ class query_generator:
 		statement += "snapshot JSON,"
 		statement += "metadata JSON, "
 		statement += "search_keywords JSON, "
-		statement += "completed BOOL DEFAULT False);"
+		statement += "completed BOOL DEFAULT False,"
+
+		statement += "data_size int,"
+		statement += "data_cleared BOOL DEFAULT False, "
+
+		statement += "synchronized BOOL DEFAULT False,"
+		statement += "sync_location varchar(1024));"
+		
+		CREATE INDEX uuid_indexed if not exists ON {} (uuid);
+		C
 		return statement
 
+
+
 	@staticmethod
-	def insert_new_measurement_in_overview_table(exp_name):
-		statement = "INSERT INTO measurements_overview "
+	def insert_new_measurement_in_measurement_table(table_name, exp_name):
+		statement = "INSERT INTO {} ".format(table_name)
 		statement += "(set_up, project, sample, exp_name) VALUES ('"
 		statement += str(sample_info.set_up) + "', '"
 		statement += str(sample_info.project) + "', '"
@@ -30,14 +42,15 @@ class query_generator:
 		return statement
 
 	@staticmethod
-	def get_last_meas_id_in_overview_table():
-		return "SELECT MAX(id) FROM measurements_overview;"
+	def get_last_meas_id_in_measurement_table(table_name):
+		return "SELECT MAX(id) FROM {};".format(table_name)
 
-	def fill_meas_info_in_overview_table(meas_id, measurement_table_name=None, start_time=None, stop_time=None, metadata=None, snapshot=None, search_kw = None, completed=None):
+	def fill_meas_info_in_measurement_table(table_name, meas_id, measurement_table_name=None, start_time=None, stop_time=None, metadata=None, snapshot=None, search_kw = None, completed=None):
 		'''
 		fill in the addional data in a record of the measurements overview table.
 
 		Args:
+			table_name (str) : name of the table to fill in the data
 			meas_id (int) : record that needs to be updated
 			measurement_table_name (str) : name of the table that contains the raw measurement data
 			start_time (long) : time in unix seconds since the epoch
@@ -50,18 +63,17 @@ class query_generator:
 		statement = ""
 
 		if measurement_table_name is not None:
-			statement += "UPDATE measurements_overview SET exp_data_location = '{}' WHERE ID = {};".format(measurement_table_name, meas_id)
+			statement += "UPDATE {} SET exp_data_location = '{}' WHERE ID = {};".format(table_name, measurement_table_name, meas_id)
 		if start_time is not None:
-			statement += "UPDATE measurements_overview SET start_time = to_timestamp('{}') WHERE ID = {};".format(start_time, meas_id)
+			statement += "UPDATE {} SET start_time = to_timestamp('{}') WHERE ID = {};".format(table_name, start_time, meas_id)
 		if stop_time is not None:
-			statement += "UPDATE measurements_overview SET stop_time = to_timestamp('{}') WHERE ID = {};".format(stop_time, meas_id)
+			statement += "UPDATE {} SET stop_time = to_timestamp('{}') WHERE ID = {};".format(table_name, stop_time, meas_id)
 		if metadata is not None:
-			statement += "UPDATE measurements_overview SET metadata = '{}' WHERE ID = {};".format(metadata, meas_id)
+			statement += "UPDATE {} SET metadata = '{}' WHERE ID = {};".format(table_name, metadata, meas_id)
 		if snapshot is not None:
-			statement += "UPDATE measurements_overview SET snapshot = '{}' WHERE ID = {};".format(snapshot, meas_id)
+			statement += "UPDATE {} SET snapshot = '{}' WHERE ID = {};".format(table_name, snapshot, meas_id)
 		if search_kw is not None:
-			statement += "UPDATE measurements_overview SET search_keywords = '{}' WHERE ID = {};".format(search_kw, meas_id)
-
+			statement += "UPDATE {} SET search_keywords = '{}' WHERE ID = {};".format(table_name, search_kw, meas_id)
 
 		return statement
 
@@ -82,7 +94,9 @@ class query_generator:
 		statement += "shape jsonb, "
 		statement += "write_cursor INT, "
 		statement += "total_size INT, "
-		statement += "oid INT );"
+		statement += "oid INT, "
+		statement += "synchronized BOOL DEFAULT False,"
+		statement += "sync_location varchar(1024));"
 		
 		return statement
 
