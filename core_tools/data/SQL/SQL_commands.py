@@ -56,7 +56,6 @@ class write_query_generator:
 		statement += "snapshot JSON,"
 		statement += "metadata JSON, "
 		statement += "tags JSONB, "
-		statement += "search_keywords JSONB, "
 		
 		statement += "completed BOOL DEFAULT False,"
 		statement += "data_size int,"
@@ -67,8 +66,8 @@ class write_query_generator:
 		
 		statement += "CREATE INDEX IF NOT EXISTS uuid_indexed ON {} USING BTREE (uuid) ;".format(table_name)
 		statement += "CREATE INDEX IF NOT EXISTS pro_set_sample_index ON {} USING GIN(to_tsvector('english',project), to_tsvector('english',set_up), to_tsvector('english',sample)) ;".format(table_name)
-		statement += "CREATE INDEX IF NOT EXISTS pro_set_sample_search_tag_index ON {} USING GIN (to_tsvector('english',project), to_tsvector('english',set_up), to_tsvector('english',sample), tags, search_keywords, to_tsvector('english',exp_name));".format(table_name)
-		statement += "CREATE INDEX IF NOT EXISTS search_tag_index ON {} USING GIN (tags, search_keywords, to_tsvector('english',exp_name));".format(table_name)
+		statement += "CREATE INDEX IF NOT EXISTS pro_set_sample_search_tag_index ON {} USING GIN (to_tsvector('english',project), to_tsvector('english',set_up), to_tsvector('english',sample), tags, to_tsvector('english',exp_name));".format(table_name)
+		statement += "CREATE INDEX IF NOT EXISTS search_tag_index ON {} USING GIN (tags, to_tsvector('english',exp_name));".format(table_name)
 		statement += "CREATE INDEX IF NOT EXISTS synced_index ON {} USING BTREE (synchronized);".format(table_name)
 		statement += "CREATE INDEX IF NOT EXISTS data_size_index ON {} USING BTREE (data_size);".format(table_name)
 
@@ -103,7 +102,7 @@ class write_query_generator:
 	def get_last_meas_id_in_measurement_table(table_name="global_measurement_overview"):
 		return "SELECT id, uuid FROM {} ORDER BY uuid DESC LIMIT 1;".format(table_name)
 
-	def fill_meas_info_in_measurement_table(meas_uuid, measurement_table_name=None, start_time=None, stop_time=None, metadata=None, snapshot=None, search_kw = None, tags= None, completed=None):
+	def fill_meas_info_in_measurement_table(meas_uuid, measurement_table_name=None, start_time=None, stop_time=None, metadata=None, snapshot=None, tags= None, completed=None):
 		'''
 		fill in the addional data in a record of the measurements overview table.
 
@@ -114,7 +113,6 @@ class write_query_generator:
 			stop_time (long) : time in unix seconds since the epoch
 			metadata (JSON) : json string to be saved in the database
 			snapshot (JSON) : snapshot of the exprimental set up
-			search_kw (JSON) : keywords that can be used to search in the array (list of keywords)
 			tags (JSON) : list of tags that accompuarby the measurment if any
 			completed (bool) : tell that the measurement is completed.
 		
@@ -134,8 +132,6 @@ class write_query_generator:
 			statement += "UPDATE {} SET metadata = '{}' WHERE uuid = {};".format(table_name, metadata, meas_uuid)
 		if snapshot is not None:
 			statement += "UPDATE {} SET snapshot = '{}' WHERE uuid = {};".format(table_name, snapshot, meas_uuid)
-		if search_kw is not None:
-			statement += "UPDATE {} SET search_keywords = '{}' WHERE uuid = {};".format(table_name, search_kw, meas_uuid)
 		if tags is not None:
 			statement += "UPDATE {} SET tags = '{}' WHERE uuid = {};".format(table_name, tags, meas_uuid)
 		if completed is not None:
@@ -260,10 +256,21 @@ class data_fetch_queries:
 			raise ValueError('uuid for exp_id {} does not exist.'.format(exp_id))
 
 	@staticmethod
+	def is_running(cursor, exp_uuid):
+		statement = (	"SELECT completed " + 
+						"FROM {} ".format(data_fetch_queries.table_name) +
+						"WHERE uuid = {};".format(exp_uuid)
+					)
+
+		cursor.execute(statement)
+		data = cursor.fetchone()
+		return data[0]
+
+	@staticmethod
 	def get_dataset_raw(conn, exp_uuid):
 		statement = (	"SELECT id, uuid, exp_name, set_up, project, sample, " +
 						"start_time, stop_time, exp_data_location, snapshot, " +
-						"metadata, tags, search_keywords, completed " + 
+						"metadata, tags, completed " + 
 						"FROM {} ".format(data_fetch_queries.table_name) +
 						"WHERE uuid = {};".format(exp_uuid)
 					)
@@ -275,7 +282,7 @@ class data_fetch_queries:
 			set_up = data[3], project = data[4], sample = data[5], 
 			UNIX_start_time=data[6].timestamp(), UNIX_stop_time=data[7].timestamp(), 
 			SQL_datatable=data[8],snapshot=data[9], metadata=data[10],
-			tags=data[11], search_keywords=data[12], completed=data[13],)
+			tags=data[11], completed=data[12],)
 		
 		ds.measurement_parameters_raw = data_fetch_queries.__get_dataset_raw_dataclasses(conn, cursor, ds.SQL_datatable)
 		cursor.close()
@@ -368,7 +375,8 @@ if __name__ == '__main__':
 
 	statement = data_fetch_queries.check_if_exp_uuid_exists(cur, 1603364967262642671)
 	statement = data_fetch_queries.check_if_meas_table_exists(cur, "global_measurement_overview1")
-	statement = data_fetch_queries.convert_id_to_uuid(cur, 44)
+	statement = data_fetch_queries.is_running(cur, 1603386306086642671)
+	print(statement)
 	statement = data_fetch_queries.get_dataset_raw(conn_local, 1603386306086642671)
 
 	from core_tools.data.ds.data_set import data_set

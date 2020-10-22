@@ -115,7 +115,7 @@ class dataset_data_description():
                 idx = [0] * self.__raw_data.data_buffer.data.ndim
                 idx[self.__raw_data.nth_dim] = slice(None)
 
-                return self.__raw_data.data_buffer.data[tuple(idx[::-1])]
+                return self.__raw_data.data_buffer.data[tuple(idx)]
 
         return self.__raw_data.data_buffer.data
 

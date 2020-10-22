@@ -60,7 +60,7 @@ class buffer_writer(buffer_reference):
 	def sync(self):
 		try:
 			if self.cursor - self.cursor_db != 0:
-				self.__load_blocks(self.cursor - self.cursor_db)
+				# self.__load_blocks(self.cursor - self.cursor_db)
 				self.lobject.write((self.buffer[self.cursor_db:self.cursor]).tobytes())
 				self.cursor_db += self.cursor - self.cursor_db
 		except:
@@ -71,29 +71,34 @@ class buffer_writer(buffer_reference):
 	def close(self):
 		self.lobject.close()
 
-	def __load_blocks(self, n):
-		'''
-		load empty blocks in the buffer to prevent defragmentation.
+	'''
+	not sure if this is needed, this complicates things and makes things less clean
+	defragementation on hard drive -- TODO :: check with Sander.
+	also makes the reading of the buffer more irritating...
+	'''
+	# def __load_blocks(self, n):
+	# 	'''
+	# 	load empty blocks in the buffer to prevent defragmentation.
 
-		Args:
-			n (int) : number of writes to be performed
-		'''
-		if self.cursor + n > self.blocks_written:
-			self.lobject.seek(self.blocks_written)
+	# 	Args:
+	# 		n (int) : number of writes to be performed
+	# 	'''
+	# 	if self.cursor + n > self.blocks_written:
+	# 		self.lobject.seek(self.blocks_written)
 
-			if n > 1e6/8:
-				pass #write is large than the number of blocks reserved -> skip.
-			elif self.buffer.size - self.blocks_written <1e6/8:
-				scratch_data = np.full([self.buffer.size - self.blocks_written], np.nan)
-				self.lobject.write(scratch_data.tobytes())
-				self.blocks_written += scratch_data.size
-			else:
-				scratch_data = np.full([125000], np.nan)
-				self.lobject.write(scratch_data.tobytes())
-				self.blocks_written += scratch_data.size
+	# 		if n > 1e6/8:
+	# 			pass #write is large than the number of blocks reserved -> skip.
+	# 		elif self.buffer.size - self.blocks_written <1e6/8:
+	# 			scratch_data = np.full([self.buffer.size - self.blocks_written], np.nan)
+	# 			self.lobject.write(scratch_data.tobytes())
+	# 			self.blocks_written += scratch_data.size
+	# 		else:
+	# 			scratch_data = np.full([125000], np.nan)
+	# 			self.lobject.write(scratch_data.tobytes())
+	# 			self.blocks_written += scratch_data.size
 
-			# reset writing position
-			self.lobject.seek(self.cursor_db*8)
+	# 		# reset writing position
+	# 		self.lobject.seek(self.cursor_db*8)
 
 class buffer_reader(buffer_reference):
 	def __init__(self, SQL_conn, oid, shape):
@@ -103,29 +108,24 @@ class buffer_reader(buffer_reference):
 		self.oid = oid
 
 		self.lobject = self.conn.lobject(oid,'rb')
+		self.cursor = 0
 		self.sync()
 
-	def sync(self, start=0, stop=None):
+	def sync(self):
 		'''
 		update the buffer (for datasets that are still being written)
-
-		Args:
-			start (int) : start position to update
-			stop (int) : update until (default, end of the data)
 		'''
 		try:
-			self.lobject.seek(start*8)
-		except:
-			self.lobject = conn.lobject(self.oid, 'rb')
-			self.sync(start, stop)
-		if stop is not None:
-			binary_data = self.lobject.read(stop*8)
-		else:
+			self.lobject.seek(self.cursor*8)
 			binary_data = self.lobject.read()
+			data = np.frombuffer(binary_data)
 
-		data = np.frombuffer(binary_data)
-		# print(list(data[:]))
-		self.buffer[start:start+data.size] = data
+			self.buffer[self.cursor:self.cursor+data.size] = data
+			self.cursor = self.cursor+data.size
+		except:
+			self.lobject = self.conn.lobject(self.oid, 'rb')
+			self.sync(self.cursor, stop)
+
 
 if __name__ == '__main__':
 	from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
@@ -148,3 +148,4 @@ if __name__ == '__main__':
 	conn_local.commit()
 
 	br = buffer_reader(conn_local, bw.oid, a.shape)
+	print(br.data)

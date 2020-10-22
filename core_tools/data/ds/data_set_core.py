@@ -82,23 +82,6 @@ class data_set:
 
             self.__repr_attr_overview += [repr_attr_overview]
 
-    
-
-    def add_metadata(self, metadata):
-        pass
-
-    def add_snapshot(self, snapshot):
-        pass
-
-    def mark_completed(self):
-        '''
-        mark dataset complete. Stop updating the database and allow garbage collector to release memory.
-        '''
-        self.__data_set_raw.completed = True
-        self.__write_to_db(True)
-        SQL_mgr = SQL_database_manager()
-        SQL_mgr.finish_measurement(self.__data_set_raw)
-
     def add_result(self, input_data):
         '''
         Add results to the dataset
@@ -111,6 +94,24 @@ class data_set:
                 m_param.write_data(input_data)
 
         self.__write_to_db()
+
+    def mark_completed(self):
+        '''
+        mark dataset complete. Stop updating the database and allow garbage collector to release memory.
+        '''
+        self.__data_set_raw.completed = True
+        self.__write_to_db(True)
+        SQL_mgr = SQL_database_manager()
+        SQL_mgr.finish_measurement(self.__data_set_raw)
+
+    def sync(self):
+        '''
+        Updates dataset in case only part of the points were downloaded.
+        '''
+        if self.running == True:
+            SQL_mgr = SQL_database_manager()
+            self.running = SQL_mgr.is_running(self.exp_uuid)
+            self.__data_set_raw.sync_buffers(writer_pointers)
 
     def __write_to_db(self, force = False):
         '''

@@ -91,6 +91,15 @@ class SQL_database_manager(SQL_database_init):
 		cur.execute(write_query_generator.update_cursors_in_meas_tab(ds.SQL_datatable, ds.measurement_parameters_raw))
 		self.conn_local.commit()
 
+	def is_running(self, exp_uuid):
+		'''
+		checks if the current measurement is still running
+
+		Args:
+			exp_uuid (int) : uuid of the experiment to check
+		'''
+		cur = self.conn_local.cursor()
+
 	def finish_measurement(self, ds):
 		'''
 		

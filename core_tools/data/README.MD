@@ -134,9 +134,10 @@ This can be done using two lines:
 
 ```python
 # register a measurement
-from core_tools.data.lib.SQL import data_mgr
+from core_tools.data.ds.data_set import load_by_id, load_by_uuid
 
-ds = data_mgr.load_id(my_id)
+ds = load_by_id(101)
+ds = load_by_uuid(1603388322556642671)
 ```
 # Browsing data in the dataset
 To quickly see what is present in the dataset, can print it,

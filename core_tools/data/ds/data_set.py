@@ -40,3 +40,13 @@ def create_new_data_set(experiment_name, *m_params):
     SQL_mgr.register_measurement(ds)
 
     return data_set(ds)
+
+if __name__ == '__main__':
+    from core_tools.data.SQL.connector import set_up_local_storage
+
+    set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
+
+    ds= (load_by_id(52))
+    print(ds.m1.z())
+    print(ds.m1.x())
+    print(ds.m1.y())

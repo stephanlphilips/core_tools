@@ -228,7 +228,7 @@ if __name__ == '__main__':
         for i in range(x):
             for j in range(y):
                 z = m_param.get()
-                # print('results', i ,j, z)
+                print('results', i ,j, z)
                 ds.add_result((a1, i), (a2, j), (m_param, z))
 
     t1  =time.time()

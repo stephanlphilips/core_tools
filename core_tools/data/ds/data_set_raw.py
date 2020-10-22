@@ -27,7 +27,6 @@ class data_set_raw:
     snapshot : dict = None
     metadata : dict = None
     tags : list = field(default_factory=lambda: [])
-    search_keywords : list = field(default_factory=lambda: [])
 
     completed : bool = False
     writecount : int = 0
