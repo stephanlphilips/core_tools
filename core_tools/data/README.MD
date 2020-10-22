@@ -13,9 +13,9 @@ In this document the set up, creation, loading and browsing of dataset's is disc
 - [x] create a dataset
 - [x] set up a buffer system that can write to the database (~15 us needed per write operation (add_result call))
 - [x] add easy access operators to the dataset
-- [ ] loading a dataset
+- [x] loading a dataset
 - [ ] query tool for all the data
-- [ ] index database for fast searches + add keyword feature
+- [x] index database for fast searches + add keyword feature
 - [ ] GUI to diplay data 
 - [ ] pusher for local data to external database
 - [ ] feature : add start and stop also to slicing (e.g. ds.m1[:, 5:10:20] --> slices dataset and its setpoints)
