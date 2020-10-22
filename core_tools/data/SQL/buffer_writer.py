@@ -93,21 +93,19 @@ class buffer_writer(buffer_reference):
 				self.blocks_written += scratch_data.size
 
 			# reset writing position
-			self.lobject.seek(self.cursor*8)
+			self.lobject.seek(self.cursor_db*8)
 
 class buffer_reader(buffer_reference):
 	def __init__(self, SQL_conn, oid, shape):
-		'''
-		'''
 		self.conn = SQL_conn
 		self.buffer = np.full(shape, np.nan).ravel()
 		self.buffer_lambda = buffer_reference.reshaper(shape)
 		self.oid = oid
 
 		self.lobject = self.conn.lobject(oid,'rb')
-		self.update_buffer()
+		self.sync()
 
-	def update_buffer(self, start=0, stop=None):
+	def sync(self, start=0, stop=None):
 		'''
 		update the buffer (for datasets that are still being written)
 
@@ -119,12 +117,34 @@ class buffer_reader(buffer_reference):
 			self.lobject.seek(start*8)
 		except:
 			self.lobject = conn.lobject(self.oid, 'rb')
-			self.update_buffer(start, stop)
+			self.sync(start, stop)
 		if stop is not None:
 			binary_data = self.lobject.read(stop*8)
 		else:
 			binary_data = self.lobject.read()
 
 		data = np.frombuffer(binary_data)
-		self.buffer.flat[start:start+data.size] = data
+		# print(list(data[:]))
+		self.buffer[start:start+data.size] = data
 
+if __name__ == '__main__':
+	from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+	import psycopg2
+
+	set_up_local_storage('stephan', 'magicc', 'test', '6dot', 'XLD2', 'SQblabla12')
+
+	conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_info_local.user, 
+					password=SQL_conn_info_local.passwd, host=SQL_conn_info_local.host, port=SQL_conn_info_local.port)
+
+	a = np.ones([100,100])
+
+	bw = buffer_writer(conn_local, a)
+
+	for i in range(100):
+		bw.write(a[i])
+		bw.sync()
+
+	print(bw.oid)
+	conn_local.commit()
+
+	br = buffer_reader(conn_local, bw.oid, a.shape)

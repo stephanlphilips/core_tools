@@ -93,8 +93,8 @@ class Measurement:
                     # this can cause in uniquess of the keys, therefore the extra multiplications (should more or less ensure uniqueness).
                     #cleaner solution?
                     setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][j])*10*(i+1), np.NaN, 
-                        'local_var', list(parameter.setpoint_names[i][j]), list(parameter.setpoint_labels[i][j]),
-                        list(parameter.setpoint_units[i][j]), [], [])
+                        'local_var', [parameter.setpoint_names[i][j]], [parameter.setpoint_labels[i][j]],
+                        [parameter.setpoint_units[i][j]], [], [])
                     data_array = parameter.setpoints[i][j]
                     setpoint_local_parameter_spec.data.append(np.asarray(data_array, order='C'))
                     shape = ( parameter.shapes[i][j],)
@@ -145,16 +145,15 @@ if __name__ == '__main__':
     import qcodes as qc
     from core_tools.sweeps.sweeps import do0D
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer, construct_1D_scan_fast, construct_2D_scan_fast
-    from core_tools.data.SQL.connector import set_up_data_storage
+    from core_tools.data.SQL.connector import set_up_local_storage
 
-    set_up_data_storage('localhost', 5432, 'stephan', 'magicc', 'test', '5dot', 'XLD', 'SQ19_blabla')
+    set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
 
     class MyCounter(qc.Parameter):
         def __init__(self, name):
             # only name is required
-            super().__init__(name, label=name,
-                             docstring='counts how many times get has been called '
-                                       'but can be reset to any integer >= 0 by set')
+            super().__init__(name, label=name, unit='mV',
+                             docstring='counts how many times get has been called but can be reset to any integer >= 0 by set')
             self._count = 0
 
         # you must provide a get method, a set method, or both.
@@ -201,7 +200,7 @@ if __name__ == '__main__':
     y = 100
 
     m_param = m1
-    meas = Measurement('no name')
+    meas = Measurement('dataset test experiment')
     meas.register_set_parameter(a1, x)
     meas.register_set_parameter(a2, y)
 

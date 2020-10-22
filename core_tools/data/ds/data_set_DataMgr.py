@@ -79,13 +79,16 @@ class dataset_data_description():
             for j in range(len(raw_data)): #this is not pretty, but it works..
                 dataDescription = dataset_data_description('', raw_data[j], self.__raw_data_org)
                 
-                name = string.ascii_lowercase[23+i] + str(j+1)
-                self.__setattr__(name, dataDescription)
-                if j == 0:
-                    self.__setattr__(string.ascii_lowercase[23+i], dataDescription)
-                    if len(raw_data) == 1:
-                        name = string.ascii_lowercase[23+i]
+                if self.ndim <= 2:
+                    name = string.ascii_lowercase[23+i] + str(j+1)
+                    self.__setattr__(name, dataDescription)
+                    if j == 0:
+                        self.__setattr__(string.ascii_lowercase[23+i], dataDescription)
+                        if len(raw_data) == 1:
+                            name = string.ascii_lowercase[23+i]
 
+                    repr_attr_overview += [(name, dataDescription)]
+                    
                 if self.ndim > 2:
                     self.__setattr__(string.ascii_lowercase[8+i] + str(j+1), dataDescription)
                     if len(raw_data) == 1:
@@ -93,8 +96,7 @@ class dataset_data_description():
                         repr_attr_overview += [(string.ascii_lowercase[8+i], dataDescription)]
                     else:
                         repr_attr_overview += [(string.ascii_lowercase[8+i] + str(j+1), dataDescription)]
-                else:
-                    repr_attr_overview += [(name, dataDescription)]
+                    
 
             self.__repr_attr_overview += [repr_attr_overview]
 

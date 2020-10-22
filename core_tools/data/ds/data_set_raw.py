@@ -1,4 +1,4 @@
-from core_tools.data.SQL.connector import sample_info, SQL_conn_info
+from core_tools.data.SQL.connector import sample_info, SQL_conn_info_local
 from core_tools.data.SQL.buffer_writer import buffer_reference
 from dataclasses import dataclass, field
 import copy
@@ -6,13 +6,14 @@ import copy
 @dataclass
 class data_set_raw:
     exp_id : int = None
+    exp_uuid : int = None
     exp_name : str = None
 
     set_up : str = field(default_factory=lambda: sample_info.set_up)
     project : str = field(default_factory=lambda: sample_info.project)
     sample : str = field(default_factory=lambda: sample_info.sample)
 
-    database : str = field(default_factory=lambda: SQL_conn_info.dbname)
+    database : str = field(default_factory=lambda: SQL_conn_info_local.dbname)
     
     SQL_datatable : str = None
     measurement_parameters : list = field(default_factory=lambda: [])
@@ -23,8 +24,10 @@ class data_set_raw:
     
     uploaded_complete : bool = None
     
-    snapshot : str = None
-    metadata : str = None
+    snapshot : dict = None
+    metadata : dict = None
+    tags : list = field(default_factory=lambda: [])
+    search_keywords : list = field(default_factory=lambda: [])
 
     completed : bool = False
     writecount : int = 0
@@ -49,7 +52,7 @@ class m_param_raw:
     shape : str
     size : int
     oid : int
-    data_buffer : any
+    data_buffer : any = None
 
     def __copy__(self):
         data_buffer = buffer_reference(self.data_buffer.buffer)

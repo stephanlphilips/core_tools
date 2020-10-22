@@ -19,21 +19,50 @@ In this document the set up, creation, loading and browsing of dataset's is disc
 - [ ] GUI to diplay data 
 - [ ] pusher for local data to external database
 - [ ] feature : add start and stop also to slicing (e.g. ds.m1[:, 5:10:20] --> slices dataset and its setpoints)
+- [ ] autoconfigure db script for local configuration
 
 # Set up
 To set up the connection to the server, there are two options:
-1. A PostgreSQL dataserver has been set up for the group where you are working in. Ask the server details to the server admin and you are good to go.
-2. Install your own local PostgreSQL server.
+1. Install your own local PostgreSQL server. Save data only locally.
+2. Use a remote PostgreSQL server. This is the **recommend** configuration for analysis computers.
+3. It is also possible to combine 1+2. In this case, the measurements are saved locally and synced in parallel to the server. This is the **recommend** option for measurement computers.
 
-## Option 1 (recommended)
-Run the following code in your python console:
+## Option 1
+The instructions below are tested on windows. On Linux/Mac, the mindset is the same, but instructions might be slightly different.
+
+Steps:
+1. Download [PostgreSQL](https://www.postgresql.org/download/)
+2. Go through the installer and install the database.
+3. Launch the psql program and make a database user and a database
+... type the following commands:
+... * CREATE USER 'myusername' WITH PASSWORD 'mypasswd';
+... * CREATE DATABASE 'mydbname';
+... * GRANT ALL PRIVELEGES ON DATABASE 'mydbname' TO 'myusername';
+ 
+In case you are running along with a server set up, it is recommended to have 'mydbname' to be the same as the one on the server.
+
+In python you can run:
+```python
+from core_tools.data.SQL.connector import set_up_local_storage
+set_up_local_storage("myusername", "mypasswd", "mydbname", "project_name", "set_up_name", "sample_name")
+```
+Arguments are:
+* user (str) : name of the user to connect with (the the one just configured using psql)
+* passwd (str) : password of the user
+* dbname (str) : database to connect with (e.g. 'vandersypen_data')
+* project (str) : project for which the data will be saved
+* set_up (str) : set up at which the data has been measured
+* sample (str) : sample name 
+
+## Option 2
+In this case we will be connecting with a remote server. This can be set up using the following code:
 
 ```python
-from core_tools.data.SQL.connector import set_up_data_storage
-set_up_data_storage(server, port, user, passwd, dbname, project, set_up, sample)
+from core_tools.data.SQL.connector import set_up_remote_storage
+set_up_remote_storage(server, port, user, passwd, dbname, project, set_up, sample)
 ```
 The arguments are:
-* server (str) : server that is used for storage, e.g. "localhost" for local or "spin_data.tudelft.nl" for global storage
+* server (str) : server that is used for storage, e.g. "spin_data.tudelft.nl" for global storage
 * port (int) : port number to connect through, the default it 5421
 * user (str) : name of the user to connect with
 * passwd (str) : password of the user
@@ -42,25 +71,18 @@ The arguments are:
 * set_up (str) : set up at which the data has been measured
 * sample (str) : sample name 
 
-## Option 2
-These instructions are only valid for windows (for Linux and OS X things should be very straightforward).
+Note that the admin of the server has to provide you with login credentials for the storage. 
 
-Steps:
-1. Download [PostgreSQL](https://www.postgresql.org/download/)
-2. Go through the installer and install the database
-3. Launch the psql program and make a database user and a database
-... type the following commands:
-... * createuser myusername
-... * ALTER ...
-... * createdb mydbname
- 
-You should be ready to go now and be able to use the database.
-In python you can run:
+## Option 3
+In this case configure both option 1 and 2 at the same time, this can be done using:
+
 ```python
-from core_tools.data.SQL.connector import set_up_data_storage
-set_up_data_storage("localhost", 5432, "myusername", "mypasswd", "mydbname", "project_name", "set_up_name", "sample_name")
+from core_tools.data.SQL.connector import set_up_local_and_remote_storage
+set_up_local_and_remote_storage(server, port, 
+                                    user_local, passwd_local, dbname_local,
+                                    user_remote, passwd_remote, dbname_remote,
+                                    project, set_up, sample)
 ```
-The datastorage has now been set up.
 
 # Creation of a dataset
 Datasets are created using the Measurement object (similar as in qcodes). This method can be used to construct your own dataset, but in most cases, it will be more convenient to generate the dataset using the predefined sweep functions.

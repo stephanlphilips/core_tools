@@ -2,6 +2,7 @@ from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
 from core_tools.data.SQL.buffer_writer import buffer_writer, buffer_reader
 from core_tools.data.ds.data_set_raw import m_param_raw
 from dataclasses import dataclass, field
+
 import numpy as np
 import numbers
 import json
@@ -25,11 +26,11 @@ class dataclass_raw_parent:
                 else:
                     arr = np.full(shape, np.nan, order='C')
                     self.data.append(arr)
-                data_buffer = buffer_writer(SQL_mgr.conn, arr)
+                data_buffer = buffer_writer(SQL_mgr.conn_local, arr)
                 self.oid.append(data_buffer.oid)
             else: # load data
                 oid = self.oid[i]
-                data_buffer = buffer_reader(SQL_mgr.conn, oid, shape)
+                data_buffer = buffer_reader(SQL_mgr.conn_local, oid, shape)
                 arr = data_buffer.buffer
                 self.data.append(arr)
 
@@ -74,7 +75,7 @@ class dataclass_raw_parent:
         for i in range(len(self.data)):
             data_items +=[m_param_raw(self.id_info, i, nth_dim, m_param_id, setpoint, setpoint_local,
                 self.name, self.names[i], self.labels[i],
-                self.units[i], dependencies[i], json.dumps(self.data[i].shape), self.data[i].size, self.oid[i], self.data_buffer[i])]
+                self.units[i], dependencies[i], self.data[i].shape, self.data[i].size, self.oid[i], self.data_buffer[i])]
 
         return data_items
 
