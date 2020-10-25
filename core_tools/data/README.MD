@@ -21,6 +21,11 @@ In this document the set up, creation, loading and browsing of dataset's is disc
 - [ ] feature : add start and stop also to slicing (e.g. ds.m1[:, 5:10:20] --> slices dataset and its setpoints)
 - [ ] autoconfigure db script for local configuration
 
+small fixes todo list:
+* incorporate metadata, tags and take snapshot
+* add the total size
+* boot-call : make already table with project and sample stuff
+
 # Set up
 To set up the connection to the server, there are two options:
 1. Install your own local PostgreSQL server. Save data only locally.

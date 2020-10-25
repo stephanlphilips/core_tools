@@ -5,7 +5,6 @@ import psycopg2
 import time
 import json
 
-
 class SQL_database_init:
 	conn_local = None
 	last_commit = 0
@@ -51,7 +50,7 @@ class SQL_database_manager(SQL_database_init):
 		#####################################################
 		# add a new entry in the measurements overiew table #
 		#####################################################
-		cur.execute(write_query_generator.write_data_overview_tables(sample_info.project, sample_info.set_up, sample_info.sample))
+		cur.execute(write_query_generator.write_data_overview_tables(sample_info.set_up, sample_info.project, sample_info.sample))
 		cur.execute(write_query_generator.insert_new_measurement_in_measurement_table(ds.exp_name, SQL_conn_info_local.user))
 
 		cur.execute(write_query_generator.get_last_meas_id_in_measurement_table())
@@ -62,7 +61,7 @@ class SQL_database_manager(SQL_database_init):
 		ds.running = True
 		ds.SQL_datatable = "_" + sample_info.set_up + "_" +sample_info.project + "_" +sample_info.sample +"_" + str(exp_uuid)
 
-		# todo -- add tags and search KW to the measurements
+		# todo -- add tags to the measurements
 		cur.execute(write_query_generator.fill_meas_info_in_measurement_table(
 			ds.exp_uuid,ds.SQL_datatable,
 			start_time=time.time(), metadata=ds.metadata, snapshot=ds.snapshot))
