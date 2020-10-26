@@ -60,7 +60,7 @@ class SQL_database_manager(SQL_database_init):
 		ds.exp_uuid = exp_uuid
 		ds.running = True
 		ds.SQL_datatable = "_" + sample_info.set_up + "_" +sample_info.project + "_" +sample_info.sample +"_" + str(exp_uuid)
-
+		ds.SQL_datatable = ds.SQL_datatable.replace(" ", "_")
 		# todo -- add tags to the measurements
 		cur.execute(write_query_generator.fill_meas_info_in_measurement_table(
 			ds.exp_uuid,ds.SQL_datatable,
@@ -163,5 +163,5 @@ if __name__ == '__main__':
 	test = SQL_database_manager()
 
 	t1 = test.fetch_raw_dataset_by_Id(47)
-	t2 = test.fetch_raw_dataset_by_UUID(1603387461582642671)
+	t2 = test.fetch_raw_dataset_by_UUID(1603652809326642671)
 	print(t1)

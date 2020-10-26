@@ -130,6 +130,9 @@ class dataset_data_description():
     def full(self):
         return self.__raw_data.data_buffer.data
 
+    def get_raw_content(self):
+        return self.__repr_attr_overview
+    
     def average(self, dim):
         '''
         average the array across 1 dimension
@@ -163,7 +166,10 @@ class dataset_data_description():
 
         idx = [slice(None)]*self.ndim
         idx[dim] = i
+
+
         raw_data_org_copy = copy.copy(self.__raw_data_org)
+
         raw_data_cpy = raw_data_org_copy.get(self.__raw_data.param_id, self.__raw_data.nth_set)
         raw_data_cpy.dependency.pop(dim)
         raw_data_cpy.data_buffer.buffer_lambda =  raw_data_cpy.data_buffer.slice_lambda(idx)
@@ -265,14 +271,14 @@ if __name__ == '__main__':
 
     ds = data_set_property_intializer(l)
     print(ds.m1a())
-    # print(ds.m1a.label)
-    # print(ds.m1b.unit)
-    # print(ds.m1b.label)
-    # print(ds.m1a.average('x'))
+    print(ds.m1a.label)
+    print(ds.m1b.unit)
+    print(ds.m1b.label)
+    print(ds.m1a.average('x'))
     print(ds.m1a[:,0]())
     print(ds.m1a[0,:]())
     print(ds.m1a[:,:]())
     print(ds.m1a.slice('x', 0)())
-    # print(ds.m1a[:,0])
-    # print(ds.m1a.y())
-    # print(ds.m1a.z())
+    print(ds.m1a[:,0])
+    print(ds.m1a.y())
+    print(ds.m1a.z())

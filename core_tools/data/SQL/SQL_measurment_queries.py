@@ -103,7 +103,37 @@ class query_for_measurement_results:
 		res = list(sum(res, ()))
 		res.sort(reverse=True)
 		
-		return res 
+		return res
+
+	def search_query(exp_id, uuid, words, start_date, stop_date, project, set_up, sample):
+		statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, tags FROM global_measurement_overview "
+		statement += "WHERE 1=1 "
+		if exp_id is not None:
+			statement += " and id = '{}' ".format(exp_id)
+		if uuid is not None:
+			statement += " and uuid = '{}' ".format(uuid)
+		if start_date is not None:
+			statement += " and start_time = '{}' ".format(start_date)
+		if stop_date is not None:
+			statement += " and start_time = '{}' ".format(stop_date)
+		if sample is not None:
+			statement += " and sample =  '{}' ".format(sample)
+		if set_up is not None:
+			statement += " and set_up = '{}' ".format(set_up)
+		if project is not None:
+			statement += " and project = '{}' ".format(project)
+		if words != "":
+			statement += " and exp_name like '%{}%' ".format(words)
+		statement += " ;"
+		print(statement)
+
+		
+		cur = SQL_database_manager().conn_local.cursor()
+		cur.execute(statement)
+		res = cur.fetchall()
+		cur.close()
+
+		return m_result_overview(res)
 
 if __name__ == '__main__':
 	
@@ -130,5 +160,9 @@ if __name__ == '__main__':
 	# print(a[0])
 	# print(len(a))
 
-	a = query_for_measurement_results.get_all_dates_with_meaurements(sample=None, set_up=None, project='Intel Project')
+	# a = query_for_measurement_results.get_all_dates_with_meaurements(sample=None, set_up=None, project='Intel Project')
+	# print(a)
+
+	a = query_for_measurement_results.search_query(None, None, 'a', None, None, 'Intel Project', None, None)
 	print(a)
+	print(len(a))

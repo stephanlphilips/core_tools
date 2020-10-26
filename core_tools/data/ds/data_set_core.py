@@ -52,6 +52,12 @@ class data_set:
         self.__init_properties(m_param_origanizer(ds_raw.measurement_parameters_raw))
         self.last_commit = time.time()
 
+    def __len__(self):
+        return len(self.__repr_attr_overview)
+
+    def __getitem__(self, i):
+        return self.__repr_attr_overview[i]
+
     def __init_properties(self, data_set_content):
         '''
         populates the dataset with the measured parameter in the raw dataset

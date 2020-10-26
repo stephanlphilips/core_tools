@@ -10,6 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
 
 import sys
+import datetime
 
 def if_any_to_none(arg):
 	if arg == "any":
@@ -23,6 +24,9 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
 		self.setupUi(MainWindow)
 		MainWindow.show()
 
+		##################
+		# overiew window #
+		##################
 		self.sample_info = dict()
 		self.sample_info['project'] = sample_info.project
 		self.sample_info['sample'] = sample_info.set_up
@@ -60,7 +64,38 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
 						('sample', self.Sample_scroll_box),
 						True))
 
+		##############
+		# search tab #
+		##############
+
+		self.enable_min_date.stateChanged.connect(partial(self.enable_date, self.min_date_field))
+		self.enable_max_date.stateChanged.connect(partial(self.enable_date, self.max_date_field))
+
+		self.set_up_search.activated.connect(partial(self.update_index, ('set_up',self.set_up_search),
+			('project', self.project_search), ('sample', self.sample_search)))
+		self.sample_search.activated.connect(partial(self.update_index, ('sample', self.sample_search),
+			('set_up',self.set_up_search), ('project', self.project_search)))
+		self.project_search.activated.connect(partial(self.update_index, 
+			('project', self.project_search), ('set_up',self.set_up_search),('sample', self.sample_search)))
+
+		self.reset_search_box()
+
+		self.reset_search.clicked.connect(self.reset_search_box)
+
+		self.search_table_data_model = result_table_model()
+		self.search_table_data.setSortingEnabled(True);
+		self.search_table_data.sortByColumn(3, QtCore.Qt.DescendingOrder)
+		self.search_table_data.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows);
+		self.search_table_data.doubleClicked.connect(self.load_measurement_search)
+		self.search_table_data.setModel(self.search_table_data_model)
+
+		self.search_bottom.clicked.connect(self.search_data)
+
 		self.app.exec_()
+
+
+	def enable_date(self, item, state):
+		item.setVisible(state)
 
 	def init_index(self, index, values, idx = 1):
 		index.clear()
@@ -101,6 +136,60 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
 
 	def load_measurement(self, index):
 		print('loading measurment window for uuid {}'.format(self.data_table_model._data[index.row()].uuid))
+
+	def load_measurement_search(self, index):
+		print('loading measurment window for uuid {}'.format(self.search_table_data_model._data[index.row()].uuid))
+
+
+	def reset_search_box(self):
+		self.min_date_field.hide()
+		self.max_date_field.hide()
+
+		self.enable_min_date.setCheckState(0)
+		self.enable_max_date.setCheckState(0)
+
+		max_date = datetime.datetime.now()
+		min_date = max_date - datetime.timedelta(days=7)
+
+		self.min_date_field.setDate(min_date.date())
+		self.max_date_field.setDate(max_date.date())
+
+		self.description_search.clear()
+		self.id_uuid_search.clear()
+
+		self.init_index(self.project_search, ['any', sample_info.project])
+		self.init_index(self.set_up_search, ['any', sample_info.set_up])
+		self.init_index(self.sample_search, ['any', sample_info.sample])
+
+		self.update_index(('set_up',self.set_up_search), ('project', self.project_search), ('sample', self.sample_search))
+		self.update_index(('sample', self.sample_search), ('set_up',self.set_up_search), ('project', self.project_search))
+		self.update_index(('project', self.project_search), ('set_up',self.set_up_search), ('sample', self.sample_search))
+
+	def search_data(self):
+		exp_id = None
+		exp_uuid = None
+		id_uuid = self.id_uuid_search.text()
+		seach_type_id_uuid = self.id_uuid_search_type.currentText()
+		if seach_type_id_uuid == 'id' and id_uuid!="":
+			exp_id = id_uuid
+		elif seach_type_id_uuid == 'uuid' and id_uuid!="":
+			exp_uuid = id_uuid
+		
+		project = if_any_to_none(self.project_search.currentText())
+		set_up = if_any_to_none(self.set_up_search.currentText())
+		sample = if_any_to_none(self.sample_search.currentText())
+		words = self.description_search.text()
+
+		start_date = None
+		stop_date = None
+		if self.enable_min_date.checkState() == 2:
+			start_date = self.min_date_field.date()
+		if self.enable_max_date.checkState() == 2:
+			stop_date = self.max_date_field.date()
+
+		data = query_for_measurement_results.search_query(exp_id, exp_uuid, words, start_date, stop_date, project, set_up, sample)
+
+		self.search_table_data_model.overwrite_data(data)
 
 if __name__ == '__main__':
 

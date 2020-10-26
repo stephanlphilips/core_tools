@@ -54,7 +54,7 @@ class m_param_raw:
     data_buffer : any = None
 
     def __copy__(self):
-        data_buffer = buffer_reference(self.data_buffer.buffer)
+        data_buffer = buffer_reference(self.data_buffer.data)
         return m_param_raw(copy.copy(self.param_id), copy.copy(self.nth_set), copy.copy(self.nth_dim), copy.copy(self.param_id_m_param), copy.copy(self.setpoint), 
             copy.copy(self.setpoint_local), copy.copy(self.name_gobal), copy.copy(self.name), copy.copy(self.label),
             copy.copy(self.unit), copy.copy(self.dependency), copy.copy(self.shape), copy.copy(self.size), copy.copy(self.oid), data_buffer)
