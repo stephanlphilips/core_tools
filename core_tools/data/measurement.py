@@ -225,10 +225,9 @@ if __name__ == '__main__':
 
     t0  =time.time()
     with meas as ds:
-        for i in range(x):
+        for i in range(100):
             for j in range(y):
                 z = m_param.get()
-                print('results', i ,j, z)
                 ds.add_result((a1, i), (a2, j), (m_param, z))
 
     t1  =time.time()

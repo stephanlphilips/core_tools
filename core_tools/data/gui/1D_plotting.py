@@ -14,7 +14,20 @@ graph_color += [{"pen":(237,177,32), 'symbolBrush':(237,177,32), 'symbolPen':'w'
 graph_color += [{"pen":(126,47,142), 'symbolBrush':(126,47,142), 'symbolPen':'w', "symbol":'+', "symbolSize":14}]
 
 class _1D_plot:
+    known_units = {"mA" : 1e-3, "uA" : 1e-6, "nA" : 1e-9, "pA" : 1e-12, "fA" : 1e-15, 
+                    "nV" : 1e-9, "uV" : 1e-6, "mV" : 1e-3, 
+                    "ns" : 1e-9, "us" : 1e-6, "ms" : 1e-3, 
+                    "KHz" : 1e3, "MHz" : 1e6, "GHz" : 1e9 }
+
     def __init__(self, ds_list, logmode):
+        '''
+        plot 1D plot
+        
+        Args:
+            ds_descr (list<dataset_data_description>) : list descriptions of the data to be plotted in the same plot
+            logmode dict(<str, bool>) : plot axis in a logaritmic scale (e.g. {'x':True, 'y':False})
+        '''
+
         self.ds_list = ds_list
 
         pg.setConfigOption('background', 'w')
@@ -22,15 +35,16 @@ class _1D_plot:
 
         self.win = pg.GraphicsLayoutWidget(show=True, title="Scatter Plot Symbols")
         self.plot = self.win.addPlot(title=self.name)
+
         self.curves = []
         
         self.plot.addLegend()
         for i in range(len(self.ds_list)):
             ds = self.ds_list[i]
-            curve = self.plot.plot(ds.x(), ds.y(), **graph_color[i], name=ds.name)
+            curve = self.plot.plot(ds.x()*self.fix_units(ds.x)[1], ds.y()*self.fix_units(ds.y)[1], **graph_color[i], name=ds.name)
             self.curves.append(curve)
-        self.plot.setLabel('left', self.ds_list[0].y.label, units=self.ds_list[0].y.unit)
-        self.plot.setLabel('bottom', self.ds_list[0].x.label, units=self.ds_list[0].x.unit)
+        self.plot.setLabel('left', self.ds_list[0].y.label, units=self.fix_units(self.ds_list[0].y)[0])
+        self.plot.setLabel('bottom', self.ds_list[0].x.label, units=self.fix_units(self.ds_list[0].x)[0])
         self.plot.setLogMode(**logmode)
         self.plot.showGrid(True, True)
 
@@ -38,7 +52,7 @@ class _1D_plot:
         for i in range(len(self.curves)):
             curve = self.curves[i]
             ds = self.ds_list[i]
-            curve.setData(ds.x(), ds.y())
+            curve.setData(ds.x()*self.fix_units(ds.x)[1], ds.y()*self.fix_units(ds.y)[1])
         # events are processed on a higher level.
 
     @property
@@ -49,6 +63,14 @@ class _1D_plot:
 
         return name[:-1]
 
+    def fix_units(self, descr):
+        unit = descr.unit
+        scaler = 1
+        if descr.unit in self.known_units.keys():
+            scaler = self.known_units[descr.unit]
+            unit = descr.unit[1:]
+
+        return unit, scaler
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
@@ -57,18 +79,17 @@ if __name__ == '__main__':
     from core_tools.data.ds.data_set import load_by_uuid
 
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    ds = load_by_uuid(1603652809326642671)
+    ds = load_by_uuid(1603792891275642671)
 
     app = QtGui.QApplication([])
     
-    logmode = {'x':True, 'y':False}
+    logmode = {'x':False, 'y':False}
     # 2d dataset
     ds = [ds.m1[0, :], ds.m1[:, 0]]
-    
+
     plot = _1D_plot(ds, logmode)
     plot.update()
     app.processEvents()
-
 
     import sys
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
