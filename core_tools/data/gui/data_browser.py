@@ -1,7 +1,7 @@
 import core_tools.data.gui.ui_files.data_browser_autogen as data_browser_autogen
 
-from core_tools.data.gui.result_table_gui import result_table_model
-from core_tools.data.gui.date_list_GUI import data_list_model
+from core_tools.data.gui.data_browser_models.result_table_gui import result_table_model
+from core_tools.data.gui.data_browser_models.date_list_GUI import data_list_model
 
 from core_tools.data.SQL.SQL_measurment_queries import query_for_samples, query_for_measurement_results
 from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage

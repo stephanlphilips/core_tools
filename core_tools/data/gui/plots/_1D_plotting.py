@@ -1,3 +1,6 @@
+from core_tools.data.gui.plots.unit_management import format_value_and_unit, format_unit, return_unit_scaler
+from PyQt5 import QtCore, QtGui, QtWidgets
+from si_prefix import si_format
 import pyqtgraph as pg
 
 graph_color = list()
@@ -14,11 +17,6 @@ graph_color += [{"pen":(237,177,32), 'symbolBrush':(237,177,32), 'symbolPen':'w'
 graph_color += [{"pen":(126,47,142), 'symbolBrush':(126,47,142), 'symbolPen':'w', "symbol":'+', "symbolSize":14}]
 
 class _1D_plot:
-    known_units = {"mA" : 1e-3, "uA" : 1e-6, "nA" : 1e-9, "pA" : 1e-12, "fA" : 1e-15, 
-                    "nV" : 1e-9, "uV" : 1e-6, "mV" : 1e-3, 
-                    "ns" : 1e-9, "us" : 1e-6, "ms" : 1e-3, 
-                    "KHz" : 1e3, "MHz" : 1e6, "GHz" : 1e9 }
-
     def __init__(self, ds_list, logmode):
         '''
         plot 1D plot
@@ -29,31 +27,40 @@ class _1D_plot:
         '''
 
         self.ds_list = ds_list
+        self.logmode = logmode
 
-        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('background', None)
         pg.setConfigOption('foreground', 'k')
 
-        self.win = pg.GraphicsLayoutWidget(show=True, title="Scatter Plot Symbols")
-        self.plot = self.win.addPlot(title=self.name)
+        self.widget = QtGui.QWidget()
+        self.layout = QtGui.QVBoxLayout()
+        
+        self.plot = pg.PlotWidget()
+        self.label = QtGui.QLabel()
+        self.label.setAlignment(QtCore.Qt.AlignRight)
+
+        self.layout.addWidget(self.plot)
+        self.layout.addWidget(self.label)
+        self.widget.setLayout(self.layout)
 
         self.curves = []
         
         self.plot.addLegend()
         for i in range(len(self.ds_list)):
             ds = self.ds_list[i]
-            curve = self.plot.plot(ds.x()*self.fix_units(ds.x)[1], ds.y()*self.fix_units(ds.y)[1], **graph_color[i], name=ds.name)
+            curve = self.plot.plot(ds.x()*return_unit_scaler(ds.x.unit), ds.y()*return_unit_scaler(ds.y.unit), **graph_color[i], name=ds.name)
             self.curves.append(curve)
-        self.plot.setLabel('left', self.ds_list[0].y.label, units=self.fix_units(self.ds_list[0].y)[0])
-        self.plot.setLabel('bottom', self.ds_list[0].x.label, units=self.fix_units(self.ds_list[0].x)[0])
+        self.plot.setLabel('left', self.ds_list[0].y.label, units=format_unit(self.ds_list[0].y.unit))
+        self.plot.setLabel('bottom', self.ds_list[0].x.label, units=format_unit(self.ds_list[0].x.unit))
         self.plot.setLogMode(**logmode)
         self.plot.showGrid(True, True)
+        self.proxy = pg.SignalProxy(self.plot.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
     def update(self):
         for i in range(len(self.curves)):
             curve = self.curves[i]
             ds = self.ds_list[i]
-            curve.setData(ds.x()*self.fix_units(ds.x)[1], ds.y()*self.fix_units(ds.y)[1])
-        # events are processed on a higher level.
+            curve.setData(ds.x()*return_unit_scaler(ds.x.unit), ds.y()*return_unit_scaler(ds.x.unit))
 
     @property
     def name(self):
@@ -63,14 +70,24 @@ class _1D_plot:
 
         return name[:-1]
 
-    def fix_units(self, descr):
-        unit = descr.unit
-        scaler = 1
-        if descr.unit in self.known_units.keys():
-            scaler = self.known_units[descr.unit]
-            unit = descr.unit[1:]
+    def mouseMoved(self, evt):
+        vb = self.plot.getPlotItem().vb
+        pos = evt[0]  ## using signal proxy turns original arguments into a tuple
+        if self.plot.sceneBoundingRect().contains(pos):
+            mousePoint = vb.mapSceneToView(pos)
+            index = int(mousePoint.x())
 
-        return unit, scaler
+            x_val = mousePoint.x()
+            if self.logmode['x'] == True:
+                x_val = 10**x_val
+            y_val = mousePoint.y()
+            if self.logmode['y'] == True:
+                y_val = 10**y_val
+
+            self.label.setText("x={}, y={}".format(
+                si_format(x_val, 3) + format_unit(self.ds_list[0].x.unit), 
+                si_format(y_val, 3) + format_unit(self.ds_list[0].y.unit)))
+
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
@@ -83,14 +100,16 @@ if __name__ == '__main__':
 
     app = QtGui.QApplication([])
     
-    logmode = {'x':False, 'y':False}
+    logmode = {'x':True, 'y':False}
     # 2d dataset
     ds = [ds.m1[0, :], ds.m1[:, 0]]
 
     plot = _1D_plot(ds, logmode)
-    plot.update()
-    app.processEvents()
+    
+    win = QtGui.QMainWindow()
+    win.setCentralWidget(plot.widget)
+    win.show()
 
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+#    import sys
+#    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+#        QtGui.QApplication.instance().exec_()

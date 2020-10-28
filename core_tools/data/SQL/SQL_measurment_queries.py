@@ -1,4 +1,4 @@
-from core_tools.data.gui.result_table_data_class import m_result_overview 
+from core_tools.data.gui.data_browser_models.result_table_data_class import m_result_overview 
 from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
 
 import datetime

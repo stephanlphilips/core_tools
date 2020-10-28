@@ -3,14 +3,14 @@ import qdarkstyle
 import numpy as np
 import threading as th
 import pyqtgraph as pg
-from .GUI.videomode_gui import Ui_MainWindow
+from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
 
 from dataclasses import dataclass
 from PyQt5.QtCore import QThread
 from PyQt5 import QtCore, QtGui, QtWidgets
-from .data_getter import scan_generator_Keysight
-from .data_getter import scan_generator_Virtual
-from .plotter.plotting_functions import _1D_live_plot, _2D_live_plot
+from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Keysight
+from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
+from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
 from qcodes import MultiParameter
 from qcodes.measure import Measure
 from core_tools.utility.powerpoint import addPPTslide
@@ -101,7 +101,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.quit = QtWidgets.QAction("Quit", self)
         self.quit.triggered.connect(self.closeEvent)
-
+        
         self.show()
         if instance_ready == False:
             self.app.exec()
@@ -488,7 +488,7 @@ if __name__ == '__main__':
 
     # V2_liveplotting(t,dig)
 
-    from V2_software.LivePlotting.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
+    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
     # from V2_software.pulse_lib_config.Init_pulse_lib import return_pulse_lib
 
     # load a virtual version of the digitizer.
@@ -497,4 +497,4 @@ if __name__ == '__main__':
     # load the AWG library (without loading the awg's)
     # pulse, _ = return_pulse_lib()
 
-    V2_liveplotting(t,dig)
+    liveplotting(t,dig)
