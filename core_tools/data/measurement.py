@@ -22,7 +22,6 @@ general structure:
     The synchronization process starts in a separate thread in parallel to the measurement.
     When the last result is added, the final sync to the db is performed and you are done.
 '''
-from core_tools.data.gui.plot_mgr import data_plotter
 from core_tools.data.lib.data_class import setpoint_dataclass, m_param_dataclass
 from core_tools.data.ds.data_set import create_new_data_set
 import qcodes as qc
@@ -32,7 +31,6 @@ class Measurement:
     '''
     class used to describe a measurement.
     '''
-    ENABLE_LIVEPLOT = True
     def __init__(self, name):
         self.setpoints = dict()
         self.m_param = dict()
@@ -129,8 +127,7 @@ class Measurement:
     def __enter__(self):
         # generate dataset
         self.dataset = create_new_data_set(self.name, *self.m_param.values())
-        if self.ENABLE_LIVEPLOT == True:
-            data_plotter(self.dataset)
+
         return self
 
     def  __exit__(self, exc_type, exc_value, exc_traceback):
@@ -191,24 +188,24 @@ if __name__ == '__main__':
     dig = fake_digitizer("test")
 
 
-    a1 = MyCounter('name1')
+    a1 = MyCounter('name11')
 
     a2 = MyCounter('name2')
-    # d = dummy_multi_parameter_2dawg("name2")
+    d = dummy_multi_parameter_2dawg("name2")
     m1 = MyCounter('name3')
     m2 = dummy_multi_parameter_2dawg("name4")
     m3 = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
     m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
 
-    x = 10
-    y = 10
+    x = 100
+    y = 100
 
     m_param = m2
     meas = Measurement('dataset test experiment')
     meas.register_set_parameter(a1, x)
     meas.register_set_parameter(a2, y)
 
-    meas.register_get_parameter(m_param, a1, a2)
+    meas.register_get_parameter(m_param, a1,a2)
 
     m_param_1 = list(meas.m_param.values())[0]
     # print(m1.name)
@@ -226,15 +223,14 @@ if __name__ == '__main__':
     # print("loading_meas")
 
     import time
-
+    j = 0
     t0  =time.time()
     with meas as ds:
         for i in range(x):
             for j in range(y):
-                print(i,j)
                 z = m_param.get()
+                # ds.add_result((a1, i), (m_param, z))
                 ds.add_result((a1, i), (a2, j), (m_param, z))
-                time.sleep(0.01)
 
     t1  =time.time()
     print(meas.dataset)

@@ -169,7 +169,7 @@ if __name__ == '__main__':
     from core_tools.data.ds.data_set import load_by_uuid
     import time
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    ds = load_by_uuid(1603792891275642671)
+    ds = load_by_uuid(1603912517622618611)
 
     app = QtGui.QApplication([])
 
@@ -181,6 +181,6 @@ if __name__ == '__main__':
     win.setCentralWidget(plot.widget)
     win.show()
 
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+    # import sys
+    # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+    #     QtGui.QApplication.instance().exec_()

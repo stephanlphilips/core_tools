@@ -1,7 +1,6 @@
 import core_tools.data.gui.ui_files.plotter_basic_autgen as plotter_basic_autgen
 from core_tools.data.gui.generate_mparam_ui_box import single_m_param_m_descriptor
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 import sys
 
 from core_tools.data.gui.plots._1D_plotting import _1D_plot
@@ -10,18 +9,18 @@ from core_tools.data.gui.plots._2D_plotting import _2D_plot
 
 class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
     def __init__(self, ds):
+        self.ds = ds
+
         self.app = QtCore.QCoreApplication.instance()
-        instance_ready = True
+        self.instance_ready = True
         if self.app is None:
-            instance_ready = False
+            self.instance_ready = False
             self.app = QtWidgets.QApplication([])
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
-
-        self.ui_box_mgr = ui_box_mgr(self.app, ds, self.data_plot_layout)
-
+        self.ui_box_mgr = ui_box_mgr(self.app, self.ds, self.data_plot_layout)
         # add gui for dataset selection
-        for m_param_set in ds:
+        for m_param_set in self.ds:
             for m_param in m_param_set:
                 m_param = m_param[1]
                 layout = single_m_param_m_descriptor(m_param, self.scrollAreaWidgetContents_4)
@@ -33,12 +32,11 @@ class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
         
         # render plots
         self.ui_box_mgr.draw_plots()
-        print('bef')
+
         self.show()
-        print('aftrer')
-        if instance_ready == False:
+
+        if self.instance_ready == False:
             self.app.exec()
-        print('aft')
 
 class ui_box_mgr():
     def __init__(self, app, ds, plot_layout):
@@ -90,24 +88,24 @@ class ui_box_mgr():
 
 
     def update_plots(self):
+        if self.ds.completed==True:
+            self.timer.stop()
+        self.ds.sync()
+
         for plot in self.plot_widgets:
             plot.update()
-        self.app.processEvents()
-
-
+        print('updating plot')
 
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
     from core_tools.data.SQL.SQL_measurment_queries import query_for_measurement_results
-    from core_tools.data.ds.data_set import load_by_uuid
+    from core_tools.data.ds.data_set import load_by_uuid, load_by_id
     import sys
     import datetime
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
     
 
-    ds = load_by_uuid(1603910814933642671)
+    ds = load_by_id(14)
     p = data_plotter(ds)
     print('pass')
-
-    p.app.exec_()

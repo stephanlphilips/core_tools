@@ -19,8 +19,8 @@ class m_result_item():
     @property
     def location(self):
         if self._location == '0':
-            return 'local'
-        return 'remote'
+            return 'remote'
+        return 'local'
 
     @property
     def keywords(self):
@@ -32,7 +32,7 @@ class m_result_item():
     
     @property
     def date(self):
-        return self._date.strftime("%d/%m/%Y %H:%M")
+        return self._date.strftime("%d/%m/%Y %H:%M:%S")
     
     def set_sort_idx(self, i):
         self.__search_key_idx = i

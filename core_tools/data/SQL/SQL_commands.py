@@ -102,6 +102,10 @@ class write_query_generator:
 	def get_last_meas_id_in_measurement_table(table_name="global_measurement_overview"):
 		return "SELECT id, uuid FROM {} ORDER BY uuid DESC LIMIT 1;".format(table_name)
 
+	@staticmethod
+	def check_completed_measurement_table(uuid, table_name="global_measurement_overview"):
+		return "SELECT completed FROM {} where uuid = {};".format(table_name, uuid)
+
 	def fill_meas_info_in_measurement_table(meas_uuid, measurement_table_name=None, start_time=None, stop_time=None, metadata=None, snapshot=None, tags= None, completed=None):
 		'''
 		fill in the addional data in a record of the measurements overview table.
@@ -276,7 +280,11 @@ class data_fetch_queries:
 					)
 		cursor = conn.cursor()
 		cursor.execute(statement)
-		data = cursor.fetchone()
+		data = list(cursor.fetchone())
+
+		# dirty fix
+		if data[7] is None:
+			data[7] = data[6]
 
 		ds = data_set_raw(exp_id=data[0], exp_uuid=data[1], exp_name=data[2], 
 			set_up = data[3], project = data[4], sample = data[5], 
