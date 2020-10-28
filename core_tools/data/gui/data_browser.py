@@ -149,7 +149,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
 
     def load_measurement(self, index):
         self.plot_ds(self.data_table_model._data[index.row()].uuid)
-    
+
     def load_measurement_search(self, index):
         self.plot_ds(self.search_table_data_model._data[index.row()].uuid)
         
@@ -217,7 +217,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
         self.search_table_data_model.overwrite_data(data)
 
 if __name__ == '__main__':
-
+    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
 
     db = data_browser()
