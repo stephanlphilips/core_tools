@@ -14,9 +14,9 @@ In this document the set up, creation, loading and browsing of dataset's is disc
 - [x] set up a buffer system that can write to the database (~15 us needed per write operation (add_result call))
 - [x] add easy access operators to the dataset
 - [x] loading a dataset
-- [ ] query tool for all the data
+- [x] query tool for all the data
 - [x] index database for fast searches + add keyword feature
-- [ ] GUI to diplay data 
+- [x] GUI to diplay data 
 - [ ] pusher for local data to external database
 - [ ] feature : add start and stop also to slicing (e.g. ds.m1[:, 5:10:20] --> slices dataset and its setpoints)
 - [ ] autoconfigure db script for local configuration
@@ -38,11 +38,11 @@ The instructions below are tested on windows. On Linux/Mac, the mindset is the s
 Steps:
 1. Download [PostgreSQL](https://www.postgresql.org/download/)
 2. Go through the installer and install the database.
-3. Launch the psql program and make a database user and a database
+3. Launch the psql program and make a database user and a database (press enter until the shell asks for the password configured in the installation)
 ... type the following commands:
-... * CREATE USER 'myusername' WITH PASSWORD 'mypasswd';
+... * CREATE USER myusername WITH PASSWORD 'mypasswd';
 ... * CREATE DATABASE 'mydbname';
-... * GRANT ALL PRIVELEGES ON DATABASE 'mydbname' TO 'myusername';
+... * GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
  
 In case you are running along with a server set up, it is recommended to have 'mydbname' to be the same as the one on the server.
 
