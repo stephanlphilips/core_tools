@@ -94,7 +94,6 @@ class ui_box_mgr():
 
         for plot in self.plot_widgets:
             plot.update()
-        print('updating plot')
 
 
 if __name__ == '__main__':
@@ -106,6 +105,5 @@ if __name__ == '__main__':
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
     
 
-    ds = load_by_id(14)
+    ds = load_by_uuid(1603957754478631616)
     p = data_plotter(ds)
-    print('pass')
