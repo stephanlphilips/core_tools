@@ -3,14 +3,15 @@ import qdarkstyle
 import numpy as np
 import threading as th
 import pyqtgraph as pg
-from .GUI.videomode_gui import Ui_MainWindow
+from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
+from core_tools.sweeps.sweeps import do0D, do1D, do2D
 
 from dataclasses import dataclass
 from PyQt5.QtCore import QThread
 from PyQt5 import QtCore, QtGui, QtWidgets
-from .data_getter import scan_generator_Keysight
-from .data_getter import scan_generator_Virtual
-from .plotter.plotting_functions import _1D_live_plot, _2D_live_plot
+from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Keysight
+from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
+from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
 from qcodes import MultiParameter
 from qcodes.measure import Measure
 from core_tools.utility.powerpoint import addPPTslide
@@ -129,11 +130,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._1D_npt.setValue(self._1D__npt)
         self._1D_t_meas.setValue(self._1D__t_meas)
 
-#        self._1D_gate_name.currentIndexChanged.connect(self.settings_value_change_1D)
-#        self._1D_V_swing.valueChanged.connect(self.settings_value_change_1D)
-#        self._1D_npt.valueChanged.connect(self.settings_value_change_1D)
-#        self._1D_t_meas.valueChanged.connect(self.settings_value_change_1D)
-#        self._1D_biasT_corr.stateChanged.connect(self.settings_value_change_1D)
 
         self._1D__averaging = 1
         self._1D__differentiate = False
@@ -145,8 +141,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         # 2D stuff
         self._2D__gate1_name =  self._2D_gate1_name.currentText()
         self._2D__gate2_name =  self._2D_gate2_name.currentText()
-#        self._2D__gate1_name =  'e12'
-#        self._2D__gate2_name =  'U12'
         self._2D__V1_swing = 25
         self._2D__V2_swing = 25
         self._2D__npt = 75
@@ -159,14 +153,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._2D_V2_swing.setValue(self._2D__V2_swing)
         self._2D_npt.setValue(self._2D__npt)
         self._2D_t_meas.setValue(self._2D__t_meas)
-#
-#        self._2D_gate1_name.currentIndexChanged.connect(self.settings_value_change_2D)
-#        self._2D_gate2_name.currentIndexChanged.connect(self.settings_value_change_2D)
-#        self._2D_V1_swing.valueChanged.connect(self.settings_value_change_2D)
-#        self._2D_V2_swing.valueChanged.connect(self.settings_value_change_2D)
-#        self._2D_npt.valueChanged.connect(self.settings_value_change_2D)
-#        self._2D_t_meas.valueChanged.connect(self.settings_value_change_2D)
-#        self._2D_biasT_corr.stateChanged.connect(self.settings_value_change_2D)
+
 
         self._2D__averaging = 1
         self._2D__differentiate = False
@@ -178,8 +165,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._sample_rate_val = 100
         self._ch1_val = True
         self._ch2_val = True
-        self._ch3_val = True
-        self._ch4_val = True
+        self._ch3_val = False
+        self._ch4_val = False
 
         self._channels = self.get_activated_channels()
 
@@ -189,12 +176,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._ch3.setChecked(self._ch3_val)
         self._ch4.setChecked(self._ch4_val)
 
-
-#        self._ch1.stateChanged.connect(self.settings_value_change_both)
-#        self._ch2.stateChanged.connect(self.settings_value_change_both)
-#        self._ch3.stateChanged.connect(self.settings_value_change_both)
-#        self._ch4.stateChanged.connect(self.settings_value_change_both)
-#        self._sample_rate.currentIndexChanged.connect(self.settings_value_change_both) # Update later to ValueChanged on a universal box
 
     def update_plot_properties_1D(self):
         '''
@@ -215,27 +196,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.current_plot._2D  is not None:
             self.current_plot._2D.averaging = self.averaging
             self.current_plot._2D.differentiate = self.differentiate
-
-
-#    def settings_value_change_both(self):
-#        self.settings_value_change_1D()
-#        self.settings_value_change_2D()
-#
-#    def settings_value_change_1D(self):
-#        '''
-#        make sure you cannot click on the setting bottom when it is not needed
-#        '''
-#        # get is there is a difference with the current values.
-#        if self.current_plot._1D is not None:
-#            self._1D_update_plot.setEnabled(True)
-#
-#    def settings_value_change_2D(self):
-#        '''
-#        make sure you cannot click on the setting bottom when it is not needed
-#        '''
-#        # get is there is a difference with the current values.
-#        if self.current_plot._2D is not None:
-#            self._2D_update_plot.setEnabled(True)
 
 
     def get_plot_settings(self):
@@ -442,30 +402,37 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         save the data
         """
-
+        print('saving data')
         if self.tab_id == 0 or self.tab_id == 1: # 1D
             label = self._1D__gate
         elif self.tab_id == 2: # 2D
             label = self._2D__gate1_name + 'vs' + self._2D__gate2_name
-
-        measure = Measure(self.vm_data_param)
-        data = measure.get_data_set(location=None,
-                                    loc_record={
-                                    'name': 'vm_data',
-                                    'label': label})
-        data = measure.run(quiet=True)
-        data.finalize()
+        try:
+            measure = Measure(self.vm_data_param)
+            data = measure.get_data_set(location=None,
+                                        loc_record={
+                                        'name': 'vm_data',
+                                        'label': label})
+            data = measure.run(quiet=True)
+            data.finalize()
+            print(data)
+            do0D(self.vm_data_param).run()
+        except Exception as e:
+            print(e)
+        print('done')
 
 class vm_data_param(MultiParameter):
     def __init__(self, param, plot, metadata):
         param = param
-        names = param.names
         shapes = param.shapes
+        labels = param.labels
+        units = param.units
         setpoints = param.setpoints
         setpoint_names = param.setpoint_names
         setpoint_units = param.setpoint_units
+
         self.plot = plot
-        super().__init__(name='vm_data_parameter',instrument=None,names=names,
+        super().__init__(name='vm_data_parameter',instrument=None,names=param.names, labels=labels, units=units,
              shapes=shapes, setpoints=setpoints, setpoint_names = setpoint_names,
              setpoint_units = setpoint_units, metadata=metadata)
 
@@ -488,7 +455,7 @@ if __name__ == '__main__':
 
     # V2_liveplotting(t,dig)
 
-    from V2_software.LivePlotting.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
+    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer
     # from V2_software.pulse_lib_config.Init_pulse_lib import return_pulse_lib
 
     # load a virtual version of the digitizer.
@@ -497,4 +464,4 @@ if __name__ == '__main__':
     # load the AWG library (without loading the awg's)
     # pulse, _ = return_pulse_lib()
 
-    V2_liveplotting(t,dig)
+    liveplotting(t,dig)

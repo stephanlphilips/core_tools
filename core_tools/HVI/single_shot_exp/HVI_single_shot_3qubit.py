@@ -4,10 +4,10 @@ define a function that loads the HVI file that will be used thoughout the experi
 import keysightSD1
 import core_tools.HVI.single_shot_exp as ct
 
-HVI_ID_2 = "HVI_single_shot_2qubit.HVI"
+HVI_ID_3 = "HVI_single_shot_3qubit.HVI"
 
 
-def load_HVI_2(AWGs, channel_map, *args,**kwargs):
+def load_HVI_3(AWGs, channel_map, *args,**kwargs):
 	"""
 	load a HVI file on the AWG.
 	Args:
@@ -24,7 +24,7 @@ def load_HVI_2(AWGs, channel_map, *args,**kwargs):
 
 			
 	HVI = keysightSD1.SD_HVI()
-	error = HVI.open(ct.__file__[:-11] + "HVI_single_shot_2qubit.HVI")
+	error = HVI.open(ct.__file__[:-11] + "HVI_single_shot_3qubit.HVI")
 	print(error)
 
 	error = HVI.assignHardwareWithUserNameAndSlot("Module 0",1,2)
@@ -60,7 +60,7 @@ def load_HVI_2(AWGs, channel_map, *args,**kwargs):
 define a function that applies the settings to a HVI file and then compiles it before the experiment.
 """
 
-def set_and_compile_HVI_2(HVI, playback_time, n_rep, *args, **kwargs):
+def set_and_compile_HVI_3(HVI, playback_time, n_rep, *args, **kwargs):
 	"""
 	Function that set values to the currently loaded HVI script and then performs a compile step.
 	Args:
@@ -82,7 +82,7 @@ This function is optional, if not defined, there will be just two calls,
 So only define if you want to set custom settings just before the experiment starts. Note that you can access most settings via HVI itselves, so it is better to do it via there.
 """
 
-def excute_HVI_2(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
+def excute_HVI_3(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 	"""
 	load HVI code.
 	Args:
@@ -102,17 +102,24 @@ def excute_HVI_2(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 	dig = kwargs['digitizer'] 
 	dig_wait_1 = kwargs['dig_wait_1']
 	dig_wait_2 = kwargs['dig_wait_2']
+	dig_wait_3 = kwargs['dig_wait_3']
+
 
 	delay_1 = int(dig_wait_1/10)
 	delay_2 = int(dig_wait_2/10)
+	delay_3 = int(dig_wait_3/10)
 
 	if delay_2-delay_1 < 200 :
-		raise ValueError('triggers are to close, at least 2 us distance needed.')
+		raise ValueError('triggers 1 and 2 are too close, at least 2 us distance is needed.')
+	if delay_3-delay_2 < 200 :
+		raise ValueError('triggers 2 and 3 are too close, at least 2 us distance is needed.')	
 
+	time_shift = int(50/10)
 	err = dig.SD_AIN.writeRegisterByNumber(2, int(nrep))
 	err = dig.SD_AIN.writeRegisterByNumber(3, int(delay_1 + 43))
 	err = dig.SD_AIN.writeRegisterByNumber(4, int(delay_2-delay_1-4))
-	err = dig.SD_AIN.writeRegisterByNumber(5, int(length-delay_2 -45))
+	err = dig.SD_AIN.writeRegisterByNumber(5, int(delay_3-delay_2-4))
+	err = dig.SD_AIN.writeRegisterByNumber(6, int(length-delay_3+45))
 
 	if 'averaging' in kwargs:
 		dig.set_meas_time(kwargs['t_measure'], fourchannel=True)

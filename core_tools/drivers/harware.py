@@ -4,6 +4,8 @@ import qcodes as qc
 import numpy as np
 import shelve
 from typing import Sequence
+import json
+
 
 @dataclass
 class virtual_gate:
@@ -88,7 +90,7 @@ class virtual_gates_mgr(list):
         if item.name in list(self.sync_engine.keys()):
             item_in_ram = self.sync_engine[item.name]
             if item_in_ram.real_gate_names == item.real_gate_names:
-                np.asarray(item.virtual_gate_matrix)[:] = np.asarray(item_in_ram.virtual_gate_matrix)[:]
+                np.asarray(item.virtual_gate_matrix_no_norm)[:] = np.asarray(item_in_ram.virtual_gate_matrix_no_norm)[:]
 
         self.sync_engine[item.name] =  item
 
@@ -198,7 +200,8 @@ class harware_parent(qc.Instrument):
             vg_meta = {}
             vg_meta['real_gate_names'] = vg.real_gate_names
             vg_meta['virtual_gate_names'] = vg.virtual_gate_names
-            vg_meta['virtual_gate_matrix'] = str(vg_mat)
+            vg_meta['virtual_gate_matrix'] = json.dumps(np.asarray(vg.virtual_gate_matrix).tolist())
+            vg_meta['virtual_gate_matrix_no_norm'] = json.dumps(np.asarray(vg.virtual_gate_matrix_no_norm).tolist())
             vg_snap[vg.name] = vg_meta
         self.snap = {'AWG_to_DAC': self.AWG_to_dac_conversion,
                  'dac_gate_map': self.dac_gate_map,

@@ -30,7 +30,8 @@ class gates(qc.Instrument):
 		# make virtual gates:
 		for virt_gate_set in self.hardware.virtual_gates:
 			for gate_name in virt_gate_set.virtual_gate_names:
-				self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set), get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
+				self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
+					get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
 
 	@property
 	def virtual_gate_matrix_inv(self):
@@ -66,7 +67,7 @@ class gates(qc.Instrument):
 	def _set_voltage_virt(self, gate_name, virt_gate_obj, voltage):
 		'''
 		set a voltage to the virtual dac
-		Args:
+		Args: 
 			voltage (double) : voltage to set
 			name : name of the real gate (that corresponds the certain virtual gate)
 		'''

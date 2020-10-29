@@ -4,7 +4,7 @@ define a function that loads the HVI file that will be used thoughout the experi
 import keysightSD1
 import core_tools.HVI.single_shot_exp as ct
 
-HVI_ID_2 = "HVI_single_shot_2qubit.HVI"
+HVI_ID_2 = "HVI_single_shot_2qubit1_m6.HVI"
 
 
 def load_HVI_2(AWGs, channel_map, *args,**kwargs):
@@ -24,7 +24,7 @@ def load_HVI_2(AWGs, channel_map, *args,**kwargs):
 
 			
 	HVI = keysightSD1.SD_HVI()
-	error = HVI.open(ct.__file__[:-11] + "HVI_single_shot_2qubit.HVI")
+	error = HVI.open(ct.__file__[:-11] + "HVI_single_shot_2qubit_m6.HVI")
 	print(error)
 
 	error = HVI.assignHardwareWithUserNameAndSlot("Module 0",1,2)
@@ -93,7 +93,7 @@ def excute_HVI_2(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 	"""
 
 	nrep = int(n_rep)
-	length = int(playback_time/10 + 200) # extra delay, seems to be needed or the digitizer.
+	length = int(playback_time/10 + 200) # extra delay, seems to be needed or the digitizer.s
 
 	for awgname, awg in AWGs.items():
 		err = awg.awg.writeRegisterByNumber(2, int(nrep))
@@ -109,10 +109,11 @@ def excute_HVI_2(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 	if delay_2-delay_1 < 200 :
 		raise ValueError('triggers are to close, at least 2 us distance needed.')
 
+	time_shift = int(600/10)
 	err = dig.SD_AIN.writeRegisterByNumber(2, int(nrep))
-	err = dig.SD_AIN.writeRegisterByNumber(3, int(delay_1 + 43))
-	err = dig.SD_AIN.writeRegisterByNumber(4, int(delay_2-delay_1-4))
-	err = dig.SD_AIN.writeRegisterByNumber(5, int(length-delay_2 -45))
+	err = dig.SD_AIN.writeRegisterByNumber(3, int(delay_1 + time_shift))
+	err = dig.SD_AIN.writeRegisterByNumber(4, int(delay_2-delay_1+2))
+	err = dig.SD_AIN.writeRegisterByNumber(5, int(length-delay_2 - 128 + time_shift))
 
 	if 'averaging' in kwargs:
 		dig.set_meas_time(kwargs['t_measure'], fourchannel=True)

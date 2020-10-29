@@ -1,6 +1,6 @@
 from qcodes import MultiParameter
 import numpy as np
-from V2_software.drivers.M3102A.M3102A import DATA_MODE
+from core_tools.drivers.M3102A import DATA_MODE
 import matplotlib.pyplot as plt
 
 def reduce_parameter_descriptor_by_2(description, name_add=None):

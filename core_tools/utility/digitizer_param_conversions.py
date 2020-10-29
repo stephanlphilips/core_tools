@@ -279,3 +279,48 @@ if __name__ == '__main__':
 
     print(param_elzerman.names)
     print(param_elzerman.setpoint_names)
+    
+class PSB_param(MultiParameter):
+    """
+    parameter that aims to detect blibs.
+    expected that the input data is already well filtered.
+    """
+    def __init__(self, digitizer, threshold=None):
+        '''
+        Args:
+            digitizer (MultiParameter) :  parameter providing the data for the dip detection
+             '''
+        self.dig = digitizer
+        self.threshold = threshold
+        names = tuple()
+        shapes = tuple()
+        labels = tuple()
+        units = tuple()
+        setpoints = tuple()
+
+        for i in range(len(digitizer.names)):
+            names += ("qubit_{}".format(i), )
+            shapes += ((), )
+            labels += ('Spin probability qubit {}'.format(i+1) ,)
+            units += ('%', )
+            
+            setpoints += ((),)
+
+        super().__init__('PSB_state_differentiaor', names=names, shapes=shapes,
+                         labels=labels, units=units, setpoints=setpoints)
+
+    
+    def get_raw(self):
+        # expected format from the getter <tuple<np.ndarray[ndim=2,dtype=double]>>
+        data_in = self.dig.get()
+        data_out = []
+        for n in range(len(data_in)):
+            if self.threshold is None:
+                data_out.append(np.mean(data_in[n]))
+            else:
+                for i in range(len(self.threshold)):
+                    threshold = self.threshold[i]
+                    data_out += [(np.where(data_in[i] < threshold)[0].size)/np.asarray(data_in[i]).size]
+                    
+        return data_out     
+    

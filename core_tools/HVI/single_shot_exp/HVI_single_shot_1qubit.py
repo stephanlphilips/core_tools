@@ -39,8 +39,12 @@ def load_HVI_1(AWGs, channel_map, *args,**kwargs):
 	print(error)
 	error = HVI.assignHardwareWithUserNameAndSlot("Module 5",1,7)
 	print(error)
+	error = HVI.assignHardwareWithUserNameAndSlot("Module 6",1,8)
+	print(error)
 
 	error = HVI.compile()
+	print(error)
+	error = HVI.load()
 	print(error)
 	error = HVI.load()
 	print(error)

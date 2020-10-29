@@ -234,8 +234,6 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         inv_cap[i,j] = spin_box.value()
         cap_mat = inv_cap_to_cap_mat(inv_cap)
         matrix_no_view[:, :] = cap_mat
-        print(inv_cap)
-        print(matrix_no_view)
 
         self.gates_object.hardware.sync_data()
 

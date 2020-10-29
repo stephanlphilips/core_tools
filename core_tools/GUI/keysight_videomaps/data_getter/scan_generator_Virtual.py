@@ -19,7 +19,7 @@ class fake_digitizer(MultiParameter):
         def get_raw(self):
             return 0
             
-def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer):
+def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
     """
     1D fast scan object for V2.
 
@@ -58,10 +58,10 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     awg_t_step = t_step /10
     sample_rate = 1/(awg_t_step*1e-9)
     
-    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ), (np.sort(voltages), ), biasT_corr, 500e6)
+    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ), ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
 
 
-def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer):
+def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
     """
     1D fast scan object for V2.
 
@@ -102,7 +102,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     awg_t_step = t_step /10
     sample_rate = 1/(awg_t_step*1e-9)
     
-    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt1, n_pt2), (gate1, gate2), (voltages1, np.sort(voltages2)), biasT_corr, 500e6)
+    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt1, n_pt2), (gate1, gate2), (tuple(voltages1),tuple(np.sort(voltages2))), biasT_corr, 500e6)
 
 
 class dummy_digitzer_scan_parameter(MultiParameter):
@@ -129,6 +129,7 @@ class dummy_digitzer_scan_parameter(MultiParameter):
                         setpoints = tuple([setpoint]*len(digitizer.names)), setpoint_names=tuple([names]*len(digitizer.names)),
                         setpoint_labels=tuple([names]*len(digitizer.names)), setpoint_units=tuple([tuple(["mV"]*len(names))]*len(digitizer.names)),
                         docstring='1D scan parameter for digitizer')
+
         self.dig = digitizer
         self.my_seq = my_seq
         self.pulse_lib = pulse_lib

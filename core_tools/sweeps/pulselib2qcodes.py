@@ -1,6 +1,12 @@
 from core_tools.sweeps.sweep_utility import sweep_info
 from qcodes import Parameter
 
+FAST = "FAST"
+SLOW = "SLOW"
+
+
+MODE = SLOW
+
 class PulseLibParameter(Parameter):
     setpoints = None
     flat_index = 0
@@ -20,15 +26,24 @@ class PulseLibParameter(Parameter):
         return current_val
 
     def set_raw(self, value):
+        if MODE == FAST:
+            print("EXPERIMENTAL MODE ")
         if self.lowest_level:
             if self.flat_index == 0:
                 self.sequencer.upload(np.unravel_index(flat_index, self.sequencer.shape))
+                if MODE == FAST:
+                    self.sequencer.upload(np.unravel_index(flat_index+1, self.sequencer.shape))
 
             index = np.unravel_index(flat_index, self.shape)
             self.sequencer.play(index)
 
-            if flat_index < np.prod(self.shape) - 1:
-                self.sequencer.upload(np.unravel_index(flat_index+1, self.shape))
+            if MODE == SLOW:
+                if flat_index < np.prod(self.shape) - 1:
+                    self.sequencer.upload(np.unravel_index(flat_index+1, self.shape))
+            
+            if MODE == FAST:
+                if flat_index < np.prod(self.shape) - 2:
+                    self.sequencer.upload(np.unravel_index(flat_index+2, self.shape))
 
             self.sequencer.uploader.wait_until_AWG_idle()
 
