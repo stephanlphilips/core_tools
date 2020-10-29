@@ -54,10 +54,10 @@ class _1D_plot:
 if __name__ == '__main__':
     from pyqtgraph.Qt import QtGui, QtCore
     from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-    from core_tools.data.ds.data_set import load_by_uuid
+    from core_tools.data.ds.data_set import load_by_id
 
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    ds = load_by_uuid(1603652809326642671)
+    ds = load_by_id(45782)
 
     app = QtGui.QApplication([])
     

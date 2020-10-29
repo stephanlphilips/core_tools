@@ -316,13 +316,13 @@ class single_m_param_m_descriptor():
 if __name__ == '__main__':
     from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
     from core_tools.data.SQL.SQL_measurment_queries import query_for_measurement_results
-    from core_tools.data.ds.data_set import load_by_uuid
+    from core_tools.data.ds.data_set import load_by_id
     import sys
     import datetime
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
     
 
-    ds = load_by_uuid(1603652809326642671)
+    ds = load_by_id(45782)
 
 
     class test_window(QtWidgets.QMainWindow):

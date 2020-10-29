@@ -193,6 +193,6 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
 
 if __name__ == '__main__':
 
-	set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-
+	#set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+	set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ29414679')
 	db = data_browser()
