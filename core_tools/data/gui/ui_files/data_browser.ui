@@ -499,7 +499,6 @@
    </widget>
    <addaction name="menuSearch"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
   <action name="action_connect_to_database">
    <property name="text">
     <string>connect to database</string>

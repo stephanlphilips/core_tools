@@ -1,4 +1,4 @@
-from core_tools.data.gui.result_table_data_class import m_result_overview 
+from core_tools.data.gui.data_browser_models.result_table_data_class import m_result_overview 
 from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
 
 import datetime
@@ -125,7 +125,6 @@ class query_for_measurement_results:
 		if words != "":
 			statement += " and exp_name like '%{}%' ".format(words)
 		statement += " ;"
-		print(statement)
 
 		
 		cur = SQL_database_manager().conn_local.cursor()
@@ -134,6 +133,20 @@ class query_for_measurement_results:
 		cur.close()
 
 		return m_result_overview(res)
+
+	def detect_new_meaurements(n_records=0):
+		statement = "SELECT count(*) from global_measurement_overview;"
+		cur = SQL_database_manager().conn_local.cursor()
+		cur.execute(statement)
+		res = cur.fetchall()
+		cur.close()
+
+		update = False
+		if res[0][0] != n_records:
+			update =True
+			n_records = res[0][0]
+
+		return update, n_records
 
 if __name__ == '__main__':
 	
@@ -148,14 +161,14 @@ if __name__ == '__main__':
 	# print(s)
 	# s = query_for_samples.get_samples(set_up='6dot', project=None)
 	# print(s)
-	import datetime
-	from datetime import date
-	my_date = date.fromisoformat('2020-10-05')
-	print()
-	current_date = datetime.datetime.now()
-	print(current_date - datetime.timedelta(hours=current_date.hour, minutes=current_date.minute,
-    seconds=current_date.second, microseconds=current_date.microsecond) )
-	test_date = datetime.datetime.now()- datetime.timedelta(20)
+	# import datetime
+	# from datetime import date
+	# my_date = date.fromisoformat('2020-10-05')
+	# print()
+	# current_date = datetime.datetime.now()
+	# print(current_date - datetime.timedelta(hours=current_date.hour, minutes=current_date.minute,
+ #    seconds=current_date.second, microseconds=current_date.microsecond) )
+	# test_date = datetime.datetime.now()- datetime.timedelta(20)
 	# a = query_for_measurement_results.get_results_for_date(test_date, sample=None, set_up=None, project='Intel Project', limit=1000)
 	# print(a[0])
 	# print(len(a))
@@ -163,6 +176,9 @@ if __name__ == '__main__':
 	# a = query_for_measurement_results.get_all_dates_with_meaurements(sample=None, set_up=None, project='Intel Project')
 	# print(a)
 
-	a = query_for_measurement_results.search_query(None, None, 'a', None, None, 'Intel Project', None, None)
+	# a = query_for_measurement_results.search_query(None, None, 'a', None, None, 'Intel Project', None, None)
+	# print(a)
+	# print(len(a))
+
+	a = query_for_measurement_results.detect_new_meaurements()
 	print(a)
-	print(len(a))

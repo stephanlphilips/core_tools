@@ -1,6 +1,8 @@
 '''
 This is a bit of messy file written in a hurry.
 '''
+from core_tools.data.gui.plots.unit_management import format_value_and_unit, format_unit, return_unit_scaler
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
 
@@ -38,7 +40,7 @@ class n_th_dimension_prop(object):
         self._slc.clicked.connect(partial(self.slc_conn, 'slc'))
         self._avg.clicked.connect(partial(self.update, 'avg'))
         self._log.clicked.connect(partial(self.update, 'log'))
-
+        
         self.slider.connect_slider(self.update)
         self.parent = None
     @property
@@ -53,6 +55,7 @@ class n_th_dimension_prop(object):
         if self.avg == True and self.slc == True:
             if changer == 'avg':
                 self.slc = False
+                self.slider.set_visibilty(self.slc)
             elif changer == 'slc':
                 self.avg = False
 
@@ -70,7 +73,7 @@ class slider_mgr:
         self.data_var = param
         self.slider = QtWidgets.QSlider(geom_parent)
         self.slider.setOrientation(QtCore.Qt.Horizontal)
-        
+        self.name =name_shorthand + " slider"
 
         self.label_slider = QtWidgets.QLabel(geom_parent)
         self.label_slider.setText(name_shorthand + " slider")
@@ -89,10 +92,10 @@ class slider_mgr:
         self.label_slider_content.setVisible(state)
 
     def connect_slider(self, conn):
-        self.label_slider_content.setText(str(self.data_var()[0]))
+        self.label_slider_content.setText(format_value_and_unit(self.data_var().flat[0], self.data_var.unit))
         
         def slider_change(idx):
-            self.label_slider_content.setText(str(self.data_var()[int(idx)]))
+            self.label_slider_content.setText(format_value_and_unit(self.data_var().flat[idx], self.data_var.unit))
             conn(idx)
 
         self.slider.setTickInterval(1)
@@ -106,9 +109,11 @@ class data_mgr_4_plot():
         self.ds = None
         self.properties_selector_raw = []
         self.properties_selector = []
+        self.parent = None
+        self.enable = True
 
     def add_properties(self, my_property):
-        if len(self.properties_selector_raw) > 2:
+        if len(self.properties_selector_raw) >= 2:
             my_property.avg = True
         self.properties_selector_raw += [my_property]
 
@@ -116,8 +121,10 @@ class data_mgr_4_plot():
         for prop in self.properties_selector_raw:
             prop.parent = self
 
+        self.update()
+
     def update(self):
-        properties = self.properties_selector_raw[::-1]
+        properties = self.properties_selector_raw[:-1][::-1]
 
         self.properties_selector = []
         self.ds = self.ds_raw
@@ -130,19 +137,33 @@ class data_mgr_4_plot():
             else:
                 self.properties_selector.append(prop)
 
-        self.properties_selector = self.properties_selector[::-1]
+        for prop in properties:
+            if self.n_dim == 1 and prop.avg == False and prop.slc == False:
+                prop._log.setEnabled(True)
+            else:
+                prop._log.setEnabled(False)
+
+        self.properties_selector = self.properties_selector[::-1] + [self.properties_selector_raw[-1]]
+
+        if self.parent is not None:
+            self.parent.draw_plots()
 
     @property
     def x_log(self):
-        return self.properties_selector[0].log
+        return self.__check_log(0)
     
     @property
     def y_log(self):
-        return self.properties_selector[1].log
+        return self.__check_log(1)
 
     @property
     def z_log(self):
-        return self.properties_selector[2].log
+        return self.__check_log(2)
+
+    def __check_log(self, dim):
+        if dim > self.ds.ndim:
+            return None
+        return self.properties_selector[dim].log
 
     @property
     def n_dim(self):
@@ -155,14 +176,14 @@ class data_mgr_4_plot():
             raise TypeError('bad type provided..')
         return self
 
-class single_m_param_m_descriptor():
+class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
     def __init__(self, m_param, geom_parent):
+        super().__init__()
         self.m_param = m_param
         self.geom_parent = geom_parent
 
         m_name = m_param.name
-        self.m_param_box = QtWidgets.QVBoxLayout()
-        self.m_param_box.setObjectName(m_name + "m_param_box")
+        self.setObjectName(m_name + "m_param_box")
         
         self.m_param_1_title = QtWidgets.QLabel(self.geom_parent)
         self.m_param_1_title.setObjectName(m_name + "m_param_1_name")
@@ -180,30 +201,33 @@ class single_m_param_m_descriptor():
         m_param_params = self.m_param.get_raw_content()
         self.sliders = []
         for i in range(len(m_param_params)):
-            param_name = m_param_params[i][0][0]
             param = m_param_params[i][0][1]
-            m_sec_property, slider = self.generate_m_section(m_name, i*2+2, param_name, param)
+            m_sec_property, slider = self.generate_m_section(m_name, i*2+2, param)
             self.plot_data_mgr += m_sec_property
             self.sliders += [slider]
 
+        m_sec_property, slider = self.generate_m_section(m_name, len(m_param_params)*2+4, self.m_param, parent=True)
+        self.plot_data_mgr += m_sec_property
+        self.sliders += [slider]
+
         self.plot_data_mgr.set_children()
         
-        self.m_param_box.addWidget(self.m_param_1_title)
-        self.m_param_box.addLayout(self.local_parent)
+        self.addWidget(self.m_param_1_title)
+        self.addLayout(self.local_parent)
         for i in self.sliders:
-            self.m_param_box.addLayout(i)
+            self.addLayout(i)
 
     def generate_header(self, m_name):
         header_slc = QtWidgets.QLabel(self.geom_parent)
-        header_slc.setMaximumSize(QtCore.QSize(65, 16777215))
+        header_slc.setMaximumSize(QtCore.QSize(40, 16777215))
         header_slc.setObjectName(m_name + "header_slc")
 
         header_avg = QtWidgets.QLabel(self.geom_parent)
-        header_avg.setMaximumSize(QtCore.QSize(65, 16777215))
+        header_avg.setMaximumSize(QtCore.QSize(40, 16777215))
         header_avg.setObjectName(m_name + "header_avg")
 
         header_log = QtWidgets.QLabel(self.geom_parent)
-        header_log.setMaximumSize(QtCore.QSize(65, 16777215))
+        header_log.setMaximumSize(QtCore.QSize(40, 16777215))
         header_log.setObjectName(m_name + "header_log")
 
         header_letter = QtWidgets.QLabel(self.geom_parent)
@@ -217,7 +241,7 @@ class single_m_param_m_descriptor():
         header_letter.setObjectName(m_name + "header_letter")
 
         header_name = QtWidgets.QLabel(self.geom_parent)
-        header_name.setMaximumSize(QtCore.QSize(250, 16777215))
+        header_name.setMaximumSize(QtCore.QSize(180, 16777215))
         header_name.setObjectName(m_name + "header_name")
 
         self.add_v_lines(m_name, 0)
@@ -235,7 +259,7 @@ class single_m_param_m_descriptor():
         header_letter.setText(_translate("MainWindow", " "))
         header_name.setText(_translate("MainWindow", "name"))
 
-    def generate_m_section(self, m_name, level, name_shorthand, param):
+    def generate_m_section(self, m_name, level, param, parent=False):
         letter = QtWidgets.QLabel(self.geom_parent)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(10)
@@ -261,7 +285,7 @@ class single_m_param_m_descriptor():
         log.setObjectName(m_name + "x_log_{}".format(level))
 
         _translate = QtCore.QCoreApplication.translate
-        letter.setText(_translate("MainWindow", name_shorthand))
+        letter.setText(_translate("MainWindow", param.name))
         name.setText(_translate("MainWindow", "{} ({})".format(param.label, param.unit )))
 
         self.local_parent.addWidget(letter, level, 0, 1, 1)
@@ -272,9 +296,13 @@ class single_m_param_m_descriptor():
 
         self.add_v_lines(m_name, level)
 
-        slider = slider_mgr(name_shorthand, param,self.geom_parent)
+        slider = slider_mgr(param.name, param,self.geom_parent)
 
-        m_param_set_prop = n_th_dimension_prop(name_shorthand, "{} ({})".format(param.label, param.unit ), avg, slc, log, slider)
+        if parent:
+            avg.hide()
+            slc.hide()
+
+        m_param_set_prop = n_th_dimension_prop(param.name, "{} ({})".format(param.label, param.unit ), avg, slc, log, slider)
 
         return m_param_set_prop, slider.hbox
 
@@ -324,7 +352,6 @@ if __name__ == '__main__':
 
     ds = load_by_id(45782)
 
-
     class test_window(QtWidgets.QMainWindow):
         def __init__(self, MainWindow, ds):
             super().__init__()
@@ -351,7 +378,7 @@ if __name__ == '__main__':
                 m_param = ds[i][0][1]
                 layout =single_m_param_m_descriptor(m_param, self.scrollAreaWidgetContents_4)
                 self.layouts +=[layout]
-                self.gridLayout.addLayout(layout.m_param_box, 0, i, 1, 1)
+                self.gridLayout.addLayout(layout, 0, i, 1, 1)
 
 
             self.scrollArea.setWidget(self.scrollAreaWidgetContents_4)

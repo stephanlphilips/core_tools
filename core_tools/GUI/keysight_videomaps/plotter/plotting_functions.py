@@ -6,6 +6,12 @@ import pyqtgraph as pg
 import numpy as np
 import time
 import logging
+from matplotlib import cm
+
+# Get the colormap
+colormap = cm.get_cmap("viridis")  # cm.get_cmap("CMRmap")
+colormap._init()
+lut = (colormap._lut * 255).view(np.ndarray)  # Convert matplotlib colormap from 0-1 to 0 -255 for Qt
 
 @dataclass
 class plot_widget_data:
@@ -215,6 +221,7 @@ class _2D_live_plot(live_plot):
         for i in range(self.n_plots):
             plot_2D = pg.PlotWidget()
             img = pg.ImageItem()
+            img.setLookupTable(lut)
             plot_2D.addItem(img)
             plot_2D.setLabel('left', self.parameter_getter.setpoint_labels[i][0], self.parameter_getter.setpoint_units[i][0])
             plot_2D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][1], self.parameter_getter.setpoint_units[i][1])
@@ -263,12 +270,11 @@ class _2D_live_plot(live_plot):
 if __name__ == '__main__':
     from test_UI.liveplot_only import Ui_MainWindow
     import matplotlib
-    matplotlib.use("Qt5Agg")
-    from V2_software.LivePlotting.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
+    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
     from PyQt5 import QtCore, QtGui, QtWidgets
     import sys
 
-    dim = "1D"
+    dim = "2D"
     # set graphical user interface
     app = QtWidgets.QApplication([])
     mw = QtWidgets.QMainWindow()

@@ -115,16 +115,14 @@ class buffer_reader(buffer_reference):
 		'''
 		update the buffer (for datasets that are still being written)
 		'''
-		try:
-			self.lobject.seek(self.cursor*8)
-			binary_data = self.lobject.read()
-			data = np.frombuffer(binary_data)
+		self.lobject = self.conn.lobject(self.oid, 'rb')
+		self.lobject.seek(self.cursor*8)
+		binary_data = self.lobject.read()
+		data = np.frombuffer(binary_data)
 
-			self.buffer[self.cursor:self.cursor+data.size] = data
-			self.cursor = self.cursor+data.size
-		except:
-			self.lobject = self.conn.lobject(self.oid, 'rb')
-			self.sync(self.cursor, stop)
+		self.buffer[self.cursor:self.cursor+data.size] = data
+		self.cursor = self.cursor+data.size
+
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
-from qcodes.dataset.measurements import Measurement
+from core_tools.data.measurement import Measurement
 from pulse_lib.sequencer import sequencer
 
 from core_tools.sweeps.sweep_utility import pulselib_2_qcodes, sweep_info, get_measure_data, KILL_EXP
@@ -20,8 +20,8 @@ class scan_generic(metaclass=job_meta):
             args (*list) :  provide here the sweep info and meaurment parameters
             reset_param (bool) : reset the setpoint parametes to their original value after the meaurement 
         '''
-        self.meas = Measurement()
         self.name = ''
+        self.meas = Measurement(self.name)
 
         self.set_vars = []
         self.m_instr = []
@@ -30,19 +30,20 @@ class scan_generic(metaclass=job_meta):
         set_points = []
         for arg in args:
             if isinstance(arg, sweep_info):
-                self.meas.register_parameter(arg.param)
+                self.meas.register_set_parameter(arg.param, arg.n_points)
                 self.set_vars.append(arg)
                 set_points.append(arg.param)
             elif isinstance(arg, sequencer):
                 set_vars_pulse_lib = pulselib_2_qcodes(arg)
                 for var in set_vars_pulse_lib:
-                    self.meas.register_parameter(var.param)
+                    self.meas.register_set_parameter(arg.param, arg.n_points)
                     set_points.append(var.param)
                 self.set_vars += set_vars_pulse_lib
             else:
                 self.m_instr.append(arg)
+            
         for instr in self.m_instr:
-            self.meas.register_parameter(instr, setpoints=tuple(set_points[::-1]))
+            self.meas.register_get_parameter(instr, *set_points)
                 
         self.n_tot = 1
 
@@ -63,20 +64,19 @@ class scan_generic(metaclass=job_meta):
         -- optionally also resets the paramters
         -- wrapped by the job_meta class (allows for progress bar to appear)
         '''
-        with self.meas.run() as datasaver:
-            self._loop(self.set_vars, self.m_instr, tuple(), datasaver)
-            dataset = datasaver.dataset
+        with self.meas as ds:
+            self._loop(self.set_vars, self.m_instr, tuple(), ds)
         
         if self.reset_param:
             for param in self.set_vars:
                 param.reset_param()
 
-        return dataset
+        return self.meas.dataset
 
-    def _loop(self, set_param, m_instr, to_save, datasaver):
+    def _loop(self, set_param, m_instr, to_save, dataset):
         if len(set_param) == 0:
             if self.KILL == False:
-                datasaver.add_result(*to_save, *get_measure_data(m_instr))
+                dataset.add_result(*to_save, *get_measure_data(m_instr))
                 self.n += 1
             else:
                 raise KILL_EXP
@@ -86,7 +86,7 @@ class scan_generic(metaclass=job_meta):
                 if not isinstance(param_info.param, ElapsedTimeParameter):
                     param_info.param(value)
                 time.sleep(param_info.delay)
-                self._loop(set_param[1:], m_instr, to_save + ((param_info.param, param_info.param()),), datasaver)
+                self._loop(set_param[1:], m_instr, to_save + ((param_info.param, param_info.param()),), dataset)
 
 
 def do0D(*m_instr):
@@ -188,6 +188,9 @@ if __name__ == '__main__':
             self.i +=1
             return (self.i, self.i+100)
 
+    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+
     now = str(datetime.datetime.now())
     path = os.path.join(os.getcwd(), 'test.db')
     initialise_or_create_database_at(path)
@@ -206,5 +209,7 @@ if __name__ == '__main__':
     param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'))
     param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'))
     data_1D = param_1D.get()
-    do0D(param_2D).run()
-    do1D(x, 0,5,100, 0.01, param_1D).run()
+    # do0D(param_2D).run()
+    # do1D(x, 0,5,100, 0.01, my_param).run()
+
+    # do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.001, my_param).run()

@@ -90,7 +90,7 @@ class SQL_database_manager(SQL_database_init):
 		cur.execute(write_query_generator.update_cursors_in_meas_tab(ds.SQL_datatable, ds.measurement_parameters_raw))
 		self.conn_local.commit()
 
-	def is_running(self, exp_uuid):
+	def is_completed(self, exp_uuid):
 		'''
 		checks if the current measurement is still running
 
@@ -98,6 +98,11 @@ class SQL_database_manager(SQL_database_init):
 			exp_uuid (int) : uuid of the experiment to check
 		'''
 		cur = self.conn_local.cursor()
+		cur.execute(write_query_generator.check_completed_measurement_table(exp_uuid))
+		completed = cur.fetchone()[0]
+		cur.close()
+		
+		return completed
 
 	def finish_measurement(self, ds):
 		'''

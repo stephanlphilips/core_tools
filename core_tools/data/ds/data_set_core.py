@@ -21,7 +21,7 @@ class data_set_desciptor(object):
         return getattr(getattr(obj,"_data_set__data_set_raw"), self.var)
 
 class data_set:
-    running = data_set_desciptor('uploaded_complete')
+    completed = data_set_desciptor('completed')
     
     dbname = data_set_desciptor('dbname')
     table_name = data_set_desciptor('SQL_table_name')
@@ -114,10 +114,10 @@ class data_set:
         '''
         Updates dataset in case only part of the points were downloaded.
         '''
-        if self.running == True:
+        if self.completed == False:
             SQL_mgr = SQL_database_manager()
-            self.running = SQL_mgr.is_running(self.exp_uuid)
-            self.__data_set_raw.sync_buffers(writer_pointers)
+            self.completed = SQL_mgr.is_completed(self.exp_uuid)
+            self.__data_set_raw.sync_buffers()
 
     def __write_to_db(self, force = False):
         '''

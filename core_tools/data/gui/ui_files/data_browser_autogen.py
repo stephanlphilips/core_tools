@@ -224,9 +224,6 @@ class Ui_MainWindow(object):
         self.menuSearch = QtWidgets.QMenu(self.menubar)
         self.menuSearch.setObjectName("menuSearch")
         MainWindow.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(MainWindow)
-        self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
         self.action_connect_to_database = QtWidgets.QAction(MainWindow)
         self.action_connect_to_database.setObjectName("action_connect_to_database")
         self.action_autoplot_new = QtWidgets.QAction(MainWindow)
@@ -237,7 +234,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuSearch.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
