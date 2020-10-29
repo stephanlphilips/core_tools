@@ -22,8 +22,8 @@ general structure:
     The synchronization process starts in a separate thread in parallel to the measurement.
     When the last result is added, the final sync to the db is performed and you are done.
 '''
-
-from data_stroarge_class_python_mockup import setpoint_dataset, m_param_dataset
+from core_tools.data.lib.data_class import setpoint_dataclass, m_param_dataclass
+from core_tools.data.ds.data_set import create_new_data_set
 import qcodes as qc
 import numpy as np
 
@@ -31,10 +31,11 @@ class Measurement:
     '''
     class used to describe a measurement.
     '''
-    def __init__(self):
+    def __init__(self, name):
         self.setpoints = dict()
         self.m_param = dict()
         self.dataset = None
+        self.name = name
 
     def register_set_parameter(self, parameter, n_points):
         '''
@@ -52,11 +53,11 @@ class Measurement:
         setpoint_parameter_spec = None
 
         if isinstance(parameter, qc.Parameter):
-            setpoint_parameter_spec = setpoint_dataset(id(parameter), n_points, parameter.name, 
-                [parameter.name], [parameter.label], [parameter.unit], list(((), )), None)
+            setpoint_parameter_spec = setpoint_dataclass(id(parameter), n_points, parameter.name, 
+                [parameter.name], [parameter.label], [parameter.unit])
         if isinstance(parameter, qc.MultiParameter):
-            setpoint_parameter_spec = setpoint_dataset(id(parameter), n_points, parameter.name,
-                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes), None)
+            setpoint_parameter_spec = setpoint_dataclass(id(parameter), n_points, parameter.name,
+                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
         self.setpoints[setpoint_parameter_spec.id_info] = setpoint_parameter_spec
 
@@ -76,29 +77,30 @@ class Measurement:
         m_param_parameter_spec = None
 
         if isinstance(parameter, qc.Parameter):
-            m_param_parameter_spec = m_param_dataset(id(parameter), parameter.name, 
-                [parameter.name], [parameter.label], [parameter.unit], list(((), )), [], [])
-
-            my_setpoints = []
+            m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
+                [parameter.name], [parameter.label], [parameter.unit])
 
         if isinstance(parameter, qc.MultiParameter):
-            m_param_parameter_spec = m_param_dataset(id(parameter), parameter.name, 
-                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes), [], [])
+            m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
+                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
             setpoint_local_parameter_spec = None
             for i in range(len(parameter.setpoint_names)):
-                my_setpoints = []
-                setpoint_local_parameter_spec = setpoint_dataset(id(parameter.setpoint_names[i][0]), np.NaN, 
-                    'local_var', list(parameter.setpoint_names[i]), list(parameter.setpoint_labels[i]),
-                    list(parameter.setpoint_units[i]), [], [])
+                my_local_setpoints = []
                 for j in range(len(parameter.setpoints[i])):
+                    # a bit of a local hack, in setpoints, sometimes copies are made of the setpoint name
+                    # this can cause in uniquess of the keys, therefore the extra multiplications (should more or less ensure uniqueness).
+                    #cleaner solution?
+                    setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][j])*10*(i+1), np.NaN, 
+                        'local_var', [parameter.setpoint_names[i][j]], [parameter.setpoint_labels[i][j]],
+                        [parameter.setpoint_units[i][j]], [], [])
                     data_array = parameter.setpoints[i][j]
-                    setpoint_local_parameter_spec.data.append(np.asarray(data_array, order='C').flatten())
                     shape = ( parameter.shapes[i][j],)
                     setpoint_local_parameter_spec.shapes.append(shape)
-
-                m_param_parameter_spec.setpoints_local.append(setpoint_local_parameter_spec)
-
+                    setpoint_local_parameter_spec.generate_data_buffer()  
+                    setpoint_local_parameter_spec.write_data({setpoint_local_parameter_spec.id_info : np.asarray(data_array, order='C')})
+                    my_local_setpoints.append(setpoint_local_parameter_spec)
+                m_param_parameter_spec.setpoints_local.append(my_local_setpoints)
 
 
         for setpoint in setpoints:
@@ -106,7 +108,7 @@ class Measurement:
 
         self.m_param[m_param_parameter_spec.id_info] = m_param_parameter_spec
 
-    def add_result(*args):
+    def add_result(self, *args):
         '''
         add results to the data_set
         
@@ -118,17 +120,19 @@ class Measurement:
         
         args_dict = {}
         for arg in args:
-            args_dict[id(arg[0])] = arg
+            args_dict[id(arg[0])] = arg[1]
 
-        self.dataset.add_results(args)
+        self.dataset.add_result(args_dict)
 
     def __enter__(self):
         # generate dataset
-        self.dataset = generate_data_set(self.setpoints, self.m_param)
+        self.dataset = create_new_data_set(self.name, *self.m_param.values())
+
         return self
 
     def  __exit__(self, exc_type, exc_value, exc_traceback):
         # save data
+        self.dataset.mark_completed()
 
         if exc_type is None:
             return True
@@ -140,13 +144,17 @@ class Measurement:
 
 if __name__ == '__main__':
     import qcodes as qc
+    from core_tools.sweeps.sweeps import do0D
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer, construct_1D_scan_fast, construct_2D_scan_fast
+    from core_tools.data.SQL.connector import set_up_local_storage
+
+    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+
     class MyCounter(qc.Parameter):
         def __init__(self, name):
             # only name is required
-            super().__init__(name, label='Times this has been read',
-                             docstring='counts how many times get has been called '
-                                       'but can be reset to any integer >= 0 by set')
+            super().__init__(name, label=name, unit='mV',
+                             docstring='counts how many times get has been called but can be reset to any integer >= 0 by set')
             self._count = 0
 
         # you must provide a get method, a set method, or both.
@@ -180,37 +188,50 @@ if __name__ == '__main__':
     dig = fake_digitizer("test")
 
 
-    a1 = MyCounter('name1')
+    a1 = MyCounter('name11')
 
     a2 = MyCounter('name2')
-    # d = dummy_multi_parameter_2dawg("name2")
+    d = dummy_multi_parameter_2dawg("name2")
     m1 = MyCounter('name3')
     m2 = dummy_multi_parameter_2dawg("name4")
     m3 = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
     m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
 
-    meas = Measurement()
-    meas.register_set_parameter(a1, 50)
-    meas.register_set_parameter(a2, 50)
+    x = 100
+    y = 100
 
-    meas.register_get_parameter(m3, a1, a2)
+    m_param = m2
+    meas = Measurement('dataset test experiment')
+    meas.register_set_parameter(a1, x)
+    meas.register_set_parameter(a2, y)
+
+    meas.register_get_parameter(m_param, a1,a2)
 
     m_param_1 = list(meas.m_param.values())[0]
-    print(id(m_param_1))
-    input_data  = {    }
-    input_data[id(m3)] = [[25], [50]]
-    input_data[id(a1)] = [10]
-    input_data[id(a2)] = [5]
+    # print(m1.name)
+    # print(id(m_param_1))
+    # input_data = {    }
+    # input_data[id(m4)] = [[25], [50]]
+    # input_data[id(a1)] = [10]
+    # input_data[id(a2)] = [5]
 
-    m_param_1.init_data_set()
-    m_param_1.write_data(input_data)
-    m_param_1.write_data(input_data)
-    print(id(m_param_1))
-    # list(meas.m_param.values())[1].init_data_set()
-    # list(meas.m_param.values())[2].init_data_set()
+    # m_param_1.init_data_set()
+    # m_param_1.write_data(input_data)
+    # m_param_1.write_data(input_data)measurement_parameters_raw
+    # print(m_param_1)
+    # print(m4.inter_delay)
+    # print("loading_meas")
 
-    # with meas as ds:
-    #     # ds = 'blub'
-    #     print(ds)
-    #     # raise Exception('exception raised').with_traceback(None)
-    #     # 5/0
+    import time
+    j = 0
+    t0  =time.time()
+    with meas as ds:
+        for i in range(x):
+            for j in range(y):
+                z = m_param.get()
+                ds.add_result((a1, i), (a2, j), (m_param, z))
+
+    t1  =time.time()
+    print(meas.dataset)
+    print(t1-t0)
+

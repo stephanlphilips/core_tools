@@ -102,7 +102,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.quit = QtWidgets.QAction("Quit", self)
         self.quit.triggered.connect(self.closeEvent)
-
+        
         self.show()
         if instance_ready == False:
             self.app.exec()
@@ -455,7 +455,7 @@ if __name__ == '__main__':
 
     # V2_liveplotting(t,dig)
 
-    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer
+    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
     # from V2_software.pulse_lib_config.Init_pulse_lib import return_pulse_lib
 
     # load a virtual version of the digitizer.

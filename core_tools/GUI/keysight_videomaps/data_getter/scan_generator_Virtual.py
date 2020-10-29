@@ -162,7 +162,8 @@ class dummy_digitzer_scan_parameter(MultiParameter):
             else:
                 data_out[i] = data[i]
 
-        time.sleep(0.02)
+        # time.sleep(0.02)
+        # print(data_out)
         
         return tuple(data_out)
 
