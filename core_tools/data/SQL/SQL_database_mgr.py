@@ -62,6 +62,7 @@ class SQL_database_manager(SQL_database_init):
 		ds.SQL_datatable = "_" + sample_info.set_up + "_" +sample_info.project + "_" +sample_info.sample +"_" + str(exp_uuid)
 		ds.SQL_datatable = ds.SQL_datatable.replace(" ", "_").replace('-', '_')
 		# todo -- add tags to the measurements
+
 		cur.execute(write_query_generator.fill_meas_info_in_measurement_table(
 			ds.exp_uuid,ds.SQL_datatable,
 			start_time=time.time(), metadata=ds.metadata, snapshot=ds.snapshot))
@@ -117,6 +118,8 @@ class SQL_database_manager(SQL_database_init):
 		cur.execute(write_query_generator.fill_meas_info_in_measurement_table(
 			ds.exp_uuid,ds.SQL_datatable,
 			stop_time=time.time(), completed=True))
+
+		cur.execute(write_query_generator.fill_technical_infomation_in_measurement_table(ds.exp_uuid,data_size=ds.size(), data_cleared=False, synchronized=False))
 		self.conn_local.commit()
 		cur.close()
 

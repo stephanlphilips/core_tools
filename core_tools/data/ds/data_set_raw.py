@@ -35,6 +35,13 @@ class data_set_raw:
         for m_param in self.measurement_parameters_raw:
             m_param.data_buffer.sync()
 
+    def size(self):
+        # size in bytes
+        size = 0
+        for m_param in self.measurement_parameters_raw:
+            size = m_param.data_buffer.cursor*8 #(64 bit numbers)
+        
+        return size
 @dataclass
 class m_param_raw:
     param_id : int
