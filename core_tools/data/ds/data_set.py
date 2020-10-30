@@ -1,5 +1,7 @@
 from core_tools.data.ds.data_set_core import data_set_raw, data_set
 from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
+
+import json
 import qcodes as qc
 
 def load_by_id(exp_id):
@@ -32,7 +34,9 @@ def create_new_data_set(experiment_name, *m_params):
     ds = data_set_raw(exp_name=experiment_name)
 
     if qc.Station.default is not None:
-        ds.snapshot = qc.Station.default.snapshot()
+        snapshot = qc.Station.default.snapshot()
+        snapshot_json = json.dumps({'station': snapshot}, cls=qc.utils.helpers.NumpyJSONEncoder)
+        ds.snapshot = json.loads(snapshot_json)
 
     # intialize the buffers for the measurement
     for m_param in m_params:

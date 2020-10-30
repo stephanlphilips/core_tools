@@ -2,6 +2,7 @@ from core_tools.data.ds.data_set_raw import data_set_raw, m_param_raw
 from core_tools.data.SQL.buffer_writer import buffer_reader
 from core_tools.data.SQL.connector import sample_info
 from uuid import getnode as get_mac
+from psycopg2.extras import Json
 
 import time
 import json
@@ -115,9 +116,9 @@ class write_query_generator:
 			measurement_table_name (str) : name of the table that contains the raw measurement data
 			start_time (long) : time in unix seconds since the epoch
 			stop_time (long) : time in unix seconds since the epoch
-			metadata (JSON) : json string to be saved in the database
-			snapshot (JSON) : snapshot of the exprimental set up
-			tags (JSON) : list of tags that accompuarby the measurment if any
+			metadata (dict) : json string to be saved in the database
+			snapshot (dict) : snapshot of the exprimental set up
+			tags (dict) : list of tags that accompuarby the measurment if any
 			completed (bool) : tell that the measurement is completed.
 		
 		Not used atm:	
@@ -133,11 +134,11 @@ class write_query_generator:
 		if stop_time is not None:
 			statement += "UPDATE {} SET stop_time = to_timestamp('{}') WHERE uuid = {};".format(table_name, stop_time, meas_uuid)
 		if metadata is not None:
-			statement += "UPDATE {} SET metadata = '{}' WHERE uuid = {};".format(table_name, metadata, meas_uuid)
+			statement += "UPDATE {} SET metadata = {} WHERE uuid = {};".format(table_name, Json(metadata), meas_uuid)
 		if snapshot is not None:
-			statement += "UPDATE {} SET snapshot = '{}' WHERE uuid = {};".format(table_name, snapshot, meas_uuid)
+			statement += "UPDATE {} SET snapshot = {} WHERE uuid = {};".format(table_name, Json(snapshot), meas_uuid)
 		if tags is not None:
-			statement += "UPDATE {} SET tags = '{}' WHERE uuid = {};".format(table_name, tags, meas_uuid)
+			statement += "UPDATE {} SET tags = {} WHERE uuid = {};".format(table_name, Json(tags), meas_uuid)
 		if completed is not None:
 			statement += "UPDATE {} SET completed = '{}' WHERE uuid = {};".format(table_name, completed, meas_uuid)
 

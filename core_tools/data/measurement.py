@@ -149,7 +149,7 @@ if __name__ == '__main__':
     from core_tools.data.SQL.connector import set_up_local_storage
 
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-
+    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
     class MyCounter(qc.Parameter):
         def __init__(self, name):
             # only name is required
@@ -194,8 +194,8 @@ if __name__ == '__main__':
     d = dummy_multi_parameter_2dawg("name2")
     m1 = MyCounter('name3')
     m2 = dummy_multi_parameter_2dawg("name4")
-    m3 = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
-    m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
+    # m3 = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
+    # m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
 
     x = 100
     y = 100
