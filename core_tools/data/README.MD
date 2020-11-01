@@ -94,7 +94,7 @@ psql
 
 Now, make the databases and users,
 
-Then set up a table and related users:
+Then set up a database and related users:
 ```SQL
 CREATE USER myusername WITH PASSWORD 'mypasswd';
 CREATE DATABASE 'mydbname';
