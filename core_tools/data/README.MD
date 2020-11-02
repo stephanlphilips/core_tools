@@ -38,11 +38,10 @@ The instructions below are tested on windows. On Linux/Mac, the mindset is the s
 Steps:
 1. Download [PostgreSQL](https://www.postgresql.org/download/)
 2. Go through the installer and install the database.
-3. Launch the psql program and make a database user and a database (press enter until the shell asks for the password configured in the installation)
-... type the following commands:
-... * CREATE USER myusername WITH PASSWORD 'mypasswd';
-... * CREATE DATABASE 'mydbname';
-... * GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
+3. Launch the psql program and make a database user and a database (press enter until the shell asks for the password configured in the installation). Type the following commands:
+    * CREATE USER myusername WITH PASSWORD 'mypasswd';
+    * CREATE DATABASE 'mydbname';
+    * GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
  
 In case you are running along with a server set up, it is recommended to have 'mydbname' to be the same as the one on the server.
 
@@ -77,6 +76,57 @@ The arguments are:
 * sample (str) : sample name 
 
 Note that the admin of the server has to provide you with login credentials for the storage. 
+### admin set up.
+Example for a linux server running ubuntu.
+
+Install postgres:
+```bash
+sudo apt install postgresql
+```
+
+Set up the datasbase, in your shell swich to the postgres user and run psql, e.g.,
+```bash
+sudo apt install postgresql
+```
+```bash
+psql
+```
+
+Now, make the databases and users,
+
+Then set up a database and related users:
+```SQL
+CREATE USER myusername WITH PASSWORD 'mypasswd';
+CREATE DATABASE 'mydbname';
+GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
+```
+
+The default install of postgress does not allow external connections. We can adjest this by typing
+```bash
+sudo vim /etc/postgresql/12/main/postgresql.conf
+```
+and adding the following line:
+```
+listen_addresses = '*'
+```
+This means the postgress process will listen to all incomming requests from any ip.
+Now, let's also tell postgress that users are allowed to authenticate, change the following config file,
+```bash
+sudo vim /etc/postgresql/12/main/pg_hba.conf
+```
+and add the following line,
+```
+host    all     all     0.0.0.0/0               md5
+```
+Now restart the postgres services to apply the changes, 
+```bash
+sudo systemctl restart postgresql.service 
+```
+Note : also make sure port 5432 is open, e.g.:
+```bash
+sudo ufw allow 5432
+```
+TODO :: add certificates to ensure no random people can login with passwords found on github (currentl protectected using VLAN's).
 
 ## Option 3
 In this case configure both option 1 and 2 at the same time, this can be done using:
