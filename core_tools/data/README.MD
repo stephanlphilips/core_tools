@@ -4,7 +4,7 @@ Spin Qubit dataset documentation
 This is a light weight dataset that has been made to support common spin qubit measurement practices.
 The front end of the dataset has been made to resemble the qcodes dataset. The back-end uses a different database, which allows for non-local and fast storage/access of small and large measurements (>100Mb).
 
-user docs [at](https://core-tools.readthedocs.io/en/latest/):
+user docs can be found [here](https://core-tools.readthedocs.io/en/latest/):
 
 
 In this document the set up, creation, loading and browsing of dataset's is discussed.
