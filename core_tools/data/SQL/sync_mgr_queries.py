@@ -93,7 +93,6 @@ class sync_mgr_query:
 				lobject.close()
 
 		# write data from a to b
-
 		statement_write_status = "SELECT write_cursor, total_size, oid FROM {} ;".format(uuid, meas_table_name)
 
 		cur_rem.execute(statement_write_status)
@@ -101,9 +100,7 @@ class sync_mgr_query:
 		cur_loc.execute(statement_write_status)
 		cur_loc = cur_loc.fetchone()
 
-
-
-
+		
 		for i in res_local:
 			write_cursor = i[0]
 			total_size = i[1]
