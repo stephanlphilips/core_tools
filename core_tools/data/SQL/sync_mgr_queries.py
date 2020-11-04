@@ -1,5 +1,14 @@
 from core_tools.data.SQL.SQL_commands import write_query_generator
 from core_tools.data.SQL.connector import SQL_conn_info_remote
+
+from psycopg2.extras import RealDictCursor, DictCursor
+import time, datetime, json
+import numpy as np
+
+def to_postgres_time(my_date_time):
+	return time.strftime("%a, %d %b %Y %H:%M:%S +0000",my_date_time.timetuple())
+
+
 class sync_mgr_query:
 	@staticmethod
 	def check_meas_4_upload():
@@ -15,7 +24,7 @@ class sync_mgr_query:
 		res = cur.fetchall()
 		cur.close()
 
-		return list(res)
+		return list(sum(res, ()))
 
 	def cpy_meas_info_to_remote_meas_table(uuid):
 		'''
@@ -29,20 +38,36 @@ class sync_mgr_query:
 		cur_rem.execute(statement)
 		meas_present = len(cur_rem.fetchall())
 
-		statement = "SELECT * FROM global_measurement_overview where uuid={};".format(uuid)
-		cur_loc = sync_agent().conn_local.cursor()
+		statement = ("SELECT "+
+			"id, uuid, exp_name, set_up, project, sample, creasted_by, start_time, " + 
+			"stop_time, exp_data_location,snapshot, metadata, tags, completed, data_size " + 
+			" FROM global_measurement_overview where uuid={};".format(uuid))
+
+		cur_loc = sync_agent().conn_local.cursor(cursor_factory=RealDictCursor)
 		cur_loc.execute(statement)
-		res = cur_loc.fetchall()
+		res = cur_loc.fetchall()[0]
+		res['start_time'] = to_postgres_time(res['start_time']) 
+		res['stop_time'] = to_postgres_time(res['stop_time'])
 		cur_loc.close()
 
 		if meas_present == False:
-			statement = "INSERT INTO global_measurement_overview (*) {} RETURNING exp_data_location;".format(str(res[0]))
+			statement = ("INSERT INTO global_measurement_overview " + 
+			"(id, uuid, exp_name, set_up, project, sample, creasted_by, start_time, " + 
+			"stop_time, exp_data_location,snapshot, metadata, tags, completed, data_size) " + 
+			" VALUES {} RETURNING exp_data_location;".format(str(tuple(res.values()))))
+			statement = statement.replace('None', 'null')
 		else:
-			statement  = "UPDATE global_measurement_overview SET (*) {} where uuid = {} RETURNING exp_data_location;"..format(str(res[0]), uuid)
+			statement = "UPDATE global_measurement_overview SET "
+			for key, value in res.items():
+				statement += " {} = '{}' ,".format(key, str(value)) if isinstance(value, str) else  " {} = {} ,".format(key, str(value))
+			statement = statement [:-1]
+			statement += "where uuid = {} RETURNING exp_data_location;".format(uuid)
+			statement = statement.replace("'null'", 'null').replace('None', 'null')
 
 		cur_rem.execute(statement)
-		res = cur_rem.fetchall()
+		res = cur_rem.fetchone()
 		cur_rem.close()
+		sync_agent().conn_remote.commit()
 
 		return res[0]
 
@@ -54,21 +79,22 @@ class sync_mgr_query:
 		cur_rem = sync_agent().conn_remote.cursor()
 		cur_rem.execute(stmt)
 		cur_rem.close()
+		sync_agent().conn_remote.commit()
 
 	def fill_and_sync_measurement_table(meas_table_name):
-		cur_rem = sync_agent().conn_remote.cursor()
-		cur_loc = sync_agent().conn_local.cursor()
+		cur_rem = sync_agent().conn_remote.cursor(cursor_factory=RealDictCursor)
+		cur_loc = sync_agent().conn_local.cursor(cursor_factory=RealDictCursor)
 
 
-		statement_n_rows = "SELECT COUNT(*) FROM {} ;".format(uuid, meas_table_name)
+		statement_n_rows = "SELECT COUNT(*) FROM {} ;".format(meas_table_name)
 
 		cur_rem.execute(statement_n_rows)
-		res_rem = cur_rem.fetchone()
+		res_rem = cur_rem.fetchone()['count']
 		cur_loc.execute(statement_n_rows)
-		res_loc = cur_loc.fetchone()
+		res_loc = cur_loc.fetchone()['count']
 
 		# check includes also a neglect of the full table
-		if res_rem[0] != res_loc[0]:
+		if res_rem != res_loc:
 			# drop
 			statement_get_rid_of_table = "DROP TABLE IF EXISTS {} ; ".format(meas_table_name)
 			cur_rem.execute(statement_get_rid_of_table)
@@ -77,39 +103,118 @@ class sync_mgr_query:
 			cur_rem.execute(write_query_generator.make_new_data_table(meas_table_name))
 			
 			# copy table
-			statement_data_to_insert = "SELECT id, param_id, nth_set, nth_dim, param_id_m_param, setpoint, setpoint_local, name_gobal, name, label, unit, depencies, shape, total_size FROM {} ;".format(meas_table_name)
+			statement_data_to_insert = ("SELECT * FROM {} ;".format(meas_table_name))
 
 			cur_loc.execute(statement_data_to_insert)
 			res_loc = cur_loc.fetchall()
 
-			for i in res_loc:
+			for result in res_loc:
 				lobject = sync_agent().conn_remote.lobject(0,'w')
-				oid = lobject.oid
-				cursor = 0
+				result['oid'] = lobject.oid
+				result['write_cursor'] = 0
+				result['depencies'] = json.dumps(result['depencies'])
+				result['shape'] = json.dumps(result['shape'])
 
-				statement_insert_row = "INSERT INTO {} (id, param_id, nth_set, nth_dim, param_id_m_param, setpoint, setpoint_local, name_gobal, name, label, unit, depencies, shape, total_size, write_cursor, oid) {} ;".format(meas_table_name, *i, write_cursor, oid)
-				cur_rem.execute(statement_n_rows)
+
+				statement_insert_row = "INSERT INTO {} {} VALUES {} ;".format(meas_table_name, 
+					str(tuple(result.keys())).replace("'", ""), str(tuple(result.values())))
+				statement_insert_row = statement_insert_row.replace('None', 'null')
+				cur_rem.execute(statement_insert_row)
 				sync_agent().conn_remote.commit()
 				lobject.close()
 
 		# write data from a to b
-		statement_write_status = "SELECT write_cursor, total_size, oid FROM {} ;".format(uuid, meas_table_name)
+		statement_write_status = "SELECT write_cursor, total_size, oid FROM {} ;".format(meas_table_name)
 
 		cur_rem.execute(statement_write_status)
-		res_rem = cur_rem.fetchone()
+		res_rem = cur_rem.fetchall()
 		cur_loc.execute(statement_write_status)
-		cur_loc = cur_loc.fetchone()
+		res_loc = cur_loc.fetchall()
 
-		
-		for i in res_local:
-			write_cursor = i[0]
-			total_size = i[1]
-			oid = i[2]
+		comleted = []
+				
+		for i in range(len(res_loc)):
+			r_cursor = res_rem[i]['write_cursor']
+			l_cursor = res_loc[i]['write_cursor']
+			r_oid = res_rem[i]['oid']
+			l_oid = res_loc[i]['oid']
 
-			if write_cursor == total_size:
-				stmnt = "UPDATE {} set (synchronized, sync_location) True, {} where oid={} ;".format(meas_table_name, 
-					str(SQL_conn_info_remote.dbname) + "@" + str(SQL_conn_info_remote.host), oid)
-				cur_rem.execute(stmnt)
+			r_lobject = sync_agent().conn_remote.lobject(r_oid,'w')
+			l_lobject = sync_agent().conn_local.lobject(l_oid,'rb')
+
+			# read in data in a buffer
+			l_lobject.seek(r_cursor*8)
+			mybuffer = np.frombuffer(l_lobject.read())
+			# push data to the server
+			r_lobject.seek(r_cursor*8)
+			r_lobject.write(mybuffer.tobytes())
+
+			# update the server until where the data is written
+			stmnt = "UPDATE {} set write_cursor={} where oid={} ;".format(meas_table_name, 
+				l_cursor, r_oid)
+			cur_rem.execute(stmnt)
+			completed = []
+
+		sync_agent().conn_remote.commit()
 
 		cur_rem.close()
 		cur_loc.close()
+
+	def check_if_sync_done(uuid, meas_table_name):
+		cur_rem = sync_agent().conn_remote.cursor(cursor_factory=RealDictCursor)
+		cur_loc = sync_agent().conn_local.cursor(cursor_factory=RealDictCursor)
+
+		# check if the measurement is marked as completed.
+		
+		statement = "SELECT completed FROM global_measurement_overview where uuid={}".format(uuid)
+		cur_loc.execute(statement)
+		res_loc = cur_loc.fetchone()
+
+		done = True
+		if res_loc['completed'] == True:
+			# check if all the entries are fully copied.
+			statement_write_status = "SELECT write_cursor, total_size, oid FROM {} ;".format(meas_table_name)
+
+			cur_rem.execute(statement_write_status)
+			res_rem = cur_rem.fetchall()
+
+
+			for row in res_rem:
+				if row['write_cursor'] != row['total_size']:
+					done = False
+				else:
+					stmnt = "UPDATE {} set synchronized = True, sync_location = '{}' where oid={} ;".format(meas_table_name, 
+							str(SQL_conn_info_remote.dbname) + "@" + str(SQL_conn_info_remote.host), row['oid'])
+					cur_rem.execute(stmnt)
+		if done == True:
+			stmnt = "UPDATE global_measurement_overview set synchronized = True, sync_location = '{}' where uuid={} ;".format( 
+							str(SQL_conn_info_remote.dbname) + "@" + str(SQL_conn_info_remote.host), uuid)
+			cur_rem.execute(stmnt)
+
+		sync_agent().conn_remote.commit()
+		cur_rem.close()
+		cur_loc.close()
+
+if __name__ == '__main__':
+	from core_tools.data.SQL.connector import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
+	from core_tools.data.SQL.SQL_synchronization_manager import sync_agent
+	set_up_local_and_remote_storage('131.180.205.81', 5432, 'stephan', 'magicc', 'test',
+		'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
+
+	s = sync_agent()
+	s.run()
+	
+
+	t = sync_agent()
+	t.conn_remote
+
+	m = sync_mgr_query.check_meas_4_upload()
+	print(m)
+	# for uuid in m:
+	table = sync_mgr_query.cpy_meas_info_to_remote_meas_table(m[0])
+	print(table)
+	sync_mgr_query.generate_meaurement_data_table(table)
+
+	sync_mgr_query.fill_and_sync_measurement_table(table)
+
+	sync_mgr_query.check_if_sync_done(m[0], table)
