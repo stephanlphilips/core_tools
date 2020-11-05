@@ -217,8 +217,10 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
         self.search_table_data_model.overwrite_data(data)
 
 if __name__ == '__main__':
-    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+    from core_tools.data.SQL.connector import SQL_conn_info_local, set_up_remote_storage, sample_info, set_up_local_storage
+    # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+
+    set_up_remote_storage('131.180.205.81', 5432, 'stephan_test', 'magicc', 'spin_data_test', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
     data_browser()
 
     # from core_tools.data.SQL.connector import set_up_local_storage

@@ -30,7 +30,6 @@ class SQL_database_init:
 		cur.execute(write_query_generator.generate_measurement_table())
 		self.conn_local.commit()
 		cur.close()
-		print('running old init')
 
 class SQL_database_manager(SQL_database_init):
 	__instance = None
