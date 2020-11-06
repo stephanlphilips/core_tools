@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/core-tools/badge/?version=latest)](https://core-tools.readthedocs.io/en/latest/?badge=latest)
+
 # core tools
 
 
