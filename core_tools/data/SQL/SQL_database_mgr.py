@@ -5,16 +5,10 @@ import psycopg2
 import time
 import json
 
+
 class SQL_database_init:
 	conn_local = None
 	last_commit = 0
-
-	__instance = None
-
-	def __new__(cls):
-		if SQL_database_manager.__instance is None:
-			SQL_database_manager.__instance = object.__new__(cls)
-		return SQL_database_manager.__instance
 
 	def __init__(self):
 		if self.conn_local is None:		
@@ -38,6 +32,13 @@ class SQL_database_init:
 		cur.close()
 
 class SQL_database_manager(SQL_database_init):
+	__instance = None
+
+	def __new__(cls):
+		if SQL_database_manager.__instance is None:
+			SQL_database_manager.__instance = object.__new__(cls)
+		return SQL_database_manager.__instance
+	
 	def register_measurement(self, ds):
 		'''
 		register a dataset in the database. Also sets up the buffers.
@@ -158,15 +159,16 @@ class SQL_database_manager(SQL_database_init):
 		ds_raw = data_fetch_queries.get_dataset_raw(conn, exp_uuid)
 
 		return ds_raw
-		
 
 if __name__ == '__main__':
-	from core_tools.data.SQL.connector import set_up_local_storage
+	from core_tools.data.SQL.connector import set_up_local_storage, set_up_remote_storage
 
-	set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
+	set_up_remote_storage('131.180.205.81', 5432, 'stephan_test', 'magicc', 'spin_data_test', 'project', 'set_up', 'sample')
+
+	# set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
 
 	test = SQL_database_manager()
 
-	t1 = test.fetch_raw_dataset_by_Id(47)
-	t2 = test.fetch_raw_dataset_by_UUID(1603652809326642671)
-	print(t1)
+	# t1 = test.fetch_raw_dataset_by_Id(47)
+	# t2 = test.fetch_raw_dataset_by_UUID(1603652809326642671)
+	# print(t1)

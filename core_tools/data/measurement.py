@@ -148,8 +148,8 @@ if __name__ == '__main__':
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer, construct_1D_scan_fast, construct_2D_scan_fast
     from core_tools.data.SQL.connector import set_up_local_storage
 
-    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
     set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+    set_up_local_storage('stephan', 'magicc', 'test', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
     class MyCounter(qc.Parameter):
         def __init__(self, name):
             # only name is required
@@ -194,13 +194,13 @@ if __name__ == '__main__':
     d = dummy_multi_parameter_2dawg("name2")
     m1 = MyCounter('name3')
     m2 = dummy_multi_parameter_2dawg("name4")
-    # m3 = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
-    # m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
+    m3 = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig, 2, 0.5e9)
+    m4 = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig, 2, 0.5e9)
 
     x = 100
     y = 100
 
-    m_param = m2
+    m_param = m1
     meas = Measurement('dataset test experiment')
     meas.register_set_parameter(a1, x)
     meas.register_set_parameter(a2, y)
@@ -230,6 +230,8 @@ if __name__ == '__main__':
             for j in range(y):
                 z = m_param.get()
                 ds.add_result((a1, i), (a2, j), (m_param, z))
+                time.sleep(0.01)
+                print(i,j)
 
     t1  =time.time()
     print(meas.dataset)
