@@ -402,18 +402,12 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         save the data
         """
-        print('saving data')
-        try:
-            if self.tab_id == 0 or self.tab_id == 1: # 1D
-                label = self._1D__gate
-                self.vm_data_param.name = "video_mode_1D_" + label
-            elif self.tab_id == 2: # 2D
-                label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
-                self.vm_data_param.name = "video_mode_2D_" + label
-        except Exception as e:
-            print(e)
-        print(self.vm_data_param.name)
-        job = do0D(self.vm_data_param)
+        if self.tab_id == 0 or self.tab_id == 1: # 1D
+            label = self._1D__gate
+        elif self.tab_id == 2: # 2D
+            label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
+
+        job = do0D(self.vm_data_param, name=label)
         job.run()
         print(ds)
 
@@ -428,7 +422,6 @@ class vm_data_param(MultiParameter):
         setpoint_names = param.setpoint_names
         setpoint_labels = param.setpoint_labels
         setpoint_units = param.setpoint_units
-        print(shapes)
         self.plot = plot
         super().__init__(name='vm_data_parameter',instrument=None,names=param.names, labels=labels, units=units,
              shapes=shapes, setpoints=setpoints, setpoint_names = setpoint_names,setpoint_labels=setpoint_labels,

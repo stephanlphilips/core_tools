@@ -1,7 +1,6 @@
 from core_tools.data.SQL.SQL_commands import write_query_generator
 from core_tools.data.SQL.connector import SQL_conn_info_remote
-
-from psycopg2.extras import RealDictCursor, DictCursor
+from psycopg2.extras import RealDictCursor, DictCursor,Json
 import time, datetime, json
 import numpy as np
 
@@ -49,8 +48,9 @@ class sync_mgr_query:
 		res['start_time'] = to_postgres_time(res['start_time'])
 		if res['stop_time'] is not None:
 			res['stop_time'] = to_postgres_time(res['stop_time'])
-		cur_loc.close()
+		res['snapshot'] = str(Json(res['snapshot'])).replace('\'', '')
 
+		cur_loc.close()
 		if meas_present == False:
 			statement = ("INSERT INTO global_measurement_overview " + 
 			"(uuid, exp_name, set_up, project, sample, creasted_by, start_time, " + 
@@ -191,7 +191,7 @@ class sync_mgr_query:
 			stmnt = "UPDATE global_measurement_overview set synchronized = True, sync_location = '{}' where uuid={} ;".format( 
 							str(sync_agent.SQL_conn_info_remote.dbname) + "@" + str(sync_agent.SQL_conn_info_remote.host), uuid)
 			cur_loc.execute(stmnt)
-			print('sync of dataset with uuid {} --> done.')
+			print('sync of dataset with uuid {} --> done.'.format(uuid))
 
 		sync_agent.conn_remote.commit()
 		sync_agent.conn_local.commit()
