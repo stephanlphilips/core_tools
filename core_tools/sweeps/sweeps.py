@@ -12,7 +12,7 @@ class scan_generic(metaclass=job_meta):
     '''
     function that handeles the loop action and defines the run class.
     '''
-    def __init__(self, *args, reset_param=False):
+    def __init__(self, *args, name='', reset_param=False):
         '''
         init of the scan function
 
@@ -20,7 +20,7 @@ class scan_generic(metaclass=job_meta):
             args (*list) :  provide here the sweep info and meaurment parameters
             reset_param (bool) : reset the setpoint parametes to their original value after the meaurement 
         '''
-        self.name = ''
+        self.name = name
         self.meas = Measurement(self.name)
 
         self.set_vars = []
@@ -43,20 +43,21 @@ class scan_generic(metaclass=job_meta):
                 continue
             else:
                 self.m_instr.append(arg)
-            
+
         for instr in self.m_instr:
             self.meas.register_get_parameter(instr, *set_points)
                 
         self.n_tot = 1
 
-        if len(self.set_vars) == 0:
-            self.name = '0D_' + self.m_instr[0].name[:10]
-        else:
-            self.name += '{}D_'.format(len(self.set_vars))
+        if name == '':
+            if len(self.set_vars) == 0:
+                self.name = '0D_' + self.m_instr[0].name[:10]
+            else:
+                self.name += '{}D_'.format(len(self.set_vars))
 
-        for swp_info in self.set_vars:
-            self.n_tot *= swp_info.n_points
-            self.name += '{} '.format(swp_info.param.name[:10])
+            for swp_info in self.set_vars:
+                self.n_tot *= swp_info.n_points
+                self.name += '{} '.format(swp_info.param.name[:10])
         self.meas.name = self.name
         
     def run(self):
@@ -71,7 +72,10 @@ class scan_generic(metaclass=job_meta):
         
         if self.reset_param:
             for param in self.set_vars:
-                param.reset_param()
+                try:
+                    param.reset_param()
+                except:
+                    pass
 
         return self.meas.dataset
 
@@ -91,16 +95,16 @@ class scan_generic(metaclass=job_meta):
                 self._loop(set_param[1:], m_instr, to_save + ((param_info.param, param_info.param()),), dataset)
 
 
-def do0D(*m_instr):
+def do0D(*m_instr, name=''):
     '''
     do a 0D scan
 
     Args:
         m_instr (*list) :  list of parameters to measure
     '''
-    return scan_generic(*m_instr, reset_param=False)
+    return scan_generic(*m_instr, name=name, reset_param=False)
 
-def do1D(param, start, stop, n_points, delay, *m_instr, reset_param=False):
+def do1D(param, start, stop, n_points, delay, *m_instr, name='', reset_param=False):
     '''
     do a 1D scan
 
@@ -113,10 +117,10 @@ def do1D(param, start, stop, n_points, delay, *m_instr, reset_param=False):
         reset_param (bool) : reset the setpoint parametes to their original value after the meaurement 
     '''
     m_param = sweep_info(param, start, stop, n_points, delay)
-    return scan_generic(m_param, *m_instr, reset_param=reset_param)
+    return scan_generic(m_param, *m_instr,name=name, reset_param=reset_param)
 
 def do2D(param_1, start_1, stop_1, n_points_1, delay_1,
-            param_2, start_2, stop_2, n_points_2, delay_2, *m_instr, reset_param=False):
+            param_2, start_2, stop_2, n_points_2, delay_2, *m_instr, name='', reset_param=False):
     '''
     do a 2D scan
 
@@ -134,7 +138,7 @@ def do2D(param_1, start_1, stop_1, n_points_1, delay_1,
     '''
     m_param_1 = sweep_info(param_1, start_1, stop_1, n_points_1, delay_1)
     m_param_2 = sweep_info(param_2, start_2, stop_2, n_points_2, delay_2)
-    return scan_generic(m_param_2, m_param_1, *m_instr, reset_param=reset_param)
+    return scan_generic(m_param_2, m_param_1, *m_instr, name=name, reset_param=reset_param)
 
 if __name__ == '__main__':
 
@@ -191,7 +195,8 @@ if __name__ == '__main__':
             return (self.i, self.i+100)
 
     from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+    # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "testing")
 
     now = str(datetime.datetime.now())
     path = os.path.join(os.getcwd(), 'test.db')
@@ -220,10 +225,14 @@ if __name__ == '__main__':
     # do0D(param_2D).run()
     # do1D(x, 0,5,100, 0.01, param_1D).run()
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast,construct_2D_scan_fast, fake_digitizer
-    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'))
-    param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'))
-    data_1D = param_1D.get()
+    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'), 2, 1e9)
+    param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'), 2, 1e9)
+    # data_1D = param_1D.get()
     # do0D(param_2D).run()
+    print(param_2D.shapes)
+    print(param_2D.setpoints)
+    ds = do0D(param_2D).run()
+    # print(ds)
     # do1D(x, 0,5,100, 0.01, my_param).run()
 
     # do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.001, my_param).run()

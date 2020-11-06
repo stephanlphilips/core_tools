@@ -30,8 +30,8 @@ class _2D_plot:
         self.layout = QtGui.QVBoxLayout()
         
         self.plot = pg.PlotItem()
-        self.plot.setLabel('left', self.ds.y.label, units = format_unit(self.ds.y.unit))
-        self.plot.setLabel('bottom', self.ds.x.label, units = format_unit(self.ds.x.unit))
+        self.plot.setLabel('bottom', self.ds.y.label, units = format_unit(self.ds.y.unit))
+        self.plot.setLabel('left', self.ds.x.label, units = format_unit(self.ds.x.unit))
         self.img = pg.ImageItem()
         self.img_view = pg.ImageView(view=self.plot, imageItem=self.img)
         self.img_view.setColorMap(get_color_map())
