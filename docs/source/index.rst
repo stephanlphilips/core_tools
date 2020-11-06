@@ -18,6 +18,7 @@ In the table below you find the instructions to use the dataset.
    working_with_datasets
    starting_up_the_GUI
    dev_information
+   examples
    project_status
 
 
