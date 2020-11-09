@@ -231,7 +231,7 @@ ApplicationWindow{
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.alignment: Qt.AlignLeft | Qt.AlignTop
-                    color: "#FFFFF0"
+                    color: "#FFFFFF"
 
 	                ColumnLayout {
 	                    id: lv_cat_cont

@@ -35,18 +35,18 @@ class GUI_controller:
         timer.timeout.connect(lambda: None)
         timer.start(100)
 
-        # self.app.exec()
         if self.instance_ready == False:
             self.app.exec_()
             print('exec')
         
-    def update_entry(self, category, raw_value):
-        self.data[category] = raw_value
-        self.singal_hander.update_entry(category,raw_value)
 
-    def add_entry(self, data):
+    def update_data(self):
+        self.singal_hander.update_data()
+
+    def set_data(self):
         '''just update all...'''
-        self.data = data
+        self.singal_hander.set_data()
+
 
 if __name__ == "__main__":
     data = {'SD voltages':{'SD1_on_11':var_raw('SD1_on_11', 0.1, 0.1), 'SD1_on_11':var_raw('SD1_on_11', 0.4, 0.1), 'SD1_off':var_raw('SD1_off', -5, 0.1), 'SD2_on':var_raw('SD2_on', 3.5, 0.1), 'SD2_off':var_raw('SD2_off', 0, 0.1)},

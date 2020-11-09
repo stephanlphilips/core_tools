@@ -148,8 +148,9 @@ if __name__ == '__main__':
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer, construct_1D_scan_fast, construct_2D_scan_fast
     from core_tools.data.SQL.connector import set_up_local_storage
 
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
-    set_up_local_storage('stephan', 'magicc', 'test', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+    set_up_local_storage('stephan', 'magicc', 'test', '6dot', 'XLD', '6D3S - SQ20-20-5-18-4')
+    # set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+
     class MyCounter(qc.Parameter):
         def __init__(self, name):
             # only name is required
