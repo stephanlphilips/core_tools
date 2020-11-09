@@ -4,6 +4,7 @@ import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Layouts 1.3
 
+import QtQuick.Controls.Material 2.12
 
 
 
@@ -13,7 +14,9 @@ Window {
     height: 480
     title: qsTr("Hello World")
 
-   
+    Material.theme: Material.Dark
+    Material.accent: Material.Purple
+
     Component { // 'real'  delegate
             id: highlightBar
             Rectangle {
@@ -29,7 +32,6 @@ Window {
         
     Rectangle {
         id:background
-        color: "grey"
         width: 200; height: parent.height
         ListModel {
             id: myModel

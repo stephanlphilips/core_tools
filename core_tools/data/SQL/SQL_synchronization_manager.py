@@ -16,11 +16,10 @@ class sync_agent(SQL_database_init):
 
     def __init__(self):
         # super(Process, self).__init__()
-
         self.SQL_conn_info_local = SQL_conn_info_local
         self.SQL_conn_info_remote = SQL_conn_info_remote
         self.sample_info = sample_info
-
+        self.run()
     def __init_database(self):
         '''
         check if the database has been set up correctly. Will generate a new overview table
@@ -40,18 +39,17 @@ class sync_agent(SQL_database_init):
         
         self.__init_database()
         self.do_sync = True
-        
+        print('Synchronisation manager started. Synced items will appear as you go.')
         while self.do_sync == True:
             m = sync_mgr_query.check_meas_4_upload(self)
-            try:
-                for m_id in m:
-                
-                    table = sync_mgr_query.cpy_meas_info_to_remote_meas_table(self, m_id)
-                    sync_mgr_query.generate_meaurement_data_table(self, table)
-                    sync_mgr_query.fill_and_sync_measurement_table(self, table)
-                    sync_mgr_query.check_if_sync_done(self, m_id, table)
-            except:
-                self.reconnect()
+            
+            for m_id in m:
+                table = sync_mgr_query.cpy_meas_info_to_remote_meas_table(self, m_id)
+                sync_mgr_query.generate_meaurement_data_table(self, table)
+                sync_mgr_query.fill_and_sync_measurement_table(self, table)
+                sync_mgr_query.check_if_sync_done(self, m_id, table)
+            # except:
+            #     self.reconnect()
             time.sleep(2)
 
 if __name__ == '__main__':

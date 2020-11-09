@@ -43,6 +43,9 @@ class variable_mgr():
             self.add_variable(item['category'], item['name'], item['unit'], skip_init=True)
         self.vars = dict(var_sql_queries.get_all_values(self.conn_local))
 
+    def show(self):
+        pass
+        
     def add_variable(self, category, name ,unit, value=0, skip_init=False):
         my_desc = variable_descriptor(name, unit, category, value, skip_init)
 

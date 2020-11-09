@@ -227,8 +227,8 @@ class _2D_live_plot(live_plot):
             plot_2D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][1], self.parameter_getter.setpoint_units[i][1])
             self.top_layout.addWidget(plot_2D, 0, i, 1, 1)
 
-            img.translate(-self.parameter_getter.setpoints[0][1][0][-1], -self.parameter_getter.setpoints[0][0][-1])
-            img.scale(1/self.shape[0]*self.parameter_getter.setpoints[0][1][0][-1]*2, 1/self.shape[1]*self.parameter_getter.setpoints[0][0][-1]*2)
+            img.translate(-self.parameter_getter.setpoints[0][1][-1], -self.parameter_getter.setpoints[0][0][-1])
+            img.scale(1/self.shape[0]*self.parameter_getter.setpoints[0][1][-1]*2, 1/self.shape[1]*self.parameter_getter.setpoints[0][0][-1]*2)
 
             plot_data = plot_widget_data(plot_2D, [img])
             self.plot_widgets.append(plot_data)
@@ -284,7 +284,7 @@ if __name__ == '__main__':
 
 
     if dim == "1D":
-        p = construct_1D_scan_fast(gate = "test", swing = 100, n_pt=700, t_step=5, biasT_corr= False, pulse_lib=None, digitizer=dig)
+        p = construct_1D_scan_fast(gate = "test", swing = 100, n_pt=700, t_step=5, biasT_corr= False, pulse_lib=None, digitizer=dig, channels=[1,2], dig_samplerate=100e6)
 
         plot = _1D_live_plot(app, window.frame_plots, window.grid_plots, p ,1,False)
 
@@ -296,7 +296,7 @@ if __name__ == '__main__':
         window.Close.clicked.connect(stop_function)
 
     if dim == "2D":
-        p = construct_2D_scan_fast("test", 100, 10, "test2", 150, 10, t_step=5, biasT_corr= False, pulse_lib=None, digitizer=dig)
+        p = construct_2D_scan_fast("test", 100, 10, "test2", 150, 10, t_step=5, biasT_corr= False, pulse_lib=None, digitizer=dig,  channels=[1,2], dig_samplerate=100e6)
 
         plot = _2D_live_plot(app, window.frame_plots, window.grid_plots, p ,1,False)
 

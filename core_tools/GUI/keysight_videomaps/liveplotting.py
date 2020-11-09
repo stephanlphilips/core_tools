@@ -402,24 +402,15 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         save the data
         """
-        print('saving data')
         if self.tab_id == 0 or self.tab_id == 1: # 1D
             label = self._1D__gate
         elif self.tab_id == 2: # 2D
-            label = self._2D__gate1_name + 'vs' + self._2D__gate2_name
-        try:
-            measure = Measure(self.vm_data_param)
-            data = measure.get_data_set(location=None,
-                                        loc_record={
-                                        'name': 'vm_data',
-                                        'label': label})
-            data = measure.run(quiet=True)
-            data.finalize()
-            print(data)
-            do0D(self.vm_data_param).run()
-        except Exception as e:
-            print(e)
-        print('done')
+            label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
+
+        job = do0D(self.vm_data_param, name=label)
+        job.run()
+        print(ds)
+
 
 class vm_data_param(MultiParameter):
     def __init__(self, param, plot, metadata):
@@ -429,11 +420,11 @@ class vm_data_param(MultiParameter):
         units = param.units
         setpoints = param.setpoints
         setpoint_names = param.setpoint_names
+        setpoint_labels = param.setpoint_labels
         setpoint_units = param.setpoint_units
-
         self.plot = plot
         super().__init__(name='vm_data_parameter',instrument=None,names=param.names, labels=labels, units=units,
-             shapes=shapes, setpoints=setpoints, setpoint_names = setpoint_names,
+             shapes=shapes, setpoints=setpoints, setpoint_names = setpoint_names,setpoint_labels=setpoint_labels,
              setpoint_units = setpoint_units, metadata=metadata)
 
     def get_raw(self):

@@ -72,7 +72,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     logging.info(f'Upload')
     my_seq.upload([0])
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(voltages), ), biasT_corr, dig_samplerate, channels = channels)
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(np.sort(voltages)), ), biasT_corr, dig_samplerate, channels = channels)
 
 def construct_1D_scan_MOD(gate, swing, n_pt, MOD_gates, freq_start, freq_step , biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
     """
@@ -136,7 +136,7 @@ def construct_1D_scan_MOD(gate, swing, n_pt, MOD_gates, freq_start, freq_step , 
 
     my_seq.upload([0])
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(voltages), ), biasT_corr, dig_samplerate, channels = channels)
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(np.sort(voltages)), ), biasT_corr, dig_samplerate, channels = channels)
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
     """
@@ -208,7 +208,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     logging.info(f'Seq upload')
     my_seq.upload([0])
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1), (tuple(voltages2_sp), (tuple(voltages1),)*n_pt2), biasT_corr, dig_samplerate, channels = channels)
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),  (tuple(voltages1),tuple(np.sort(voltages2))), biasT_corr, dig_samplerate, channels = channels)
 
 
 class _digitzer_scan_parameter(MultiParameter):
