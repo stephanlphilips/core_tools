@@ -176,7 +176,7 @@ class write_query_generator:
 
 	@staticmethod
 	def make_new_data_table(name):
-		statement = "CREATE TABLE {} ( ".format(name )
+		statement = "CREATE TABLE if not EXISTS {} ( ".format(name )
 		statement += "id serial primary key, "
 		statement += "param_id BIGINT, "
 		statement += "nth_set INT, "
