@@ -1,5 +1,6 @@
 from core_tools.data.SQL.connector import sample_info
 from psycopg2.extras import RealDictCursor, DictCursor
+from psycopg2.errors import UndefinedColumn
 import datetime, time
 
 def to_postgres_time(my_date_time):
@@ -13,6 +14,7 @@ class var_sql_queries:
             var_sql_queries.gen_table_overview_name())
         statement += "name text NOT NULL UNIQUE,"
         statement += "unit text NOT NULL,"
+        statement += "step FLOAT8 NOT NULL,"
         statement += "category text NOT NULL );"
         cur.execute(statement)
 
@@ -23,20 +25,18 @@ class var_sql_queries:
         conn.commit()
 
     @staticmethod
-    def add_variable(conn, name, unit, category, value=0):
+    def add_variable(conn, name, unit, category, step, value=0):
         # this will be the line where we set the value
         vals, last_update_id = var_sql_queries.update_val(conn, name=None, value=None)
         cur = conn.cursor()
         statement = "SELECT name from {} where name='{}'".format(
             var_sql_queries.gen_table_overview_name(), name)
-        print(statement)
         cur.execute(statement)
         res = cur.fetchall()
-        print(res)
 
         if len(res) == 0:
-            statement_1 = "INSERT INTO {} (name, unit, category) VALUES ('{}', '{}', '{}');".format(
-                var_sql_queries.gen_table_overview_name(), name, unit, category)
+            statement_1 = "INSERT INTO {} (name, unit, category, step) VALUES ('{}', '{}', '{}', '{}');".format(
+                var_sql_queries.gen_table_overview_name(), name, unit, category, step)
             statement_2 = "ALTER TABLE {} ADD COLUMN {} FLOAT8 ;".format(
                 var_sql_queries.gen_table_content_name(), name)
 
@@ -70,6 +70,8 @@ class var_sql_queries:
         res = cur.fetchone()
         cur.close()
 
+        if res is None:
+            return {}
         return res
 
     def update_val(conn, name , value):
@@ -77,7 +79,7 @@ class var_sql_queries:
 
         all_vals = var_sql_queries.get_all_values(conn)
         if name is not None:
-            all_vals[name] = value
+            all_vals[name.lower()] = value
         if all_vals is None:
             all_vals = dict()
 
@@ -88,12 +90,26 @@ class var_sql_queries:
             var_sql_queries.gen_table_content_name(),
             str(tuple(all_vals.keys())).replace('\'', " ").replace(',)', " )"),
             str(tuple(all_vals.values())).replace(',)', " )"))
-        
         cur.execute(statement)
         my_id = cur.fetchone()[0]
         cur.close()
         conn.commit()
         return all_vals, my_id
+
+    def remove_variable(conn, variable_name):
+
+        try:
+            cur = conn.cursor()
+
+            statement_1 = "DELETE FROM {} WHERE name = '{}' ;".format(var_sql_queries.gen_table_overview_name(), variable_name)
+            statement_2 = "ALTER TABLE {} DROP COLUMN {} ;".format(var_sql_queries.gen_table_content_name(), variable_name)
+
+            cur.execute(statement_1)
+            cur.execute(statement_2)
+            cur.close()
+            conn.commit()
+        except UndefinedColumn:
+            print('Nothing to remove. {} is not present in the database?'.format(variable_name))
 
     @staticmethod
     def gen_table_overview_name():
@@ -111,6 +127,8 @@ if __name__ == '__main__':
     conn = variable_mgr().conn_local
     var_sql_queries.init_table(conn)
 
-    var_sql_queries.add_variable(conn, "name", "unit", "category")
+    # var_sql_queries.add_variable(conn, "SD1_P_on", "mV", "SD voltages", 0.1)
+    # var_sql_queries.add_variable(conn, "SD1_P_on", "mV", "SD voltages", 0.1)
     # var_sql_queries.update_val(conn, "name", 12)
-    print(var_sql_queries.get_all(conn))
+    print(var_sql_queries.get_all_specs(conn))
+    # var_sql_queries.remove_variable(conn, "SD1_P_on")
