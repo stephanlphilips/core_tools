@@ -6,12 +6,12 @@ import os, sys
 class GUI_controller:
     def __init__(self, data):
         super().__init__()
-        self.app =  QtGui.QGuiApplication(sys.argv)
-        # self.app = QtCore.QCoreApplication.instance()
-        # self.instance_ready = True
-        # if self.app is None:
-        #     self.instance_ready = False
-        #     self.app = QtWidgets.QApplication([])
+        # self.app =  QtGui.QGuiApplication(sys.argv)
+        self.app = QtCore.QCoreApplication.instance()
+        self.instance_ready = True
+        if self.app is None:
+            self.instance_ready = False
+            self.app = QtWidgets.QApplication([])
 
         self.engine = QtQml.QQmlApplicationEngine()
         self.categories_model = categories_model(list(data.keys()))
@@ -35,9 +35,11 @@ class GUI_controller:
         timer.timeout.connect(lambda: None)
         timer.start(100)
 
-        self.app.exec()
-        # if self.instance_ready == False:
-        #     print('exec')
+        # self.app.exec()
+        if self.instance_ready == False:
+            self.app.exec_()
+            print('exec')
+        
     def update_entry(self, category, raw_value):
         self.data[category] = raw_value
         self.singal_hander.update_entry(category,raw_value)
