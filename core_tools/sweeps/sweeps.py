@@ -36,7 +36,7 @@ class scan_generic(metaclass=job_meta):
             elif isinstance(arg, sequencer):
                 set_vars_pulse_lib = pulselib_2_qcodes(arg)
                 for var in set_vars_pulse_lib:
-                    self.meas.register_set_parameter(arg.param, arg.n_points)
+                    self.meas.register_set_parameter(var.param, var.n_points)
                     set_points.append(var.param)
                 self.set_vars += set_vars_pulse_lib
             elif arg is None:

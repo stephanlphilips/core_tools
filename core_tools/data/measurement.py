@@ -85,12 +85,12 @@ class Measurement:
                 list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
             setpoint_local_parameter_spec = None
-            for i in range(len(parameter.setpoint_names)):
+            for i in range(len(parameter.setpoints)):
                 my_local_setpoints = []
                 for j in range(len(parameter.setpoints[i])):
                     # a bit of a local hack, in setpoints, sometimes copies are made of the setpoint name
                     # this can cause in uniquess of the keys, therefore the extra multiplications (should more or less ensure uniqueness).
-                    #cleaner solution?
+                    #cleaner solution                    
                     setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][j])*10*(i+1), np.NaN, 
                         'local_var', [parameter.setpoint_names[i][j]], [parameter.setpoint_labels[i][j]],
                         [parameter.setpoint_units[i][j]], [], [])
@@ -148,8 +148,9 @@ if __name__ == '__main__':
     from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer, construct_1D_scan_fast, construct_2D_scan_fast
     from core_tools.data.SQL.connector import set_up_local_storage
 
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
-    set_up_local_storage('stephan', 'magicc', 'test', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+    set_up_local_storage('stephan', 'magicc', 'test', '6dot', 'XLD', '6D3S - SQ20-20-5-18-4')
+    # set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+
     class MyCounter(qc.Parameter):
         def __init__(self, name):
             # only name is required

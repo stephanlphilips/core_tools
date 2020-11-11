@@ -52,7 +52,7 @@ conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_i
 cur = conn_local.cursor()
 for p_s_multi in projects_set_up_pairs:
 
-	n_samples = random.randint(3, 10)
+	n_samples = random.randint(, 40)
 	for n_samples in range(n_samples):
 		sample_name = 'SQ' + str(random.randint(10000000, 100000000))
 		for project, set_up in p_s_multi:
