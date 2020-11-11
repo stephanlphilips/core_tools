@@ -16,14 +16,15 @@ class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
         if self.app is None:
             self.instance_ready = False
             self.app = QtWidgets.QApplication([])
+
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
         self.ui_box_mgr = ui_box_mgr(self.app, self.ds, self.data_plot_layout)
         # add gui for dataset selection
         for m_param_set in self.ds:
             for m_param in m_param_set:
-                m_param = m_param[1]
-                layout = single_m_param_m_descriptor(m_param, self.scrollAreaWidgetContents_4)
+                param =m_param[1]
+                layout = single_m_param_m_descriptor(param, self.scrollAreaWidgetContents_4)
                 self.ui_box_mgr.add_m_param_plot_mgr(layout.plot_data_mgr)
                 self.data_content_layout.addLayout(layout)
 
@@ -97,13 +98,13 @@ class ui_box_mgr():
 
 
 if __name__ == '__main__':
-    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
     from core_tools.data.SQL.SQL_measurment_queries import query_for_measurement_results
     from core_tools.data.ds.data_set import load_by_uuid, load_by_id
     import sys
     import datetime
-    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    
+    # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+    set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
 
-    ds = load_by_uuid(1603957754478631616)
+    ds = load_by_id(307)
     p = data_plotter(ds)

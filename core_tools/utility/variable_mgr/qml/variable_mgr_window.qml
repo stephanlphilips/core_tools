@@ -392,9 +392,7 @@ ApplicationWindow{
 						    model: variable_name_value_pair_list
 						    delegate: variable_name_value_pair_delegate
 						    header: variable_name_value_pair_header
-						    // highlight: highlightBar
 					        focus: true
-					        // onCurrentItemChanged: console.log(model.get(list_var_name_pair.currentIndex).name + ' selected')
 						}
 	            
 		            }

@@ -61,9 +61,6 @@ class name_value_model(QtCore.QAbstractListModel):
         self._data = new_data
         self.endResetModel()
 
-    def update_all_data(self):
-        self.dataChanged.emit(self.index(0), self.index(self.rowCount()), self.roleNames())
-
     def update_data(self, name, value, force=False):
         try:
             if float(value) == self._data[name].value and force==False:
@@ -98,9 +95,7 @@ class singal_hander_4_variable_exporer(QtQuick.QQuickView):
         val_step_pair = self.model_4_name_values[name]
         val_step_pair.value = val_step_pair.value + sign*val_step_pair.step
 
-        precision = 0  
-        if val_step_pair.step != 0:
-            precision = int(-np.log10(val_step_pair.step) + 5)
+        precision = int(-np.log10(val_step_pair.step) + 5)
         if precision > 0:
             val_step_pair.value = np.round(val_step_pair.value, precision)
 
@@ -114,13 +109,7 @@ class singal_hander_4_variable_exporer(QtQuick.QQuickView):
     def set_categories(self, categories):
         self.categories = categories
         self.model_4_categories.reset_data(self.categories)
-    
-    def set_data(self):
-        self.categories = list(self.data.keys())
-        self.model_4_categories.reset_data(self.categories)
-        self.model_4_name_values.reset_data(self.data[self.categories[self.selected_tab]])
-    
     # external_updates
-    @QtCore.pyqtSlot()
-    def update_data(self):
-        self.model_4_name_values.update_all_data()
+    def set_data(self, data):
+        self.data = data
+        self.model_4_name_values.reset_data(self.data[self.selected_tab])

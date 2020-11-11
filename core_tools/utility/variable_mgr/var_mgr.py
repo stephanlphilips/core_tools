@@ -105,8 +105,8 @@ class variable_mgr():
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connector import set_up_local_storage, set_up_remote_storage
-    # set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+    set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
+#    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
 
     t = variable_mgr()
 
@@ -119,13 +119,21 @@ if __name__ == '__main__':
     # t.remove_variable('U2')
     # t.remove_variable('U3')
     # t.remove_variable('U4')
-    t.add_variable("SD voltages", "SD1_P_off", 'mV', 0.1)
-    t.add_variable("SD voltages", "SD1_P_on_11", 'mV', 0.1)
-    t.add_variable("SD voltages", "SD1_P_on_10", 'mV', 0.1)
+    # t.add_variable("SD voltages", "SD1_P_off", 'mV', 0.1)
+    # t.add_variable("SD voltages", "SD1_P_on_11", 'mV', 0.1)
+    # t.add_variable("SD voltages", "SD1_P_on_10", 'mV', 0.1)
     
-    t.add_variable("Dot properties", "U1", 'mV', 1)
-    t.add_variable("Dot properties", "U2", 'mV', 1)
-    t.add_variable("Dot properties", "U3", 'mV', 1)
-    t.add_variable("Dot properties", "U4", 'mV', 1)
+    # t.add_variable("Dot properties", "U1", 'mV', 1)
+    # t.add_variable("Dot properties", "U2", 'mV', 1)
+    # t.add_variable("Dot properties", "U3", 'mV', 1)
+    # t.add_variable("Dot properties", "U4", 'mV', 1)
 
     t.show()
+
+    import time
+
+    time.sleep(2)
+    t.SD1_P_off = 5
+
+    time.sleep(2)
+    t.SD1_P_off = 2
