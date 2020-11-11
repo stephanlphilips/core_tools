@@ -39,6 +39,8 @@ class scan_generic(metaclass=job_meta):
                     self.meas.register_parameter(var.param)
                     set_points.append(var.param)
                 self.set_vars += set_vars_pulse_lib
+            elif arg is None:
+                continue
             else:
                 self.m_instr.append(arg)
         for instr in self.m_instr:

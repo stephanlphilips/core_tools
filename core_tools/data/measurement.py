@@ -85,12 +85,12 @@ class Measurement:
                 list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
             setpoint_local_parameter_spec = None
-            for i in range(len(parameter.setpoint_names)):
+            for i in range(len(parameter.setpoints)):
                 my_local_setpoints = []
                 for j in range(len(parameter.setpoints[i])):
                     # a bit of a local hack, in setpoints, sometimes copies are made of the setpoint name
                     # this can cause in uniquess of the keys, therefore the extra multiplications (should more or less ensure uniqueness).
-                    #cleaner solution?
+                    #cleaner solution                    
                     setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][j])*10*(i+1), np.NaN, 
                         'local_var', [parameter.setpoint_names[i][j]], [parameter.setpoint_labels[i][j]],
                         [parameter.setpoint_units[i][j]], [], [])

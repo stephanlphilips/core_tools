@@ -85,7 +85,8 @@ class variable_mgr():
         self.vars.pop(variable_name.lower())
 
         var_sql_queries.remove_variable(self.conn_local, variable_name)
-
+        super().__delattr__(variable_name)
+        
         if self.__GUI is not None:
                     self.__GUI.set_data()
 
