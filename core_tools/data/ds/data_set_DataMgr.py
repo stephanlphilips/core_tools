@@ -165,13 +165,21 @@ class dataset_data_description():
 
         idx = [slice(None)]*self.ndim
         idx[dim] = i
-
         raw_data_org_copy = copy.copy(self.__raw_data_org)
 
         raw_data_cpy = raw_data_org_copy.get(self.__raw_data.param_id, self.__raw_data.nth_set)
-        raw_data_cpy.dependency.pop(dim)
-        raw_data_cpy.data_buffer.buffer_lambda =  raw_data_cpy.data_buffer.slice_lambda(idx)
 
+        if i.start is not None and i.stop-i.start == 1:
+            idx[dim] = i.start
+            raw_data_cpy.dependency.pop(dim)
+        elif i.stop is not None:
+            id_to_slice = raw_data_cpy.dependency[dim]
+            items= raw_data_org_copy[id_to_slice]
+            for item in items:
+                # TODO this is not generic yet (I think, this has to be checked).
+                item.data_buffer.buffer_lambda =  item.data_buffer.slice_lambda([idx[dim]])
+
+        raw_data_cpy.data_buffer.buffer_lambda =  raw_data_cpy.data_buffer.slice_lambda(idx)
         return dataset_data_description(self.name, raw_data_cpy, raw_data_org_copy)
 
 
@@ -183,6 +191,8 @@ class dataset_data_description():
         to_slice = None
         for i in range(len(args)):
             if isinstance(args[i], int):
+                to_slice = (i, slice(args[i], args[i]+1))
+            elif isinstance(args[i], slice) and args[i] != slice(None):
                 to_slice = (i, args[i])
         if to_slice is None:
             return self
@@ -266,32 +276,30 @@ if __name__ == '__main__':
 
 
 
-    # data1 = buffer_reference(np.zeros([100, 100]))
-    # data2 = buffer_reference(np.zeros([100, 100, 10]))
-    # data3 = buffer_reference(np.zeros([10]))
-    # data4 = buffer_reference(np.zeros([100,100]))
-    # data1.data[0,:] = -5
-    # data1.data[:,0] = 5
+    data1 = buffer_reference(np.zeros([100, 100]))
+    data2 = buffer_reference(np.zeros([100, 100, 10]))
+    data3 = buffer_reference(np.zeros([10]))
+    data4 = buffer_reference(np.zeros([100,100]))
+    data1.data[0,:] = -5
+    data1.data[:,0] = 5
 
 
-    # a = m_param_raw(param_id=1636274596872, nth_set=0, nth_dim=-1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_1', label='keithley 1', unit='pA', dependency=[1635967634696, 1635967635080], shape='[100, 100]', size=100000, oid=16478, data_buffer=data1) 
-    # b = m_param_raw(param_id=1636274596872, nth_set=1, nth_dim=-1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_2', label='keithley 2', unit='pA', dependency=[1635967634696, 1635967635080, 32719381726400], shape='[100, 100, 10]', size=100000, oid=16479, data_buffer=data2) 
-    # c = m_param_raw(param_id=16359690863200, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=True, name_gobal='local_var', name='P1', label='fast gate', unit='mV', dependency=[], shape='[10]', size=10, oid=16476, data_buffer=data3) 
-    # d = m_param_raw(param_id=32719381726400, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=True, name_gobal='local_var', name='P2', label='fast gate', unit='mV', dependency=[], shape='[10]', size=10, oid=16477, data_buffer=data3) 
-    # e = m_param_raw(param_id=1635967634696, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name1', name='name1', label='B field', unit='mT', dependency=[], shape='[100, 100]', size=10000, oid=16474, data_buffer=data4) 
-    # f = m_param_raw(param_id=1635967635080, nth_set=0, nth_dim=1, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name2', name='name2', label='slow gate 1', unit='mV', dependency=[], shape='[100, 100]', size=10000, oid=16475, data_buffer=data4)
-    # g = m_param_raw(param_id=1635967635080, nth_set=1, nth_dim=1, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name2', name='name2', label='slow gate 2', unit='mV', dependency=[], shape='[100, 100]', size=10000, oid=16475, data_buffer=data4)
+    a = m_param_raw(param_id=1636274596872, nth_set=0, nth_dim=-1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_1', label='keithley 1', unit='pA', dependency=[1635967634696, 1635967635080], shape='[100, 100]', size=100000, oid=16478, data_buffer=data1) 
+    b = m_param_raw(param_id=1636274596872, nth_set=1, nth_dim=-1, param_id_m_param=1636274596872, setpoint=False, setpoint_local=False, name_gobal='test', name='chan_2', label='keithley 2', unit='pA', dependency=[1635967634696, 1635967635080, 32719381726400], shape='[100, 100, 10]', size=100000, oid=16479, data_buffer=data2) 
+    c = m_param_raw(param_id=16359690863200, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=True, name_gobal='local_var', name='P1', label='fast gate', unit='mV', dependency=[], shape='[10]', size=10, oid=16476, data_buffer=data3) 
+    d = m_param_raw(param_id=32719381726400, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=False, setpoint_local=True, name_gobal='local_var', name='P2', label='fast gate', unit='mV', dependency=[], shape='[10]', size=10, oid=16477, data_buffer=data3) 
+    e = m_param_raw(param_id=1635967634696, nth_set=0, nth_dim=0, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name1', name='name1', label='B field', unit='mT', dependency=[], shape='[100, 100]', size=10000, oid=16474, data_buffer=data4) 
+    f = m_param_raw(param_id=1635967635080, nth_set=0, nth_dim=1, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name2', name='name2', label='slow gate 1', unit='mV', dependency=[], shape='[100, 100]', size=10000, oid=16475, data_buffer=data4)
+    g = m_param_raw(param_id=1635967635080, nth_set=1, nth_dim=1, param_id_m_param=1636274596872, setpoint=True, setpoint_local=False, name_gobal='name2', name='name2', label='slow gate 2', unit='mV', dependency=[], shape='[100, 100]', size=10000, oid=16475, data_buffer=data4)
 
-    # l = m_param_origanizer([a,b,c,d,e,f,g])
+    # l = m_param_origanizer([a,b,c,d,e,f])
 
 
     # ds = data_set_property_intializer(l)
     # print(ds.m1a())
-    # print(ds.m1a.label)
-    # print(ds.m1b.unit)
-    # print(ds.m1b.label)
-    # print(ds.m1a.average('x'))
-    # print(ds.m1a[:,0]())
+    # print(ds.m1a)
+    # print(ds.m1a[2:8])
+    # print(ds.m1a().shape)
     # print(ds.m1a[0,:]())
     # print(ds.m1a[:,:]())
     # print(ds.m1a.slice('x', 0)())
@@ -299,23 +307,26 @@ if __name__ == '__main__':
     # print(ds.m1a.y())
     # print(ds.m1a.z())
 
-    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-    from core_tools.data.ds.data_set import load_by_uuid
-    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    
 
-    ds = load_by_uuid(1603900514221642671)
-    print(ds.m1a)
+    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+    from core_tools.data.ds.data_set import load_by_id
+    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+    
+    ds = load_by_id(975)
+
+    # ds = load_by_uuid(1603900514221642671)
+    print(ds)
+    print(ds.m1a[20:30])
     # print(ds.m1a.average('x'))
     # print(ds.m1a.average('x').average('x').average('x'))
     # print(ds.m1a.average('l').average('k'))
     # print(ds.m1a.average('l').average('k').average('j'))
     # print(ds.m1a.average('l').average('k'))
     
-    print(ds.m1a[:,:,:,:])
-    print(ds.m1a[0,:,:,:])
-    print(ds.m1a[0,0,:,:])
-    print(ds.m1a[0,0,0,:])
-    print(ds.m1a[:,:,:,0])
-    print(ds.m1a[:,:,0,0])
-    print(ds.m1a[0,0,0,0])
+    # print(ds.m1a[:,:,:,:])
+    # print(ds.m1a[0,:,:,:])
+    # print(ds.m1a[0,0,:,:])
+    # print(ds.m1a[0,0,0,:])
+    # print(ds.m1a[:,:,:,0])
+    # print(ds.m1a[:,:,0,0])
+    # print(ds.m1a[0,0,0,0])

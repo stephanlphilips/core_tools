@@ -208,7 +208,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     logging.info(f'Seq upload')
     my_seq.upload([0])
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),  (tuple(voltages1),tuple(np.sort(voltages2))), biasT_corr, dig_samplerate, channels = channels)
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),  (tuple(np.sort(voltages2)),tuple(voltages1)), biasT_corr, dig_samplerate, channels = channels)
 
 
 class _digitzer_scan_parameter(MultiParameter):
@@ -241,7 +241,6 @@ class _digitzer_scan_parameter(MultiParameter):
         self.biasT_corr = biasT_corr
         self.shape = shape
         self.n_ch = len(channels)
-
         # set digitizer for proper init
         self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate, data_mode = self.data_mode, channels = self.channels)
 

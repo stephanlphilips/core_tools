@@ -351,6 +351,13 @@ class SD_DIG(Instrument):
             raw =False
             )
 
+    def snapshot_base(self, update = False, params_to_skip_update = None):
+        param_to_skip = ['measure']
+        if params_to_skip_update is not None:
+            param_to_skip += params_to_skip_update
+
+        return super().snapshot_base(update, params_to_skip_update=param_to_skip)
+
     def set_aquisition_mode(self, mode):
         """
         Modes to be operating in:
@@ -632,7 +639,7 @@ if __name__ == '__main__':
 #%%
           # load digitizer
     # digitizer1.close()
-    digitizer1 = SD_DIG("digitizer1", chassis = 0, slot = 6)
+    digitizer1 = SD_DIG("digitizer1", chassis = 1, slot = 6)
 
     # clear all ram (normally not needed, but just to sure)
     digitizer1.daq_flush(1)
@@ -646,6 +653,7 @@ if __name__ == '__main__':
     # simple example
     digitizer1.set_digitizer_software(1e3, 10, sample_rate=500e6, data_mode=DATA_MODE.AVERAGE_TIME_AND_CYCLES, channels=[1,2], Vmax=0.25, fourchannel=False)
     print(digitizer1.measure())
+    print(digitizer1.snapshot())
     ####################################
     #  settings (feel free to change)  #
     # ####################################
