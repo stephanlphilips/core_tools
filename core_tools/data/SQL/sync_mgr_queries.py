@@ -163,6 +163,7 @@ class sync_mgr_query:
 		cur_rem.close()
 		cur_loc.close()
 
+	@staticmethod
 	def check_if_sync_done(sync_agent, uuid, meas_table_name):
 		cur_rem = sync_agent.conn_remote.cursor(cursor_factory=RealDictCursor)
 		cur_loc = sync_agent.conn_local.cursor(cursor_factory=RealDictCursor)
@@ -173,6 +174,7 @@ class sync_mgr_query:
 		cur_loc.execute(statement)
 		res_loc = cur_loc.fetchone()
 		done = True
+
 		if res_loc['completed'] == True:
 			# check if all the entries are fully copied.
 			statement_write_status = "SELECT write_cursor, total_size, oid FROM {} ;".format(meas_table_name)
@@ -180,23 +182,42 @@ class sync_mgr_query:
 			cur_rem.execute(statement_write_status)
 			res_rem = cur_rem.fetchall()
 
-			for row in res_rem:
-				if row['write_cursor'] != row['total_size']:
+			cur_loc.execute(statement_write_status)
+			res_loc = cur_loc.fetchall()
+
+			for row_l, row in zip(res_loc, res_rem):
+				if row_l['write_cursor'] != row['write_cursor']:
 					done = False
 				else:
+					print('{} all done.'.format(uuid))
 					stmnt = "UPDATE {} set synchronized = True, sync_location = '{}' where oid={} ;".format(meas_table_name, 
 							str(sync_agent.SQL_conn_info_remote.dbname) + "@" + str(sync_agent.SQL_conn_info_remote.host), row['oid'])
 					cur_loc.execute(stmnt)
-		if done == True and res_loc['completed'] == True:
-			stmnt = "UPDATE global_measurement_overview set synchronized = True, sync_location = '{}' where uuid={} ;".format( 
-							str(sync_agent.SQL_conn_info_remote.dbname) + "@" + str(sync_agent.SQL_conn_info_remote.host), uuid)
-			cur_loc.execute(stmnt)
-			print('sync of dataset with uuid {} --> done.'.format(uuid))
+		
+			if done == True:
+				stmnt = "UPDATE global_measurement_overview set synchronized = True, sync_location = '{}' where uuid={} ;".format( 
+								str(sync_agent.SQL_conn_info_remote.dbname) + "@" + str(sync_agent.SQL_conn_info_remote.host), uuid)
+				cur_loc.execute(stmnt)
+				print('sync of dataset with uuid {} --> done.'.format(uuid))
 
 		sync_agent.conn_remote.commit()
 		sync_agent.conn_local.commit()
 		cur_rem.close()
 		cur_loc.close()
+
+	@staticmethod
+	def mark_incomplete_completed(sync_agent, uuid_list):
+		if len(uuid_list) >= 2:
+			cur_loc = sync_agent.conn_local.cursor()
+
+			uuid_s_completed = tuple(uuid_list[:-1])
+			print(uuid_s_completed)
+			for uuid in uuid_s_completed:
+				statement = "UPDATE global_measurement_overview set completed = TRUE where uuid = {} ;".format(uuid)
+				cur_loc.execute(statement)
+				print(statement)
+			sync_agent.conn_local.commit()
+			cur_loc.close()
 
 if __name__ == '__main__':
 	from core_tools.data.SQL.connector import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage

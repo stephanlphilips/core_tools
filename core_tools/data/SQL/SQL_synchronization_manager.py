@@ -42,7 +42,10 @@ class sync_agent(SQL_database_init):
         print('Synchronisation manager started. Synced items will appear as you go.')
         while self.do_sync == True:
             m = sync_mgr_query.check_meas_4_upload(self)
-            
+
+            # TODO -- move this check to dataset creastion..
+            sync_mgr_query.mark_incomplete_completed(self, m)
+
             for m_id in m:
                 table = sync_mgr_query.cpy_meas_info_to_remote_meas_table(self, m_id)
                 sync_mgr_query.generate_meaurement_data_table(self, table)
