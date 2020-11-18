@@ -48,6 +48,7 @@ class sync_mgr_query:
 		res['start_time'] = to_postgres_time(res['start_time'])
 		if res['stop_time'] is not None:
 			res['stop_time'] = to_postgres_time(res['stop_time'])
+
 		res['snapshot'] = str(Json(res['snapshot'])).replace('\'', '')
 
 		cur_loc.close()
@@ -189,7 +190,6 @@ class sync_mgr_query:
 				if row_l['write_cursor'] != row['write_cursor']:
 					done = False
 				else:
-					print('{} all done.'.format(uuid))
 					stmnt = "UPDATE {} set synchronized = True, sync_location = '{}' where oid={} ;".format(meas_table_name, 
 							str(sync_agent.SQL_conn_info_remote.dbname) + "@" + str(sync_agent.SQL_conn_info_remote.host), row['oid'])
 					cur_loc.execute(stmnt)
@@ -211,13 +211,20 @@ class sync_mgr_query:
 			cur_loc = sync_agent.conn_local.cursor()
 
 			uuid_s_completed = tuple(uuid_list[:-1])
-			print(uuid_s_completed)
 			for uuid in uuid_s_completed:
 				statement = "UPDATE global_measurement_overview set completed = TRUE where uuid = {} ;".format(uuid)
 				cur_loc.execute(statement)
-				print(statement)
+
 			sync_agent.conn_local.commit()
 			cur_loc.close()
+
+	@staticmethod
+	def mark_all_for_resync(sync_agent):
+		cur_loc = sync_agent.conn_local.cursor()
+		statement = "UPDATE global_measurement_overview set synchronized = FALSE ;"
+		cur_loc.execute(statement)
+		sync_agent.conn_local.commit()
+		cur_loc.close()
 
 if __name__ == '__main__':
 	from core_tools.data.SQL.connector import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
@@ -226,20 +233,21 @@ if __name__ == '__main__':
 		'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
 
 	s = sync_agent()
+	# s.re_sync_all()
 	s.run()
 	
 
-	t = sync_agent()
-	t.conn_remote
+	# t = sync_agent()
+	# t.conn_remote
 
-	m = sync_mgr_query.check_meas_4_upload()
+	# m = sync_mgr_query.check_meas_4_upload()
 
-	for m_id in m:
-		try:
-			table = sync_mgr_query.cpy_meas_info_to_remote_meas_table(m_id)
-			sync_mgr_query.generate_meaurement_data_table(table)
-			sync_mgr_query.fill_and_sync_measurement_table(table)
-			sync_mgr_query.check_if_sync_done(m_id, table)
-		except:
-			pass
-			# check if connected
+	# for m_id in m:
+	# 	try:
+	# 		table = sync_mgr_query.cpy_meas_info_to_remote_meas_table(m_id)
+	# 		sync_mgr_query.generate_meaurement_data_table(table)
+	# 		sync_mgr_query.fill_and_sync_measurement_table(table)
+	# 		sync_mgr_query.check_if_sync_done(m_id, table)
+	# 	except:
+	# 		pass
+	# 		# check if connected

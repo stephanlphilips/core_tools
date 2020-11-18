@@ -19,7 +19,9 @@ class sync_agent(SQL_database_init):
         self.SQL_conn_info_local = SQL_conn_info_local
         self.SQL_conn_info_remote = SQL_conn_info_remote
         self.sample_info = sample_info
-        self.run()
+        SQL_database_init.__init__(self)
+        self.__init_database()
+        # self.run()
     def __init_database(self):
         '''
         check if the database has been set up correctly. Will generate a new overview table
@@ -35,9 +37,7 @@ class sync_agent(SQL_database_init):
         print("No connection ...")
 
     def run(self):
-        SQL_database_init.__init__(self)
         
-        self.__init_database()
         self.do_sync = True
         print('Synchronisation manager started. Synced items will appear as you go.')
         while self.do_sync == True:
@@ -54,6 +54,11 @@ class sync_agent(SQL_database_init):
             # except:
             #     self.reconnect()
             time.sleep(2)
+
+    def re_sync_all(self):
+    	print('marking as not Synchronized.')
+    	sync_mgr_query.mark_all_for_resync(self)
+    	print('done')
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connector import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
