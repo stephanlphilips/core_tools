@@ -20,6 +20,14 @@ def get_measure_data(m_instr):
 
     return my_data
 
+
+FAST = "FAST"
+SLOW = "SLOW"
+
+
+MODE = FAST
+
+
 class PulseLibParameter(Parameter):
 
     def add_setpoints(self, setpoints, sequencer, lowest_level):
@@ -39,15 +47,10 @@ class PulseLibParameter(Parameter):
 
     def set_raw(self, value):
         if self.lowest_level:
-            # if self.flat_index == 0:
             self.sequencer.upload(np.unravel_index(self.flat_index, self.sequencer.shape))
-            
             index = np.unravel_index(self.flat_index, self.sequencer.shape)
+            
             self.sequencer.play(index)
-
-            # if self.flat_index < np.prod(self.sequencer.shape) - 1:
-                # self.sequencer.upload(np.unravel_index(self.flat_index+1, self.sequencer.shape))
-
             self.sequencer.uploader.wait_until_AWG_idle()
 
     '''

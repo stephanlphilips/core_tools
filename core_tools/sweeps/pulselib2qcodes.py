@@ -5,7 +5,7 @@ FAST = "FAST"
 SLOW = "SLOW"
 
 
-MODE = SLOW
+MODE = FAST
 
 class PulseLibParameter(Parameter):
     setpoints = None

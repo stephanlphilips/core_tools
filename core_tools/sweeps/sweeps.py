@@ -4,6 +4,7 @@ from pulse_lib.sequencer import sequencer
 
 from core_tools.sweeps.sweep_utility import pulselib_2_qcodes, sweep_info, get_measure_data, KILL_EXP
 from core_tools.job_mgnt.job_meta import job_meta
+from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 
 import numpy as np
 import time
@@ -37,8 +38,8 @@ class scan_generic(metaclass=job_meta):
                 set_vars_pulse_lib = pulselib_2_qcodes(arg)
                 for var in set_vars_pulse_lib:
                     self.meas.register_set_parameter(var.param, var.n_points)
+                    self.set_vars.append(var)
                     set_points.append(var.param)
-                self.set_vars += set_vars_pulse_lib
             elif arg is None:
                 continue
             else:
@@ -55,9 +56,9 @@ class scan_generic(metaclass=job_meta):
             else:
                 self.name += '{}D_'.format(len(self.set_vars))
 
-            for swp_info in self.set_vars:
-                self.n_tot *= swp_info.n_points
-                self.name += '{} '.format(swp_info.param.name[:10])
+        for swp_info in self.set_vars:
+            self.n_tot *= swp_info.n_points
+
         self.meas.name = self.name
         
     def run(self):
@@ -78,6 +79,13 @@ class scan_generic(metaclass=job_meta):
                     pass
 
         return self.meas.dataset
+
+    def put(self, priority = 1):
+        '''
+        put the job in a queue.
+        '''
+        queue = queue_mgr()
+        job = ExperimentJob(priority, self)
 
     def _loop(self, set_param, m_instr, to_save, dataset):
         if len(set_param) == 0:

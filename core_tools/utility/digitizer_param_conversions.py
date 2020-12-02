@@ -282,8 +282,6 @@ if __name__ == '__main__':
     
 class PSB_param(MultiParameter):
     """
-    parameter that aims to detect blibs.
-    expected that the input data is already well filtered.
     """
     def __init__(self, digitizer, threshold=None):
         '''
@@ -301,8 +299,12 @@ class PSB_param(MultiParameter):
         for i in range(len(digitizer.names)):
             names += ("qubit_{}".format(i), )
             shapes += ((), )
-            labels += ('Spin probability qubit {}'.format(i+1) ,)
-            units += ('%', )
+            if threshold is not None:
+                labels += ('Spin probability qubit {}'.format(i+1) ,)
+                units += ('%', )
+            else:
+                labels += ('Signal {}'.format(i+1) ,)
+                units += ('mV', )
             
             setpoints += ((),)
 
@@ -321,6 +323,5 @@ class PSB_param(MultiParameter):
                 for i in range(len(self.threshold)):
                     threshold = self.threshold[i]
                     data_out += [(np.where(data_in[i] < threshold)[0].size)/np.asarray(data_in[i]).size]
-                    
         return data_out     
     

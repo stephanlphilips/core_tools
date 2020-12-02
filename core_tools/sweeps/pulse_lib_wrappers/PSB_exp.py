@@ -36,7 +36,7 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
 
     if raw_traces == False:
         autoconfig_dig_v2(station.dig, MODES.AVERAGE)
-        data_mode = DATA_MODE.AVERAGE_TIME_AND_CYCLES
+        data_mode = DATA_MODE.AVERAGE_TIME
         if n_rep == 1:
             data_mode = DATA_MODE.AVERAGE_CYCLES
         if n_qubit > 1:
@@ -57,7 +57,7 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
     
     
     if raw_traces == True:
-        down_sampled_seq = down_sampler(PSB_out, 1e6)
+        down_sampled_seq = down_sampler(IQ_meas_param, 1e6)
     
     if not isinstance(segment, list):
         segment = [segment]
@@ -87,6 +87,6 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
     station.pulse.uploader.release_memory()
 
     if raw_traces == True:
-        return check_OD_scan(my_seq, down_sampled_seq)
+        return check_OD_scan(my_seq, down_sampled_seq) + (name, )
     else:
-        return check_OD_scan(my_seq, PSB_out)
+        return check_OD_scan(my_seq, PSB_out) + (name, )

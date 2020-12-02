@@ -73,6 +73,6 @@ def run_readout_exp(name, segment, t_meas, n_rep, n_qubit ,show_raw_traces, thre
     my_seq.neutralise = True
 
     if show_raw_traces == True:
-        return check_OD_scan(my_seq, down_sampled_seq)
+        return check_OD_scan(my_seq, down_sampled_seq) + (name, )
     else:
-        return check_OD_scan(my_seq, elzerman_det)
+        return check_OD_scan(my_seq, elzerman_det) + (name, )

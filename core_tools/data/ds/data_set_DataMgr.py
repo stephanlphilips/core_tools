@@ -160,6 +160,9 @@ class dataset_data_description():
         '''
         dim = self.dim_to_int(dim)
 
+        if not isinstance(i, slice):
+            i = slice(int(i),int(i)+1)
+
         if dim > self.ndim:
             raise ValueError("you are trying to average over a dimension that does not exists")
 

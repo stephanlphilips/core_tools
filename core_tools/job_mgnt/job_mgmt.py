@@ -14,6 +14,15 @@ class ExperimentJob:
         self.job.KILL = True
 
 class queue_mgr():
+    __instance = None
+    q = None
+    job_refs = []
+
+    def __new__(cls):
+        if queue_mgr.__instance is None:
+            queue_mgr.__instance = object.__new__(cls)
+        return queue_mgr.__instance
+
     def __init__(self):
         self.q = PriorityQueue()
         self.job_refs = list()
