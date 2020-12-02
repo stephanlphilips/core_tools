@@ -55,7 +55,7 @@ class write_query_generator:
 		
 		statement += "exp_data_location text,"
 		statement += "snapshot JSON,"
-		statement += "metadata JSON, "
+		statement += "metadata JSON,"
 		statement += "tags JSONB, "
 		
 		statement += "completed BOOL DEFAULT False,"
