@@ -33,6 +33,10 @@ class m_result_item():
     @property
     def date(self):
         return self._date.strftime("%d/%m/%Y %H:%M:%S")
+
+    @property
+    def time(self):
+        return self._date.strftime("%H:%M:%S")
     
     def set_sort_idx(self, i):
         self.__search_key_idx = i
