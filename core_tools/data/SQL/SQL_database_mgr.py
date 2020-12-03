@@ -66,7 +66,7 @@ class SQL_database_manager(SQL_database_init):
 
 		cur.execute(write_query_generator.fill_meas_info_in_measurement_table(
 			ds.exp_uuid,ds.SQL_datatable,
-			start_time=time.time(), metadata=ds.metadata, snapshot=ds.snapshot))
+			start_time=time.time(), metadata=ds.metadata, snapshot=ds.snapshot, keywords=ds.generate_keywords()))
 
 		#################################################
 		# make table for storage of the getters/setters #
@@ -120,7 +120,7 @@ class SQL_database_manager(SQL_database_init):
 			ds.exp_uuid,ds.SQL_datatable,
 			stop_time=time.time(), completed=True))
 
-		cur.execute(write_query_generator.fill_technical_infomation_in_measurement_table(ds.exp_uuid,data_size=ds.size(), data_cleared=False, synchronized=False))
+		cur.execute(write_query_generator.fill_technical_infomation_in_measurement_table(ds.exp_uuid,data_size=ds.size(), data_cleared=False))
 		self.conn_local.commit()
 		cur.close()
 
