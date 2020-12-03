@@ -66,7 +66,7 @@ class query_for_samples():
 
 class query_for_measurement_results:
 	def get_results_for_date(date, sample, set_up, project):
-		statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, tags FROM global_measurement_overview "
+		statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords FROM global_measurement_overview "
 		statement += "WHERE start_time >= '{}' and start_time < '{} '".format(date, date+ datetime.timedelta(1))
 		if sample is not None:
 			statement += " and sample =  '{}' ".format(sample)
@@ -106,7 +106,7 @@ class query_for_measurement_results:
 		return res
 
 	def search_query(exp_id, uuid, words, start_date, stop_date, project, set_up, sample):
-		statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, tags FROM global_measurement_overview "
+		statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, keywords FROM global_measurement_overview "
 		statement += "WHERE 1=1 "
 		if exp_id is not None:
 			statement += " and id = '{}' ".format(exp_id)
