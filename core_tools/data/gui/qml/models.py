@@ -48,7 +48,7 @@ class data_overview_model(QtCore.QAbstractListModel):
     def data(self, QModelIndex, role):
         row = QModelIndex.row()
         if role == self.starred:
-            return False
+            return self._data[row].starred
         if role == self.my_ID:
             return self._data[row].my_id
         if role == self.UUID:
@@ -56,9 +56,7 @@ class data_overview_model(QtCore.QAbstractListModel):
         if role == self.name:
             return self._data[row].name
         if role == self.keywords:
-            if self._data[row]._keywords is None:
-                return ''
-            return self._data[row]._keywords
+            return self._data[row].keywords
         if role == self.date:
             return self._data[row].time
 

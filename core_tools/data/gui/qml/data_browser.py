@@ -7,6 +7,7 @@ import core_tools.data.gui.qml as qml_in
 from datetime import datetime
 
 from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+
 class data_browser():
     def __init__(self):
         super().__init__()
@@ -53,5 +54,6 @@ class data_browser():
 if __name__ == "__main__":
     from core_tools.data.SQL.connector import SQL_conn_info_local, set_up_remote_storage, sample_info, set_up_local_storage
     set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+    # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
 
     g = data_browser()

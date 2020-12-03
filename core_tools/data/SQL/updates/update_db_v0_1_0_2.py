@@ -102,10 +102,12 @@ def drop_and_move(conn_local):
 	statement = 'DROP TABLE global_measurement_overview;'
 	cur.execute(statement)
 	conn_local.commit()
+	print('table dropped')
 
 	statement = 'ALTER TABLE global_measurement_overview_tmp RENAME TO global_measurement_overview;'
 	cur.execute(statement)
 	conn_local.commit()
+	print('table altered')
 
 from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
 

@@ -225,6 +225,16 @@ class write_query_generator:
 
 		return statement
 
+	@staticmethod
+	def update_name(uuid, name):
+		statement = 'UPDATE global_measurement_overview set exp_name = \'{}\', table_synchronized=FALSE where uuid = {}'.format(name, uuid)
+		return statement
+
+	@staticmethod
+	def star_measurement(uuid, state):
+		statement = 'UPDATE global_measurement_overview set starred = {}, table_synchronized=FALSE where uuid = {}'.format(state, uuid)
+		return statement
+
 # get data local
 class data_fetch_queries:
 	table_name = "global_measurement_overview"

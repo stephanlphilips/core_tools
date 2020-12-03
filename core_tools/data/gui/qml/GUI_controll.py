@@ -7,8 +7,10 @@ from datetime import datetime
 
 from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
 from core_tools.data.SQL.SQL_measurment_queries import query_for_samples, query_for_measurement_results
+from core_tools.data.SQL.SQL_commands import write_query_generator, data_fetch_queries
 from core_tools.data.ds.data_set import load_by_uuid, load_by_id
 from core_tools.data.gui.plot_mgr import data_plotter
+from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
 
 def if_any_to_none(arg):
     if arg == "any":
@@ -31,24 +33,32 @@ class signale_handler(QtQuick.QQuickView):
         self.sample_info['sample'] = sample_info.set_up
         self.sample_info['set_up'] = sample_info.sample
 
-        self.measurement_count = 0
+        self.measurement_count =0
         self.plots = []
+
 
     def init_gui_variables(self, win):
         self.win = win
 
         obj = self.win.findChild(QtCore.QObject, "local_conn")
-        obj.setProperty("local_conn_status", True)
+        if SQL_conn_info_local.host == 'localhost':
+            obj.setProperty("local_conn_status", True)
+        else:
+            obj.setProperty("local_conn_status", False)
 
         obj = self.win.findChild(QtCore.QObject, "remote_conn")
-        obj.setProperty("remote_conn_status", False)
+        if SQL_conn_info_remote.host != 'localhost':
+            obj.setProperty("remote_conn_status", True)
+        else:
+            obj.setProperty("remote_conn_status", True)
 
         self.pro_set_sample_info_state_change_loc(1,1,1)
 
-        timer = QtCore.QTimer()
-        timer.setInterval(500)
-        timer.timeout.connect(self.check_for_updates)
-        timer.start()
+        _, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(500)
+        self.timer.timeout.connect(self.check_for_updates)
+        self.timer.start()
 
     @QtCore.pyqtSlot(bool)
     def enable_liveplotting(self, state):
@@ -107,6 +117,7 @@ class signale_handler(QtQuick.QQuickView):
 
     def check_for_updates(self):
         update, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)
+
         if update==True:
             self.update_date_model()
 
@@ -120,13 +131,22 @@ class signale_handler(QtQuick.QQuickView):
 
     @QtCore.pyqtSlot('QString')
     def plot_ds_qml(self, uuid):
-        print(uuid)
         self.plot_ds(int(uuid))
 
     @QtCore.pyqtSlot('QString', bool)
     def star_measurement(self, uuid, state):
-        print(uuid, state)
+        statement = write_query_generator.star_measurement(uuid, state)
+
+        cur = SQL_database_manager().conn_local.cursor()
+        cur.execute(statement)
+        SQL_database_manager().conn_local.commit()
+        cur.close() 
 
     @QtCore.pyqtSlot('QString', 'QString')
-    def update_name_meaurement(self, uuid, state):
-        print(uuid, state)
+    def update_name_meaurement(self, uuid, name):
+        statement = write_query_generator.update_name(uuid, name)
+
+        cur = SQL_database_manager().conn_local.cursor()
+        cur.execute(statement)
+        SQL_database_manager().conn_local.commit()
+        cur.close() 

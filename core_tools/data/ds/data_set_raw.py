@@ -27,10 +27,27 @@ class data_set_raw:
     
     snapshot : dict = None
     metadata : dict = None
-    tags : list = field(default_factory=lambda: [])
+    keywords : list = field(default_factory=lambda: [])
 
     completed : bool = False
     writecount : int = 0
+
+    def generate_keywords(self):
+        set_param = []
+        get_param = []
+        for m_param in self.measurement_parameters_raw:
+            label = m_param.label 
+            if m_param.label is None or m_param.label == '':
+                label = m_param.name
+
+            if m_param.setpoint==True or m_param.setpoint_local==True:
+                set_param += [label]
+            else:
+                get_param += [label]
+
+        set_param = set(set_param)
+        get_param = set(get_param)
+        return list(set_param) + list(get_param)
 
     def sync_buffers(self):
         for m_param in self.measurement_parameters_raw:

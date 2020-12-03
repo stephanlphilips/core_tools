@@ -39,6 +39,7 @@ class data_set:
     snapshot_raw = data_set_desciptor('snapshot')
     metadata = data_set_desciptor('metadata', is_JSON=True)
     snapshot = data_set_desciptor('snapshot', is_JSON=True)
+    keywords = data_set_desciptor('keywords')
     
     run_timestamp = data_set_desciptor('UNIX_start_time', is_time=True)
     run_timestamp_raw = data_set_desciptor('UNIX_start_time')

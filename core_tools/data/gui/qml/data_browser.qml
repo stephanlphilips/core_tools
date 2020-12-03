@@ -225,10 +225,9 @@ ApplicationWindow{
 	                            	id : date_list_highlight_box
 	                                height: 0
 	                                color: "transparent"
-	                                anchors.right: parent.right
-                                    anchors.left: parent.left
-                                    anchors.rightMargin: 10
-                                    anchors.leftMargin: 10
+	                                width: measurement_overview_layout.width
+                                    x: 10
+
 	                                RowLayout {
 	                                    height: 42
 	                                    Rectangle {
@@ -239,7 +238,7 @@ ApplicationWindow{
 	                                        Layout.fillHeight: true
 	                                    }
 	                                    Rectangle {
-	                                        width: date_list_highlight_box.width -20
+	                                        width: 210
 	                                        radius : 5
 	                                        color: "#F5F5F5"
 	                                        Layout.fillHeight: true
@@ -342,6 +341,7 @@ ApplicationWindow{
                                                 anchors.fill: parent
                                                 size : 20
                                                 uuid_ : uuid
+                                                selected : starred
                                             }
                                         }
 

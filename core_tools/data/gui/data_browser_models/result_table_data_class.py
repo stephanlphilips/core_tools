@@ -10,10 +10,11 @@ class m_result_item():
     project :str
     set_up : str
     sample : str
+    starred : str
     _keywords : list = None
     _location : bool = 0
 
-    __attr_order = ["my_id","uuid","name","date","project","set_up","sample","keywords","location"]
+    __attr_order = ["my_id","uuid","name","date","project","set_up","sample","starred","keywords","location"]
     __search_key_idx = 3
 
     @property
@@ -27,8 +28,11 @@ class m_result_item():
         kw = ""
         if isinstance(self._keywords, list) :
             for i in self._keywords:
-                kw =+ str(i) + " "
-        return kw
+                kw += str(i) + ", "
+        if len(kw) == 0:
+            return kw
+        
+        return kw[:-2]
     
     @property
     def date(self):
