@@ -1,4 +1,4 @@
-from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info
+from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote
 from core_tools.data.SQL.SQL_commands import write_query_generator, data_fetch_queries
 
 import psycopg2
@@ -64,9 +64,11 @@ class SQL_database_manager(SQL_database_init):
 		ds.SQL_datatable = ds.SQL_datatable.replace(" ", "_").replace('-', '_')
 		# todo -- add tags to the measurements
 
-		cur.execute(write_query_generator.fill_meas_info_in_measurement_table(
+		statement = write_query_generator.fill_meas_info_in_measurement_table(
 			ds.exp_uuid,ds.SQL_datatable,
-			start_time=time.time(), metadata=ds.metadata, snapshot=ds.snapshot, keywords=ds.generate_keywords()))
+			start_time=time.time(), metadata=ds.metadata, snapshot=ds.snapshot, keywords=ds.generate_keywords())
+
+		cur.execute(statement)
 
 		#################################################
 		# make table for storage of the getters/setters #

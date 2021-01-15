@@ -1,6 +1,6 @@
 from core_tools.data.ds.data_set_raw import data_set_raw, m_param_raw
 from core_tools.data.SQL.buffer_writer import buffer_reader
-from core_tools.data.SQL.connector import sample_info
+from core_tools.data.SQL.connect import sample_info
 from uuid import getnode as get_mac
 from psycopg2.extras import Json
 
@@ -137,9 +137,9 @@ class write_query_generator:
 		if stop_time is not None:
 			statement += "UPDATE {} SET stop_time = to_timestamp('{}') WHERE uuid = {};".format(table_name, stop_time, meas_uuid)
 		if metadata is not None:
-			statement += "UPDATE {} SET metadata = {} WHERE uuid = {};".format(table_name, Json(metadata), meas_uuid)
+			statement += "UPDATE {} SET metadata = '{}' WHERE uuid = {};".format(table_name, str(json.dumps(metadata)), meas_uuid)
 		if snapshot is not None:
-			statement += "UPDATE {} SET snapshot = {} WHERE uuid = {};".format(table_name, Json(snapshot), meas_uuid)
+			statement += "UPDATE {} SET snapshot = '{}' WHERE uuid = {};".format(table_name, str(json.dumps(snapshot)), meas_uuid)
 		if keywords is not None:
 			statement += "UPDATE {} SET keywords = {} WHERE uuid = {};".format(table_name, Json(keywords), meas_uuid)
 		if completed is not None:
