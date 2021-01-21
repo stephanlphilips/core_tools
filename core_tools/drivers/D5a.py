@@ -120,7 +120,7 @@ class D5a(Instrument):
         self.voltage_cache[dac] = value
         return self.d5a.set_voltage(dac, value / self._gain)
 
-    def _get_dac(eslf, dac):
+    def _get_dac(self, dac):
         return self.voltage_cache[dac]
     
     def __get_dac(self, dac):
