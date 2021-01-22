@@ -156,7 +156,7 @@ class data_table_queries:
 		statement += "oid INT, "
 		statement += "synchronized BOOL DEFAULT False,"
 		statement += "sync_location text);"
-		
+		print(statement)
 		execute_statement(conn, statement)
 		
 	@staticmethod
@@ -179,7 +179,7 @@ class data_table_queries:
 			text(data_item.unit), psycopg2.extras.Json(data_item.dependency), psycopg2.extras.Json(data_item.shape),
 			0, data_item.size, data_item.oid)
 		
-		update_table(conn, table_name, var_names, var_values)
+		insert_row_in_table(conn, table_name, var_names, var_values)
 
 	@staticmethod
 	def update_cursors_in_meas_tab(conn, table_name, data_items):

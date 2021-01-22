@@ -1,5 +1,8 @@
 from core_tools.data.SQL.SQL_common_commands import execute_statement, execute_query
 from core_tools.data.SQL.SQL_common_commands import select_elements_in_table, insert_row_in_table, update_table
+from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
+
+import datetime 
 
 class alter_dataset:
 	@staticmethod
@@ -73,7 +76,7 @@ class query_for_measurement_results:
 		res = cur.fetchall()
 		cur.close()
 
-		return m_result_overview(res)
+		return res
 
 	def get_all_dates_with_meaurements(project, set_up, sample):
 		statement = "SELECT DISTINCT date_trunc('day', start_time) FROM global_measurement_overview "
