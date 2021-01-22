@@ -249,6 +249,6 @@ if __name__ == '__main__':
     # ds = do0D(param_2D).run()
     # print(ds)
     ds =do1D(x, 0,5,100, 0.01, my_param).run()
-    print(ds.snapshot_raw)
-    print(ds.exp_uuid)
+    # print(ds.snapshot_raw)
+    # print(ds.exp_uuid)
     # do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.001, my_param).run()

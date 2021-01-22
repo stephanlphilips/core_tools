@@ -1,5 +1,5 @@
 from psycopg2.extras import RealDictCursor
-from core_tools.data.SQL.SQL_utility import clean_name_value_pair, format_tuple_SQL
+from core_tools.data.SQL.SQL_utility import clean_name_value_pair, format_tuple_SQL, is_empty
 
 def execute_statement(conn, statement):
 	cursor = conn.cursor()
@@ -59,7 +59,7 @@ def insert_row_in_table(conn, table_name, var_names, var_values, returning=None,
 	'''
 	var_names, var_values = clean_name_value_pair(var_names, var_values)
 	statement = "INSERT INTO {} {} VALUES {} ".format(table_name, str(var_names).replace('\'', ''), format_tuple_SQL(var_values))
-	print(statement)
+
 	if returning is None:
 		return execute_statement(conn, statement + custom_statement + ";")
 	else:
@@ -82,8 +82,9 @@ def update_table(conn, table_name, var_names, var_values, condition=None):
 		return ""
 
 	statement = "UPDATE {} SET ".format(table_name)
+
 	for i,j in zip(var_names, var_values):
-		if j is None or j == "to_timestamp('null')" or j == 'null' or j=='\'null\'::bytea':
+		if is_empty(j):
 			continue
 		statement +=  "{} = {} ,".format(i,j)
 
@@ -91,5 +92,5 @@ def update_table(conn, table_name, var_names, var_values, condition=None):
 
 	if condition is not None:
 		statement += " WHERE {} ".format(condition)
-	print(statement)
+
 	return execute_statement(conn, statement + ";")

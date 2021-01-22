@@ -41,3 +41,15 @@ def format_tuple_SQL(my_tuple):
 	str_tuple = str(my_tuple)
 	return re.sub(r"\"to_timestamp\((.{2,30})\)\"", r"to_timestamp(\1)", str_tuple)
 
+def is_empty(data):
+	if data is None: 
+		return True
+	if data == "\'None\'":
+		return True
+	if data == "to_timestamp('null')":
+		return True
+	if str(data) == "\'null\'":
+		return True
+	if str(data) == "\'null\'::bytea":
+		return True
+	return False

@@ -123,7 +123,6 @@ class measurement_overview_queries:
 			str(completed) )
 
 		condition = 'uuid = {}'.format(meas_uuid)
-
 		update_table(conn, measurement_overview_queries.table_name, var_names, var_values, condition)
 
 	@staticmethod
