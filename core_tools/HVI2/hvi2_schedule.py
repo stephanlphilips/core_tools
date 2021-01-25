@@ -8,8 +8,8 @@ import logging
 
 from pulse_lib.schedule.hardware_schedule import HardwareSchedule
 
-from projects.keysight_hvi2.system import HviSystem
-from projects.keysight_hvi2.sequencer import HviSequencer
+from hvi2_script.system import HviSystem
+from hvi2_script.sequencer import HviSequencer
 import keysightSD1 as SD1
 import uuid
 

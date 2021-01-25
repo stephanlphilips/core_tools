@@ -13,12 +13,13 @@ from .hvi2_schedule import Hvi2Schedule
 from .hvi2_video_mode import Hvi2VideoMode
 from .hvi2_single_shot import Hvi2SingleShot
 
-from projects.keysight_measurement.M3102A import SD_DIG
-from projects.keysight_fpga.M3202A_fpga import FpgaLocalOscillatorExtension
+from core_tools.drivers.M3102A import SD_DIG
 
-from projects.keysight_fpga.fpga_utils import \
+from keysight_fpga.qcodes.M3202A_fpga import FpgaLocalOscillatorExtension
+
+from keysight_fpga.sd1.fpga_utils import \
     FpgaSysExtension, FpgaLogExtension, get_fpga_image_path, has_fpga_info, FpgaMissingExtension
-from projects.keysight_fpga.dig_iq import get_iq_image_filename, is_iq_image_loaded, FpgaDownsamplerExtension
+from keysight_fpga.sd1.dig_iq import get_iq_image_filename, is_iq_image_loaded, FpgaDownsamplerExtension
 
 
 def get_awg_image_filename(module):

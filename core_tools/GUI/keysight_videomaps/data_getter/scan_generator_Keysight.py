@@ -6,13 +6,17 @@ Created on Fri Aug  9 16:50:02 2019
 """
 from qcodes import MultiParameter
 from core_tools.HVI.charge_stability_diagram.HVI_charge_stability_diagram import load_HVI, set_and_compile_HVI, excute_HVI, HVI_ID
-from core_tools.drivers.M3102A import DATA_MODE
+from core_tools.drivers.M3102A import DATA_MODE, is_sd1_3x, MODES
 import matplotlib.pyplot as plt
 import numpy as np
 import time
 import logging
 
-def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
+
+use_hvi2 = is_sd1_3x
+
+def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
+                           dig_samplerate, dig_vmax=2.0, hw_schedule=None, iq_mode=None):
     """
     1D fast scan object for V2.
 
@@ -24,6 +28,10 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
+        hw_schedule : hardware schedule to trigger AWGs and digitizer
+        iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+                complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
+                all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
@@ -40,9 +48,14 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     getattr(charge_st_1D, gate).add_HVI_variable("averaging", True)
 
     # set up timing for the scan
-    # 2us needed to rearm digitizer
-    # 100ns HVI waiting time
-    step_eff = 2000 + 120 + t_step
+    if use_hvi2:
+        if hw_schedule is None:
+            raise Exception('hw_schedule must be set for HVI2')
+        step_eff = t_step + hw_schedule.script.acquisition_gap
+    else:
+        # 2us needed to rearm digitizer
+        # 120ns HVI waiting time
+        step_eff = 2000 + 120 + t_step
 
     logging.info(f'Construct 1D: {gate}')
 
@@ -65,16 +78,24 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([charge_st_1D])
-    my_seq.add_HVI(HVI_ID, load_HVI, set_and_compile_HVI, excute_HVI)
+    if use_hvi2:
+        if hw_schedule is None:
+            raise Exception('hw_schedule must be set for HVI2')
+        my_seq.set_hw_schedule(hw_schedule)
+    else:
+        my_seq.add_HVI(HVI_ID, load_HVI, set_and_compile_HVI, excute_HVI)
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
     logging.info(f'Upload')
     my_seq.upload([0])
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(np.sort(voltages)), ), biasT_corr, dig_samplerate, channels = channels)
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(voltages), ),
+                                    biasT_corr, dig_samplerate, channels = channels, Vmax=dig_vmax, iq_mode=iq_mode)
 
-def construct_1D_scan_MOD(gate, swing, n_pt, MOD_gates, freq_start, freq_step , biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
+
+def construct_1D_scan_MOD(gate, swing, n_pt, MOD_gates, freq_start, freq_step , biasT_corr, pulse_lib, digitizer,
+                          channels, dig_samplerate):
     """
     1D fast scan object for V2.
 
@@ -136,9 +157,12 @@ def construct_1D_scan_MOD(gate, swing, n_pt, MOD_gates, freq_start, freq_step , 
 
     my_seq.upload([0])
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(np.sort(voltages)), ), biasT_corr, dig_samplerate, channels = channels)
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(np.sort(voltages)), ), 
+                                    biasT_corr, dig_samplerate, channels = channels)
 
-def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
+
+def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
+                           digitizer, channels, dig_samplerate, dig_vmax=2.0, hw_schedule=None, iq_mode=None):
     """
     1D fast scan object for V2.
 
@@ -153,6 +177,10 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
+        hw_schedule : hardware schedule to trigger AWGs and digitizer
+        iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+                complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
+                all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
@@ -168,10 +196,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     getattr(charge_st_2D, gate1).add_HVI_variable("averaging", True)
 
     # set up timing for the scan
-    # 2us needed to rearm digitizer
-    # 100ns HVI waiting time
-    # [SdS] Why is the value below 120 ns?
-    step_eff = 2000 + 120 + t_step
+    if use_hvi2:
+        if hw_schedule is None:
+            raise Exception('hw_schedule must be set for HVI2')
+        step_eff = t_step + hw_schedule.script.acquisition_gap
+    else:
+        # 2us needed to rearm digitizer
+        # 120ns HVI waiting time
+        step_eff = 2000 + 120 + t_step
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
@@ -201,21 +233,29 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([charge_st_2D])
     logging.info(f'Add HVI')
-    my_seq.add_HVI(HVI_ID, load_HVI, set_and_compile_HVI, excute_HVI)
+    if use_hvi2:
+        if hw_schedule is None:
+            raise Exception('hw_schedule must be set for HVI2')
+        my_seq.set_hw_schedule(hw_schedule)
+    else:
+        my_seq.add_HVI(HVI_ID, load_HVI, set_and_compile_HVI, excute_HVI)
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
     logging.info(f'Seq upload')
     my_seq.upload([0])
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),  (tuple(np.sort(voltages2)),tuple(voltages1)), biasT_corr, dig_samplerate, channels = channels)
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),
+                                    (tuple(np.sort(voltages2)),tuple(voltages1)), biasT_corr, dig_samplerate, 
+                                     channels=channels, Vmax=dig_vmax, iq_mode=iq_mode)
 
 
 class _digitzer_scan_parameter(MultiParameter):
     """
     generator for the parameter f
     """
-    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate, data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4]):
+    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate, 
+                 data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4], Vmax=2.0, iq_mode=None):
         """
         args:
             digitizer (SD_DIG) : digizer driver:
@@ -229,6 +269,9 @@ class _digitzer_scan_parameter(MultiParameter):
             sample_rate (float): sample rate of the digitizer card that should be used.
             data mode (int): data mode of the digizer
             channels (list<int>): channels to measure
+            iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+                    complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
+                    all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
         """
         self.dig = digitizer
         self.my_seq = my_seq
@@ -241,8 +284,20 @@ class _digitzer_scan_parameter(MultiParameter):
         self.biasT_corr = biasT_corr
         self.shape = shape
         self.n_ch = len(channels)
+        self.Vmax = Vmax
+        self.iq_mode = iq_mode
+
+        # clean up the digitizer before start
+        for ch in range(1,5):
+            digitizer.daq_stop(ch)
+            digitizer.daq_flush(ch)
+
+        if use_hvi2:
+            self.sample_rate = 500e6
+
         # set digitizer for proper init
-        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate, data_mode = self.data_mode, channels = self.channels)
+        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate, 
+                                   data_mode = self.data_mode, channels = self.channels, Vmax=self.Vmax)
 
         super().__init__(name=digitizer.name, names = digitizer.measure.names,
                         shapes = tuple([shape]*self.n_ch),
@@ -252,14 +307,13 @@ class _digitzer_scan_parameter(MultiParameter):
                         docstring='Scan parameter for digitizer')
 
     def get_raw(self):
-        logging.info(f'Stop/flush')
-        # clean up the digitizer
-        for ch in range(1,5):
-            self.dig.daq_stop(ch)
-            self.dig.daq_flush(ch)
 
-        # set digitizer
-        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate, data_mode = self.data_mode, channels = self.channels)
+        if not use_hvi2:
+            # Note: The settings do not change. HVI2 allows new trigger without configuring.
+            #       This is not tested for HVI1.
+            # set digitizer
+            self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
+                                       data_mode = self.data_mode, channels = self.channels, Vmax=self.Vmax)
 
         logging.info(f'Play')
         start = time.perf_counter()
@@ -275,6 +329,20 @@ class _digitzer_scan_parameter(MultiParameter):
         # get the data
         data = list(self.dig.measure())
 
+        if self.iq_mode is not None:
+            for i, channel in zip(range(len(data)), self.channels):
+                iq_mode = self.iq_mode if isinstance(self.iq_mode, str) else self.iq_mode[channel]
+                if iq_mode == 'I':
+                    data[i] = data[i].real
+                elif iq_mode == 'Q':
+                    data[i] = data[i].imag
+                elif iq_mode == 'abs':
+                    data[i] = np.abs(data[i])
+                elif iq_mode == 'angle':
+                    data[i] = np.angle(data[i])
+                elif iq_mode == 'angle_deg':
+                    data[i] = np.angle(data[i], deg=True)
+
         # make sure that data is put in the right order.
         for i in range(len(data)):
             data[i] = data[i].reshape(self.shape)
@@ -288,13 +356,17 @@ class _digitzer_scan_parameter(MultiParameter):
         logging.info(f'Done')
         return tuple(data_out)
 
+    def restart(self):
+        if use_hvi2:
+            # The settings could have changed: reconfigure digitizer
+            self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
+                                       data_mode = self.data_mode, channels = self.channels, Vmax=self.Vmax)
+
     def stop(self):
         if not self.my_seq is None and not self.pulse_lib is None:
-            logging.info('last play to cleanup')
+            logging.info('stop: release memory')
             # remove pulse sequence from the AWG's memory.
-            self.my_seq.play([0], release = True)
-            # no blocking on HVI, so can just overwrite this.
-            self.pulse_lib.uploader.release_memory()
+            self.my_seq.release_memory()
             self.my_seq = None
             self.pulse_lib = None
 
