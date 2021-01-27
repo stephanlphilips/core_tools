@@ -773,6 +773,9 @@ class SD_DIG(Instrument):
                            LO_f=properties.lo_frequency, phase=properties.lo_phase,
                            p2decim=power2decimation, input_ch=config_input_channel)
 
+        # add extra points for acquisition alignment
+        daq_points_per_cycle = self._get_aligned_npoints(daq_points_per_cycle)
+
         # variables needed to generate correct setpoints and for data acquisition
         properties.cycles = n_cycles
         properties.points_per_cycle = points_per_cycle
@@ -785,8 +788,6 @@ class SD_DIG(Instrument):
         properties.daq_points_per_cycle = daq_points_per_cycle
         properties.daq_cycles = daq_cycles
 
-        # add extra points for acquisition alignment
-        daq_points_per_cycle = self._get_aligned_npoints(daq_points_per_cycle)
         logging.debug(f'ch{channel} config: {daq_points_per_cycle}, {daq_cycles}')
         self.SD_AIN.DAQconfig(channel, daq_points_per_cycle, daq_cycles, DAQ_trigger_delay, DAQ_trigger_mode)
         self.SD_AIN.channelPrescalerConfig(channel, prescaler)
