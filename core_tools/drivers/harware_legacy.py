@@ -1,7 +1,10 @@
-# -*- coding: utf-8 -*-
 from dataclasses import dataclass
 import qcodes as qc
 import numpy as np
+import shelve
+from typing import Sequence
+import json
+
 
 @dataclass
 class virtual_gate:
@@ -64,40 +67,6 @@ class virtual_gate:
         new_state["virtual_gate_matrix_no_norm"] = np.asarray(new_state["virtual_gate_matrix_no_norm"]).data
         self.__dict__.update(new_state)
 
-@dataclass
-class rf_sources:
-    module : any
-    _frequency : float
-    _power :float
-    _frequency_stepsize :float
-
-    @property 
-    def frequency(self):
-        return self._frequency
-
-    @frequency.setter
-    def frequency(self, freq):
-        self.module.frequency(freq)
-        self._frequency = freq
-
-    @property 
-    def power(self):
-        return self._power
-
-    @power.setter
-    def power(self, my_power):
-        self.module.power(my_power)
-        self._power = my_power
-
-    @property 
-    def frequency_stepsize(self):
-        return self._frequency_stepsize
-
-    @frequency_stepsize.setter
-    def frequency_stepsize(self, freq_step_size):
-        self.module.frequency_stepsize(freq_step_size)
-        self._frequency_stepsize = freq_step_size
-
 class virtual_gates_mgr(list):
     def __init__(self, sync_engine, *args):
         super(virtual_gates_mgr, self).__init__(*args)
@@ -150,15 +119,22 @@ class virtual_gates_mgr(list):
 
 class harware_parent(qc.Instrument):
     """docstring for harware_parent -- init a empy hardware object"""
-    def __init__(self, sample_name):
+    def __init__(self, sample_name, storage_location):
         super(harware_parent, self).__init__(sample_name)
-
+        self.storage_location = storage_location
+        self.sync = shelve.open(sample_name, flag='c', writeback=True)
         self.dac_gate_map = dict()
         self.boundaries = dict()
-        self.RF_sources = dict()
+        self.RF_source_names = []
+        self.RF_params = ['frequency_stepsize', 'frequency', 'power']
+        self._RF_settings = dict()
         
+        # set this one in the GUI.
         self._AWG_to_dac_conversion = dict()
-        self._virtual_gates = virtual_gates_mgr()
+        if 'AWG2DAC' in list(self.sync.keys()):
+            self._AWG_to_dac_conversion = self.sync['AWG2DAC']
+                
+        self._virtual_gates = virtual_gates_mgr(self.sync)
 
     @property
     def virtual_gates(self):
@@ -166,7 +142,14 @@ class harware_parent(qc.Instrument):
     
     @property
     def RF_settings(self):
-        return self.RF_sources
+        return self._RF_settings
+    
+    @RF_settings.setter
+    def RF_settings(self, RF_settings):
+        if self._RF_settings.keys() == RF_settings.keys():
+            RF_settings = self._RF_settings
+        else:
+            self._RF_settings = RF_settings
     
     @property
     def AWG_to_dac_conversion(self):
@@ -179,13 +162,35 @@ class harware_parent(qc.Instrument):
         else:
             self._AWG_to_dac_conversion = AWG_to_dac_ratio
 
-    def add_rf_source(self, src):
-        self.RF_sources[src.name] = rf_sources(src, 0, 0, 0)
+    def setup_RF_settings(self, sources):
+        #TODO: If a module is added, the settings of the previous module are discarded
+        RF_generated, qc_params = self.gen_RF_settings(sources)
+        if 'RFsettings' in list(self.sync.keys()) and self.sync['RFsettings'].keys() == RF_generated.keys():
+            self.RF_settings = self.sync['RFsettings']
+            for (param,val) in zip(qc_params,self.RF_settings.values()):
+                param(val)
+        else:
+            self.RF_settings = self.gen_RF_settings(sources = sources)
     
-    def add_virtual_gates(self, name_matrix, gates, virtual_gate_names=None):
-        vg = virtual_gate(name, real_gate_names, virtual_gate_names)
-        self._virtual_gates.append(vg)
+    def gen_RF_settings(self, sources):
+        RF_settings = dict()
+        qc_params = []
+        for src in sources:
+            name = src.name
+            self.RF_source_names.append(name)
+            for param in self.RF_params:
+                qc_param = getattr(src,param)
+                RF_settings[f'{name}_{param}'] = qc_param()
+                qc_params.append(qc_param)
+        return RF_settings,qc_params
 
+    def sync_data(self):
+        for item in self.virtual_gates:
+            self.sync[item.name] = item
+        self.sync['AWG2DAC'] = self._AWG_to_dac_conversion
+        self.sync['RFsettings'] = self._RF_settings
+        self.sync.sync()
+        
     def snapshot_base(self, update: bool=False,
                   params_to_skip_update: Sequence[str]=None):        
         vg_snap = {}

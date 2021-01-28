@@ -58,6 +58,7 @@ def insert_row_in_table(conn, table_name, var_names, var_values, returning=None,
 		returning (str) : name of a variablle you want returned
 	'''
 	var_names, var_values = clean_name_value_pair(var_names, var_values)
+
 	statement = "INSERT INTO {} {} VALUES {} ".format(table_name, str(var_names).replace('\'', ''), format_tuple_SQL(var_values))
 
 	if returning is None:

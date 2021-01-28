@@ -30,6 +30,7 @@ def clean_name_value_pair(names, values):
 		if values[i] == None or values[i] == 'null':
 			values.pop(i)
 			names.pop(i)
+			continue
 		values[i] = str(values[i])
 
 	return tuple(names), tuple(values)
@@ -41,7 +42,7 @@ def format_tuple_SQL(my_tuple):
 	'''
 	str_tuple = str(my_tuple)
 	my_str = re.sub(r"\"to_timestamp\((.{2,30})\)\"", r"to_timestamp(\1)", str_tuple)
-	return my_str.replace(", \"\'", ", \'").replace("(\"\'", "(\'").replace("\'\", ", "\', ").replace("\'\")", "\')")
+	return my_str.replace(", \"'", ", '").replace("(\"'", "('").replace("'\", ", "', ").replace("'\")", "\')")
 
 def is_empty(data):
 	if data is None: 
@@ -50,8 +51,8 @@ def is_empty(data):
 		return True
 	if data == "to_timestamp('null')":
 		return True
-	if str(data) == "\'null\'":
+	if str(data) == "'null'":
 		return True
-	if str(data) == "\'null\'::bytea":
+	if str(data) == "'null'::bytea":
 		return True
 	return False
