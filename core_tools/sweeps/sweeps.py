@@ -213,9 +213,10 @@ if __name__ == '__main__':
     # station.add_component(p)
     station.add_component(instr)
 
-    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+    from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+    # set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "testing")
     # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "testing")
 
     now = str(datetime.datetime.now())
     path = os.path.join(os.getcwd(), 'test.db')
@@ -233,8 +234,6 @@ if __name__ == '__main__':
 
 
     s = sweep_info(x,10,100,10,0)
-    print(s.param(5))
-    print(s.param)
     s.param = 5
     # from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast,construct_2D_scan_fast, fake_digitizer
     # param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'))
@@ -247,13 +246,9 @@ if __name__ == '__main__':
     param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'), 2, 1e9)
     # data_1D = param_1D.get()
     # do0D(param_2D).run()
-    print(param_2D.shapes)
-    print(param_2D.setpoints)
-    ds = do0D(param_2D).run()
+    # ds = do0D(param_2D).run()
     # print(ds)
-    # do1D(x, 0,5,100, 0.01, my_param).run()
-
+    ds =do1D(x, 0,5,100, 0.01, my_param).run()
+    # print(ds.snapshot_raw)
+    # print(ds.exp_uuid)
     # do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.001, my_param).run()
-    # print(ds.snapshot)
-    # print(station.snapshot())
-    

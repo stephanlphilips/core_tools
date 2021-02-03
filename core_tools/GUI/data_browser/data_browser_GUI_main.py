@@ -8,7 +8,7 @@ import qcodes
 import numpy as np
 import qdarkstyle
 import logging
-import qtt
+# import qtt
 from core_tools.utility.powerpoint import addPPTslide, addPPT_dataset
 import os
 from qcodes.plots.pyqtgraph import QtPlot

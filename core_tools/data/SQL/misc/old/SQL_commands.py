@@ -1,6 +1,6 @@
 from core_tools.data.ds.data_set_raw import data_set_raw, m_param_raw
 from core_tools.data.SQL.buffer_writer import buffer_reader
-from core_tools.data.SQL.connector import sample_info
+from core_tools.data.SQL.connect import sample_info
 from uuid import getnode as get_mac
 from psycopg2.extras import Json
 import psycopg2

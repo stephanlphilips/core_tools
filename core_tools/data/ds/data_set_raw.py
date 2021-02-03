@@ -1,4 +1,4 @@
-from core_tools.data.SQL.connector import sample_info, SQL_conn_info_local
+from core_tools.data.SQL.connect import sample_info, SQL_conn_info_local
 from core_tools.data.SQL.buffer_writer import buffer_reference
 from dataclasses import dataclass, field
 import copy

@@ -1,5 +1,7 @@
-from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info
-from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
+from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info
+from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
+
+
 from core_tools.utility.variable_mgr.var_mgr_sql import var_sql_queries
 from core_tools.utility.variable_mgr.qml.gui_controller import GUI_controller
 import psycopg2
@@ -104,7 +106,7 @@ class variable_mgr():
             return super().__setattr__(name, value)
 
 if __name__ == '__main__':
-    from core_tools.data.SQL.connector import set_up_local_storage, set_up_remote_storage
+    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage
     set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
 #    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
 

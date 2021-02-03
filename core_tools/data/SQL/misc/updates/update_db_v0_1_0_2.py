@@ -8,9 +8,9 @@ to_update:
 '''
 from psycopg2.extras import RealDictCursor, DictCursor,Json
 import json, time
-from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
 import psycopg2
-from core_tools.data.SQL.SQL_commands import write_query_generator, data_fetch_queries
+from core_tools.data.SQL.misc.old.SQL_commands import write_query_generator, data_fetch_queries
 
 
 def to_postgres_time(my_date_time):
@@ -110,11 +110,11 @@ def drop_and_move(conn_local):
 	conn_local.commit()
 	print('new table made main table')
 
-from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
+from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
 
 # set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
-set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
 
+set_up_remote_storage('131.180.205.81', 5432, 'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
 print('attemping connections')
 conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_info_local.user, 
 				password=SQL_conn_info_local.passwd, host=SQL_conn_info_local.host, port=SQL_conn_info_local.port)
