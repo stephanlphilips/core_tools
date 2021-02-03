@@ -25,7 +25,7 @@ FAST = "FAST"
 SLOW = "SLOW"
 
 
-MODE = FAST
+MODE = SLOW
 
 
 class PulseLibParameter(Parameter):
@@ -47,16 +47,16 @@ class PulseLibParameter(Parameter):
 
     def set_raw(self, value):
         if self.lowest_level:
-            self.sequencer.upload(np.unravel_index(self.flat_index, self.sequencer.shape))
-            index = np.unravel_index(self.flat_index, self.sequencer.shape)
-            
-            self.sequencer.play(index)
-            self.sequencer.uploader.wait_until_AWG_idle()
+            if MODE == SLOW or self.flat_index == 0:
+                self.sequencer.upload(np.unravel_index(self.flat_index, self.sequencer.shape))
 
-    '''
-    @ sander, how can we make sure that a unused upload is removed when the garbage collector collects this?
-    (e.g. when a set is performed to reset parameters -- normally this does not happen, but user might accidentatly do this.)
-    '''
+            index = np.unravel_index(self.flat_index, self.sequencer.shape)
+            self.sequencer.play(index)
+
+            if MODE == SLOW:
+                self.sequencer.uploader.wait_until_AWG_idle()
+            if MODE==FAST and self.flat_index < np.prod(self.sequencer.shape) - 1:
+                self.sequencer.upload(np.unravel_index(self.flat_index+1, self.sequencer.shape))
 
 def pulselib_2_qcodes(awg_sequence):
     '''

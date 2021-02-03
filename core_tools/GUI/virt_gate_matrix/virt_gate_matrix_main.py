@@ -234,7 +234,6 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         inv_cap[i,j] = spin_box.value()
         cap_mat = inv_cap_to_cap_mat(inv_cap)
         matrix_no_view[:, :] = cap_mat
-
         self.gates_object.hardware.sync_data()
 
     def update_v_gates(self, matrix, update_list):
@@ -245,6 +244,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
             update_list: List with GUI boxes
         """
         inv_cap = cap_to_inv_cap_mat(matrix)
+
         for i,j, spin_box in update_list:
             if not spin_box.hasFocus():
                 spin_box.setValue(inv_cap[i,j])

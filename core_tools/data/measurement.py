@@ -75,7 +75,9 @@ class Measurement:
                 raise ValueError("setpoint {} not yet defined, please define before declaring the measurement parameter.".format(setpoint))
 
         m_param_parameter_spec = None
-
+        
+        
+        print(parameter)
         if isinstance(parameter, qc.Parameter):
             m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name, 
                 [parameter.name], [parameter.label], [parameter.unit])

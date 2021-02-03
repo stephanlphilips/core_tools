@@ -123,7 +123,7 @@ class harware_parent(qc.Instrument):
     def __init__(self, sample_name, storage_location):
         super(harware_parent, self).__init__(sample_name)
         self.storage_location = storage_location
-        self.sync = shelve.open(sample_name, flag='c', writeback=True)
+        self.sync = shelve.open(storage_location + sample_name, flag='c', writeback=True)
         self.dac_gate_map = dict()
         self.boundaries = dict()
         self.RF_source_names = []

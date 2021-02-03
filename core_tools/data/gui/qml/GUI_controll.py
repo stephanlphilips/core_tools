@@ -50,7 +50,7 @@ class signale_handler(QtQuick.QQuickView):
         if SQL_conn_info_remote.host != 'localhost':
             obj.setProperty("remote_conn_status", True)
         else:
-            obj.setProperty("remote_conn_status", True)
+            obj.setProperty("remote_conn_status", False)
 
         self.pro_set_sample_info_state_change_loc(1,1,1)
 

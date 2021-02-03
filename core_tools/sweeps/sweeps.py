@@ -44,7 +44,7 @@ class scan_generic(metaclass=job_meta):
                 continue
             else:
                 self.m_instr.append(arg)
-
+        
         for instr in self.m_instr:
             self.meas.register_get_parameter(instr, *set_points)
                 

@@ -300,8 +300,12 @@ class PSB_param(MultiParameter):
             names += ("qubit_{}".format(i), )
             shapes += ((), )
             if threshold is not None:
-                labels += ('Spin probability qubit {}'.format(i+1) ,)
-                units += ('%', )
+                if i%2 == 0:
+                    labels += ('N states selected q{}{}'.format(i+1, i+2) ,)
+                    units += ('#', )
+                else : 
+                    labels += ('S/T probability q{}{}'.format(i, i+1) ,)
+                    units += ('%', )
             else:
                 labels += ('Signal {}'.format(i+1) ,)
                 units += ('mV', )
@@ -316,12 +320,60 @@ class PSB_param(MultiParameter):
         # expected format from the getter <tuple<np.ndarray[ndim=2,dtype=double]>>
         data_in = self.dig.get()
         data_out = []
-        for n in range(len(data_in)):
-            if self.threshold is None:
-                data_out.append(np.mean(data_in[n]))
-            else:
-                for i in range(len(self.threshold)):
-                    threshold = self.threshold[i]
-                    data_out += [(np.where(data_in[i] < threshold)[0].size)/np.asarray(data_in[i]).size]
-        return data_out     
-    
+        if not isinstance(self.threshold, list):
+            for n in range(len(data_in)):
+                if self.threshold is None:
+                    data_out.append(np.mean(data_in[n]))
+                else:
+                    threshold = self.threshold[n]
+                    data_out += [(np.where(data_in[n] > threshold)[0].size)/np.asarray(data_in[n]).size]
+            return data_out
+
+        else:
+            # print(data_in[0])
+            if len(self.threshold) == 1:
+                return (np.where(data_in[0] < self.threshold[0])[0]).size/data_in[0].size
+
+            elif len(self.threshold) == 2:
+                # expected S to be high in signal
+                selection_1 = np.where(data_in[0] > self.threshold[0])[0]
+                selected_data_1 = 0
+
+                if selection_1.size != 0:
+                    selected_data_1 = (np.where(data_in[1][selection_1] < self.threshold[1])[0].size)/selection_1.size
+                return (selection_1.size, selected_data_1)
+
+            # elif len(self.threshold) == 3:
+            #     selection_1 = np.where(data_in[0] < self.threshold[0])[0]
+            #     selection_2 = np.where(data_in[1] < self.threshold[1])[0]
+
+            #     sel=np.intersect1d(selection_1, selection_2)
+
+            #     if selection_1.size != 0:
+            #         selected_data_1 = (np.where(data_in[2][sel] < self.threshold[2])[0].size)/sel.size
+
+            #     return (selection_1.size, sel.size, selected_data_1)  
+
+            elif len(self.threshold) == 3:
+                selection_1 = np.where(data_in[0] > self.threshold[0])[0]
+                selection_2 = np.where(data_in[1] < self.threshold[1])[0]
+
+                sel=np.intersect1d(selection_1, selection_2)
+
+                if selection_1.size != 0:
+                    selected_data_1 = (np.where(data_in[2][sel] < self.threshold[1])[0].size)/sel.size
+                # print(selected_data_1)
+                return (selection_1.size, sel.size, selected_data_1)                
+
+            elif len(self.threshold) == 4:
+                selection_1 = np.where(data_in[0] < self.threshold[0])[0]
+                selection_2 = np.where(data_in[1] > self.threshold[1])[0]
+
+                selected_data_1, selected_data_2 = 0
+
+                if selection_1.size != 0:
+                    selected_data_1 = (np.where(data_in[2][selection_1] < self.threshold[2])[0].size)/selection_1.size
+                if selection_2.size != 0:
+                    selected_data_2 = (np.where(data_in[3][selection_2] < self.threshold[3])[0].size)/selection_2.size
+
+                return (selection_1.size, selected_data_1, selection_2.size, selected_data_2)

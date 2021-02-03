@@ -5,6 +5,7 @@ from core_tools.HVI.single_shot_exp.HVI_single_shot import load_HVI, set_and_com
 from core_tools.HVI.single_shot_exp.HVI_single_shot_1qubit import load_HVI_1, set_and_compile_HVI_1, excute_HVI_1, HVI_ID_1
 from core_tools.HVI.single_shot_exp.HVI_single_shot_2qubit import load_HVI_2, set_and_compile_HVI_2, excute_HVI_2, HVI_ID_2
 from core_tools.HVI.single_shot_exp.HVI_single_shot_3qubit import load_HVI_3, set_and_compile_HVI_3, excute_HVI_3, HVI_ID_3
+from core_tools.HVI.single_shot_exp.HVI_single_shot_4qubit import load_HVI_4, set_and_compile_HVI_4, excute_HVI_4, HVI_ID_4
 
 from core_tools.utility.mk_digitizer_param import get_digitizer_param
 from core_tools.utility.dig_utility import autoconfig_dig_v2, MODES
@@ -78,8 +79,11 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
     elif n_qubit == 3:
         print('3 qubits detected')
         my_seq.add_HVI(HVI_ID_3, load_HVI_3, set_and_compile_HVI_3, excute_HVI_3, digitizer = station.dig, **settings)
+    elif n_qubit == 4:
+        print('4 qubits detected')
+        my_seq.add_HVI(HVI_ID_4, load_HVI_4, set_and_compile_HVI_4, excute_HVI_4, digitizer = station.dig, **settings)
     else:
-        raise ValueError('No more than 3 qubit supported at the moment :/')
+        raise ValueError('No more than 4 qubit supported at the moment :/')
 
     my_seq.n_rep = n_rep
     my_seq.neutralise = True
