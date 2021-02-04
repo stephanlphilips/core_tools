@@ -47,7 +47,7 @@ class SQL_database_manager(SQL_database_init):
             sample_info_queries.add_sample(SQL_database_manager.__instance.conn_local)
             
             measurement_overview_queries.generate_table(SQL_database_manager.__instance.conn_local)
-
+            SQL_database_manager.__instance.conn_local.commit()
         return SQL_database_manager.__instance
 
 
@@ -67,7 +67,9 @@ class SQL_sync_manager(SQL_database_init):
 
             sample_info_queries.generate_table(SQL_sync_manager.__instance.conn_remote)
             measurement_overview_queries.generate_table(SQL_sync_manager.__instance.conn_remote)
-
+            SQL_database_manager.__instance.conn_local.commit()
+            SQL_database_manager.__instance.conn_remote.commit()
+        
         return SQL_sync_manager.__instance
 
 
