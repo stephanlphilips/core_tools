@@ -73,7 +73,8 @@ class Hvi2SingleShot():
                 result.append((channel, lo))
         return result
 
-    def _wait_state_clear(self, dig_seq):
+    def _wait_state_clear(self, dig_seq, **kwargs):
+        dig_seq.ds.set_state_mask(**kwargs)
         dig_seq.wait(10)
         dig_seq['channel_state'] = dig_seq.ds.state
         dig_seq.wait(20)
@@ -86,12 +87,12 @@ class Hvi2SingleShot():
         for dig_seq in dig_seqs:
             ds_channels = self._get_dig_channel_config(dig_seq).ds_channels
             if len(ds_channels) > 0:
-                dig_seq.ds.set_state_mask(running=ds_channels)
-                self._wait_state_clear(dig_seq)
+                dig_seq.wait(600)
+#                self._wait_state_clear(dig_seq, running=ds_channels)
 
                 dig_seq.ds.control(push=ds_channels)
-                dig_seq.ds.set_state_mask(pushing=ds_channels)
-                self._wait_state_clear(dig_seq)
+                dig_seq.wait(600)
+#                self._wait_state_clear(dig_seq, pushing=ds_channels)
 
 
     def sequence(self, sequencer, hardware):
@@ -108,8 +109,9 @@ class Hvi2SingleShot():
         self.r_awg_los_duration = []
         for i in range(n_triggers):
             self.r_dig_wait.append(sequencer.add_module_register(f'dig_wait_{i+1}', module_type='digitizer'))
-            self.r_awg_los_wait.append(sequencer.add_module_register(f'awg_los_wait_{i+1}', module_type='awg'))
-            self.r_awg_los_duration.append(sequencer.add_module_register(f'awg_los_duration_{i+1}', module_type='awg'))
+            if self.switch_los:
+                self.r_awg_los_wait.append(sequencer.add_module_register(f'awg_los_wait_{i+1}', module_type='awg'))
+                self.r_awg_los_duration.append(sequencer.add_module_register(f'awg_los_duration_{i+1}', module_type='awg'))
 
         sequencer.add_module_register('channel_state', module_type='digitizer')
 
