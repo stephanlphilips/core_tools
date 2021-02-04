@@ -156,7 +156,6 @@ class data_table_queries:
 		statement += "oid INT, "
 		statement += "synchronized BOOL DEFAULT False,"
 		statement += "sync_location text);"
-		print(statement)
 		execute_statement(conn, statement)
 		
 	@staticmethod

@@ -135,18 +135,8 @@ class signale_handler(QtQuick.QQuickView):
 
     @QtCore.pyqtSlot('QString', bool)
     def star_measurement(self, uuid, state):
-        statement = alter_dataset.star_measurement(uuid, state)
-
-        cur = SQL_database_manager().conn_local.cursor()
-        cur.execute(statement)
-        SQL_database_manager().conn_local.commit()
-        cur.close() 
+        alter_dataset.star_measurement(uuid, state)
 
     @QtCore.pyqtSlot('QString', 'QString')
     def update_name_meaurement(self, uuid, name):
-        statement = alter_dataset.update_name(uuid, name)
-
-        cur = SQL_database_manager().conn_local.cursor()
-        cur.execute(statement)
-        SQL_database_manager().conn_local.commit()
-        cur.close() 
+        alter_dataset.update_name(uuid, name)

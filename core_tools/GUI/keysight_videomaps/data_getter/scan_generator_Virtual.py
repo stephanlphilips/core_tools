@@ -19,7 +19,7 @@ class fake_digitizer(MultiParameter):
         def get_raw(self):
             return 0
             
-def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
+def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate, hw_schedule=None):
     """
     1D fast scan object for V2.
 
@@ -31,6 +31,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
+        hw_schedule : hardware schedule to trigger AWGs and digitizer
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
@@ -61,7 +62,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ), ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
 
 
-def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate):
+def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate, hw_schedule=None):
     """
     1D fast scan object for V2.
 
@@ -76,6 +77,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
+        hw_schedule : hardware schedule to trigger AWGs and digitizer
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.

@@ -1,3 +1,5 @@
+from core_tools.data.SQL.SQL_utility import text
+
 from core_tools.data.SQL.SQL_common_commands import execute_statement, execute_query
 from core_tools.data.SQL.SQL_common_commands import select_elements_in_table, insert_row_in_table, update_table
 from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
@@ -8,13 +10,13 @@ class alter_dataset:
 	@staticmethod
 	def update_name(uuid, name):
 		conn = SQL_database_manager().conn_local
-		update_table(conn, 'global_measurement_overview', ('exp_name', 'table_synchronized'), (name, False), where = 'uuid = {}'.format(uuid))
-
+		update_table(conn, 'global_measurement_overview', ('exp_name', 'table_synchronized'), (text(name), False), condition = 'uuid = {}'.format(uuid))
+		conn.commit()
 	@staticmethod
 	def star_measurement(uuid, state):
 		conn = SQL_database_manager().conn_local
-		update_table(conn, 'global_measurement_overview', ('starred', 'table_synchronized'), (state, False), where = 'uuid = {}'.format(uuid))
-
+		update_table(conn, 'global_measurement_overview', ('starred', 'table_synchronized'), (state, False), condition = 'uuid = {}'.format(uuid))
+		conn.commit()
 class query_for_samples():
 	@staticmethod
 	def get_projects(set_up = None, sample = None):

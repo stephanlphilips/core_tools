@@ -129,3 +129,4 @@ dmypy.json
 # neglect db files
 .db
 .sqlite
+/keysightSD1/__pycache__

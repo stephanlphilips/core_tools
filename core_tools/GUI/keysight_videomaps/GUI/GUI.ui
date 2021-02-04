@@ -1128,11 +1128,38 @@
                 </widget>
                </item>
                <item row="10" column="1">
-                <widget class="QSpinBox" name="_2D_average">
-                 <property name="maximum">
-                  <number>500</number>
-                 </property>
-                </widget>
+                <layout class="QHBoxLayout" name="horizontalLayout_4">
+                 <item>
+                  <widget class="QSpinBox" name="_2D_average">
+                   <property name="maximum">
+                    <number>500</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Fixed</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>5</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QProgressBar" name="_2D_av_progress">
+                   <property name="value">
+                    <number>0</number>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
                <item row="11" column="0">
                 <widget class="QLabel" name="label_23">
@@ -1243,7 +1270,7 @@
           <x>0</x>
           <y>10</y>
           <width>221</width>
-          <height>131</height>
+          <height>151</height>
          </rect>
         </property>
         <property name="frameShape">
@@ -1258,7 +1285,7 @@
            <x>9</x>
            <y>9</y>
            <width>201</width>
-           <height>111</height>
+           <height>131</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -1319,7 +1346,7 @@
             <item row="1" column="1">
              <layout class="QHBoxLayout" name="horizontalLayout_8">
               <item alignment="Qt::AlignHCenter">
-               <widget class="QCheckBox" name="_ch1">
+               <widget class="QCheckBox" name="_gen_ch1">
                 <property name="text">
                  <string/>
                 </property>
@@ -1329,7 +1356,7 @@
                </widget>
               </item>
               <item alignment="Qt::AlignHCenter">
-               <widget class="QCheckBox" name="_ch2">
+               <widget class="QCheckBox" name="_gen_ch2">
                 <property name="text">
                  <string/>
                 </property>
@@ -1339,7 +1366,7 @@
                </widget>
               </item>
               <item alignment="Qt::AlignHCenter">
-               <widget class="QCheckBox" name="_ch3">
+               <widget class="QCheckBox" name="_gen_ch3">
                 <property name="text">
                  <string/>
                 </property>
@@ -1349,7 +1376,7 @@
                </widget>
               </item>
               <item alignment="Qt::AlignHCenter">
-               <widget class="QCheckBox" name="_ch4">
+               <widget class="QCheckBox" name="_gen_ch4">
                 <property name="text">
                  <string/>
                 </property>
@@ -1409,7 +1436,7 @@
             <item row="2" column="1">
              <layout class="QHBoxLayout" name="horizontalLayout">
               <item>
-               <widget class="QComboBox" name="_sample_rate">
+               <widget class="QComboBox" name="_gen_sample_rate">
                 <property name="editable">
                  <bool>false</bool>
                 </property>
@@ -1429,6 +1456,61 @@
                <widget class="QLabel" name="label_6">
                 <property name="text">
                  <string>MS</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_vmax">
+              <property name="text">
+               <string>Digitizer vmax</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_vmax">
+              <item>
+               <widget class="QComboBox" name="_gen_dig_vmax">
+                <property name="editable">
+                 <bool>false</bool>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>4.0</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>2.0</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.0</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>0.5</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>0.25</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>0.125</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_volt">
+                <property name="text">
+                 <string>V</string>
                 </property>
                </widget>
               </item>

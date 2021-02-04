@@ -11,7 +11,7 @@ from matplotlib import cm
 # Get the colormap
 colormap = cm.get_cmap("viridis")  # cm.get_cmap("CMRmap")
 colormap._init()
-lut = (colormap._lut * 255).view(np.ndarray)  # Convert matplotlib colormap from 0-1 to 0 -255 for Qt
+lut = np.array(colormap.colors)*255 # Convert matplotlib colormap from 0-1 to 0-255 for Qt
 
 @dataclass
 class plot_widget_data:
@@ -63,7 +63,7 @@ class live_plot(live_plot_abs, QThread):
 
     # list of plot_widget_data (1 per plot)
     plot_widgets = []
-    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, differentiate):
+    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, differentiate, prog_bar = None):
         '''
         init the class
 
@@ -81,6 +81,7 @@ class live_plot(live_plot_abs, QThread):
         self.n_plots = len(parameter_getter.names)
         self.top_frame = top_frame
         self.top_layout = top_layout
+        self.prog_bar = prog_bar
 
         # getter for the scan.
         self.parameter_getter = parameter_getter
@@ -136,7 +137,8 @@ class live_plot(live_plot_abs, QThread):
         logging.info('running start function in plotting_func')
         self.active = True
         self.plt_finished = False
-        self.timer.start(0.2)
+        # refresh rate of images
+        self.timer.start(0.05)
 
         super(live_plot, self).start()
 
@@ -209,8 +211,9 @@ class _1D_live_plot(live_plot):
                     self.buffer_data[i][-1] = y
 
                     self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
-            except:
-                print('frame dropped -- reason unclear ..')
+            except Exception as e:
+               logging.error(f'Exception: {e}', exc_info=True)
+               print('frame dropped -- reason unclear ..')
 
         self.plt_finished = True
 
@@ -218,6 +221,8 @@ class _2D_live_plot(live_plot):
     """function that has as sole pupose generating live plots of a line trace (or mupliple if needed)"""
 
     def init_plot(self):
+        self.prog_per = 0
+
         for i in range(self.n_plots):
             plot_2D = pg.PlotWidget()
             img = pg.ImageItem()
@@ -236,6 +241,7 @@ class _2D_live_plot(live_plot):
     def update_plot(self):
         for i in range(len(self.plot_widgets)):
             self.plot_widgets[i].plot_items[0].setImage(self.plot_data[i])
+            self.prog_bar.setValue(self.prog_per)
             if self.active == False:
                 break
 
@@ -261,6 +267,9 @@ class _2D_live_plot(live_plot):
 
                     self.buffer_data[i][-1] = xy
                     self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
+
+                prog_ar = [mp[0][0] != 0 for mp in self.buffer_data[0]]
+                self.prog_per = int(sum(prog_ar)/len(prog_ar)*100)
             except Exception as e:
                 logging.error(f'Exception: {e}')#, exc_info=True)
 
