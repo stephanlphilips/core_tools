@@ -1,4 +1,4 @@
-from core_tools.data.SQL.connector import sample_info
+from core_tools.data.SQL.connect import sample_info
 from psycopg2.extras import RealDictCursor, DictCursor
 from psycopg2.errors import UndefinedColumn
 import datetime, time

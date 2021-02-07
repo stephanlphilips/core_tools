@@ -114,12 +114,11 @@ def excute_HVI_3(HVI, AWGs, channel_map, playback_time, n_rep, *args, **kwargs):
 	if delay_3-delay_2 < 200 :
 		raise ValueError('triggers 2 and 3 are too close, at least 2 us distance is needed.')	
 
-	time_shift = int(50/10)
 	err = dig.SD_AIN.writeRegisterByNumber(2, int(nrep))
-	err = dig.SD_AIN.writeRegisterByNumber(3, int(delay_1 + 43))
+	err = dig.SD_AIN.writeRegisterByNumber(3, int(delay_1 + 55))
 	err = dig.SD_AIN.writeRegisterByNumber(4, int(delay_2-delay_1-4))
 	err = dig.SD_AIN.writeRegisterByNumber(5, int(delay_3-delay_2-4))
-	err = dig.SD_AIN.writeRegisterByNumber(6, int(length-delay_3+45))
+	err = dig.SD_AIN.writeRegisterByNumber(6, int(length-delay_3-57))
 
 	if 'averaging' in kwargs:
 		dig.set_meas_time(kwargs['t_measure'], fourchannel=True)

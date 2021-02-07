@@ -138,7 +138,7 @@ class live_plot(live_plot_abs, QThread):
         self.active = True
         self.plt_finished = False
         # refresh rate of images
-        self.timer.start(0.2)
+        self.timer.start(0.05)
 
         super(live_plot, self).start()
 
@@ -211,8 +211,9 @@ class _1D_live_plot(live_plot):
                     self.buffer_data[i][-1] = y
 
                     self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
-            except:
-                print('frame dropped -- reason unclear ..')
+            except Exception as e:
+               logging.error(f'Exception: {e}', exc_info=True)
+               print('frame dropped -- reason unclear ..')
 
         self.plt_finished = True
 

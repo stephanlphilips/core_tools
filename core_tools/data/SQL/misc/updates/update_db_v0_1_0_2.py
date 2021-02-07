@@ -8,16 +8,16 @@ to_update:
 '''
 from psycopg2.extras import RealDictCursor, DictCursor,Json
 import json, time
-from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
 import psycopg2
-from core_tools.data.SQL.SQL_commands import write_query_generator, data_fetch_queries
+from core_tools.data.SQL.misc.old.SQL_commands import write_query_generator, data_fetch_queries
 
 
 def to_postgres_time(my_date_time):
 	return time.strftime("%a, %d %b %Y %H:%M:%S +0000",my_date_time.timetuple())
 
 def load_old_table(conn_local):
-	statement = 'SELECT * from global_measurement_overview;'
+	statement = 'SELECT * from global_measurement_overview order by id ASC;'
 
 	cur = conn_local.cursor(cursor_factory=RealDictCursor)
 	cur.execute(statement)
@@ -88,8 +88,8 @@ def convert_old_table_to_new_tables(conn_local):
 		if entry['stop_time'] is not None:
 			entry['stop_time'] = to_postgres_time(entry['stop_time'])
 
-		entry['snapshot'] = json.dumps(entry['snapshot'])
-		entry['metadata'] = json.dumps(entry['metadata'])
+		entry['snapshot'] = str(json.dumps(entry['snapshot'])).replace('\'', '')
+		entry['metadata'] = str(json.dumps(entry['metadata'])).replace('\'', '')
 
 		statement = "INSERT INTO {} {}  VALUES {}".format(temp_table, str(tuple(entry.keys())).replace('\'', ''), tuple(entry.values()))
 
@@ -99,24 +99,26 @@ def convert_old_table_to_new_tables(conn_local):
 
 def drop_and_move(conn_local):
 	cur = conn_local.cursor()
-	statement = 'DROP TABLE global_measurement_overview;'
+	# statement = 'DROP TABLE global_measurement_overview;'
+	statement = 'ALTER TABLE global_measurement_overview RENAME TO global_measurement_overview_old;'
 	cur.execute(statement)
 	conn_local.commit()
-	print('table dropped')
+	print('current table moved')
 
 	statement = 'ALTER TABLE global_measurement_overview_tmp RENAME TO global_measurement_overview;'
 	cur.execute(statement)
 	conn_local.commit()
-	print('table altered')
+	print('new table made main table')
 
-from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
+from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
 
-set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+# set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
 
+set_up_remote_storage('131.180.205.81', 5432, 'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
 print('attemping connections')
 conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_info_local.user, 
 				password=SQL_conn_info_local.passwd, host=SQL_conn_info_local.host, port=SQL_conn_info_local.port)
 print('connected')
-convert_old_table_to_new_tables(conn_local)
+# convert_old_table_to_new_tables(conn_local)
 
-# drop_and_move(conn_local)
+drop_and_move(conn_local)

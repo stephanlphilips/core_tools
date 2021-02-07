@@ -1,7 +1,7 @@
 M3102A_CLEAN = "C:/V2_code/FPGA_Bitstreams/Digitizer_FW1.41/clean_4_41.sbp"
 M3102A_AVG = "C:/V2_code/FPGA_Bitstreams/Digitizer_FW1.41/averaging_firmware_1_41.sbp"
 
-from projects.keysight_measurement.M3102A import MODES, is_sd1_3x
+from core_tools.drivers.M3102A import MODES, is_sd1_3x
 
 def firmware_loader(dig, file, mode):
     """

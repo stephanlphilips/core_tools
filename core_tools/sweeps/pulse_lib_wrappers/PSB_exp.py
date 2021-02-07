@@ -1,19 +1,22 @@
 from core_tools.utility.digitizer_param_conversions import IQ_to_scalar, down_sampler,data_reshaper, PSB_param, get_phase_compentation_IQ_signal
 
-
-from core_tools.HVI.single_shot_exp.HVI_single_shot import load_HVI, set_and_compile_HVI, excute_HVI, HVI_ID
-from core_tools.HVI.single_shot_exp.HVI_single_shot_1qubit import load_HVI_1, set_and_compile_HVI_1, excute_HVI_1, HVI_ID_1
-from core_tools.HVI.single_shot_exp.HVI_single_shot_2qubit import load_HVI_2, set_and_compile_HVI_2, excute_HVI_2, HVI_ID_2
-from core_tools.HVI.single_shot_exp.HVI_single_shot_3qubit import load_HVI_3, set_and_compile_HVI_3, excute_HVI_3, HVI_ID_3
-
 from core_tools.utility.mk_digitizer_param import get_digitizer_param
 from core_tools.utility.dig_utility import autoconfig_dig_v2, MODES
 from core_tools.drivers.M3102A import DATA_MODE
 from core_tools.sweeps.sweep_utility import check_OD_scan
+from core_tools.HVI2.schedule_manager import ScheduleMgr
 
 
 import qcodes as qc
 
+
+def add_schedule_to_lambda(lambda_func, schedule):
+    def new_lamdba(seq):
+        print('setting hw schedule')
+        seq.set_hw_schedule(schedule)
+        print('set digitizer')
+        lambda_func()
+    return new_lamdba
 
 def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, threshold=None):
     '''
@@ -33,21 +36,13 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
     '''
 
     station = qc.Station.default
-
-    if raw_traces == False:
-        autoconfig_dig_v2(station.dig, MODES.AVERAGE)
-        data_mode = DATA_MODE.AVERAGE_TIME
-        if n_rep == 1:
-            data_mode = DATA_MODE.AVERAGE_CYCLES
-        if n_qubit > 1:
-            data_mode = DATA_MODE.AVERAGE_TIME
-        station.dig.set_data_handling_mode(data_mode)
+    channels = [1,2]
+    dig_param, starting_lambda = get_digitizer_param(station.dig, t_meas, n_rep*n_qubit, channels, raw_traces)
+    if raw_traces == True:
+        starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot_raw(n_qubit))
     else:
-        autoconfig_dig_v2(station.dig, MODES.NORMAL)
-        data_mode = DATA_MODE.FULL
-        station.dig.set_data_handling_mode(data_mode)
-    
-    dig_param = get_digitizer_param(station.dig, t_meas, n_rep*n_qubit, data_mode)
+        starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot(n_qubit))
+
     IQ_meas_param = IQ_to_scalar(dig_param, phase)
     if n_qubit > 1:
         reshaped_signal = data_reshaper(n_qubit, IQ_meas_param)
@@ -56,37 +51,18 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
         PSB_out = PSB_param(IQ_meas_param, threshold)
     
     
-    if raw_traces == True:
-        down_sampled_seq = down_sampler(IQ_meas_param, 1e6)
-    
     if not isinstance(segment, list):
         segment = [segment]
     
     my_seq = station.pulse.mk_sequence(segment)
-    
-    settings = dict()
-    settings['averaging'] = True
-    if raw_traces == True:
-        settings['averaging'] = False
-
-    if n_qubit == 1:
-        print('1 qubit detected')
-        my_seq.add_HVI(HVI_ID_1, load_HVI_1, set_and_compile_HVI_1, excute_HVI_1, digitizer = station.dig, **settings)
-    elif n_qubit == 2:
-        print('2 qubits detected')
-        my_seq.add_HVI(HVI_ID_2, load_HVI_2, set_and_compile_HVI_2, excute_HVI_2, digitizer = station.dig, **settings)
-    elif n_qubit == 3:
-        print('3 qubits detected')
-        my_seq.add_HVI(HVI_ID_3, load_HVI_3, set_and_compile_HVI_3, excute_HVI_3, digitizer = station.dig, **settings)
-    else:
-        raise ValueError('No more than 3 qubit supported at the moment :/')
 
     my_seq.n_rep = n_rep
     my_seq.neutralise = True
 
-    station.pulse.uploader.release_memory()
+    my_seq.starting_lambda = starting_lambda
+    my_seq.starting_lambda(my_seq)
 
     if raw_traces == True:
-        return check_OD_scan(my_seq, down_sampled_seq) + (name, )
+        return check_OD_scan(my_seq, IQ_meas_param) + (name, )
     else:
         return check_OD_scan(my_seq, PSB_out) + (name, )

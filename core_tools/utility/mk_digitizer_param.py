@@ -1,6 +1,7 @@
 from qcodes import MultiParameter
 import numpy as np
-from core_tools.drivers.M3102A import DATA_MODE
+from core_tools.drivers.M3102A import MODES, DATA_MODE
+
 import matplotlib.pyplot as plt
 
 def reduce_parameter_descriptor_by_2(description, name_add=None):
@@ -28,8 +29,6 @@ def reduce_parameter_descriptor_by_2(description, name_add=None):
 
 class _digitzer_measurement_param(MultiParameter):
         def __init__(self, digitizer, t_measure, n_rep, sample_rate, data_mode, channels):
-            digitizer.set_digitizer_HVI(t_measure, n_rep, sample_rate = sample_rate, data_mode = data_mode, channels =  channels)
-
             super().__init__(name=digitizer.name, names = digitizer.measure.names, shapes = digitizer.measure.shapes,
                             labels = digitizer.measure.labels, units = digitizer.measure.units,
                             setpoints = digitizer.measure.setpoints, setpoint_names=digitizer.measure.setpoint_names,
@@ -44,13 +43,14 @@ class _digitzer_measurement_param(MultiParameter):
             self.channels = channels
 
         def get_raw(self):
+            print('tring to measure data')
             data = self.dig.measure()
             # reinit for the next sequence.
-            self.dig.set_digitizer_HVI(self.t_measure, self.n_rep, sample_rate = self.sample_rate, data_mode = self.data_mode, channels =  self.channels)
+            self.dig.set_digitizer_HVI(self.t_measure, self.n_rep, sample_rate = self.sample_rate, data_mode = self.data_mode, channels = self.channels)
 
             return data
 
-def get_digitizer_param(digitizer, t_measure, n_rep, data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2]):
+def get_digitizer_param(digitizer, t_measure, n_rep, channels = [1,2], raw=False):
     """
     make a parameter for the digitizer
     
@@ -63,11 +63,31 @@ def get_digitizer_param(digitizer, t_measure, n_rep, data_mode = DATA_MODE.AVERA
 
     Note that you should regenerate the parameter each time before starting a new measurement/loop. This should be cleaned up later a bit by doing some more stuff in HVI.
     """
-    sample_rate = 100e6 #stardard rate for V2 atm.
+    sample_rate = 0.5e6
+    data_mode = None
     
-    digitizer.set_digitizer_HVI(t_measure, n_rep, sample_rate = sample_rate, data_mode = data_mode, channels =  channels)
+    data_mode = DATA_MODE.AVERAGE_TIME
+    if raw == True:
+        data_mode = DATA_MODE.FULL
+    print('get digi param')
+    if raw == True:
+        digitizer.set_acquisition_mode(MODES.NORMAL)
+        digitizer.set_digitizer_HVI(t_measure, n_rep, sample_rate = sample_rate, data_mode = DATA_MODE.FULL, channels =  channels)
+    else:
+        data_mode = DATA_MODE.AVERAGE_TIME
+        digitizer.set_acquisition_mode(MODES.AVERAGE)
+        digitizer.set_digitizer_HVI(t_measure, n_rep, sample_rate = sample_rate, data_mode = DATA_MODE.AVERAGE_TIME, channels =  channels)
 
-    return _digitzer_measurement_param(digitizer, t_measure, n_rep, sample_rate, data_mode, channels)
+    def starting_lambda():
+        if raw == True:
+            digitizer.set_acquisition_mode(MODES.NORMAL)
+            digitizer.set_digitizer_HVI(t_measure, n_rep, sample_rate = sample_rate, data_mode = DATA_MODE.FULL, channels =  channels)
+        else:
+            data_mode = DATA_MODE.AVERAGE_TIME
+            digitizer.set_acquisition_mode(MODES.AVERAGE)
+            digitizer.set_digitizer_HVI(t_measure, n_rep, sample_rate = sample_rate, data_mode = DATA_MODE.AVERAGE_TIME, channels =  channels)
+
+    return _digitzer_measurement_param(digitizer, t_measure, n_rep, sample_rate, data_mode, channels), starting_lambda
 
 class _digitzer_post_selection_param(MultiParameter):
         def __init__(self, digitzer_measurement_param, n_corr_points, wanted_reference_value):

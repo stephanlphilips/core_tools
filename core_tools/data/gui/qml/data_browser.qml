@@ -323,7 +323,7 @@ ApplicationWindow{
                                     color: "#F5F5F5"
                                     anchors.right: parent.right
                                     anchors.left: parent.left
-                                    anchors.rightMargin: 10
+                                    anchors.rightMargin: 20
                                     anchors.leftMargin: 10
                                     radius : 5
                                     RowLayout {
@@ -432,7 +432,7 @@ ApplicationWindow{
 	                                    anchors.top: parent.top
 	                                    anchors.topMargin: 10
 	                                    anchors.leftMargin: 10
-	                                    anchors.rightMargin: 10
+	                                    anchors.rightMargin: 20
 	                                    radius : 5
 	                                    RowLayout {
 	                                        id: rowLayout
@@ -516,6 +516,11 @@ ApplicationWindow{
                             delegate: data_content_view_delegate
                             header : data_content_view_header
                             model:data_content_view_model
+
+                            flickableDirection: Flickable.VerticalFlick
+                            boundsBehavior: Flickable.StopAtBounds
+                    
+                            ScrollBar.vertical: ScrollBar {}
                         }
                     }
                 }
@@ -762,6 +767,8 @@ ApplicationWindow{
                             keywords: "frequency, spin probability Q1"
                         }
                     }
+
+
 
 
                 }

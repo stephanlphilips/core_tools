@@ -15,6 +15,7 @@ class ExperimentJob:
 
 class queue_mgr():
     __instance = None
+    __init = False
     q = None
     job_refs = []
 
@@ -24,28 +25,31 @@ class queue_mgr():
         return queue_mgr.__instance
 
     def __init__(self):
-        self.q = PriorityQueue()
-        self.job_refs = list()
+        if self.__init == False:
+            print('initializing')
+            self.q = PriorityQueue()
+            self.job_refs = list()
 
-        def worker():
-            while True:
-                n_jobs = self.q.qsize()
-                if n_jobs != 0:
-                    print('{} items queued.'.format(n_jobs))
-                    print('Starting new job.')
-                    job_object = self.q.get()
-                    try:
-                        print(job_object.job.KILL)
-                        if job_object.job.KILL != True:
-                            job_object.job.run()
-                    except:
-                        print('an exception in the job occurred? Going to the next job.')
-                    self.q.task_done()
-                else:
-                    # 200ms sleep.
-                    time.sleep(0.2)
+            def worker():
+                while True:
+                    n_jobs = self.q.qsize()
+                    if n_jobs != 0:
+                        print('{} items queued.'.format(n_jobs))
+                        print('Starting new job.')
+                        job_object = self.q.get()
+                        try:
+                            print(job_object.job.KILL)
+                            if job_object.job.KILL != True:
+                                job_object.job.run()
+                        except:
+                            print('an exception in the job occurred? Going to the next job.')
+                        self.q.task_done()
+                    else:
+                        # 200ms sleep.
+                        time.sleep(0.2)
 
-        self.worker_thread = threading.Thread(target=worker, daemon=True).start()
+            self.worker_thread = threading.Thread(target=worker, daemon=True).start()
+            self.__init = True
 
     def put(self, job):
         '''

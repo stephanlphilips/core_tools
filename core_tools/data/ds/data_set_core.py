@@ -1,6 +1,6 @@
 from core_tools.data.ds.data_set_raw import data_set_raw
 from core_tools.data.ds.data_set_DataMgr import m_param_origanizer, dataset_data_description
-from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
+from core_tools.data.SQL.SQL_dataset_creator import SQL_dataset_creator
 
 import datetime
 import string
@@ -108,16 +108,16 @@ class data_set:
         '''
         self.__data_set_raw.completed = True
         self.__write_to_db(True)
-        SQL_mgr = SQL_database_manager()
-        SQL_mgr.finish_measurement(self.__data_set_raw)
+        SQL_ds_creator = SQL_dataset_creator()
+        SQL_ds_creator.finish_measurement(self.__data_set_raw)
 
     def sync(self):
         '''
         Updates dataset in case only part of the points were downloaded.
         '''
         if self.completed == False:
-            SQL_mgr = SQL_database_manager()
-            self.completed = SQL_mgr.is_completed(self.exp_uuid)
+            SQL_ds_creator = SQL_dataset_creator()
+            self.completed = SQL_ds_creator.is_completed(self.exp_uuid)
             self.__data_set_raw.sync_buffers()
 
     def __write_to_db(self, force = False):
@@ -132,8 +132,8 @@ class data_set:
             self.last_commit=current_time
 
             self.__data_set_raw.sync_buffers()
-            SQL_mgr = SQL_database_manager()
-            SQL_mgr.update_write_cursors(self.__data_set_raw)   
+            SQL_ds_creator = SQL_dataset_creator()
+            SQL_ds_creator.update_write_cursors(self.__data_set_raw)   
 
     def __repr__(self):
         output_print = "DataSet :: {}\n\nid = {}\nuuid = {}\n\n".format(self.name, self.exp_id, self.exp_uuid)

@@ -5,7 +5,7 @@ import threading as th
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
 from core_tools.sweeps.sweeps import do0D, do1D, do2D
-from core_tools.data.SQL.connector import sample_info
+from core_tools.data.SQL.connect import sample_info
 
 from dataclasses import dataclass
 from PyQt5.QtCore import QThread

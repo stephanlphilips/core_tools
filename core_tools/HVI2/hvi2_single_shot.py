@@ -89,7 +89,6 @@ class Hvi2SingleShot():
             if len(ds_channels) > 0:
                 dig_seq.wait(600)
 #                self._wait_state_clear(dig_seq, running=ds_channels)
-
                 dig_seq.ds.control(push=ds_channels)
                 dig_seq.wait(600)
 #                self._wait_state_clear(dig_seq, pushing=ds_channels)

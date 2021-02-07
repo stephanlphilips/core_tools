@@ -18,6 +18,13 @@ from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
 
 import qcodes
 
+import logging
+
+import qcodes.logger as logger
+from qcodes.logger import start_all_logging
+
+start_all_logging()
+logger.get_file_handler().setLevel(logging.DEBUG)
 
 # close objects still active since previous run (IPython)
 try:
@@ -53,7 +60,7 @@ def load_awg_image(awg):
     bitstream = os.path.join(get_fpga_image_path(awg.awg), 'awg_enhanced.k7z')
     check_error(awg.load_fpga_image(bitstream), f'loading dig bitstream: {bitstream}')
 
-awg_slots = [3]
+awg_slots = [2,3,4,5,7,8]
 dig_slot = 6
 dig_channels = [1,2,3,4]
 full_scale = 2.0
@@ -77,7 +84,10 @@ awgs = []
 for i, slot in enumerate(awg_slots):
     awg = M3202A(f'AWG{slot}', 1, slot)
     awgs.append(awg)
-#    time.sleep(1)
+
+time.sleep(7)
+
+for awg in awgs:
     load_awg_image(awg)
 #    load_default_awg_image(awg)
     print_fpga_info(awg.awg)
@@ -98,15 +108,17 @@ schedules = Hvi2Schedules(p, dig)
 schedule = schedules.get_single_shot(dig_mode, n_triggers=n_triggers)
 schedule.load()
 
+schedule.close()
+oops()
 ## create waveforms
 seg = p.mk_segment()
 for awg in awgs:
     for ch in [1,2,3,4]:
         channel = getattr(seg, f'{awg.name}_{ch}')
         channel.wait(t_wave)
-        channel.add_block(t_pulse_1, t_pulse_1+pulse_duration, 800)
-        channel.add_block(t_pulse_2, t_pulse_2+pulse_duration, 500)
-        channel.add_block(t_pulse_3, t_pulse_3+pulse_duration, 600)
+        channel.add_block(t_pulse_1, t_pulse_1+pulse_duration, 80)
+        channel.add_block(t_pulse_2, t_pulse_2+pulse_duration, 50)
+        channel.add_block(t_pulse_3, t_pulse_3+pulse_duration, 60)
 
 seg.add_HVI_marker('dig_trigger_1', t_off=t_pulse_1-t_measure//4)
 seg.add_HVI_marker('dig_trigger_2', t_off=t_pulse_2-t_measure//4)

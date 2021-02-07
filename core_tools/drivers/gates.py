@@ -1,5 +1,6 @@
-import qcodes as qc
 from functools import partial
+
+import qcodes as qc
 import numpy as np
 import copy
 
@@ -21,7 +22,6 @@ class gates(qc.Instrument):
 		self.dac_sources = dac_sources
 		
 		self._gv = dict()
-		# self._vgv = dict()
 
 		# add gates:
 		for gate_name, dac_location in hardware.dac_gate_map.items():
@@ -32,13 +32,6 @@ class gates(qc.Instrument):
 			for gate_name in virt_gate_set.virtual_gate_names:
 				self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
 					get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
-
-	@property
-	def virtual_gate_matrix_inv(self):
-		# property as can be the normal matrix can be changed externally.
-		self._virtual_gate_matrix_inv = np.linalg.inv(self.virtual_gate_matrix)
-
-		return self._virtual_gate_matrix_inv
 	
 	def _set_voltage(self, gate_name, voltage):
 		'''

@@ -1,16 +1,15 @@
 from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets, QtQml
-from core_tools.data.gui.qml.models import date_model, data_overview_model, combobox_model
-import os, sys
-import core_tools.data.gui.qml as qml_in
+from core_tools.data.gui.qml.models import date_model, data_overview_model
+# import os, sys
+# import core_tools.data.gui.qml as qml_in
 
-from datetime import datetime
+from core_tools.data.SQL.connect import sample_info, SQL_conn_info_local, SQL_conn_info_remote
+from core_tools.data.SQL.queries.dataset_gui_queries import alter_dataset, query_for_samples, query_for_measurement_results
 
-from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-from core_tools.data.SQL.SQL_measurment_queries import query_for_samples, query_for_measurement_results
-from core_tools.data.SQL.SQL_commands import write_query_generator, data_fetch_queries
 from core_tools.data.ds.data_set import load_by_uuid, load_by_id
 from core_tools.data.gui.plot_mgr import data_plotter
-from core_tools.data.SQL.SQL_database_mgr import SQL_database_manager
+
+from core_tools.data.gui.data_browser_models.result_table_data_class import m_result_overview
 
 def if_any_to_none(arg):
     if arg == "any":
@@ -50,7 +49,7 @@ class signale_handler(QtQuick.QQuickView):
         if SQL_conn_info_remote.host != 'localhost':
             obj.setProperty("remote_conn_status", True)
         else:
-            obj.setProperty("remote_conn_status", True)
+            obj.setProperty("remote_conn_status", False)
 
         self.pro_set_sample_info_state_change_loc(1,1,1)
 
@@ -113,6 +112,7 @@ class signale_handler(QtQuick.QQuickView):
 
     def load_data_table(self, date):
         data = query_for_measurement_results.get_results_for_date(date, **self.sample_info)
+        data = m_result_overview(data)
         self.data_overview_model.reset_data(data)
 
     def check_for_updates(self):
@@ -135,18 +135,8 @@ class signale_handler(QtQuick.QQuickView):
 
     @QtCore.pyqtSlot('QString', bool)
     def star_measurement(self, uuid, state):
-        statement = write_query_generator.star_measurement(uuid, state)
-
-        cur = SQL_database_manager().conn_local.cursor()
-        cur.execute(statement)
-        SQL_database_manager().conn_local.commit()
-        cur.close() 
+        alter_dataset.star_measurement(uuid, state)
 
     @QtCore.pyqtSlot('QString', 'QString')
     def update_name_meaurement(self, uuid, name):
-        statement = write_query_generator.update_name(uuid, name)
-
-        cur = SQL_database_manager().conn_local.cursor()
-        cur.execute(statement)
-        SQL_database_manager().conn_local.commit()
-        cur.close() 
+        alter_dataset.update_name(uuid, name)

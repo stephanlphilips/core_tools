@@ -269,7 +269,7 @@ if dig_mode in [2,3]:
         pt.plot(t, np.angle(dig_data[c], deg=True),
                 label=f'ch{ch} p2d={p2decim}, {1000/t_average:5.1f} MSa/s')
         pt.legend()
-
+pt.show()
 schedule.close()
 for awg in awgs:
     awg.close()
