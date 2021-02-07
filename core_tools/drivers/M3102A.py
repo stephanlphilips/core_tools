@@ -691,7 +691,7 @@ class SD_DIG(Instrument):
 
 
     def set_daq_settings(self, channel, n_cycles, t_measure, sample_rate = 500e6,
-                         DAQ_trigger_delay = 0, DAQ_trigger_mode = 5, downsampled_rate = None, power2decimation = 0):
+                         DAQ_trigger_delay = 0, DAQ_trigger_mode = 1, downsampled_rate = None, power2decimation = 0):
         """
         quickset for the daq settings
 

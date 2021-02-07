@@ -8,7 +8,7 @@ import numpy as np
 
 if sys.version_info[1] > 7 :
     os.add_dll_directory('C:\\Program Files\\Keysight\\SD1\\shared')
-    os.add_dll_directory('C:\\Program Files\\Keysight\\Keysight Pathwave Test Sync Executive\\HVIcore\\1.0\\bin')
+    os.add_dll_directory('C:\\Program Files\\Common Files\\Keysight\\PathWave Test Sync Executive\\Core\\bin')
 
 
 def to_numpy_float(data):
@@ -125,9 +125,12 @@ class SD_Error(SD_Object) :
     PATHWAVE_REGISTER_NOT_FOUND = -8074
     SD_ERROR_HVI_DRIVER_ERROR = -8075
     BAD_MODULE_OPEN_OPTION = -8076
-    NOT_HVI2_MODULE = -8077
+    FW_UPGRADE_REQUIRED = -8077
     NO_FP_OPTION = -8078
     FILE_DOES_NOT_EXIST = -8079
+    SW_UPGRADE_REQUIRED = -8080
+    INVALID_SANDBOX_INTERFACE = - 8081
+    MODULE_NOT_SUPPORTED = - 8082
     SD_WARNING_DAQ_POINTS_ODD_NUM = -9000
 
     @classmethod
@@ -268,6 +271,12 @@ class SD_DebouncingTypes :
     DEBOUNCING_LOW = 2;##0b10;
     DEBOUNCING_HIGH = 3;##0b11;
 
+class SD_WindowTypes :
+    RECTANGULAR = 0;
+    BARTLETT = 1;
+    HANNING = 2;
+    HAMMING = 3;
+    BLACKMAN = 4;
 
 class SD_Compatibility :
     LEGACY = 0;
@@ -404,6 +413,19 @@ class SD_SandBoxRegister(SD_Object):
 
 
 class SD_Module(SD_Object) :
+
+    def FPGAGetSandBoxKernelUUID(self) :
+        version = ''.rjust(37, '\0').encode();
+
+        if self._SD_Object__handle > 0 :
+            retValue = self._SD_Object__core_dll.SD_Module_FPGAgetKernelUUID(self._SD_Object__handle, version);
+            if retValue >= 0 :
+                return version.decode();
+            else :
+                return retValue;
+        else :
+            return SD_Error.MODULE_NOT_OPENED;
+
     def openWithSerialNumber(self, partNumber, serialNumber) :
         if self._SD_Object__handle <= 0 :
             self._SD_Object__handle = self._SD_Object__core_dll.SD_Module_openWithSerialNumber(partNumber.encode(), serialNumber.encode())
@@ -652,6 +674,12 @@ class SD_Module(SD_Object) :
     def FPGAload(self, fileName) :
         if self._SD_Object__handle > 0 :
             return self._SD_Object__core_dll.SD_Module_FPGAload(self._SD_Object__handle, fileName.encode());
+        else :
+            return SD_Error.MODULE_NOT_OPENED;
+
+    def FPGAconfigureFromK7z(self, fileName) :
+        if self._SD_Object__handle > 0 :
+            return self._SD_Object__core_dll.SD_Module_FPGAconfigureFromK7z(self._SD_Object__handle, fileName.encode());
         else :
             return SD_Error.MODULE_NOT_OPENED;
 
@@ -2624,39 +2652,39 @@ class SD_AIN(SD_Module) :
         else :
             return SD_Error.MODULE_NOT_OPENED;
 
-    def DAQstartMultiple(self, channel) :
+    def DAQstartMultiple(self, DAQmask) :
         if self._SD_Object__handle > 0 :
-            return self._SD_Object__core_dll.SD_AIN_DAQstartMultiple(self._SD_Object__handle, channel);
+            return self._SD_Object__core_dll.SD_AIN_DAQstartMultiple(self._SD_Object__handle, DAQmask);
         else :
             return SD_Error.MODULE_NOT_OPENED;
 
-    def DAQpauseMultiple(self, channel) :
+    def DAQpauseMultiple(self, DAQmask) :
         if self._SD_Object__handle > 0 :
-            return self._SD_Object__core_dll.SD_AIN_DAQpauseMultiple(self._SD_Object__handle, channel);
+            return self._SD_Object__core_dll.SD_AIN_DAQpauseMultiple(self._SD_Object__handle, DAQmask);
         else :
             return SD_Error.MODULE_NOT_OPENED;
 
-    def DAQresumeMultiple(self, channel) :
+    def DAQresumeMultiple(self, DAQmask) :
         if self._SD_Object__handle > 0 :
-            return self._SD_Object__core_dll.SD_AIN_DAQresumeMultiple(self._SD_Object__handle, channel);
+            return self._SD_Object__core_dll.SD_AIN_DAQresumeMultiple(self._SD_Object__handle, DAQmask);
         else :
             return SD_Error.MODULE_NOT_OPENED;
 
-    def DAQstopMultiple(self, channel) :
+    def DAQstopMultiple(self, DAQmask) :
         if self._SD_Object__handle > 0 :
-            return self._SD_Object__core_dll.SD_AIN_DAQstopMultiple(self._SD_Object__handle, channel);
+            return self._SD_Object__core_dll.SD_AIN_DAQstopMultiple(self._SD_Object__handle, DAQmask);
         else :
             return SD_Error.MODULE_NOT_OPENED;
 
-    def DAQflushMultiple(self, channel) :
+    def DAQflushMultiple(self, DAQmask) :
         if self._SD_Object__handle > 0 :
-            return self._SD_Object__core_dll.SD_AIN_DAQflushMultiple(self._SD_Object__handle, channel);
+            return self._SD_Object__core_dll.SD_AIN_DAQflushMultiple(self._SD_Object__handle, DAQmask);
         else :
             return SD_Error.MODULE_NOT_OPENED;
 
-    def DAQtriggerMultiple(self, channel) :
+    def DAQtriggerMultiple(self, DAQmask) :
         if self._SD_Object__handle > 0 :
-            return self._SD_Object__core_dll.SD_AIN_DAQtriggerMultiple(self._SD_Object__handle, channel);
+            return self._SD_Object__core_dll.SD_AIN_DAQtriggerMultiple(self._SD_Object__handle, DAQmask);
         else :
             return SD_Error.MODULE_NOT_OPENED;
 
