@@ -15,8 +15,7 @@ from .hvi2_single_shot import Hvi2SingleShot
 
 from core_tools.drivers.M3102A import SD_DIG
 
-from keysight_fpga.qcodes.M3202A_fpga import FpgaLocalOscillatorExtension
-
+from keysight_fpga.qcodes.M3202A_fpga import FpgaLocalOscillatorExtension, FpgaAwgQueueingExtension
 from keysight_fpga.sd1.fpga_utils import \
     FpgaSysExtension, FpgaLogExtension, get_fpga_image_path, has_fpga_info, FpgaMissingExtension
 from keysight_fpga.sd1.dig_iq import get_iq_image_filename, is_iq_image_loaded, FpgaDownsamplerExtension
@@ -35,6 +34,7 @@ def add_extensions(hvi_system):
             awg_engine.add_extension('sys', FpgaSysExtension)
             awg_engine.add_extension('log', FpgaLogExtension)
             awg_engine.add_extension('lo', FpgaLocalOscillatorExtension)
+            awg_engine.add_extension('queueing', FpgaAwgQueueingExtension)
         else:
             for ext in ['sys','log', 'lo']:
                 awg_engine.add_extension(ext, FpgaMissingExtension)
@@ -104,7 +104,7 @@ class Hvi2Schedules:
 
     @signature
     def get_single_shot(self, digitizer_mode=None, dig_channel_modes=None, awg_channel_los=[],
-                        n_triggers=1, switch_los=False, enabled_los=None):
+                        n_triggers=1, switch_los=False, enabled_los=None, hvi_queue_control=False):
         dig_channel_modes = self._get_dig_channel_modes(digitizer_mode, dig_channel_modes)
 
         s = self._signature
@@ -114,7 +114,8 @@ class Hvi2Schedules:
             logging.info(f'create schedule {name}')
             hw = default_scheduler_hardware
             script = Hvi2SingleShot(dig_channel_modes, awg_channel_los, n_triggers=n_triggers,
-                                    switch_los=switch_los, enabled_los=enabled_los)
+                                    switch_los=switch_los, enabled_los=enabled_los,
+                                    hvi_queue_control=hvi_queue_control)
             schedule = Hvi2Schedule(hw, script, extensions=add_extensions)
             self.schedules[name] = schedule
 
@@ -122,7 +123,7 @@ class Hvi2Schedules:
 
 
     @signature
-    def get_video_mode(self, digitizer_mode:int, awg_channel_los=None):
+    def get_video_mode(self, digitizer_mode:int, awg_channel_los=None, hvi_queue_control=False):
 
         s = self._signature
         name = f'video_mode({s})'
@@ -130,7 +131,8 @@ class Hvi2Schedules:
         if name not in self.schedules:
             logging.info(f'create schedule {name}')
             hw = default_scheduler_hardware
-            schedule = Hvi2Schedule(hw, Hvi2VideoMode(digitizer_mode, awg_channel_los), extensions=add_extensions)
+            script =  Hvi2VideoMode(digitizer_mode, awg_channel_los, hvi_queue_control=hvi_queue_control)
+            schedule = Hvi2Schedule(hw, script, extensions=add_extensions)
             self.schedules[name] = schedule
         return self.schedules[name]
 
