@@ -91,7 +91,7 @@ class Hvi2VideoMode():
                     dig_seq.start(self.dig_channels)
 
                     if self.downsampler:
-                        dig_seq.wait(20)
+                        dig_seq.wait(40)
                         dig_seq.trigger(self.dig_channels)
 
             with sync.Repeat(sync['n_rep']):
@@ -118,11 +118,10 @@ class Hvi2VideoMode():
                                 dig_seq.trigger()
                             dig_seq.wait(dig_seq['dig_wait'])
 
-            if self.downsampler:
-                with sync.SyncedModules():
-                    self._push_data(dig_seqs)
 
             with sync.SyncedModules():
+                if self.downsampler:
+                    self._push_data(dig_seqs)
                 for seq in all_seqs:
                     seq.stop()
 
