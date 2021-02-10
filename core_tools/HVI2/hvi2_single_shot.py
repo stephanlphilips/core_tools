@@ -2,6 +2,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import List
 
+from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
+
 '''
 Single shot HVI schedule.
 
@@ -21,7 +23,7 @@ class Hvi2SingleShot():
     verbose = True
 
     def __init__(self, dig_channel_modes, awg_channel_los=[], n_triggers=1, switch_los=False,
-                 enabled_los=None):
+                 enabled_los=None, hvi_queue_control=False):
         '''
         Args:
             dig_channel_modes (Dict[str,Dict[int,int]]): per digitizer and channel the mode.
@@ -30,6 +32,7 @@ class Hvi2SingleShot():
             switch_los (bool): switch los on/off with measurements
             enabled_los (List[List[Tuple[str, int,int]]): per switch interval list with (AWG, channel, active local oscillator).
                 if None, then all los are switched on/off.
+            hvi_queue_control (boolean): if True enables waveform queueing by hvi script.
         '''
         self.digitizer_config = {}
         for dig, channels in dig_channel_modes.items():
@@ -47,6 +50,8 @@ class Hvi2SingleShot():
         self.n_triggers= n_triggers
         self.switch_los = switch_los
         self.enabled_los = enabled_los
+        self.hvi_queue_control = hvi_queue_control
+
         self._n_starts = 0
 
     @property
@@ -87,8 +92,10 @@ class Hvi2SingleShot():
         for dig_seq in dig_seqs:
             ds_channels = self._get_dig_channel_config(dig_seq).ds_channels
             if len(ds_channels) > 0:
+                # NOTE: loop costs PXI registers. Better wait fixed time.
                 dig_seq.wait(600)
 #                self._wait_state_clear(dig_seq, running=ds_channels)
+
                 dig_seq.ds.control(push=ds_channels)
                 dig_seq.wait(600)
 #                self._wait_state_clear(dig_seq, pushing=ds_channels)
@@ -102,6 +109,9 @@ class Hvi2SingleShot():
         self.r_stop = sequencer.add_sync_register('stop')
         self.r_nrep = sequencer.add_sync_register('n_rep')
         self.r_wave_duration = sequencer.add_module_register('wave_duration', module_type='awg')
+        if self.hvi_queue_control:
+            for register in FpgaAwgQueueingExtension.get_registers():
+                sequencer.add_module_register(register, module_type='awg')
 
         self.r_dig_wait = []
         self.r_awg_los_wait = []
@@ -129,6 +139,8 @@ class Hvi2SingleShot():
 
                     with sync.SyncedModules():
                         for awg_seq in awg_seqs:
+                            if self.hvi_queue_control:
+                                awg_seq.queueing.queue_waveforms()
                             awg_seq.log.write(1)
                             awg_seq.start()
                             awg_seq.wait(1000)
@@ -141,7 +153,7 @@ class Hvi2SingleShot():
 
                             ds_channels = self._get_dig_channel_config(dig_seq).ds_channels
                             if len(ds_channels) > 0:
-                                dig_seq.wait(20)
+                                dig_seq.wait(40)
                                 dig_seq.trigger(ds_channels)
 
                     with sync.Repeat(sync['n_rep']):
@@ -188,8 +200,6 @@ class Hvi2SingleShot():
 
                     with sync.SyncedModules():
                         self._push_data(dig_seqs)
-
-                    with sync.SyncedModules():
                         for seq in all_seqs:
                             seq.stop()
 
@@ -260,8 +270,8 @@ class Hvi2SingleShot():
         else:
             tot_wait_awg = 0
 
-        # add 150 ns for AWG and digitizer to get ready for next trigger.
-        self._set_wait_time(hvi_exec, self.r_wave_duration, waveform_duration + 150 - tot_wait_awg)
+        # add 250 ns for AWG and digitizer to get ready for next trigger.
+        self._set_wait_time(hvi_exec, self.r_wave_duration, waveform_duration + 250 - tot_wait_awg)
 
         hvi_exec.write_register(self.r_stop, 0)
         hvi_exec.write_register(self.r_start, 1)

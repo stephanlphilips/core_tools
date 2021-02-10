@@ -1,14 +1,16 @@
 import logging
 
+from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
 
 class Hvi2VideoMode():
     verbose = True
 
-    def __init__(self, digitizer_mode, awg_channel_los=None):
+    def __init__(self, digitizer_mode, awg_channel_los=None, hvi_queue_control=False):
         '''
         Args:
             digitizer_mode (int): digitizer modes: 0 = direct, 1 = averaging/downsampling, 2,3 = IQ demodulation
             awg_channel_los (List[Tuple[str,int,int]]): list with (AWG, channel, active local oscillator).
+            hvi_queue_control (boolean): if True enables waveform queueing by hvi script.
 
         For video mode the digitizer measurement should return 1 value per trigger.
         There are no practical uses cases where different digitizer channels have different modes.
@@ -18,6 +20,7 @@ class Hvi2VideoMode():
         self.iq_channels = [1,2,3,4] if digitizer_mode in [2,3] else []
         self.started = False
         self.awg_channel_los = awg_channel_los
+        self.hvi_queue_control = hvi_queue_control
 
 
     @property
@@ -38,7 +41,8 @@ class Hvi2VideoMode():
                 result.append((channel, lo))
         return result
 
-    def _wait_state_clear(self, dig_seq):
+    def _wait_state_clear(self, dig_seq, **kwargs):
+        dig_seq.ds.set_state_mask(**kwargs)
         dig_seq.wait(10)
         dig_seq['channel_state'] = dig_seq.ds.state
         dig_seq.wait(20)
@@ -49,12 +53,13 @@ class Hvi2VideoMode():
 
     def _push_data(self, dig_seqs):
         for dig_seq in dig_seqs:
-            dig_seq.ds.set_state_mask(running=self.dig_channels)
-            self._wait_state_clear(dig_seq)
+            # NOTE: loop costs PXI registers. Better wait fixed time.
+            dig_seq.wait(600)
+#            self._wait_state_clear(dig_seq, running=ds_channels)
 
             dig_seq.ds.control(push=self.dig_channels)
-            dig_seq.ds.set_state_mask(pushing=self.dig_channels)
-            self._wait_state_clear(dig_seq)
+            dig_seq.wait(600)
+#            self._wait_state_clear(dig_seq, pushing=ds_channels)
 
     def sequence(self, sequencer, hardware):
 
@@ -63,6 +68,9 @@ class Hvi2VideoMode():
         self.r_dig_wait = sequencer.add_module_register('dig_wait', module_type='digitizer')
         self.r_npoints = sequencer.add_module_register('n_points', module_type='digitizer')
         sequencer.add_module_register('channel_state', module_type='digitizer')
+        if self.hvi_queue_control:
+            for register in FpgaAwgQueueingExtension.get_registers():
+                sequencer.add_module_register(register, module_type='awg')
 
         sync = sequencer.main
         awg_seqs = sequencer.get_module_builders(module_type='awg')
@@ -74,6 +82,8 @@ class Hvi2VideoMode():
             with sync.SyncedModules():
                 for awg_seq in awg_seqs:
                     awg_seq.log.write(1)
+                    if self.hvi_queue_control:
+                        awg_seq.queueing.queue_waveforms()
                     awg_seq.start()
                     awg_seq.wait(1000)
                 for dig_seq in dig_seqs:
@@ -81,7 +91,7 @@ class Hvi2VideoMode():
                     dig_seq.start(self.dig_channels)
 
                     if self.downsampler:
-                        dig_seq.wait(20)
+                        dig_seq.wait(40)
                         dig_seq.trigger(self.dig_channels)
 
             with sync.Repeat(sync['n_rep']):
@@ -108,11 +118,10 @@ class Hvi2VideoMode():
                                 dig_seq.trigger()
                             dig_seq.wait(dig_seq['dig_wait'])
 
-            if self.downsampler:
-                with sync.SyncedModules():
-                    self._push_data(dig_seqs)
 
             with sync.SyncedModules():
+                if self.downsampler:
+                    self._push_data(dig_seqs)
                 for seq in all_seqs:
                     seq.stop()
 
