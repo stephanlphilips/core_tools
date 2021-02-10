@@ -153,7 +153,7 @@ class Hvi2SingleShot():
 
                             ds_channels = self._get_dig_channel_config(dig_seq).ds_channels
                             if len(ds_channels) > 0:
-                                dig_seq.wait(20)
+                                dig_seq.wait(40)
                                 dig_seq.trigger(ds_channels)
 
                     with sync.Repeat(sync['n_rep']):
@@ -270,8 +270,8 @@ class Hvi2SingleShot():
         else:
             tot_wait_awg = 0
 
-        # add 150 ns for AWG and digitizer to get ready for next trigger.
-        self._set_wait_time(hvi_exec, self.r_wave_duration, waveform_duration + 150 - tot_wait_awg)
+        # add 250 ns for AWG and digitizer to get ready for next trigger.
+        self._set_wait_time(hvi_exec, self.r_wave_duration, waveform_duration + 250 - tot_wait_awg)
 
         hvi_exec.write_register(self.r_stop, 0)
         hvi_exec.write_register(self.r_start, 1)
