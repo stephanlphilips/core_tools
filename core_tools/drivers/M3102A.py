@@ -198,7 +198,7 @@ class line_trace(MultiParameter):
                 time.sleep(0.001)
                 # abort when no data has been received for 30 s and at least 2 checks without any data
                 # the timeout of 30 s is needed for T1 measurement of 100 ms and one flush every 256 measurements.
-                has_read_timeout = no_data_count >= 2 and (no_data_time > 30)
+                has_read_timeout = no_data_count >= 2 and (no_data_time > 3)
                 if (no_data_time > 0.5 and no_data_count < 100) or no_data_count % 100 == 0:
                     logging.debug(f'no data available ({no_data_count}, {no_data_time:4.2f} s); wait...')
 

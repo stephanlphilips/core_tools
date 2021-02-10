@@ -12,9 +12,7 @@ import qcodes as qc
 
 def add_schedule_to_lambda(lambda_func, schedule):
     def new_lamdba(seq):
-        print('setting hw schedule')
         seq.set_hw_schedule(schedule)
-        print('set digitizer')
         lambda_func()
     return new_lamdba
 
@@ -36,12 +34,13 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
     '''
 
     station = qc.Station.default
-    channels = [1,2]
+    # channels = [1,2] #edited for 56 readout
+    channels = [3,4] #edited for 56 readout
     dig_param, starting_lambda = get_digitizer_param(station.dig, t_meas, n_rep*n_qubit, channels, raw_traces)
-    if raw_traces == True:
-        starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot_raw(n_qubit))
-    else:
-        starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot(n_qubit))
+    # if raw_traces == True:
+    #     starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot_raw(n_qubit))
+    # else:
+    starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot(n_qubit))
 
     IQ_meas_param = IQ_to_scalar(dig_param, phase)
     if n_qubit > 1:
@@ -63,6 +62,6 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
     my_seq.starting_lambda(my_seq)
 
     if raw_traces == True:
-        return check_OD_scan(my_seq, IQ_meas_param) + (name, )
+        return check_OD_scan(my_seq, reshaped_signal) + (name, )
     else:
         return check_OD_scan(my_seq, PSB_out) + (name, )
