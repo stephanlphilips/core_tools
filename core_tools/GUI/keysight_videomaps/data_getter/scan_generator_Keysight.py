@@ -73,7 +73,10 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
 
     # 100 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step /10
+    awg_t_step = t_step / 100
+    # prescaler is limited to 255 when hvi_queueing_control is enabled. Limit other cases as well
+    if awg_t_step > 5 * 255:
+        awg_t_step = 5 * 255
     sample_rate = 1/(awg_t_step*1e-9)
 
     # generate the sequence and upload it.
@@ -92,73 +95,6 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(voltages), ),
                                     biasT_corr, dig_samplerate, channels = channels, Vmax=dig_vmax, iq_mode=iq_mode)
-
-
-def construct_1D_scan_MOD(gate, swing, n_pt, MOD_gates, freq_start, freq_step , biasT_corr, pulse_lib, digitizer,
-                          channels, dig_samplerate):
-    """
-    1D fast scan object for V2.
-
-    Args:
-        gate (str) : gate/gates that you want to sweep.
-        swing (double) : swing to apply on the AWG gates.
-        n_pt (int) : number of points to measure (current firmware limits to 1000)
-        MOD_gates (list<str>) : list with gates to be modulated
-        freq_start (double) : freq to start for the modulation (e.g. 100kHz)
-        freq_step (double) : step to be used (e.g. 100kHz  generates--> 100kHz, 300kHz ,300kHz, 400kHz, ...)
-        biasT_corr (bool) : correct for biasT by taking data in different order.
-        pulse_lib : pulse library object, needed to make the sweep.
-        digitizer_measure : digitizer object
-
-    Returns:
-        Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
-    """
-
-    charge_st_1D  = pulse_lib.mk_segment()
-
-
-    vp = swing/2
-
-    # 10 times longer than the bandwith
-    t_measure = 1/freq_step*10
-
-    getattr(charge_st_1D, gate).add_HVI_variable("t_measure", int(t_step))
-    getattr(charge_st_1D, gate).add_HVI_variable("digitizer", digitizer)
-    getattr(charge_st_1D, gate).add_HVI_variable("number_of_points", int(n_pt))
-    getattr(charge_st_1D, gate).add_HVI_variable("averaging", False)
-
-    # set up timing for the scan
-    # 2us needed to rearm digitizer
-    # 100ns HVI waiting time
-    step_eff = 2000 + 120 + t_step
-
-    # set up sweep voltages (get the right order, to compenstate for the biasT).
-    voltages = np.zeros(n_pt)
-    if biasT_corr == True:
-        voltages[::2] = np.linspace(-vp,vp,n_pt)[:len(voltages[::2])]
-        voltages[1::2] = np.linspace(-vp,vp,n_pt)[len(voltages[1::2]):][::-1]
-    else:
-        voltages = np.linspace(-vp,vp,n_pt)
-
-    for  voltage in voltages:
-        getattr(charge_st_1D, gate).add_block(0, step_eff, voltage)
-        getattr(charge_st_1D, gate).reset_time()
-
-
-    # 100 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step /10
-    sample_rate = 1/(awg_t_step*1e-9)
-
-    # generate the sequence and upload it.
-    my_seq = pulse_lib.mk_sequence([charge_st_1D])
-    my_seq.add_HVI(HVI_ID, load_HVI, set_and_compile_HVI, excute_HVI)
-    my_seq.n_rep = 1
-    my_seq.sample_rate = sample_rate
-
-    my_seq.upload([0])
-
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(np.sort(voltages)), ), 
-                                    biasT_corr, dig_samplerate, channels = channels)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
@@ -226,8 +162,11 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         getattr(charge_st_2D,gate2).add_block(0, step_eff*n_pt1, voltage)
         getattr(charge_st_2D,gate2).reset_time()
 
-    # 100 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step /10
+    # 10 time points per step to make sure that everything looks good (this is more than needed).
+    awg_t_step = t_step / 10
+    # prescaler is limited to 255 when hvi_queueing_control is enabled. Limit other cases as well
+    if awg_t_step > 5 * 255:
+        awg_t_step = 5 * 255
     sample_rate = 1/(awg_t_step*1e-9)
 
     # generate the sequence and upload it.
@@ -246,7 +185,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     my_seq.upload([0])
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),
-                                    (tuple(np.sort(voltages2)),tuple(voltages1)), biasT_corr, dig_samplerate, 
+                                    (tuple(np.sort(voltages2)),tuple(voltages1)), biasT_corr, dig_samplerate,
                                      channels=channels, Vmax=dig_vmax, iq_mode=iq_mode)
 
 
@@ -254,7 +193,7 @@ class _digitzer_scan_parameter(MultiParameter):
     """
     generator for the parameter f
     """
-    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate, 
+    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate,
                  data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4], Vmax=2.0, iq_mode=None):
         """
         args:
@@ -296,7 +235,7 @@ class _digitzer_scan_parameter(MultiParameter):
             self.sample_rate = 500e6
 
         # set digitizer for proper init
-        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate, 
+        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
                                    data_mode = self.data_mode, channels = self.channels, Vmax=self.Vmax)
 
         super().__init__(name=digitizer.name, names = digitizer.measure.names,
