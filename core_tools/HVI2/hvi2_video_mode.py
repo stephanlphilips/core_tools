@@ -107,9 +107,9 @@ class Hvi2VideoMode():
                     for dig_seq in dig_seqs:
                         if self.downsampler:
                             dig_seq.ds.control(phase_reset=self.iq_channels)
-                            dig_seq.wait(340 - 60)
+                            dig_seq.wait(340 - 130)
                         else:
-                            dig_seq.wait(310 - 60)
+                            dig_seq.wait(310 - 130)
 
                         with dig_seq.Repeat(dig_seq['n_points']):
                             if self.downsampler:
@@ -117,7 +117,6 @@ class Hvi2VideoMode():
                             else:
                                 dig_seq.trigger()
                             dig_seq.wait(dig_seq['dig_wait'])
-
 
             with sync.SyncedModules():
                 if self.downsampler:
@@ -134,9 +133,9 @@ class Hvi2VideoMode():
         hvi_exec.set_register(self.r_wave_duration, int(waveform_duration) // 10)
 
         # subtract the time needed for the repeat loop
-        t_wait = int(hvi_params['t_measure']) + self.acquisition_gap - 120
+        t_wait = int(hvi_params['t_measure']) + self.acquisition_gap - 130
         if t_wait < 10:
-            raise Exception('Minimum t_measure is 120 ns')
+            raise Exception('Minimum t_measure is 140 ns')
         hvi_exec.set_register(self.r_dig_wait, t_wait//10)
 
         hvi_exec.start()

@@ -203,6 +203,12 @@ class Hvi2SingleShot():
                         for seq in all_seqs:
                             seq.stop()
 
+                # A simple statement after with sync.While(sync['start'] == 1).
+                # The last statement inside with sync.While(sync['stop'] == 0) shouldn't
+                # be a while loop, because this results in strange timing constraint in the compiler
+                with sync.SyncedModules():
+                    pass
+
 
     def _get_dig_trigger(self, hvi_params, i):
         warn = self._n_starts == 1
@@ -230,6 +236,7 @@ class Hvi2SingleShot():
             raise Exception(f'Invalid wait time {value_ns}')
         hvi_exec.write_register(register, int(value_ns/10))
 
+
     def start(self, hvi_exec, waveform_duration, n_repetitions, hvi_params):
         if self.started != hvi_exec.is_running():
             logging.warning(f'HVI running: {hvi_exec.is_running()}; started: {self.started}')
@@ -250,13 +257,13 @@ class Hvi2SingleShot():
                     for ch in dig_config.ds_channels:
                         dig.set_measurement_time_averaging(ch, hvi_params['t_measure'])
 
-        # add 290 ns delay to start acquiring when awg signal arrives at digitizer.
-        dig_offset = 290
+        # add 300 ns delay to start acquiring when awg signal arrives at digitizer.
+        dig_offset = 300
         tot_wait = -dig_offset
         for i in range(0, self.n_triggers):
             t_trigger = self._get_dig_trigger(hvi_params, i)
             self._set_wait_time(hvi_exec, self.r_dig_wait[i], t_trigger - tot_wait)
-            tot_wait = t_trigger + 80 # wait: +40 ns, wait_reg: +30 ns, ds.control: +10 ns
+            tot_wait = t_trigger + 70 # wait: +40 ns, wait_reg: +20 ns, ds.control: +10 ns
 
         if self.switch_los:
             tot_wait_awg = 20
@@ -286,5 +293,4 @@ class Hvi2SingleShot():
         hvi_exec.write_register(self.r_start, 1)
         if self.started != hvi_exec.is_running():
             logging.warning(f'HVI running-2: {hvi_exec.is_running()}; started: {self.started}')
-
 
