@@ -137,10 +137,11 @@ class live_plot(live_plot_abs, QThread):
         logging.info('running start function in plotting_func')
         self.active = True
         self.plt_finished = False
-        # refresh rate of images
-        self.timer.start(0.05)
+        # refresh rate of images in milliseconds
+        self.timer.start(20)
 
-        super(live_plot, self).start()
+        # start thread
+        super().start()
 
     def stop(self):
         self.active = False
@@ -199,7 +200,7 @@ class _1D_live_plot(live_plot):
                 for i in range(self.n_plots):
                     y = input_data[i]
                     if self.differentiate == True:
-                        y = np.diff(y)
+                        y = np.gradient(y)
 
                     self.buffer_data[i] = np.roll(self.buffer_data[i],-1,0)
                     if self.update_buffers == True:
