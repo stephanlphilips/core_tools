@@ -45,7 +45,7 @@ class _digitzer_measurement_param(MultiParameter):
         def get_raw(self):
             data = self.dig.measure()
             # reinit for the next sequence.
-            self.dig.set_digitizer_HVI(self.t_measure, self.n_rep, sample_rate = self.sample_rate, data_mode = self.data_mode, channels = self.channels)
+            # self.dig.set_digitizer_HVI(self.t_measure, self.n_rep, sample_rate = self.sample_rate, data_mode = self.data_mode, channels = self.channels)
 
             return data
 
@@ -72,6 +72,9 @@ def get_digitizer_param(digitizer, t_measure, n_rep, channels = [1,2], raw=False
     if raw == True:
         digitizer.set_acquisition_mode(MODES.AVERAGE)
         digitizer.set_digitizer_HVI(t_measure, n_rep, downsampled_rate = 2e6, data_mode = DATA_MODE.FULL, channels =  channels, Vmax=0.5)
+        digitizer.measure.setpoint_names = (('n_cycles_1', 'time'), ('n_cycles_2', 'time'))
+        digitizer.measure.setpoint_labels = (('n_cycles_1', 'time'), ('n_cycles_2', 'time'))
+        digitizer.measure.setpoint_units = (('#', 'ns'), ('#', 'ns'))
         print( digitizer.measure.setpoints)
         print( digitizer.measure.setpoint_names)
     else:
@@ -163,8 +166,7 @@ class _digitzer_post_selection_param(MultiParameter):
                 my_data.append(data_out)
 
             return my_data
-        
-        
+     
   
         
 

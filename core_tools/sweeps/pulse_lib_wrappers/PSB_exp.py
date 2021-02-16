@@ -16,7 +16,7 @@ def add_schedule_to_lambda(lambda_func, schedule):
         lambda_func()
     return new_lamdba
 
-def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, threshold=None):
+def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, channels=[1,2], threshold=None):
     '''
     autoconfig utility for runing a readout experiment
 
@@ -34,12 +34,8 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, thresh
     '''
 
     station = qc.Station.default
-    # channels = [1,2] #edited for 56 readout
-    channels = [3,4] #edited for 56 readout
     dig_param, starting_lambda = get_digitizer_param(station.dig, t_meas, n_rep*n_qubit, channels, raw_traces)
-    # if raw_traces == True:
-    #     starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot_raw(n_qubit))
-    # else:
+    
     starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot(n_qubit))
 
     IQ_meas_param = IQ_to_scalar(dig_param, phase)
