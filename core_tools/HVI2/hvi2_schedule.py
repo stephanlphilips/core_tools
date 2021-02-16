@@ -65,24 +65,26 @@ class Hvi2Schedule(HardwareSchedule):
             self.hvi_exec = self.sequencer.compile()
         except:
             logging.error(f'Exception in compilation', exc_info=True)
-            logging.error(f"Compilation '{self.script.name}' failed:\n" + self.sequencer.describe())
+            raise
 
     def is_loaded(self):
         return self._is_loaded
 
     def load(self):
         if self._is_loaded:
-            logging.warning(f'HVI2 schedule already loaded')
+            logging.info(f'HVI2 schedule already loaded')
             return
-        if self.hvi_exec is None:
-            self.compile()
 
         logging.info(f"Load HVI2 schedule with script '{self.script.name}'")
         self.hardware.release_schedule()
         self.configure_modules()
+
+        if self.hvi_exec is None:
+            self.compile()
+
         self.hvi_exec.load()
         if self.hvi_exec.is_running():
-            logging.warning(f'HVI running after load: stop HVI and modules')
+            logging.warning(f'HVI running after load; attempting to stop HVI and modules')
             self.hvi_exec.stop()
             self.configure_modules()
             if self.hvi_exec.is_running():

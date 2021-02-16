@@ -79,15 +79,18 @@ def update_table(conn, table_name, var_names, var_values, condition=None):
 		var_values (tuple<str>) : values corresponding to the variable names
 		condition (str) : condition for the update (e.g. 'id = 5')
 	'''
-	if len(var_names) == 0:
-		return ""
 
 	statement = "UPDATE {} SET ".format(table_name)
 
+	n = 0
 	for i,j in zip(var_names, var_values):
 		if is_empty(j):
 			continue
 		statement +=  "{} = {} ,".format(i,j)
+		n += 1
+
+	if n == 0:
+		return ""
 
 	statement = statement[:-1]
 

@@ -16,8 +16,10 @@ from .hvi2_single_shot import Hvi2SingleShot
 from core_tools.drivers.M3102A import SD_DIG
 
 from keysight_fpga.qcodes.M3202A_fpga import FpgaLocalOscillatorExtension, FpgaAwgQueueingExtension
-from keysight_fpga.sd1.fpga_utils import \
-    FpgaSysExtension, FpgaLogExtension, get_fpga_image_path, has_fpga_info, FpgaMissingExtension
+from keysight_fpga.sd1.fpga_utils import (
+    FpgaSysExtension, FpgaLogExtension, FpgaNoLogExtension,
+    get_fpga_image_path, has_fpga_info, FpgaMissingExtension
+    )
 from keysight_fpga.sd1.dig_iq import get_iq_image_filename, is_iq_image_loaded, FpgaDownsamplerExtension
 
 
@@ -36,8 +38,9 @@ def add_extensions(hvi_system):
             awg_engine.add_extension('lo', FpgaLocalOscillatorExtension)
             awg_engine.add_extension('queueing', FpgaAwgQueueingExtension)
         else:
-            for ext in ['sys','log', 'lo']:
+            for ext in ['sys']:
                 awg_engine.add_extension(ext, FpgaMissingExtension)
+            awg_engine.add_extension('log', FpgaNoLogExtension)
 
     for dig_engine in hvi_system.get_engines(module_type='digitizer'):
         digitizer = dig_engine.module
@@ -51,8 +54,9 @@ def add_extensions(hvi_system):
             dig_engine.add_extension('log', FpgaLogExtension)
             dig_engine.add_extension('ds', FpgaDownsamplerExtension)
         else:
-            for ext in ['sys','log', 'ds']:
+            for ext in ['sys']:
                 dig_engine.add_extension(ext, FpgaMissingExtension)
+            dig_engine.add_extension('log', FpgaNoLogExtension)
 
 
 def signature(f):

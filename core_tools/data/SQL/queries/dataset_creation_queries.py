@@ -99,7 +99,7 @@ class measurement_overview_queries:
 		return query_outcome[0][0], query_outcome[0][1], SQL_datatable
 
 	def update_measurement(conn, meas_uuid, meas_table_name=None, start_time=None, stop_time=None,
-			metadata=None, snapshot=None, keywords= None, data_size=None, completed=False):
+			metadata=None, snapshot=None, keywords= None, data_size=None, data_synchronized=False, completed=False):
 		'''
 		fill in the addional data in a record of the measurements overview table.
 
@@ -113,13 +113,13 @@ class measurement_overview_queries:
 			keywords (list) : keywords describing the measurement
 			completed (bool) : tell that the measurement is completed.
 		'''
-		var_names = ('exp_data_location','start_time', 'stop_time','metadata', 'snapshot', 'keywords', 'data_size', 'completed') 
+		var_names = ('exp_data_location','start_time', 'stop_time','metadata', 'snapshot', 'keywords', 'data_size', 'data_synchronized', 'completed') 
 		var_values = (text(meas_table_name), "to_timestamp('{}')".format(N_to_n(start_time)),
 			"to_timestamp('{}')".format(N_to_n(stop_time)),
 			psycopg2.Binary(str(json.dumps(metadata)).encode('ascii')),
 			psycopg2.Binary(str(json.dumps(snapshot)).encode('ascii')),
 			psycopg2.extras.Json(keywords),
-			data_size, 
+			data_size, str(data_synchronized), 
 			str(completed) )
 
 		condition = 'uuid = {}'.format(meas_uuid)
