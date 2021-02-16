@@ -16,8 +16,10 @@ class sync_mgr_queries:
 		'''
 		res = select_elements_in_table(sync_agent.conn_local, "global_measurement_overview",
 			'uuid', where="table_synchronized=False", dict_cursor=False)
-
-		return list(sum(res, ()))
+		
+		uuid_entries = list(sum(res, ()))
+		uuid_entries.sort()
+		return uuid_entries
 
 	@staticmethod 
 	def sync_table(sync_agent, uuid):
@@ -48,21 +50,18 @@ class sync_mgr_queries:
 
 			for key in remote_content.keys():
 				if local_content[key] != remote_content[key]:
-					print(key)
-					print(local_content[key])
-					print(remote_content[key])
 					content_to_update[key] = local_content[key]
 
 			update_table(sync_agent.conn_remote, 'global_measurement_overview',
 				content_to_update.keys(), content_to_update.values(),
 				condition='uuid = {}'.format(uuid))
 
-		# update_table(sync_agent.conn_local, 'global_measurement_overview',
-		# 		('table_synchronized', ), (True, ),
-		# 		condition='uuid = {}'.format(uuid))
+		update_table(sync_agent.conn_local, 'global_measurement_overview',
+				('table_synchronized', ), (True, ),
+				condition='uuid = {}'.format(uuid))
 
-		sync_agent.conn_remote.commit()
 		sync_agent.conn_local.commit()
+		sync_agent.conn_remote.commit()
 
 	@staticmethod
 	def get_sync_items_raw_data(sync_agent):
@@ -71,23 +70,26 @@ class sync_mgr_queries:
 			meaurments <list<long>> : list of uuid's where the data needs to be updated of.
 		'''
 		res = select_elements_in_table(sync_agent.conn_local, "global_measurement_overview",
-			('uuid', ), where="data_synchronized=False")
+			'uuid', where="data_synchronized=False", dict_cursor=False)
 
-		return list(sum(res, ()))
+		uuid_entries = list(sum(res, ()))
+		uuid_entries.sort()
+		return uuid_entries
 
 	@staticmethod
 	def sync_raw_data(sync_agent, uuid):
 		raw_data_table_name = select_elements_in_table(sync_agent.conn_local, 
 			'global_measurement_overview', 'exp_data_location', 
 			where='uuid = {}'.format(uuid), dict_cursor=False)[0][0]
-		
+
 		# this could be more robust (balance between lightweight and rebustness)
 		sync_mgr_queries._sync_raw_data_table(sync_agent, raw_data_table_name)
 		
 		update_table(sync_agent.conn_local, 'global_measurement_overview',
 				('data_synchronized', ), (True, ),
 				condition='uuid = {}'.format(uuid))
-
+		sync_agent.conn_local.commit()
+		
 		sync_mgr_queries._sync_raw_data_lobj(sync_agent, raw_data_table_name)
 
 	@staticmethod
@@ -103,7 +105,7 @@ class sync_mgr_queries:
 			n_row_rem = select_elements_in_table(sync_agent.conn_remote, raw_data_table_name,
 				'COUNT(*)', dict_cursor=False)[0][0]
 
-		if n_row_loc != n_row_rem:
+		if n_row_loc != n_row_rem or table_name == None:
 			get_rid_of_table = "DROP TABLE IF EXISTS {} ; ".format(raw_data_table_name)
 			execute_statement(sync_agent.conn_remote, get_rid_of_table)
 						
@@ -159,14 +161,13 @@ class sync_mgr_queries:
 
 		if content['snapshot'] is not None:
 			content['snapshot'] = str(content['snapshot'].tobytes()).replace('\'', '')
-			print('snapshot')
-			print(content['snapshot'])
-			json.loads(content['snapshot'])
-			print(content['snapshot'])
-			raise
+			if content['snapshot'].startswith('b'):
+				content['snapshot'] = content['snapshot'][1:]
 
 		if content['metadata'] is not None:
 			content['metadata'] = str(content['metadata'].tobytes()).replace('\'', '')
+			if content['metadata'].startswith('b'):
+				content['metadata'] = content['metadata'][1:]
 
 		if content['stop_time'] is not None:
 			content['stop_time'] = "to_timestamp('{}')".format(content['stop_time'].timestamp())
@@ -181,7 +182,10 @@ if __name__ == '__main__':
     s = SQL_sync_manager()
 
     e = sync_mgr_queries.get_sync_items_meas_table(s)
-    e.sort()
-    # print(sort(e))
-    print(e[-1])
+    
+    # for uuid in e:
     sync_mgr_queries.sync_table(s, e[-1])
+
+    # e = sync_mgr_queries.get_sync_items_raw_data(s)
+    # print(e)
+    sync_mgr_queries.sync_raw_data(s, e[-1])
