@@ -16,7 +16,10 @@ class data_set_desciptor(object):
         if self.is_time:
             return datetime.datetime.fromtimestamp(getattr(getattr(obj,"_data_set__data_set_raw"), self.var))
         if self.is_JSON:
-            return json.loads(getattr(getattr(obj,"_data_set__data_set_raw"), self.var))
+            if getattr(getattr(obj,"_data_set__data_set_raw"), self.var) is None:
+                return None
+            else:
+                return json.loads(getattr(getattr(obj,"_data_set__data_set_raw"), self.var))
 
         return getattr(getattr(obj,"_data_set__data_set_raw"), self.var)
 

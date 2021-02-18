@@ -34,14 +34,14 @@ class load_ds_queries:
 	@staticmethod
 	def is_running(conn, exp_uuid):
 		return_data = select_elements_in_table(conn, load_ds_queries.table_name, var_names=('completed', ),
-			where = "uuid = {};".format(exp_uuid))
+			where = ("uuid", exp_uuid))
 		
 		return return_data[0][0]
 
 	@staticmethod
 	def get_dataset_raw(conn, exp_uuid):
-		data = select_elements_in_table(conn, load_ds_queries.table_name, var_names='*',
-			where = "uuid = {};".format(exp_uuid))[0]
+		data = select_elements_in_table(conn, load_ds_queries.table_name, var_names=('*',),
+			where = ("uuid", exp_uuid))[0]
 
 		if data['stop_time'] is None:
 			data['stop_time'] = data['start_time']
@@ -63,9 +63,9 @@ class load_ds_queries:
 
 	@staticmethod		
 	def __get_dataset_raw_dataclasses(conn, table_name):
-		var_names =	("param_id, nth_set, nth_dim, param_id_m_param, " +
-					"setpoint, setpoint_local, name_gobal, name, label, " +
-					"unit, depencies, shape, total_size, oid ")
+		var_names =	("param_id", "nth_set", "nth_dim", "param_id_m_param",
+					"setpoint", "setpoint_local", "name_gobal", "name", "label",
+					"unit", "depencies", "shape", "total_size", "oid")
 
 		return_data = select_elements_in_table(conn, table_name, var_names, dict_cursor=False)
 

@@ -92,7 +92,7 @@ class measurement_overview_queries:
 		var_values = (uuid, str(sample_info.set_up),  str(sample_info.project),
 			str(sample_info.sample) , SQL_conn_info_local.user, exp_name)
 		
-		returning = 'id, uuid'
+		returning = ('id', 'uuid')
 		query_outcome = insert_row_in_table(conn, measurement_overview_queries.table_name, var_names, var_values, returning)
 
 		SQL_datatable = ("_" + sample_info.set_up + "_" +sample_info.project + "_" +sample_info.sample +"_" + str(query_outcome[0][1])).replace(" ", "_").replace('-', '_')
@@ -113,16 +113,19 @@ class measurement_overview_queries:
 			keywords (list) : keywords describing the measurement
 			completed (bool) : tell that the measurement is completed.
 		'''
-		var_names = ('exp_data_location','start_time', 'stop_time','metadata', 'snapshot', 'keywords', 'data_size', 'data_synchronized', 'completed') 
-		var_values = (text(meas_table_name), "to_timestamp('{}')".format(N_to_n(start_time)),
-			"to_timestamp('{}')".format(N_to_n(stop_time)),
-			psycopg2.Binary(str(json.dumps(metadata)).encode('ascii')),
-			psycopg2.Binary(str(json.dumps(snapshot)).encode('ascii')),
-			psycopg2.extras.Json(keywords),
-			data_size, str(data_synchronized), 
-			str(completed) )
+		var_names = ['exp_data_location','metadata', 'snapshot', 'keywords', 'data_size', 'data_synchronized', 'completed']
+		var_values = [meas_table_name, psycopg2.extras.Json(metadata),
+			psycopg2.extras.Json(snapshot), psycopg2.extras.Json(keywords),
+			data_size, str(data_synchronized), str(completed) ]
 
-		condition = 'uuid = {}'.format(meas_uuid)
+		if start_time is not None:
+			var_names += ['start_time']
+			var_values += [psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(start_time))]
+		if stop_time is not None:
+			var_names += ['stop_time']
+			var_values += [psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(stop_time))]
+
+		condition = ('uuid', meas_uuid)
 		update_table(conn, measurement_overview_queries.table_name, var_names, var_values, condition)
 
 	@staticmethod

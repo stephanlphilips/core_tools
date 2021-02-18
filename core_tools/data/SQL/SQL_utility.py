@@ -1,3 +1,6 @@
+from psycopg2.extras import RealDictCursor, Json
+from psycopg2 import sql
+
 from uuid import getnode as get_mac
 import time
 import re
@@ -19,30 +22,59 @@ def N_to_n(arg):
 	else:
 		return arg
 
-def clean_name_value_pair(names, values):
-	'''
-	removes empty entries from name value pairs (SQL does not like this)
-	'''
-	names = list(names)
-	values = list(values)
+def format_SQL_value(var_value):
+	if isinstance(var_value, Json):
+		return sql.Placeholder(), [var_value]
+	elif isinstance(var_value, (sql.SQL, sql.Composed, sql.Literal)):
+		return var_value, []
+	else:
+		return sql.Literal(var_value), []
 
-	for i in reversed(range(len(values))):
-		if values[i] == None or values[i] == 'null':
-			values.pop(i)
-			names.pop(i)
-			continue
-		values[i] = str(values[i])
+def sql_name_formatter(var_names):
+	var_names_SQL = []
+	
+	for i in var_names:
+		if i == '*':
+			var_names_SQL.append(sql.SQL(i))
+		elif isinstance(i, sql.SQL):
+			var_names_SQL.append(i)
+		else:
+			var_names_SQL.append(sql.Identifier(i))
 
-	return tuple(names), tuple(values)
+	return var_names_SQL
 
-def format_tuple_SQL(my_tuple):
-	'''
-	performs some reguglar expersions to nicely convert the tuple in a nice SQL string.
-	(for now only timestamp correction)
-	'''
-	str_tuple = str(my_tuple)
-	my_str = re.sub(r"\"to_timestamp\((.{2,30})\)\"", r"to_timestamp(\1)", str_tuple)
-	return my_str.replace(", \"'", ", '").replace("(\"'", "('").replace("'\", ", "', ").replace("'\")", "\')")
+def sql_value_formatter(var_values):
+	var_values_SQL = []
+	placeholders = []
+
+	for i in var_values:
+		val,placeholder = format_SQL_value(i)
+		var_values_SQL  += [val]
+		placeholders += placeholder
+	
+	return var_values_SQL, placeholders
+
+class name_value_formatter():
+	def __init__(self, var_names, var_values):
+		self.placeholders = []
+		self.var_names = []
+		self.var_values = []
+
+		for i,j in zip(var_names, var_values):
+			if is_empty(j):
+				continue
+
+			self.var_names += [sql.Identifier(i)]
+			val,placeholder = format_SQL_value(j)
+			self.var_values  += [val]
+			self.placeholders += placeholder
+
+	@property
+	def var_name_pairs(self):
+		return [(i,j) for i,j in zip(self.var_names, self.var_values)]
+
+	def __len__(self):
+		return len(self.var_names)
 
 def is_empty(data):
 	if data is None: 

@@ -1,21 +1,22 @@
 from psycopg2.extras import RealDictCursor
-from core_tools.data.SQL.SQL_utility import clean_name_value_pair, format_tuple_SQL, is_empty
+from psycopg2 import sql
 
-def execute_statement(conn, statement):
+from core_tools.data.SQL.SQL_utility import sql_name_formatter, sql_value_formatter, name_value_formatter
+
+def execute_statement(conn, statement, placeholders = []):
 	cursor = conn.cursor()
-	cursor.execute(statement)
+	cursor.execute(statement, placeholders)
 	cursor.close()
 
 	return ((), )
 
-
-def execute_query(conn, query, dict_cursor=False):
+def execute_query(conn, query, dict_cursor=False, placeholders = []):
 	if dict_cursor == False:
 		cursor = conn.cursor()
 	else:
 		cursor = conn.cursor(cursor_factory=RealDictCursor)
 	
-	cursor.execute(query)
+	cursor.execute(query, placeholders)
 	return_values =cursor.fetchall()
 	cursor.close()
 	
@@ -34,15 +35,19 @@ def select_elements_in_table(conn, table_name, var_names, where=None, order_by =
 		limit (int) : limit the amount of results
 		dict_cursor (bool) : return result as an ordered dict
 	'''
-	query = "SELECT {} from {} ".format(str(var_names), table_name)
-	if where is not None:
-		query += "WHERE {} ".format(where)
-	if order_by is not None:
-		query += "ORDER BY {} ".format(order_by)
-	if limit is not None:
-		query += "LIMIT {} ".format(int(limit))
+	var_names_SQL = sql_name_formatter(var_names)
 
-	query += ";"
+	query = sql.SQL("select {0} from {1} ").format(
+				sql.SQL(', ').join(var_names_SQL),
+				sql.SQL(table_name))
+	# SQL.Identifier does not work with underscore names for tables?
+
+	if where is not None:
+		query += sql.SQL("WHERE {0} = {1} ").format(sql.Identifier(where[0]), sql.Literal(where[1]))
+	if order_by is not None:
+		query += sql.SQL("ORDER BY {0} ").format(sql.Identifier(order_by))
+	if limit is not None:
+		query += sql.SQL("LIMIT {0} ").format(sql.Identifier(int(limit)))
 
 	return execute_query(conn, query, dict_cursor)
 
@@ -55,17 +60,20 @@ def insert_row_in_table(conn, table_name, var_names, var_values, returning=None,
 		table_name (str) : name of the table to update
 		var_names (tuple<str>) : variable names of the table
 		var_values (tuple<str>) : values corresponding to the variable names
-		returning (str) : name of a variablle you want returned
+		returning (tuple<str>) : name of a variables you want returned
 	'''
-	var_names, var_values = clean_name_value_pair(var_names, var_values)
+	var_values_SQL, placeholders = sql_value_formatter(var_values)
+	var_names_SQL = sql_name_formatter(var_names)
 
-	statement = "INSERT INTO {} {} VALUES {} ".format(table_name, str(var_names).replace('\'', ''), format_tuple_SQL(var_values))
+	statement = sql.SQL("INSERT INTO {} ({}) VALUES ({}) ").format(sql.SQL(table_name),
+			sql.SQL(', ').join(var_names_SQL),
+			sql.SQL(', ').join(var_values_SQL))
 
 	if returning is None:
-		return execute_statement(conn, statement + custom_statement + ";")
+		return execute_statement(conn, statement + sql.SQL(custom_statement), placeholders)
 	else:
-		statement += " RETURNING {} ".format(returning)
-		return execute_query(conn, statement + custom_statement +";")
+		statement += sql.SQL(" RETURNING {} ").format(sql.SQL(", ").join([sql.Identifier(i) for i in returning]))
+		return execute_query(conn, statement + sql.SQL(custom_statement), placeholders=placeholders)
 
 
 def update_table(conn, table_name, var_names, var_values, condition=None):
@@ -80,21 +88,15 @@ def update_table(conn, table_name, var_names, var_values, condition=None):
 		condition (str) : condition for the update (e.g. 'id = 5')
 	'''
 
-	statement = "UPDATE {} SET ".format(table_name)
+	statement = sql.SQL("UPDATE {} SET ").format(sql.SQL(table_name))
 
-	n = 0
-	for i,j in zip(var_names, var_values):
-		if is_empty(j):
-			continue
-		statement +=  "{} = {} ,".format(i,j)
-		n += 1
-
-	if n == 0:
+	names_values = name_value_formatter(var_names, var_values)
+	if len(names_values) == 0:
 		return ""
-
-	statement = statement[:-1]
+	
+	statement += sql.SQL(', ').join(sql.SQL("{} = {} ").format(i,j) for i,j in names_values.var_name_pairs)
 
 	if condition is not None:
-		statement += " WHERE {} ".format(condition)
+		statement += sql.SQL("WHERE {0} = {1} ").format(sql.Identifier(condition[0]), sql.Literal(condition[1]))
 
-	return execute_statement(conn, statement + ";")
+	return execute_statement(conn, statement, names_values.placeholders)

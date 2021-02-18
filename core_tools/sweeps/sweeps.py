@@ -251,4 +251,7 @@ if __name__ == '__main__':
     # print(ds)
     ds =do1D(x, 0,5,100, 0.01, my_param).run()
 
-    do2D(y, 0,5,100, 0.0005,x, 0,5,100, 0.0, my_param).run()
+    do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.0, my_param).run()
+
+    # print(ds.snapshot)
+    # print(ds.metadata)
