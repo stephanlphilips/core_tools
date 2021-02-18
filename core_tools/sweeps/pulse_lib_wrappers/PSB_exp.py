@@ -16,7 +16,7 @@ def add_schedule_to_lambda(lambda_func, schedule):
         lambda_func()
     return new_lamdba
 
-def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, channels=[1,2], threshold=None):
+def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, channels=[1,2,3,4], order=1, threshold=None):
     '''
     autoconfig utility for runing a readout experiment
 
@@ -41,9 +41,9 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, channe
     IQ_meas_param = IQ_to_scalar(dig_param, phase)
     if n_qubit > 1:
         reshaped_signal = data_reshaper(n_qubit, IQ_meas_param)
-        PSB_out = PSB_param(reshaped_signal, threshold)
+        PSB_out = PSB_param(reshaped_signal, order, threshold)
     else:
-        PSB_out = PSB_param(IQ_meas_param, threshold)
+        PSB_out = PSB_param(IQ_meas_param, order, threshold)
     
     
     if not isinstance(segment, list):

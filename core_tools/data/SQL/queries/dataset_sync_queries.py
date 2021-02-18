@@ -156,7 +156,7 @@ class sync_mgr_queries:
 
 	@staticmethod
 	def convert_SQL_raw_table_entry_to_python(content):
-		content['keywords'] = str(psycopg2.extras.Json(content['keywords'])).replace('\'', '')
+		content['keywords'] = str(psycopg2.extras.Json(content['keywords']))
 		content['start_time'] = 'to_timestamp(\'{}\')'.format(content['start_time'].timestamp())
 
 		if content['snapshot'] is not None:
