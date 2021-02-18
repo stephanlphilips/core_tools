@@ -46,14 +46,18 @@ def create_new_data_set(experiment_name, *m_params):
     SQL_mgr = SQL_dataset_creator()
     SQL_mgr.register_measurement(ds)
 
+    ds.snapshot = json.dumps(snapshot_json)
+
     return data_set(ds)
 
 if __name__ == '__main__':
-    from core_tools.data.SQL.connector import set_up_local_storage
+    from core_tools.data.SQL.connect import set_up_local_storage
 
     set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
 
-    # ds= (load_by_id(52))
+    ds= (load_by_id(92))
+    print(ds.snapshot)
+    print(ds.metadata)
     # print(ds.m1.z())
     # print(ds.m1.x())
     # print(ds.m1.y())
