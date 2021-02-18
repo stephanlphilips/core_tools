@@ -44,6 +44,7 @@ class SQL_dataset_creator(object):
 			ds (dataset_raw)
 		'''
 		data_table_queries.update_cursors_in_meas_tab(self.conn, ds.SQL_datatable, ds.measurement_parameters_raw)
+		measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid, data_synchronized=False)
 		self.conn.commit()
 
 	def is_completed(self, exp_uuid):
@@ -65,7 +66,7 @@ class SQL_dataset_creator(object):
 		'''
 		data_table_queries.update_cursors_in_meas_tab(self.conn, ds.SQL_datatable, ds.measurement_parameters_raw)
 		measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid, 
-			stop_time=time.time(), completed=True, data_size=ds.size())
+			stop_time=time.time(), completed=True, data_size=ds.size(), data_synchronized=False)
 		
 		self.conn.commit()
 

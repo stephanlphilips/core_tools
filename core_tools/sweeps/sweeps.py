@@ -215,9 +215,9 @@ if __name__ == '__main__':
     station.add_component(instr)
 
     from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D2S - SQ21-XX-X-XX-X")
+    # set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D2S - SQ21-XX-X-XX-X")
     # set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "testing")
-    # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
+    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
 
     now = str(datetime.datetime.now())
     path = os.path.join(os.getcwd(), 'test.db')
@@ -251,4 +251,7 @@ if __name__ == '__main__':
     # print(ds)
     ds =do1D(x, 0,5,100, 0.01, my_param).run()
 
-    # do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.001, my_param).run()
+    do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.0, my_param).run()
+
+    # print(ds.snapshot)
+    # print(ds.metadata)

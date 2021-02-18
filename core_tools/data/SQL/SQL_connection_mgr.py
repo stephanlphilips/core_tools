@@ -1,5 +1,6 @@
 from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info
 from core_tools.data.SQL.queries.dataset_creation_queries import sample_info_queries, measurement_overview_queries
+from core_tools.data.SQL.queries.dataset_sync_queries import sync_mgr_queries
 import psycopg2
 import time
 
@@ -53,6 +54,7 @@ class SQL_database_manager(SQL_database_init):
 
 class SQL_sync_manager(SQL_database_init):
     __instance = None
+    do_sync = True
 
     def __new__(cls):
         if SQL_sync_manager.__instance is None:
@@ -67,11 +69,31 @@ class SQL_sync_manager(SQL_database_init):
 
             sample_info_queries.generate_table(SQL_sync_manager.__instance.conn_remote)
             measurement_overview_queries.generate_table(SQL_sync_manager.__instance.conn_remote)
-            SQL_database_manager.__instance.conn_local.commit()
-            SQL_database_manager.__instance.conn_remote.commit()
+            SQL_sync_manager.__instance.conn_local.commit()
+            SQL_sync_manager.__instance.conn_remote.commit()
         
         return SQL_sync_manager.__instance
 
+    def run(self):       
+        while self.do_sync == True:
+            uuid_update_list = sync_mgr_queries.get_sync_items_raw_data(self)
+
+            for uuid in uuid_update_list:
+                print(f'updating raw data of {uuid}')
+                sync_mgr_queries.sync_raw_data(self, uuid)
+
+            if len(uuid_update_list) == 0:
+                print(f'not files to update')
+
+            uuid_update_list = sync_mgr_queries.get_sync_items_meas_table(self)
+    
+            for uuid in uuid_update_list:
+                print(f'updating table entry of {uuid}')
+                sync_mgr_queries.sync_table(self, uuid)
+            if len(uuid_update_list) == 0:
+                print(f'not entries to update')
+            
+            time.sleep(2)
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
