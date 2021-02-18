@@ -462,11 +462,17 @@ class line_trace(MultiParameter):
                         # setpoints need to be a tuple for hash look-up in qcodes ..
                         setpoints += (tuple(np.linspace(1, properties.cycles, properties.cycles)), )
 
-                    if (properties.data_mode in [DATA_MODE.FULL, DATA_MODE.AVERAGE_CYCLES]
+                    elif (properties.data_mode == DATA_MODE.AVERAGE_CYCLES
                         and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
                         n = properties.points_per_cycle
                         shape += (n, )
                         setpoints += (tuple(np.linspace(properties.t_measure/n, properties.t_measure, n)), )
+
+                    if (properties.data_mode == DATA_MODE.FULL
+                        and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
+                        n = properties.points_per_cycle
+                        shape += (n, )
+                        setpoints += ((tuple(np.linspace(properties.t_measure/n, properties.t_measure, n)), )*properties.cycles)
 
                     self.shapes += (shape, )
                     self.setpoints += (setpoints, )
