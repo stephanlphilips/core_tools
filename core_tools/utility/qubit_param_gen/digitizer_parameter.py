@@ -14,7 +14,7 @@ class _digitzer_qubit_param(MultiParameter):
 
         def get_raw(self):
             data = self.dig.measure()
-            return measurement_mgr.format_data(data)
+            return self.measurement_mgr.format_data(data)
 
 def get_digitizer_qubit_param(digitizer, measurement_mgr):
     """
@@ -28,7 +28,7 @@ def get_digitizer_qubit_param(digitizer, measurement_mgr):
     """
     def starting_lambda():
             digitizer.set_acquisition_mode(MODES.AVERAGE)
-            digitizer.set_digitizer_HVI(measurement_mgr.t_measure, measurement_mgr.n_rep, data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4], Vmax=0.5)
+            digitizer.set_digitizer_HVI(measurement_mgr.t_measure, measurement_mgr.n_rep*measurement_mgr.n_readouts, data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4], Vmax=0.5)
 
     return _digitzer_qubit_param(digitizer, measurement_mgr), starting_lambda
 

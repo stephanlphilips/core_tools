@@ -6,7 +6,7 @@ from core_tools.drivers.M3102A import DATA_MODE
 from core_tools.sweeps.sweep_utility import check_OD_scan
 from core_tools.HVI2.schedule_manager import ScheduleMgr
 
-
+from core_tools.utility.qubit_param_gen.digitizer_parameter import get_digitizer_qubit_param
 import qcodes as qc
 
 
@@ -61,3 +61,29 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, channe
         return check_OD_scan(my_seq, reshaped_signal) + (name, )
     else:
         return check_OD_scan(my_seq, PSB_out) + (name, )
+
+def run_qubit_exp(exp_name, sequence, measurement_mgr):
+    '''
+    Args:
+        exp_name (str) : name of the experiment
+        sequence (list<segment>) : list of segments to play back
+        measurement_mgr (measurement_manager) : manager that describes what needs to be measured
+    '''
+    station = qc.Station.default
+    dig_param, starting_lambda = get_digitizer_qubit_param(station.dig, measurement_mgr)
+    
+    starting_lambda = add_schedule_to_lambda(starting_lambda, ScheduleMgr().single_shot(measurement_mgr.n_readouts))
+
+    if not isinstance(sequence, list):
+        sequence = [sequence]
+    
+    my_seq = station.pulse.mk_sequence(sequence)
+
+    my_seq.n_rep = measurement_mgr.n_rep
+    my_seq.neutralise = True
+
+    my_seq.starting_lambda = starting_lambda
+    my_seq.starting_lambda(my_seq)
+
+
+    return check_OD_scan(my_seq, dig_param) + (exp_name, )

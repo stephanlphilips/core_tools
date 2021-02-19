@@ -403,4 +403,4 @@ class PSB_param(MultiParameter):
                     Q56 = (np.where(data_in[6][sel] < self.threshold[6])[0].size)/sel.size
                     Q4 = (np.where((data_in[6][sel] < self.threshold[6]) & (data_in[7][sel] > self.threshold[7]) | (data_in[6][sel] > self.threshold[6]) & (data_in[7][sel] < self.threshold[7]))[0].size)/sel.size
 
-                return (selection_1.size, selection_2.size, selection_3.size, selection_4.size, Q12, Q3, Q4, Q56)
+                return (sel123.size, sel456.size, sel.size, (sel.size/data_in[0].size), Q12, Q3, Q4, Q56)

@@ -64,9 +64,11 @@ class measurement:
 	def set_nth_read(self, n):
 		self.__nth_readout = n
 
-	def format_raw(self, raw):
-		data_I = np.asarray(raw[self.chan[0]-1][:, self.__nth_readout])
-		data_Q = np.asarray(raw[self.chan[1]-1][:, self.__nth_readout])
+	def format_raw(self, raw, n_readouts):
+		data_I = np.asarray(raw[self.chan[0]-1])
+		data_I = data_I.reshape([int(data_I.size/n_readouts), n_readouts])[:, self.__nth_readout]
+		data_Q = np.asarray(raw[self.chan[1]-1])
+		data_Q = data_Q.reshape([int(data_Q.size/n_readouts), n_readouts])[:, self.__nth_readout]
 		
 		if self.phase is not None:
 			data_complex = (data_I + 1j*data_Q)*np.exp(1j*self.phase)
@@ -74,8 +76,8 @@ class measurement:
 		
 		return (data_I, data_Q)
 
-	def get_selection(self, raw):
-		raw_measurement = self.format_raw(raw)[0]
+	def get_selection(self, raw, n_readouts):
+		raw_measurement = self.format_raw(raw, n_readouts)[0]
 		out = np.ones(raw_measurement.shape, dtype=np.bool)
 
 		if self.threshold is None:
@@ -90,8 +92,8 @@ class measurement:
 
 		return (out, len(selection))
 
-	def get_meas(self, raw, indexes, qubit_outcomes):
-		sel, n_selected = self.get_selection(raw)
+	def get_meas(self, raw, indexes, qubit_outcomes, n_readouts):
+		sel, n_selected = self.get_selection(raw, n_readouts)
 		meas_points = sel[indexes]
 
 		if self.threshold is None:
@@ -100,12 +102,10 @@ class measurement:
 		if self.flip is not None:
 			if self.flip not in qubit_outcomes.keys():
 				raise ValueError(f'flipping on {self.flip} is not present in any of the measurement names? Please check your naming')
-			print('flipping')
-			print(meas_points)
-			print(qubit_outcomes[self.flip])
 			meas_points = np.bitwise_xor(meas_points, np.invert(qubit_outcomes[self.flip]))
-			print(meas_points)
-
+		if len(indexes) == 0:
+			return (meas_points, 0 ,)
+		
 		return (meas_points, len(np.where(meas_points == True)[0])/len(indexes) ,)
 
 	def get_setpoints_raw(self, n_rep):
@@ -181,8 +181,8 @@ class measurement_manager():
 	
 	def format_data(self, data):
 		# check if input shape is as expected
-		if data[0].shape != (self.n_rep, 4):
-			raise ValueError(f'number of readout ({data.shape}) not the same of the expected({(self.n_rep, self.n_readouts)})?')
+		# if data[0].shape != (self.n_rep, 4):
+		# 	raise ValueError(f'number of readout ({data.shape}) not the same of the expected({(self.n_rep, self.n_readouts)})?')
 
 		state_selectors = self.state_selectors
 		meas_outcomes   = self.measurement_outcomes 
@@ -190,12 +190,12 @@ class measurement_manager():
 		data_out = []
 		# 1) pull out raw data
 		for meas_op in state_selectors + meas_outcomes:
-			data_out += meas_op.format_raw(data)
+			data_out += meas_op.format_raw(data, self.n_readouts)
 
 		# 2) select on qubit basis
 		selector = np.ones((self.n_rep,), dtype=np.bool)
 		for sel in state_selectors:
-			raw_selection, n_selected = sel.get_selection(data)
+			raw_selection, n_selected = sel.get_selection(data, self.n_readouts)
 			data_out += [n_selected]
 			
 			if sel.accept == 0:
@@ -206,13 +206,13 @@ class measurement_manager():
 		idx = np.where(selector == True)[0]
 
 		# 3) global selection
-		if len(state_selectors) > 0:
+		if len(state_selectors) > 1:
 			data_out += [len(idx)]
 
 		# 4) qubit outcomes
 		qubit_outcomes = dict()
 		for meas_op in meas_outcomes:
-			data_raw, spin_up_fraction = meas_op.get_meas(data, indexes = idx, qubit_outcomes=qubit_outcomes)
+			data_raw, spin_up_fraction = meas_op.get_meas(data, indexes = idx, qubit_outcomes=qubit_outcomes, n_readouts=self.n_readouts)
 			data_out += (spin_up_fraction, )
 			qubit_outcomes[meas_op.name] = data_raw
 
@@ -242,7 +242,7 @@ class measurement_manager():
 			s += s_tot
 
 		for meas_op in meas_outcomes:
-			s += selector.get_setpoints()
+			s += meas_op.get_setpoints()
 
 		return s
 
