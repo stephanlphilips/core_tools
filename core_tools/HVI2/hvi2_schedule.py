@@ -14,7 +14,7 @@ import keysightSD1 as SD1
 import uuid
 
 class Hvi2Schedule(HardwareSchedule):
-    verbose = True
+    verbose = False
 
     def __init__(self, hardware, script, extensions=None):
         self.hardware = hardware
@@ -42,7 +42,7 @@ class Hvi2Schedule(HardwareSchedule):
             dig.daq_flush_multiple(0b1111)
 
     def compile(self):
-        logging.info(f"Compile HVI2 schedule with script '{self.script.name}'")
+        logging.info(f"Build HVI2 schedule with script '{self.script.name}'")
         hvi_system = HviSystem()
         for awg in self.hardware.awgs:
             sd_aou = awg.awg
@@ -64,7 +64,7 @@ class Hvi2Schedule(HardwareSchedule):
         try:
             self.hvi_exec = self.sequencer.compile()
         except:
-            logging.error(f'Exception in compilation', exc_info=True)
+            logging.error(f"Exception in compilation of '{self.script.name}'", exc_info=True)
             raise
 
     def is_loaded(self):
