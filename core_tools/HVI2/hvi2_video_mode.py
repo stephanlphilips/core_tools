@@ -32,7 +32,10 @@ class Hvi2VideoMode():
         '''
         Time in ns between consecutive acquisition traces.
         '''
-        return 10 if self.downsampler else 1800
+        # Acquisition gap could be 10 ns with downsampler.
+        # Delays in wiring should also be taken into account. 1 m wiring = ~4 ns delay.
+        # A gap of 50 ns suffices and measurement is still very fast.
+        return 50 if self.downsampler else 1800
 
     def _get_awg_channel_los(self, awg_seq):
         result = []
@@ -62,7 +65,7 @@ class Hvi2VideoMode():
 #            self._wait_state_clear(dig_seq, pushing=ds_channels)
 
     def sequence(self, sequencer, hardware):
-
+        self.hardware = hardware
         self.r_nrep = sequencer.add_sync_register('n_rep')
         self.r_wave_duration = sequencer.add_module_register('wave_duration', module_type='awg')
         self.r_dig_wait = sequencer.add_module_register('dig_wait', module_type='digitizer')
@@ -127,6 +130,10 @@ class Hvi2VideoMode():
 
     def start(self, hvi_exec, waveform_duration, n_repetitions, hvi_params):
 
+        if self.hvi_queue_control:
+            for awg in self.hardware.awgs:
+                awg.write_queue_mem()
+
         hvi_exec.set_register(self.r_nrep, n_repetitions)
         hvi_exec.set_register(self.r_npoints, hvi_params['number_of_points'])
 
@@ -135,7 +142,7 @@ class Hvi2VideoMode():
         # subtract the time needed for the repeat loop
         t_wait = int(hvi_params['t_measure']) + self.acquisition_gap - 130
         if t_wait < 10:
-            raise Exception('Minimum t_measure is 140 ns')
+            raise Exception(f'Minimum t_measure is {140-self.acquisition_gap} ns')
         hvi_exec.set_register(self.r_dig_wait, t_wait//10)
 
         hvi_exec.start()

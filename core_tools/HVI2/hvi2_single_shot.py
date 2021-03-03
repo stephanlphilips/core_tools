@@ -23,7 +23,7 @@ class Hvi2SingleShot():
     verbose = True
 
     def __init__(self, dig_channel_modes, awg_channel_los=[], n_triggers=1, switch_los=False,
-                 enabled_los=None, hvi_queue_control=False):
+                 enabled_los=None, hvi_queue_control=False, n_waveforms=1, trigger_out=False):
         '''
         Args:
             dig_channel_modes (Dict[str,Dict[int,int]]): per digitizer and channel the mode.
@@ -32,7 +32,9 @@ class Hvi2SingleShot():
             switch_los (bool): switch los on/off with measurements
             enabled_los (List[List[Tuple[str, int,int]]): per switch interval list with (AWG, channel, active local oscillator).
                 if None, then all los are switched on/off.
-            hvi_queue_control (boolean): if True enables waveform queueing by hvi script.
+            hvi_queue_control (bool): if True enables waveform queueing by hvi script.
+            n_waveforms (int): number of waveforms per channel (only applies when hvi_queue_control=True)
+            trigger_out (bool): if True enables markers via Trigger Out channel.
         '''
         self.digitizer_config = {}
         for dig, channels in dig_channel_modes.items():
@@ -51,6 +53,8 @@ class Hvi2SingleShot():
         self.switch_los = switch_los
         self.enabled_los = enabled_los
         self.hvi_queue_control = hvi_queue_control
+        self.n_waveforms = n_waveforms
+        self.trigger_out = trigger_out
 
         self._n_starts = 0
 
@@ -140,7 +144,7 @@ class Hvi2SingleShot():
                     with sync.SyncedModules():
                         for awg_seq in awg_seqs:
                             if self.hvi_queue_control:
-                                awg_seq.queueing.queue_waveforms()
+                                awg_seq.queueing.queue_waveforms(self.n_waveforms)
                             awg_seq.log.write(1)
                             awg_seq.start()
                             awg_seq.wait(1000)
@@ -163,6 +167,11 @@ class Hvi2SingleShot():
                                 awg_seq.log.write(2)
                                 awg_seq.trigger()
                                 awg_seq.lo.reset_phase(los)
+                                if self.trigger_out:
+                                    awg_seq.marker.start()
+                                    awg_seq.marker.trigger()
+                                else:
+                                    awg_seq.wait(20)
                                 if self.switch_los:
                                     # enable local oscillators
                                     for i in range(n_triggers):
@@ -174,6 +183,8 @@ class Hvi2SingleShot():
                                         awg_seq.lo.set_los_enabled(enabled_los, False)
 
                                 awg_seq.wait(awg_seq['wave_duration'])
+                                if self.trigger_out:
+                                    awg_seq.marker.stop()
 
                             for dig_seq in dig_seqs:
                                 dig_config = self._get_dig_channel_config(dig_seq)
@@ -257,6 +268,10 @@ class Hvi2SingleShot():
                     for ch in dig_config.ds_channels:
                         dig.set_measurement_time_averaging(ch, hvi_params['t_measure'])
 
+        if self.hvi_queue_control:
+            for awg in self.hardware.awgs:
+                awg.write_queue_mem()
+
         # add 300 ns delay to start acquiring when awg signal arrives at digitizer.
         dig_offset = 300
         tot_wait = -dig_offset
@@ -266,7 +281,7 @@ class Hvi2SingleShot():
             tot_wait = t_trigger + 70 # wait: +40 ns, wait_reg: +20 ns, ds.control: +10 ns
 
         if self.switch_los:
-            tot_wait_awg = 20
+            tot_wait_awg = 40 # 20 ns for marker trigger, 20 ns awg trigger + reset phase
             for i in range(0, self.n_triggers):
                 t_on = hvi_params[f'awg_los_on_{i+1}']
                 t_off = hvi_params[f'awg_los_off_{i+1}']

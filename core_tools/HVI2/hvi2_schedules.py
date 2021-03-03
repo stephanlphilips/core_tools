@@ -15,7 +15,10 @@ from .hvi2_single_shot import Hvi2SingleShot
 
 from core_tools.drivers.M3102A import SD_DIG
 
-from keysight_fpga.qcodes.M3202A_fpga import FpgaLocalOscillatorExtension, FpgaAwgQueueingExtension
+from keysight_fpga.qcodes.M3202A_fpga import (
+	    FpgaLocalOscillatorExtension, FpgaAwgQueueingExtension,
+	    FpgaTriggerOutExtension
+	 )
 from keysight_fpga.sd1.fpga_utils import (
     FpgaSysExtension, FpgaLogExtension, FpgaNoLogExtension,
     get_fpga_image_path, has_fpga_info, FpgaMissingExtension
@@ -29,26 +32,31 @@ def get_awg_image_filename(module):
 
 def add_extensions(hvi_system):
     for awg_engine in hvi_system.get_engines(module_type='awg'):
+        logging.info(f'Adding {awg_engine.name} extensions')
         awg = awg_engine.module
         if has_fpga_info(awg):
             bitstream = get_awg_image_filename(awg)
+            logging.info(f'{awg_engine.name} load symbols {bitstream}')
             awg_engine.load_fpga_symbols(bitstream)
             awg_engine.add_extension('sys', FpgaSysExtension)
             awg_engine.add_extension('log', FpgaLogExtension)
             awg_engine.add_extension('lo', FpgaLocalOscillatorExtension)
             awg_engine.add_extension('queueing', FpgaAwgQueueingExtension)
+            awg_engine.add_extension('marker', FpgaTriggerOutExtension)
         else:
             for ext in ['sys']:
                 awg_engine.add_extension(ext, FpgaMissingExtension)
             awg_engine.add_extension('log', FpgaNoLogExtension)
 
     for dig_engine in hvi_system.get_engines(module_type='digitizer'):
+        logging.info(f'Adding {dig_engine.name} extensions')
         digitizer = dig_engine.module
         if not is_iq_image_loaded(digitizer):
             logging.warn(f'downsampler-iq FPGA image not loaded')
 
         if has_fpga_info(digitizer):
             dig_bitstream = get_iq_image_filename(digitizer)
+            logging.info(f'{dig_engine.name} load symbols {dig_bitstream}')
             dig_engine.load_fpga_symbols(dig_bitstream)
             dig_engine.add_extension('sys', FpgaSysExtension)
             dig_engine.add_extension('log', FpgaLogExtension)
@@ -108,7 +116,8 @@ class Hvi2Schedules:
 
     @signature
     def get_single_shot(self, digitizer_mode=None, dig_channel_modes=None, awg_channel_los=[],
-                        n_triggers=1, switch_los=False, enabled_los=None, hvi_queue_control=False):
+                        n_triggers=1, switch_los=False, enabled_los=None, hvi_queue_control=False,
+                        trigger_out=False, n_waveforms=1):
         dig_channel_modes = self._get_dig_channel_modes(digitizer_mode, dig_channel_modes)
 
         s = self._signature
@@ -119,7 +128,8 @@ class Hvi2Schedules:
             hw = default_scheduler_hardware
             script = Hvi2SingleShot(dig_channel_modes, awg_channel_los, n_triggers=n_triggers,
                                     switch_los=switch_los, enabled_los=enabled_los,
-                                    hvi_queue_control=hvi_queue_control)
+                                    hvi_queue_control=hvi_queue_control, n_waveforms=n_waveforms,
+                                    trigger_out=trigger_out)
             schedule = Hvi2Schedule(hw, script, extensions=add_extensions)
             self.schedules[name] = schedule
 

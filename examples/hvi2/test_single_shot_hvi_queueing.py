@@ -1,18 +1,28 @@
 import logging
+import os
 import time
 
 import numpy as np
 import matplotlib.pyplot as pt
 
-from keysight_fpga.sd1.fpga_utils import \
-    print_fpga_info, config_fpga_debug_log, print_fpga_log
-from keysight_fpga.sd1.dig_iq import load_iq_image
+from projects.keysight_fpga.fpga_utils import \
+    print_fpga_info, config_fpga_debug_log, print_fpga_log, get_fpga_image_path, fpga_list_registers
+from projects.keysight_fpga.sd1_utils import check_error
+from projects.keysight_fpga.dig_iq import load_iq_image
 
-from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
-from core_tools.drivers.M3102A import SD_DIG, MODES
+from projects.keysight_fpga.M3202A_fpga import M3202A_fpga
+from projects.keysight_measurement.M3102A import SD_DIG, DATA_MODE, MODES
 from pulse_lib.base_pulse import pulselib
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
+from projects.keysight_measurement.hvi2.hvi2_schedules import Hvi2Schedules
+
+try:
+    import keysightSD1 as SD1
+except:
+    import sys
+    sys.path.append(r'C:\Program Files\Keysight\SD1\Libraries\Python')
+    import keysightSD1 as SD1
+
 
 import qcodes
 
@@ -56,16 +66,16 @@ dig_channels = [1,2,3,4]
 full_scale = 2.0
 
 t_wave = 20_000
-t_pulse = 800
+t_pulse = 15_000
 pulse_duration = 100
 
-dig_mode = MODES.AVERAGE
-t_measure = 1_000
-t_average = 100
+dig_mode = MODES.NORMAL #AVERAGE
+t_measure = 10_000
+t_average = 10
 p2decim = 0
 lo_f = 20e6
 
-n_rep = 1000
+n_rep = 1
 
 awgs = []
 for i, slot in enumerate(awg_slots):
@@ -84,7 +94,7 @@ dig.set_acquisition_mode(dig_mode)
 p = create_pulse_lib(awgs)
 ## create schedule
 schedules = Hvi2Schedules(p, dig)
-schedule = schedules.get_single_shot(dig_mode, hvi_queue_control=True)
+schedule = schedules.get_single_shot(dig_mode, hvi_queue_control=True, n_waveforms=2) # TODO @@@ Cleanup
 schedule.load()
 
 ## create waveforms
@@ -94,16 +104,26 @@ for awg in awgs:
         channel = getattr(seg, f'{awg.name}_{ch}')
         channel.wait(t_wave)
         channel.add_block(t_pulse, t_pulse+pulse_duration, 800)
+        channel.add_ramp_ss(t_wave-100, t_wave, 100, 100*ch)
 
 seg.add_HVI_marker('dig_trigger_1', t_off=t_pulse-100)
 
+seg2 = p.mk_segment()
+for awg in awgs:
+    for ch in [1,2,3,4]:
+        channel = getattr(seg2, f'{awg.name}_{ch}')
+        channel.wait(t_wave)
+        channel.add_ramp_ss(0, 100, 100*ch, 200*ch-100)
+        channel.add_block(100, 100+pulse_duration, 500)
+seg2.sample_rate = 1e8
+
 ## create sequencer
-sequencer = p.mk_sequence([seg])
+sequencer = p.mk_sequence([seg,seg2])
 sequencer.set_hw_schedule(schedule)
 sequencer.n_rep = n_rep
 
 #for ch in dig_channels:
-#    dig.set_lo(ch, lo_f, 0, input_channel=ch)
+#    dig.set_lo(ch, lo_f, 0, input_channel=ch) @@@@@@@@@@@@
 
 
 
@@ -114,6 +134,7 @@ config_fpga_debug_log(dig.SD_AIN,
 #                      capture_start_mask=0x8800_4141, capture_duration=1
                       )
 
+#time.sleep(1)
 #schedule.load()
 dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
                       downsampled_rate=1e9/t_average,
@@ -127,7 +148,7 @@ data = dig.measure.get_data()
 
 
 ## run
-N = 5
+N = 0
 start = time.perf_counter()
 for i in range(N):
 #    schedule.load()
@@ -144,9 +165,9 @@ if N > 0:
     print(f'duration {duration*1000/N:5.1f} ms')
 
 #print_fpga_log(dig.SD_AIN)
-#for awg in awgs:
-#    print(f'AWG: {awg.name}')
-#    print_fpga_log(awg.awg, clock200=True)
+for awg in awgs:
+    print(f'AWG: {awg.name}')
+    print_fpga_log(awg.awg, clock200=True)
 
 
 dig_data = [None]*4
