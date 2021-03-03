@@ -770,8 +770,7 @@ class SD_DIG(Instrument):
             eff_t_measure = points_per_cycle * downsampling_factor * 10 * 2**power2decimation
 
             values_per_point = 2 if properties.acquisition_mode == MODES.IQ_DEMODULATION else 1
-            # add points to align with data retrieval size; minimum number for downsampler is 8
-            daq_points_per_cycle = max(8, n_cycles * points_per_cycle * values_per_point)
+            daq_points_per_cycle = n_cycles * points_per_cycle * values_per_point
             daq_cycles = 1
             config_input_channel = properties.input_channel if properties.input_channel != 0 else channel
 
@@ -779,7 +778,7 @@ class SD_DIG(Instrument):
                            LO_f=properties.lo_frequency, phase=properties.lo_phase,
                            p2decim=power2decimation, input_ch=config_input_channel)
 
-        # add extra points for acquisition alignment
+        # add extra points for acquisition alignment and minimum number of points
         daq_points_per_cycle = self._get_aligned_npoints(daq_points_per_cycle)
 
         # variables needed to generate correct setpoints and for data acquisition
@@ -795,8 +794,9 @@ class SD_DIG(Instrument):
         properties.daq_cycles = daq_cycles
 
         logging.debug(f'ch{channel} config: {daq_points_per_cycle}, {daq_cycles}')
-        self.SD_AIN.DAQconfig(channel, daq_points_per_cycle, daq_cycles, DAQ_trigger_delay, DAQ_trigger_mode)
-        self.SD_AIN.channelPrescalerConfig(channel, prescaler)
+        check_error(self.SD_AIN.DAQconfig(channel, daq_points_per_cycle, daq_cycles,
+                                          DAQ_trigger_delay, DAQ_trigger_mode), 'DAQconfig')
+        check_error(self.SD_AIN.channelPrescalerConfig(channel, prescaler), 'channelPrescalerConfig')
         self.measure._generate_parameter_info()
 
 
@@ -819,7 +819,8 @@ class SD_DIG(Instrument):
         points_per_cycle = properties.points_per_cycle
         n_cycles = properties.cycles
         # NOTE: add 1 point for odd sample numbers
-        self.SD_AIN.DAQconfig(channel, self._get_aligned_npoints(points_per_cycle), n_cycles, delay, 2)
+        check_error(self.SD_AIN.DAQconfig(channel, self._get_aligned_npoints(points_per_cycle), n_cycles, delay, 2),
+                    'DAQconfig')
 
     def daq_flush(self, daq, verbose=False):
         """
@@ -1084,8 +1085,9 @@ class SD_DIG(Instrument):
 
 
     def _get_aligned_npoints(self, npt):
-        # NOTE: add 1 point for odd sample numbers
-        return (npt + 1)//2 * 2
+        # add 1 point for odd sample numbers
+        # SD1 3.1 requires at least 30 points.
+        return max(30, (npt + 1)//2 * 2)
 
 
 if __name__ == '__main__':
