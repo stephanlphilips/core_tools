@@ -213,8 +213,10 @@ class _1D_live_plot(live_plot):
 
                     self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
             except Exception as e:
-               logging.error(f'Exception: {e}', exc_info=True)
-               print('frame dropped -- reason unclear ..')
+                logging.error(f'Exception: {e}', exc_info=True)
+                print('frame dropped (check logging)')
+                # slow down to reduce error burst
+                time.sleep(0.5)
 
         self.plt_finished = True
 
@@ -272,7 +274,9 @@ class _2D_live_plot(live_plot):
                 prog_ar = [mp[0][0] != 0 for mp in self.buffer_data[0]]
                 self.prog_per = int(sum(prog_ar)/len(prog_ar)*100)
             except Exception as e:
-                logging.error(f'Exception: {e}')#, exc_info=True)
+                logging.error(f'Exception: {e}', exc_info=True)
+                # slow down to reduce error burst
+                time.sleep(0.5)
 
         self.plt_finished = True
 
