@@ -42,10 +42,11 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     vp = swing/2
 
-    getattr(charge_st_1D, gate).add_HVI_variable("t_measure", int(t_step))
-    getattr(charge_st_1D, gate).add_HVI_variable("digitizer", digitizer)
-    getattr(charge_st_1D, gate).add_HVI_variable("number_of_points", int(n_pt))
-    getattr(charge_st_1D, gate).add_HVI_variable("averaging", True)
+    seg = getattr(charge_st_1D, gate)
+    seg .add_HVI_variable("t_measure", int(t_step))
+    seg.add_HVI_variable("digitizer", digitizer)
+    seg.add_HVI_variable("number_of_points", int(n_pt))
+    seg.add_HVI_variable("averaging", True)
 
     # set up timing for the scan
     if use_hvi2:
@@ -68,9 +69,14 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         voltages = np.linspace(-vp,vp,n_pt)
 
     for  voltage in voltages:
-        getattr(charge_st_1D, gate).add_block(0, step_eff, voltage)
-        getattr(charge_st_1D, gate).reset_time()
+        seg.add_block(0, step_eff, voltage)
+        seg.reset_time()
 
+    if use_hvi2 and hasattr(hw_schedule.script, 'enable_markers'):
+        # TODO: make a clean implementation of markers
+        for marker in hw_schedule.script.enable_markers:
+            marker_seg = getattr(charge_st_1D, marker)
+            marker_seg.add_marker(0, n_pt*step_eff)
 
     # 100 time points per step to make sure that everything looks good (this is more than needed).
     awg_t_step = t_step / 100
@@ -126,10 +132,11 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     charge_st_2D  = pulse_lib.mk_segment()
 
-    getattr(charge_st_2D, gate1).add_HVI_variable("t_measure", int(t_step))
-    getattr(charge_st_2D, gate1).add_HVI_variable("digitizer", digitizer)
-    getattr(charge_st_2D, gate1).add_HVI_variable("number_of_points", int(n_pt1*n_pt2))
-    getattr(charge_st_2D, gate1).add_HVI_variable("averaging", True)
+    seg1 = getattr(charge_st_2D, gate1)
+    seg1.add_HVI_variable("t_measure", int(t_step))
+    seg1.add_HVI_variable("digitizer", digitizer)
+    seg1.add_HVI_variable("number_of_points", int(n_pt1*n_pt2))
+    seg1.add_HVI_variable("averaging", True)
 
     # set up timing for the scan
     if use_hvi2:
@@ -155,18 +162,26 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     else:
         voltages2 = np.linspace(-vp2,vp2,n_pt2)
 
-    getattr(charge_st_2D, gate1).add_ramp_ss(0, step_eff*n_pt1, -vp1, vp1)
-    getattr(charge_st_2D, gate1).repeat(n_pt1)
+    seg1.add_ramp_ss(0, step_eff*n_pt1, -vp1, vp1)
+    seg1.repeat(n_pt1)
 
+    seg2 = getattr(charge_st_2D, gate2)
     for voltage in voltages2:
-        getattr(charge_st_2D,gate2).add_block(0, step_eff*n_pt1, voltage)
-        getattr(charge_st_2D,gate2).reset_time()
+        seg2.add_block(0, step_eff*n_pt1, voltage)
+        seg2.reset_time()
+
+    if use_hvi2 and hasattr(hw_schedule.script, 'enable_markers'):
+        # TODO: improve. this is an ungly short-cut
+        for marker in hw_schedule.script.enable_markers:
+            marker_seg = getattr(charge_st_2D, marker)
+            marker_seg.add_marker(0, n_pt1*n_pt2*step_eff)
 
     # 10 time points per step to make sure that everything looks good (this is more than needed).
     awg_t_step = t_step / 10
     # prescaler is limited to 255 when hvi_queueing_control is enabled. Limit other cases as well
     if awg_t_step > 5 * 255:
         awg_t_step = 5 * 255
+
     sample_rate = 1/(awg_t_step*1e-9)
 
     # generate the sequence and upload it.

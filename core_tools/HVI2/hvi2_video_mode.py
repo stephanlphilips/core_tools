@@ -5,12 +5,15 @@ from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
 class Hvi2VideoMode():
     verbose = True
 
-    def __init__(self, digitizer_mode, awg_channel_los=None, hvi_queue_control=False):
+    def __init__(self, digitizer_mode, awg_channel_los=None, hvi_queue_control=False,
+                 trigger_out=False, enable_markers=[]):
         '''
         Args:
             digitizer_mode (int): digitizer modes: 0 = direct, 1 = averaging/downsampling, 2,3 = IQ demodulation
             awg_channel_los (List[Tuple[str,int,int]]): list with (AWG, channel, active local oscillator).
-            hvi_queue_control (boolean): if True enables waveform queueing by hvi script.
+            hvi_queue_control (bool): if True enables waveform queueing by hvi script.
+            enable_markers (List[str]): marker channels to enable during sweep.
+            trigger_out (bool): if True enables markers via Trigger Out channel.
 
         For video mode the digitizer measurement should return 1 value per trigger.
         There are no practical uses cases where different digitizer channels have different modes.
@@ -21,6 +24,8 @@ class Hvi2VideoMode():
         self.started = False
         self.awg_channel_los = awg_channel_los
         self.hvi_queue_control = hvi_queue_control
+        self.trigger_out = trigger_out
+        self.enable_markers = enable_markers
 
 
     @property
@@ -104,8 +109,15 @@ class Hvi2VideoMode():
                         if self.awg_channel_los is not None:
                             los = self._get_awg_channel_los(awg_seq)
                             awg_seq.lo.reset_phase(los)
+                        if self.trigger_out:
+                            awg_seq.marker.start()
+                            awg_seq.marker.trigger()
+                        else:
+                            awg_seq.wait(20)
                         awg_seq.log.write(2)
                         awg_seq.wait(awg_seq['wave_duration'])
+                        if self.trigger_out:
+                            awg_seq.marker.stop()
 
                     for dig_seq in dig_seqs:
                         if self.downsampler:

@@ -118,6 +118,19 @@ class Hvi2Schedules:
     def get_single_shot(self, digitizer_mode=None, dig_channel_modes=None, awg_channel_los=[],
                         n_triggers=1, switch_los=False, enabled_los=None, hvi_queue_control=False,
                         trigger_out=False, n_waveforms=1):
+        '''
+        Return a (cached) single shot schedule.
+        Args:
+            dig_channel_modes (Dict[str,Dict[int,int]]): per digitizer and channel the mode.
+            awg_channel_los (List[Tuple[str,int,int]]): list with (AWG, channel, active local oscillator).
+            n_trigger (int): number of measurement and lo switching intervals.
+            switch_los (bool): switch los on/off with measurements
+            enabled_los (List[List[Tuple[str, int,int]]): per switch interval list with (AWG, channel, active local oscillator).
+                if None, then all los are switched on/off.
+            hvi_queue_control (bool): if True enables waveform queueing by hvi script.
+            n_waveforms (int): number of waveforms per channel (only applies when hvi_queue_control=True)
+            trigger_out (bool): if True enables markers via Trigger Out channel.
+        '''
         dig_channel_modes = self._get_dig_channel_modes(digitizer_mode, dig_channel_modes)
 
         s = self._signature
@@ -137,15 +150,29 @@ class Hvi2Schedules:
 
 
     @signature
-    def get_video_mode(self, digitizer_mode:int, awg_channel_los=None, hvi_queue_control=False):
+    def get_video_mode(self, digitizer_mode:int, awg_channel_los=None, hvi_queue_control=False,
+                       trigger_out=False, enable_markers=[]):
+        '''
+        Return a (cached) video mode schedule.
+        Args:
+            digitizer_mode (int): digitizer modes: 0 = direct, 1 = averaging/downsampling, 2,3 = IQ demodulation
+            awg_channel_los (List[Tuple[str,int,int]]): list with (AWG, channel, active local oscillator).
+            hvi_queue_control (bool): if True enables waveform queueing by hvi script.
+            enable_markers (List[str]): marker channels to enable during sweep.
+            trigger_out (bool): if True enables markers via Trigger Out channel.
 
+        For video mode the digitizer measurement should return 1 value per trigger.
+        '''
         s = self._signature
         name = f'video_mode({s})'
 
         if name not in self.schedules:
             logging.info(f'create schedule {name}')
             hw = default_scheduler_hardware
-            script =  Hvi2VideoMode(digitizer_mode, awg_channel_los, hvi_queue_control=hvi_queue_control)
+            script =  Hvi2VideoMode(digitizer_mode, awg_channel_los,
+                                    hvi_queue_control=hvi_queue_control,
+                                    trigger_out=trigger_out,
+                                    enable_markers=enable_markers)
             schedule = Hvi2Schedule(hw, script, extensions=add_extensions)
             self.schedules[name] = schedule
         return self.schedules[name]
