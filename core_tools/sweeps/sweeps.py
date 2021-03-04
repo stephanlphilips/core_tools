@@ -249,8 +249,8 @@ if __name__ == '__main__':
     # do0D(param_2D).run()
     # ds = do0D(param_2D).run()
     # print(ds)
-    ds =do1D(x, 0,5,100, 0.01, my_param_multi_test).run()
-
+    ds =do1D(x, -100,100,100, 0.01, my_param_multi_test).run()
+    
     # do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.0, my_param).run()
 
     # print(ds.snapshot)

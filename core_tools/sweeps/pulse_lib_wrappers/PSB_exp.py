@@ -55,7 +55,7 @@ def run_PSB_exp(name, segment, t_meas, n_rep, n_qubit ,raw_traces ,phase, channe
     my_seq.neutralise = True
 
     my_seq.starting_lambda = starting_lambda
-    my_seq.starting_lambda(my_seq)
+    # my_seq.starting_lambda(my_seq)
 
     if raw_traces == True:
         return check_OD_scan(my_seq, reshaped_signal) + (name, )
