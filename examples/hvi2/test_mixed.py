@@ -75,7 +75,7 @@ def scan2D_keysight(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, pulse_li
     # 2us needed to re-arm digitizer
     # 100ns HVI waiting time
     # [SdS] Why is the value below 120 ns?
-    step_eff = 10 + t_step
+    step_eff = 50 + t_step
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
