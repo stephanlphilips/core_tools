@@ -1,28 +1,20 @@
-import logging
-import os
 import time
 
 import numpy as np
 import matplotlib.pyplot as pt
 
-from projects.keysight_fpga.fpga_utils import \
+from keysight_fpga.sd1.fpga_utils import \
     print_fpga_info, config_fpga_debug_log, print_fpga_log, get_fpga_image_path, fpga_list_registers
-from projects.keysight_fpga.sd1_utils import check_error
-from projects.keysight_fpga.dig_iq import load_iq_image
+from keysight_fpga.sd1.sd1_utils import check_error
+from keysight_fpga.sd1.dig_iq import load_iq_image
 
-from projects.keysight_fpga.M3202A_fpga import M3202A_fpga
-from projects.keysight_measurement.M3102A import SD_DIG, DATA_MODE, MODES
+from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
+from core_tools.drivers.M3102A import SD_DIG, MODES
 from pulse_lib.base_pulse import pulselib
 
-from projects.keysight_measurement.hvi2.hvi2_schedules import Hvi2Schedules
+from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
 
-try:
-    import keysightSD1 as SD1
-except:
-    import sys
-    sys.path.append(r'C:\Program Files\Keysight\SD1\Libraries\Python')
-    import keysightSD1 as SD1
-
+import keysightSD1 as SD1
 
 import qcodes
 
@@ -55,6 +47,7 @@ def create_pulse_lib(awgs):
         # define channels
         for ch in range(1,5):
             pulse.define_channel(f'{awg.name}_{ch}', awg.name, ch)
+            pulse.add_channel_delay(f'{awg.name}_{ch}', 5*ch)
 
     pulse.finish_init()
     return pulse
@@ -82,6 +75,7 @@ for i, slot in enumerate(awg_slots):
     awg = M3202A_fpga(f'AWG{slot}', 1, slot, waveform_size_limit=1e7)
     awgs.append(awg)
     awg.set_hvi_queue_control(True)
+    awg.set_digital_filter_mode(0)
 
 
 dig = SD_DIG('DIG1', 1, dig_slot)
