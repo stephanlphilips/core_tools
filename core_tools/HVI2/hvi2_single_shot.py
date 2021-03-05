@@ -23,7 +23,7 @@ class Hvi2SingleShot():
     verbose = True
 
     def __init__(self, dig_channel_modes, awg_channel_los=[], n_triggers=1, switch_los=False,
-                 enabled_los=None, hvi_queue_control=False, n_waveforms=1, trigger_out=False):
+                 enabled_los=None, hvi_queue_control=False, n_waveforms=1, trigger_out=False, acquisition_delay_ns=0):
         '''
         Args:
             dig_channel_modes (Dict[str,Dict[int,int]]): per digitizer and channel the mode.
@@ -35,6 +35,9 @@ class Hvi2SingleShot():
             hvi_queue_control (bool): if True enables waveform queueing by hvi script.
             n_waveforms (int): number of waveforms per channel (only applies when hvi_queue_control=True)
             trigger_out (bool): if True enables markers via Trigger Out channel.
+            acquisition_delay_ns (int):
+                Time in ns between AWG output change and digitizer acquisition start.
+                This also increases the gap between acquisitions.
         '''
         self.digitizer_config = {}
         for dig, channels in dig_channel_modes.items():
@@ -57,6 +60,7 @@ class Hvi2SingleShot():
         self.trigger_out = trigger_out
 
         self._n_starts = 0
+        self._acquisition_delay = int(acquisition_delay_ns/10) * 10
 
     @property
     def name(self):
@@ -198,9 +202,9 @@ class Hvi2SingleShot():
                                 for i in range(n_triggers):
                                     dig_seq.wait(dig_seq[f'dig_wait_{i+1}'])
                                     if len(dig_config.raw_channels) > 0:
-                                        # start delay of instruction after wait_register is 0!
-                                        # so no extra delay when not in schedule.
                                         dig_seq.trigger(dig_config.raw_channels)
+                                    else:
+                                        dig_seq.wait(10)
                                     dig_seq.wait(40)
 
                                     if len(dig_config.ds_channels) > 0:
@@ -273,7 +277,7 @@ class Hvi2SingleShot():
                 awg.write_queue_mem()
 
         # add 300 ns delay to start acquiring when awg signal arrives at digitizer.
-        dig_offset = 300
+        dig_offset = 300 + self._acquisition_delay
         tot_wait = -dig_offset
         for i in range(0, self.n_triggers):
             t_trigger = self._get_dig_trigger(hvi_params, i)
@@ -293,7 +297,7 @@ class Hvi2SingleShot():
             tot_wait_awg = 0
 
         # add 250 ns for AWG and digitizer to get ready for next trigger.
-        self._set_wait_time(hvi_exec, self.r_wave_duration, waveform_duration + 250 - tot_wait_awg)
+        self._set_wait_time(hvi_exec, self.r_wave_duration, waveform_duration + 250 - tot_wait_awg + self._acquisition_delay)
 
         hvi_exec.write_register(self.r_stop, 0)
         hvi_exec.write_register(self.r_start, 1)

@@ -5,12 +5,15 @@ from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
 class Hvi2VideoMode():
     verbose = True
 
-    def __init__(self, digitizer_mode, awg_channel_los=None, hvi_queue_control=False,
+    def __init__(self, digitizer_mode, awg_channel_los=None, acquisition_delay_ns=500, hvi_queue_control=False,
                  trigger_out=False, enable_markers=[]):
         '''
         Args:
             digitizer_mode (int): digitizer modes: 0 = direct, 1 = averaging/downsampling, 2,3 = IQ demodulation
             awg_channel_los (List[Tuple[str,int,int]]): list with (AWG, channel, active local oscillator).
+            acquisition_delay_ns (int):
+                Time in ns between AWG output change and digitizer acquisition start.
+                This also increases the gap between acquisitions.
             hvi_queue_control (bool): if True enables waveform queueing by hvi script.
             enable_markers (List[str]): marker channels to enable during sweep.
             trigger_out (bool): if True enables markers via Trigger Out channel.
@@ -27,6 +30,11 @@ class Hvi2VideoMode():
         self.trigger_out = trigger_out
         self.enable_markers = enable_markers
 
+        self._acquisition_delay = int(acquisition_delay_ns/10) * 10
+        # Minimum time for digitizer in downsampling mode is 20 ns. Account for latencies between AWG and digitizer
+        min_gap = 20 if self.downsampler else 1800
+        self._acquisition_gap = max(min_gap, self._acquisition_delay+20)
+
 
     @property
     def name(self):
@@ -37,10 +45,7 @@ class Hvi2VideoMode():
         '''
         Time in ns between consecutive acquisition traces.
         '''
-        # Acquisition gap could be 10 ns with downsampler.
-        # Delays in wiring should also be taken into account. 1 m wiring = ~4 ns delay.
-        # A gap of 50 ns suffices and measurement is still very fast.
-        return 50 if self.downsampler else 1800
+        return self._acquisition_gap
 
     def _get_awg_channel_los(self, awg_seq):
         result = []
@@ -105,6 +110,7 @@ class Hvi2VideoMode():
             with sync.Repeat(sync['n_rep']):
                 with sync.SyncedModules():
                     for awg_seq in awg_seqs:
+                        awg_seq.log.write(2)
                         awg_seq.trigger()
                         if self.awg_channel_los is not None:
                             los = self._get_awg_channel_los(awg_seq)
@@ -114,17 +120,17 @@ class Hvi2VideoMode():
                             awg_seq.marker.trigger()
                         else:
                             awg_seq.wait(20)
-                        awg_seq.log.write(2)
                         awg_seq.wait(awg_seq['wave_duration'])
                         if self.trigger_out:
                             awg_seq.marker.stop()
 
                     for dig_seq in dig_seqs:
+                        dig_seq.log.write(2)
                         if self.downsampler:
                             dig_seq.ds.control(phase_reset=self.iq_channels)
-                            dig_seq.wait(340 - 130)
+                            dig_seq.wait(330 - 130 + self._acquisition_delay)
                         else:
-                            dig_seq.wait(310 - 130)
+                            dig_seq.wait(300 - 130 + self._acquisition_delay)
 
                         with dig_seq.Repeat(dig_seq['n_points']):
                             if self.downsampler:

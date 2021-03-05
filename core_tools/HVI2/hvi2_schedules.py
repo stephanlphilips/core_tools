@@ -117,7 +117,7 @@ class Hvi2Schedules:
     @signature
     def get_single_shot(self, digitizer_mode=None, dig_channel_modes=None, awg_channel_los=[],
                         n_triggers=1, switch_los=False, enabled_los=None, hvi_queue_control=False,
-                        trigger_out=False, n_waveforms=1):
+                        trigger_out=False, n_waveforms=1, acquisition_delay_ns=0):
         '''
         Return a (cached) single shot schedule.
         Args:
@@ -130,7 +130,8 @@ class Hvi2Schedules:
             hvi_queue_control (bool): if True enables waveform queueing by hvi script.
             n_waveforms (int): number of waveforms per channel (only applies when hvi_queue_control=True)
             trigger_out (bool): if True enables markers via Trigger Out channel.
-        '''
+            acquisition_delay_ns (int): time in ns between AWG output change and digitizer acquisition start.
+            hvi_queue_control (bool): if True enables waveform queueing by hvi script.        '''
         dig_channel_modes = self._get_dig_channel_modes(digitizer_mode, dig_channel_modes)
 
         s = self._signature
@@ -142,7 +143,8 @@ class Hvi2Schedules:
             script = Hvi2SingleShot(dig_channel_modes, awg_channel_los, n_triggers=n_triggers,
                                     switch_los=switch_los, enabled_los=enabled_los,
                                     hvi_queue_control=hvi_queue_control, n_waveforms=n_waveforms,
-                                    trigger_out=trigger_out)
+                                    trigger_out=trigger_out,
+                                    acquisition_delay_ns=acquisition_delay_ns)
             schedule = Hvi2Schedule(hw, script, extensions=add_extensions)
             self.schedules[name] = schedule
 
@@ -150,13 +152,16 @@ class Hvi2Schedules:
 
 
     @signature
-    def get_video_mode(self, digitizer_mode:int, awg_channel_los=None, hvi_queue_control=False,
+    def get_video_mode(self, digitizer_mode:int, awg_channel_los=None, acquisition_delay_ns=500, hvi_queue_control=False,
                        trigger_out=False, enable_markers=[]):
         '''
         Return a (cached) video mode schedule.
         Args:
             digitizer_mode (int): digitizer modes: 0 = direct, 1 = averaging/downsampling, 2,3 = IQ demodulation
             awg_channel_los (List[Tuple[str,int,int]]): list with (AWG, channel, active local oscillator).
+            acquisition_delay_ns (int):
+                Time in ns between AWG output change and digitizer acquisition start.
+                This also increases the gap between acquisitions.
             hvi_queue_control (bool): if True enables waveform queueing by hvi script.
             enable_markers (List[str]): marker channels to enable during sweep.
             trigger_out (bool): if True enables markers via Trigger Out channel.
@@ -170,6 +175,7 @@ class Hvi2Schedules:
             logging.info(f'create schedule {name}')
             hw = default_scheduler_hardware
             script =  Hvi2VideoMode(digitizer_mode, awg_channel_los,
+                                    acquisition_delay_ns=acquisition_delay_ns,
                                     hvi_queue_control=hvi_queue_control,
                                     trigger_out=trigger_out,
                                     enable_markers=enable_markers)

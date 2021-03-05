@@ -119,6 +119,5 @@ class Hvi2Schedule(HardwareSchedule):
             try:
                 logging.warning(f'Automatic close of Hvi2Schedule in __del__()')
                 self.unload()
-                raise Exception('boom')
             except:
                 logging.error(f'Exception unloading HVI', exc_info=True)
