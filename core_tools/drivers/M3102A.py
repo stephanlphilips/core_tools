@@ -491,12 +491,14 @@ class channel_properties:
     points_per_cycle : int = 1
     cycles : int = 0
     full_scale : float = 0 #peak voltage
+    impedance: Optional[int] = None
+    coupling: Optional[int] = None
     t_measure : float = 0 #measurement time in ns of the channel
     sample_rate : float = 500e6
     # daq configuration
-    prescaler : int = 0
-    daq_points_per_cycle: int = 1
-    daq_cycles: int = 0
+    prescaler : Optional[int] = None
+    daq_points_per_cycle: Optional[int] = None
+    daq_cycles: Optional[int] = None
     # settings of downsampler-iq FPGA image
     downsampled_rate : Optional[float] = None
     power2decimation : int = 0
@@ -688,12 +690,15 @@ class SD_DIG(Instrument):
             impedance: 0(HiZ), 1 (50 Ohm)
             coulping: 0 (DC), 1 (AC)
         """
-        self.SD_AIN.channelInputConfig(channel, V_range, impedance, coupling)
-
         properties = self.channel_properties[f'ch{channel}']
-        if properties.full_scale != V_range:
+        if (properties.full_scale != V_range
+            or properties.impedance != impedance
+            or properties.coupling != coupling):
             properties.full_scale = V_range
+            properties.coupling = coupling
+            properties.impedance = impedance
             self.measure._generate_parameter_info()
+            self.SD_AIN.channelInputConfig(channel, V_range, impedance, coupling)
 
 
     def set_daq_settings(self, channel, n_cycles, t_measure, sample_rate = 500e6,
@@ -781,6 +786,16 @@ class SD_DIG(Instrument):
         # add extra points for acquisition alignment and minimum number of points
         daq_points_per_cycle = self._get_aligned_npoints(daq_points_per_cycle)
 
+
+        if (properties.daq_points_per_cycle != daq_points_per_cycle
+            or properties.daq_cycles != daq_cycles):
+            logging.debug(f'ch{channel} config: {daq_points_per_cycle}, {daq_cycles}')
+            check_error(self.SD_AIN.DAQconfig(channel, daq_points_per_cycle, daq_cycles,
+                                              DAQ_trigger_delay, DAQ_trigger_mode), 'DAQconfig')
+
+        if properties.prescaler != prescaler:
+            check_error(self.SD_AIN.channelPrescalerConfig(channel, prescaler), 'channelPrescalerConfig')
+
         # variables needed to generate correct setpoints and for data acquisition
         properties.cycles = n_cycles
         properties.points_per_cycle = points_per_cycle
@@ -792,11 +807,6 @@ class SD_DIG(Instrument):
         properties.downsampling_factor = downsampling_factor
         properties.daq_points_per_cycle = daq_points_per_cycle
         properties.daq_cycles = daq_cycles
-
-        logging.debug(f'ch{channel} config: {daq_points_per_cycle}, {daq_cycles}')
-        check_error(self.SD_AIN.DAQconfig(channel, daq_points_per_cycle, daq_cycles,
-                                          DAQ_trigger_delay, DAQ_trigger_mode), 'DAQconfig')
-        check_error(self.SD_AIN.channelPrescalerConfig(channel, prescaler), 'channelPrescalerConfig')
         self.measure._generate_parameter_info()
 
 
