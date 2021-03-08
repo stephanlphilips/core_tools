@@ -24,6 +24,7 @@ class Hvi2Schedule(HardwareSchedule):
         self.hvi_sequence = None
         self.hvi_exec = None
         self._is_loaded = False
+        self._might_be_loaded = False
         self.schedule_parms = {}
         self.hvi_id = uuid.uuid4()
 
@@ -82,6 +83,8 @@ class Hvi2Schedule(HardwareSchedule):
         if self.hvi_exec is None:
             self.compile()
 
+        self.hardware.set_schedule(self)
+        self._might_be_loaded = True
         self.hvi_exec.load()
         if self.hvi_exec.is_running():
             logging.warning(f'HVI running after load; attempting to stop HVI and modules')
@@ -89,17 +92,19 @@ class Hvi2Schedule(HardwareSchedule):
             self.configure_modules()
             if self.hvi_exec.is_running():
                 logging.eror(f'Still Running after stop')
-        self.hardware.set_schedule(self)
         self._is_loaded = True
 
     def unload(self):
-        if not self._is_loaded:
+        if not self.hvi_exec:
             return
+        if self._is_loaded:
         self.script.stop(self.hvi_exec)
         logging.info(f"Unload HVI2 schedule with script '{self.script.name}'")
+            self._is_loaded = False
+        if self._might_be_loaded:
         self.hvi_exec.unload()
-        self._is_loaded = False
         self.hardware.release_schedule()
+            self._might_be_loaded = False
 
     def is_running(self):
         return self.hvi_exec.is_running()
@@ -112,7 +117,7 @@ class Hvi2Schedule(HardwareSchedule):
 
     def close(self):
         self.unload()
-
+        self.hvi_exec = None
 
     def __del__(self):
         if self._is_loaded:
