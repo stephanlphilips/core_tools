@@ -94,16 +94,13 @@ def update_table(conn, table_name, var_names, var_values, condition=None):
 	names_values = name_value_formatter(var_names, var_values)
 	if len(names_values) == 0:
 		return ""
-	
-	var_names_SQL = sql_name_formatter(var_names)
-	var_values_SQL, placeholders = sql_value_formatter(var_values)
 
-	statement += sql.SQL(', ').join(sql.SQL("{} = {} ").format(i,j) for i,j in zip(var_names_SQL, var_values_SQL))
+	statement += sql.SQL(', ').join(sql.SQL("{} = {} ").format(i,j) for i,j in names_values.var_name_pairs)
 
 	if condition is not None:
 		statement += sql.SQL("WHERE {0} = {1} ").format(sql.Identifier(condition[0]), sql.Literal(condition[1]))
 
-	return execute_statement(conn, statement, placeholders=placeholders)
+	return execute_statement(conn, statement, placeholders=names_values.placeholders)
 
 def alter_table(conn, table_name, colums, dtypes):
 	'''
@@ -116,8 +113,6 @@ def alter_table(conn, table_name, colums, dtypes):
 		dtypes (tuple<str>) : type of the column's
 	'''
 	statement = sql.SQL("ALTER TABLE {} ADD COLUMN ").format(sql.SQL(table_name))
-	for i,j in zip(colums, dtypes):
-		print(i,j)
 	statement += sql.SQL(" , ADD COLUMN ").join(sql.SQL(" {0} {1} ").format(sql.Identifier(i), sql.SQL(j)) for i, j in zip(colums, dtypes))
 
 	return execute_statement(conn, statement)

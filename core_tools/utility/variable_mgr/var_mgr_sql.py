@@ -1,5 +1,5 @@
 from core_tools.data.SQL.connect import sample_info
-from core_tools.data.SQL.SQL_common_commands import insert_row_in_table, update_table, select_elements_in_table, execute_statement, alter_table
+from core_tools.data.SQL.SQL_common_commands import insert_row_in_table, update_table, select_elements_in_table, execute_statement, alter_table, execute_query
 from psycopg2.extras import RealDictCursor, DictCursor
 from psycopg2.errors import UndefinedColumn
 from psycopg2 import sql
@@ -69,17 +69,18 @@ class var_sql_queries:
         return all_vals, my_id
 
     def remove_variable(conn, variable_name):
-
-
-        try:
-            statement_1 = sql.SQL("DELETE FROM {} WHERE {} = {} ").format(sql.SQL(var_sql_queries.gen_table_overview_name()), sql.Identifier('name'),sql.Literal(variable_name))
-            statement_2 = sql.SQL("ALTER TABLE {} DROP COLUMN {}").format(sql.SQL(var_sql_queries.gen_table_content_name()), sql.Identifier(variable_name))
-            execute_statement(conn, statement_2)
-            conn.commit()
-            execute_statement(conn, statement_1)
-            
-        except UndefinedColumn:
+        statement_1 = sql.SQL("DELETE FROM {} WHERE {} = {} returning name").format(sql.SQL(var_sql_queries.gen_table_overview_name()), sql.Identifier('name'),sql.Literal(variable_name))
+        statement_2 = sql.SQL("ALTER TABLE {} DROP COLUMN IF EXISTS {}").format(sql.SQL(var_sql_queries.gen_table_content_name()), sql.Identifier(variable_name))
+        res = execute_query(conn, statement_1)
+        execute_statement(conn, statement_2)
+        
+        if len(res) == 0:
             print('Nothing to remove. {} is not present in the database?'.format(variable_name))
+
+    def change_column_name(conn, old, new):
+        statement = sql.SQL('ALTER TABLE {} RENAME COLUMN {} TO {};').format(sql.SQL(var_sql_queries.gen_table_content_name()), sql.Identifier(old), sql.Identifier(new))
+        execute_statement(conn, statement)
+        conn.commit()
 
     @staticmethod
     def gen_table_overview_name():
@@ -93,15 +94,15 @@ if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage
     from core_tools.utility.variable_mgr.var_mgr import variable_mgr
     set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "testing")
+    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "SQ21-XX-X-XX-X")
 
     conn = variable_mgr().conn_local
     var_sql_queries.init_table(conn)
 
     # var_sql_queries.add_variable(conn, "SD1_P_on3execute_statement(conn, statement_1)", "mV", "SD voltages", 0.1)
     # var_sql_queries.add_variable(conn, "SD1_P_on", "mV", "SD voltages", 0.1)
-    var_sql_queries.update_val(conn, "SD1_P_on", 12)
+    # var_sql_queries.update_val(conn, "SD1_P_on", 12)
     print(var_sql_queries.get_all_values(conn))
     print(var_sql_queries.get_all_specs(conn))
-    # var_sql_queries.remove_variable(conn, "sd1_p_on")
+    var_sql_queries.remove_variable(conn, "PHASE_q2_q6_X")
 

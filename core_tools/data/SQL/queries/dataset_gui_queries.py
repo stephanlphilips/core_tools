@@ -10,12 +10,13 @@ class alter_dataset:
 	@staticmethod
 	def update_name(uuid, name):
 		conn = SQL_database_manager().conn_local
-		update_table(conn, 'global_measurement_overview', ('exp_name', 'table_synchronized'), (text(name), False), condition = 'uuid = {}'.format(uuid))
+		update_table(conn, 'global_measurement_overview', ('exp_name', 'table_synchronized'), (name, False), condition = ('uuid',uuid))
 		conn.commit()
+
 	@staticmethod
 	def star_measurement(uuid, state):
 		conn = SQL_database_manager().conn_local
-		update_table(conn, 'global_measurement_overview', ('starred', 'table_synchronized'), (state, False), condition = 'uuid = {}'.format(uuid))
+		update_table(conn, 'global_measurement_overview', ('starred', 'table_synchronized'), (state, False), condition = ('uuid', uuid))
 		conn.commit()
 class query_for_samples():
 	@staticmethod

@@ -130,9 +130,9 @@ class sync_mgr_queries:
 	@staticmethod
 	def _sync_raw_data_lobj(sync_agent, raw_data_table_name):
 		res_loc = select_elements_in_table(sync_agent.conn_local, raw_data_table_name,
-			('write_cursor', 'total_size', 'oid'), order_by='id')
+			('write_cursor', 'total_size', 'oid'), order_by=('id', ''))
 		res_rem = select_elements_in_table(sync_agent.conn_remote, raw_data_table_name,
-			('write_cursor', 'total_size', 'oid'), order_by='id')
+			('write_cursor', 'total_size', 'oid'), order_by=('id', ''))
 		
 		for i in range(len(res_loc)):
 			r_cursor = res_rem[i]['write_cursor']
