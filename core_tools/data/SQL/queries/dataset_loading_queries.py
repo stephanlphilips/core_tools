@@ -51,7 +51,7 @@ class load_ds_queries:
 
 		if data['metadata'] is not None:
 			data['metadata'] = data['metadata'].tobytes()
-
+		
 		ds = data_set_raw(exp_id=data['id'], exp_uuid=data['uuid'], exp_name=data['exp_name'], 
 			set_up = data['set_up'], project = data['project'], sample = data['sample'], 
 			UNIX_start_time=data['start_time'].timestamp(), UNIX_stop_time=data['stop_time'].timestamp(), 

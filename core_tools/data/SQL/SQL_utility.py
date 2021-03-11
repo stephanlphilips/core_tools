@@ -1,6 +1,6 @@
 from psycopg2.extras import RealDictCursor, Json
 from psycopg2 import sql
-
+import psycopg2
 from uuid import getnode as get_mac
 import time
 import re
@@ -23,12 +23,10 @@ def N_to_n(arg):
 		return arg
 
 def format_SQL_value(var_value):
-	if isinstance(var_value, Json):
-		return sql.Placeholder(), [var_value]
-	elif isinstance(var_value, (sql.SQL, sql.Composed, sql.Literal)):
+	if isinstance(var_value, (sql.SQL, sql.Composed, sql.Literal)):
 		return var_value, []
 	else:
-		return sql.Literal(var_value), []
+		return sql.Placeholder(), [var_value]
 
 def sql_name_formatter(var_names):
 	var_names_SQL = []

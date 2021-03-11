@@ -28,10 +28,13 @@ class m_result_item():
         kw = ""
         if isinstance(self._keywords, list) :
             for i in self._keywords:
-                kw += str(i) + ", "
+                if 'raw' not in i:
+                    kw += str(i) + ", "
         if len(kw) == 0:
             return kw
         
+        if len(kw) > 80:
+            kw = kw[:80] + ' ....'
         return kw[:-2]
     
     @property

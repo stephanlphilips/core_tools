@@ -92,6 +92,17 @@ class data_set:
 
             self.__repr_attr_overview += [repr_attr_overview]
 
+    def __call__(self, label_variable):
+        '''
+        extract a meaurement by its label
+        '''
+        for minstr in self.__repr_attr_overview:
+            for var_meas in minstr:
+                if var_meas[1].label == label_variable:
+                    return var_meas[1]
+        
+        raise ValueError(f'Unable to find \'{label_variable}\' in ds with id :{self.exp_id}')
+
     def add_result(self, input_data):
         '''
         Add results to the dataset

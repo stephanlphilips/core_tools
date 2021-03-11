@@ -61,6 +61,7 @@ class data_set_raw:
         
         return size
 @dataclass
+
 class m_param_raw:
     param_id : int
     nth_set : int # if part of a set
