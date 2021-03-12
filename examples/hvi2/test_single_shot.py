@@ -11,12 +11,10 @@ from keysight_fpga.sd1.sd1_utils import check_error
 from keysight_fpga.sd1.dig_iq import load_iq_image
 
 from qcodes_contrib_drivers.drivers.Keysight.M3202A import M3202A
-from core_tools.drivers.M3102A import SD_DIG
+from core_tools.drivers.M3102A import SD_DIG, MODES
 from pulse_lib.base_pulse import pulselib
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
-
-import keysightSD1 as SD1
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 import qcodes
 
@@ -29,11 +27,10 @@ from qcodes.logger import start_all_logging
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -61,32 +58,27 @@ def load_awg_image(awg):
     bitstream = os.path.join(get_fpga_image_path(awg.awg), 'awg_enhanced.k7z')
     check_error(awg.load_fpga_image(bitstream), f'loading dig bitstream: {bitstream}')
 
-awg_slots = [3]
+awg_slots = [3,7]
 dig_slot = 6
 dig_channels = [1,2,3,4]
 full_scale = 2.0
 
-t_wave = 1_000_000
-t_pulse = 8000
+t_wave = 100_000
+t_pulse = 800
 pulse_duration = 100
 
-dig_mode = 1
-t_measure = 10_000
+dig_mode = MODES.NORMAL
+t_measure = 1_000
 t_average = 10
 p2decim = 0
 lo_f = 20e6
 
-n_rep = 10
+n_rep = 3
 
 awgs = []
 for i, slot in enumerate(awg_slots):
     awg = M3202A(f'AWG{slot}', 1, slot, waveform_size_limit=1e7)
     awgs.append(awg)
-#    time.sleep(1)
-    load_awg_image(awg)
-#    load_default_awg_image(awg)
-    print_fpga_info(awg.awg)
-#    fpga_list_registers(awg.awg)
 
 
 dig = SD_DIG('DIG1', 1, dig_slot)
@@ -94,14 +86,21 @@ load_iq_image(dig.SD_AIN)
 print_fpga_info(dig.SD_AIN)
 dig.set_acquisition_mode(dig_mode)
 
+time.sleep(1)
+for awg in awgs:
+    load_awg_image(awg)
+#    load_default_awg_image(awg)
+    print_fpga_info(awg.awg)
+#    fpga_list_registers(awg.awg)
+    for ch in range(1,5):
+        awg.set_channel_amplitude(1.5, ch)
+        awg.set_channel_offset(0, ch)
 
 
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
-## create schedule
-schedules = Hvi2Schedules(p, dig)
-schedule = schedules.get_single_shot(dig_mode)
-schedule.load()
+
+schedule = Hvi2ScheduleLoader(p, 'SingleShot', dig)
 
 ## create waveforms
 seg = p.mk_segment()
@@ -118,8 +117,8 @@ sequencer = p.mk_sequence([seg])
 sequencer.set_hw_schedule(schedule)
 sequencer.n_rep = n_rep
 
-for ch in dig_channels:
-    dig.set_lo(ch, lo_f, 0, input_channel=ch)
+#for ch in dig_channels:
+#    dig.set_lo(ch, lo_f, 0, input_channel=ch) @@@@@@@@@@@@
 
 
 
@@ -130,15 +129,12 @@ for ch in dig_channels:
 ##                      capture_start_mask=0x8800_4141, capture_duration=1
 #                      )
 
-#time.sleep(1)
-sequencer.upload(index=[0])
-#schedule.load()
 dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
                       downsampled_rate=1e9/t_average,
                       power2decimation=p2decim, Vmax=full_scale)
+sequencer.upload(index=[0])
 sequencer.play(index=[0])
 data = dig.measure.get_data()
-#schedule.unload()
 #dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
 #                      downsampled_rate=1e9/t_average, power2decimation=p2decim, Vmax=full_scale)
 
@@ -149,14 +145,12 @@ start = time.perf_counter()
 for i in range(N):
     t_measure += 100
     print(i, t_measure)
-    sequencer.upload(index=[0])
-#    schedule.load()
     dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
                           downsampled_rate=1e9/t_average,
                           power2decimation=p2decim, Vmax=full_scale)
+    sequencer.upload(index=[0])
     sequencer.play(index=[0])
     data = dig.measure.get_data()
-#    schedule.unload()
 
 if N > 0:
     duration = time.perf_counter() - start
@@ -238,7 +232,7 @@ if dig_mode in [2,3]:
         pt.legend()
 
 
-schedule.close()
+Hvi2ScheduleLoader.close_all()
 for awg in awgs:
     awg.close()
 dig.close()

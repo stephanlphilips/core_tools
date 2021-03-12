@@ -45,7 +45,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         return self.tabWidget.currentIndex()
 
     def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
-                 hw_schedule=None, iq_mode=None):
+                 iq_mode=None):
         '''
         init of the class
 
@@ -77,8 +77,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'ch4': bool,
                            'sample_rate': float, # (currently only 100 or 500 allowed)
                            'dig_vmax: float, # allowed: 4.0, 2.0, 1.0, 0.5, 0.25, 0.125
+                           'enabled_markers': list[str],
+                           'acquisition_delay_ns': float, # Time in ns between AWG output change and digitizer acquisition start.
                            }
-            hw_schedule: HVI2 hardware schedule.
             iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                     complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                     all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
@@ -87,7 +88,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         logging.info('initialising vm')
         self.pulse_lib = pulse_lib
         self.digitizer = digitizer
-        self.hw_schedule = hw_schedule
         self.iq_mode = iq_mode
 
         if scan_type == 'Virtual':
@@ -114,6 +114,18 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
+        self.marker_check_boxes = {}
+        for m in pulse_lib.marker_channels:
+            label = QtWidgets.QLabel(self.verticalLayoutWidget)
+            label.setObjectName(f"label_marker_{m}")
+            label.setText(m)
+            self.horizontalLayout_markers.addWidget(label, 0, QtCore.Qt.AlignHCenter)
+            check_box = QtWidgets.QCheckBox(self.verticalLayoutWidget)
+            check_box.setText("")
+            check_box.setChecked(False)
+            check_box.setObjectName(f"check_box_marker_{m}")
+            self.horizontalLayout_markers_checks.addWidget(check_box, 0, QtCore.Qt.AlignHCenter)
+            self.marker_check_boxes[m] = check_box
 
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
@@ -175,12 +187,15 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'ch3': True,
                            'ch4': True,
                            'sample_rate': 100,
-                           'dig_vmax': 2.0}
+                           'dig_vmax': 2.0,
+                           'acquisition_delay_ns': 500,
+                           'enabled_markers': []}
 
         # General defaults
 
         default_tabs = ['1D', '2D','gen']
         default_dicts = [self.defaults_1D, self.defaults_2D, self.defaults_gen]
+        exclude = ['_gen_enabled_markers']
 
         for (tab,defaults) in zip(default_tabs,default_dicts):
             for (key,val) in defaults.items():
@@ -189,14 +204,17 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 except:
                     pass
                 setattr(self,f'_{tab}__{key}', val)
-                GUI_element = getattr(self,f'_{tab}_{key}')
-                if type(GUI_element) == QtWidgets.QComboBox:
-                    GUI_element.setCurrentText(str(val))
-                elif type(GUI_element) == QtWidgets.QDoubleSpinBox or type(GUI_element) == QtWidgets.QSpinBox:
-                    GUI_element.setValue(val)
-                elif type(GUI_element) == QtWidgets.QCheckBox:
-                    GUI_element.setChecked(val)
+                if f'_{tab}_{key}' not in exclude:
+                    GUI_element = getattr(self,f'_{tab}_{key}')
+                    if type(GUI_element) == QtWidgets.QComboBox:
+                        GUI_element.setCurrentText(str(val))
+                    elif type(GUI_element) == QtWidgets.QDoubleSpinBox or type(GUI_element) == QtWidgets.QSpinBox:
+                        GUI_element.setValue(val)
+                    elif type(GUI_element) == QtWidgets.QCheckBox:
+                        GUI_element.setChecked(val)
 
+        for marker, check_box in self.marker_check_boxes.items():
+            check_box.setChecked(marker in self._gen__enabled_markers)
 
         self._1D_average.valueChanged.connect(self.update_plot_properties_1D)
         self._1D_diff.stateChanged.connect(self.update_plot_properties_1D)
@@ -305,6 +323,12 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._gen__ch4 = self._gen_ch4.isChecked()
         self._channels = self.get_activated_channels()
         self._gen__dig_vmax = float(self._gen_dig_vmax.currentText())
+        self._gen__acquisition_delay_ns = self._gen_acquisition_delay_ns.value()
+        self._gen__enabled_markers = []
+        for marker, cb in self.marker_check_boxes.items():
+            if cb.isChecked():
+                self._gen__enabled_markers.append(marker)
+
 
     def _1D_start_stop(self):
         '''
@@ -313,17 +337,22 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.start_1D.text() == "Start":
             if self.current_plot._1D is None:
                 logging.info('Starting 1D upload')
-                self.get_plot_settings()
-                self.start_1D.setEnabled(False)
-                self.current_param_getter._1D = self.construct_1D_scan_fast(
-                        self._1D__gate_name, self._1D__V_swing, self._1D__npt, self._1D__t_meas*1000,
-                        self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
-                        dig_vmax=self._gen__dig_vmax, hw_schedule=self.hw_schedule, iq_mode=self.iq_mode)
-                self.current_plot._1D = _1D_live_plot(
-                        self.app, self._1D_plotter_frame, self._1D_plotter_layout, self.current_param_getter._1D,
-                        self._1D_average.value(), self._1D_diff.isChecked())
-                self.start_1D.setEnabled(True)
-                self.set_metadata()
+                try:
+                    self.get_plot_settings()
+                    self.start_1D.setEnabled(False)
+                    self.current_param_getter._1D = self.construct_1D_scan_fast(
+                            self._1D__gate_name, self._1D__V_swing, self._1D__npt, self._1D__t_meas*1000,
+                            self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
+                            dig_vmax=self._gen__dig_vmax, acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                            iq_mode=self.iq_mode, enabled_markers=self._gen__enabled_markers)
+                    self.current_plot._1D = _1D_live_plot(
+                            self.app, self._1D_plotter_frame, self._1D_plotter_layout, self.current_param_getter._1D,
+                            self._1D_average.value(), self._1D_diff.isChecked())
+                    self.start_1D.setEnabled(True)
+                    self.set_metadata()
+                    logging.info('Finished init currentplot and current_param')
+                except Exception as e:
+                    logging.error(e, exc_info=True)
             else:
                 self.current_param_getter._1D.restart()
 
@@ -351,21 +380,17 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                                     self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
                                     self._2D__t_meas*1000, self._2D__biasT_corr,
                             self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
-                            dig_vmax=self._gen__dig_vmax, hw_schedule=self.hw_schedule, iq_mode=self.iq_mode)
-                except Exception as e:
-                    logging.error(e, exc_info=True)
-                logging.info('Finished Param, now plot')
-                try:
-                    logging.info('_2D')
+                            dig_vmax=self._gen__dig_vmax, acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                            iq_mode=self.iq_mode, enabled_markers=self._gen__enabled_markers)
+                    logging.info('Finished Param, now plot')
                     self.current_plot._2D = _2D_live_plot(
-                            self.app, self._2D_plotter_frame, self._2D_plotter_layout, self.current_param_getter._2D,
+                            self, self._2D_plotter_frame, self._2D_plotter_layout, self.current_param_getter._2D,
                             self._2D_average.value(), self._2D_diff.isChecked(), self._2D_av_progress)
-                    logging.info('_2D done')
+                    self.start_2D.setEnabled(True)
+                    self.set_metadata()
+                    logging.info('Finished init currentplot and current_param')
                 except Exception as e:
                     logging.error(e, exc_info=True)
-                self.start_2D.setEnabled(True)
-                self.set_metadata()
-                logging.info('Finished init currentplot and current_param')
             else:
                 self.current_param_getter._2D.restart()
 
@@ -439,6 +464,11 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_param_getter._2D.stop()
             self.current_param_getter._2D = None
 
+        try:
+            # TODO @@@ improve HVI2 scheduler. Make it a qcodes instrument
+            from core_tools.HVI2.scheduler_hardware import default_scheduler_hardware
+            default_scheduler_hardware.release_schedule()
+        except: pass
         logging.info('Window closed')
 
 

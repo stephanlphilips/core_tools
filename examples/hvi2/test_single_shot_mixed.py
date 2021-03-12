@@ -1,5 +1,3 @@
-import logging
-import time
 
 import numpy as np
 import matplotlib.pyplot as pt
@@ -13,17 +11,16 @@ from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
 from core_tools.drivers.M3102A import SD_DIG, OPERATION_MODES
 from pulse_lib.base_pulse import pulselib
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 import qcodes
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -73,13 +70,10 @@ print_fpga_info(dig.SD_AIN)
 
 dig.set_operating_mode(OPERATION_MODES.HVI_TRG)
 
-
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
-## create schedule
-schedules = Hvi2Schedules(p, dig)
-schedule = schedules.get_single_shot(dig_channel_modes={f'DIG1':dig_channel_modes})
-schedule.load()
+
+schedule = Hvi2ScheduleLoader(p, 'SingleShot', dig)
 
 ## create waveforms
 seg = p.mk_segment()

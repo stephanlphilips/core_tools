@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from PyQt5.QtCore import QThread
+from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 import pyqtgraph as pg
 import numpy as np
@@ -92,6 +93,8 @@ class live_plot(live_plot_abs, QThread):
         self._averaging = averaging
         self._differentiate = differentiate
 
+        self.set_busy(True)
+
         # generate the buffers needed for the plotting and construct the plots.
         self.generate_buffers()
         self.init_plot()
@@ -128,6 +131,7 @@ class live_plot(live_plot_abs, QThread):
 
         self.buffer_data = []
         self.plot_data = []
+        self.plot_data_valid = False
 
         for i in range(self.n_plots):
             self.buffer_data.append(np.zeros([self._averaging, *shape]))
@@ -164,6 +168,19 @@ class live_plot(live_plot_abs, QThread):
 
         self.plot_widgets = []
 
+    def set_busy(self, show):
+        if show:
+            msg = QtWidgets.QMessageBox()
+            msg.setWindowTitle("Busy")
+            msg.setText("Loading waveforms and HVI2 schedule")
+            msg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
+            msg.show()
+            self.msg_box = msg
+        else:
+            self.msg_box.accept()
+            self.msg_box.close()
+
+
 class _1D_live_plot(live_plot):
     """1D live plot fuction"""
 
@@ -188,6 +205,9 @@ class _1D_live_plot(live_plot):
         self.x_data = np.linspace(-my_range, my_range, self.plot_data[0].size)
 
     def update_plot(self):
+        if not self.plot_data_valid:
+            return
+        self.set_busy(False)
         for i in range(len(self.plot_widgets)):
             self.plot_widgets[i].plot_items[0].setData(self.x_data,self.plot_data[i])
 
@@ -212,7 +232,9 @@ class _1D_live_plot(live_plot):
                     self.buffer_data[i][-1] = y
 
                     self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
+                self.plot_data_valid = True
             except Exception as e:
+                self.plot_data_valid = True
                 logging.error(f'Exception: {e}', exc_info=True)
                 print('frame dropped (check logging)')
                 # slow down to reduce error burst
@@ -225,7 +247,7 @@ class _2D_live_plot(live_plot):
 
     def init_plot(self):
         self.prog_per = 0
-
+        self.min_max = []
         for i in range(self.n_plots):
             plot_2D = pg.PlotWidget()
             img = pg.ImageItem()
@@ -233,6 +255,13 @@ class _2D_live_plot(live_plot):
             plot_2D.addItem(img)
             plot_2D.setLabel('left', self.parameter_getter.setpoint_labels[i][0], self.parameter_getter.setpoint_units[i][0])
             plot_2D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][1], self.parameter_getter.setpoint_units[i][1])
+
+            min_max = QtWidgets.QLabel(plot_2D)
+            min_max.setText(f"min:{0:4.0f} mV max:{0:4.0f} mV    ")
+            min_max.setStyleSheet("QLabel { background-color : white; color : black; }")
+            min_max.setGeometry(50, 2, 150, 14)
+            self.min_max.append(min_max)
+
             self.top_layout.addWidget(plot_2D, 0, i, 1, 1)
 
             img.translate(-self.parameter_getter.setpoints[0][1][-1], -self.parameter_getter.setpoints[0][0][-1])
@@ -242,9 +271,15 @@ class _2D_live_plot(live_plot):
             self.plot_widgets.append(plot_data)
 
     def update_plot(self):
+        if not self.plot_data_valid:
+            return
+        self.set_busy(False)
         for i in range(len(self.plot_widgets)):
             self.plot_widgets[i].plot_items[0].setImage(self.plot_data[i])
             self.prog_bar.setValue(self.prog_per)
+
+            mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])
+            self.min_max[i].setText(f"min:{mn:4.0f} mV max:{mx:4.0f} mV  ")
             if self.active == False:
                 break
 
@@ -273,7 +308,9 @@ class _2D_live_plot(live_plot):
 
                 prog_ar = [mp[0][0] != 0 for mp in self.buffer_data[0]]
                 self.prog_per = int(sum(prog_ar)/len(prog_ar)*100)
+                self.plot_data_valid = True
             except Exception as e:
+                self.plot_data_valid = True
                 logging.error(f'Exception: {e}', exc_info=True)
                 # slow down to reduce error burst
                 time.sleep(0.5)

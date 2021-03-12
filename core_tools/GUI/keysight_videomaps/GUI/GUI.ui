@@ -1269,8 +1269,8 @@
          <rect>
           <x>0</x>
           <y>10</y>
-          <width>221</width>
-          <height>151</height>
+          <width>261</width>
+          <height>251</height>
          </rect>
         </property>
         <property name="frameShape">
@@ -1284,8 +1284,8 @@
           <rect>
            <x>9</x>
            <y>9</y>
-           <width>201</width>
-           <height>131</height>
+           <width>241</width>
+           <height>231</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -1437,6 +1437,12 @@
              <layout class="QHBoxLayout" name="horizontalLayout">
               <item>
                <widget class="QComboBox" name="_gen_sample_rate">
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>100</height>
+                  </size>
+                 </property>
                 <property name="editable">
                  <bool>false</bool>
                 </property>
@@ -1472,6 +1478,12 @@
              <layout class="QHBoxLayout" name="horizontalLayout_vmax">
               <item>
                <widget class="QComboBox" name="_gen_dig_vmax">
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>100</height>
+                  </size>
+                 </property>
                 <property name="editable">
                  <bool>false</bool>
                 </property>
@@ -1516,40 +1528,74 @@
               </item>
              </layout>
             </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_acq_delay">
+              <property name="text">
+               <string>Acquisition delay</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout">
+              <item>
+                <widget class="QSpinBox" name="_gen_acquisition_delay_ns">
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>100</height>
+                  </size>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>10000</number>
+                 </property>
+                 <property name="singleStep">
+                  <number>100</number>
+                 </property>
+                 <property name="value">
+                  <number>500</number>
+                 </property>
+                </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_acq_delay_ns">
+                <property name="text">
+                 <string>ns</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="6" column="0">
+             <widget class="QLabel" name="label_blank">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_markers">
+             </layout>
+            </item>
+            <item row="7" column="0">
+             <widget class="QLabel" name="label_markers">
+              <property name="text">
+               <string>Markers</string>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_markers_checks">
+             </layout>
+            </item>
            </layout>
           </item>
          </layout>
         </widget>
        </widget>
-       <widget class="QLabel" name="label_26">
-        <property name="geometry">
-         <rect>
-          <x>230</x>
-          <y>90</y>
-          <width>191</width>
-          <height>16</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Currently, there is a bug with Keysight</string>
-        </property>
-       </widget>
-       <widget class="QLabel" name="label_27">
-        <property name="geometry">
-         <rect>
-          <x>230</x>
-          <y>110</y>
-          <width>191</width>
-          <height>16</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>only allowing 100 and 500 MS.</string>
-        </property>
-       </widget>
-       <zorder>label_27</zorder>
        <zorder>frame_4</zorder>
-       <zorder>label_26</zorder>
       </widget>
      </widget>
     </item>

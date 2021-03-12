@@ -12,9 +12,7 @@ from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
 from core_tools.drivers.M3102A import SD_DIG, MODES
 from pulse_lib.base_pulse import pulselib
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
-
-import keysightSD1 as SD1
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 import qcodes
 
@@ -27,11 +25,10 @@ from qcodes.logger import start_all_logging
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -86,10 +83,8 @@ dig.set_acquisition_mode(dig_mode)
 
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
-## create schedule
-schedules = Hvi2Schedules(p, dig)
-schedule = schedules.get_single_shot(dig_mode, hvi_queue_control=True, n_waveforms=2) # TODO @@@ Cleanup
-schedule.load()
+
+schedule = Hvi2ScheduleLoader(p, "SingleShot", dig)
 
 ## create waveforms
 seg = p.mk_segment()
@@ -117,8 +112,7 @@ sequencer.set_hw_schedule(schedule)
 sequencer.n_rep = n_rep
 
 #for ch in dig_channels:
-#    dig.set_lo(ch, lo_f, 0, input_channel=ch) @@@@@@@@@@@@
-
+#    dig.set_lo(ch, lo_f, 0, input_channel=ch)
 
 
 config_fpga_debug_log(dig.SD_AIN,
@@ -128,15 +122,13 @@ config_fpga_debug_log(dig.SD_AIN,
 #                      capture_start_mask=0x8800_4141, capture_duration=1
                       )
 
-#time.sleep(1)
-#schedule.load()
 dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
                       downsampled_rate=1e9/t_average,
                       power2decimation=p2decim, Vmax=full_scale)
 sequencer.upload(index=[0])
 sequencer.play(index=[0])
 data = dig.measure.get_data()
-#schedule.unload()
+
 #dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
 #                      downsampled_rate=1e9/t_average, power2decimation=p2decim, Vmax=full_scale)
 
@@ -145,14 +137,12 @@ data = dig.measure.get_data()
 N = 0
 start = time.perf_counter()
 for i in range(N):
-#    schedule.load()
     dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
                           downsampled_rate=1e9/t_average,
                           power2decimation=p2decim, Vmax=full_scale)
     sequencer.upload(index=[0])
     sequencer.play(index=[0])
     data = dig.measure.get_data()
-#    schedule.unload()
 
 if N > 0:
     duration = time.perf_counter() - start

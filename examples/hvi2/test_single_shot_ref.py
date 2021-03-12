@@ -14,7 +14,7 @@ from qcodes_contrib_drivers.drivers.Keysight.M3202A import M3202A
 from core_tools.drivers.M3102A import SD_DIG
 from pulse_lib.base_pulse import pulselib
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 import qcodes
 
@@ -28,11 +28,10 @@ logger.get_file_handler().setLevel(logging.DEBUG)
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -60,7 +59,8 @@ def load_awg_image(awg):
     bitstream = os.path.join(get_fpga_image_path(awg.awg), 'awg_enhanced.k7z')
     check_error(awg.load_fpga_image(bitstream), f'loading dig bitstream: {bitstream}')
 
-awg_slots = [2,3,4,5,7,8]
+#awg_slots = [2,3,4,5,7,8]
+awg_slots = [3,7]
 dig_slot = 6
 dig_channels = [1,2,3,4]
 full_scale = 2.0
@@ -103,13 +103,9 @@ dig.set_acquisition_mode(dig_mode)
 
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
-## create schedule
-schedules = Hvi2Schedules(p, dig)
-schedule = schedules.get_single_shot(dig_mode, n_triggers=n_triggers)
-schedule.load()
 
-schedule.close()
-oops()
+schedule = Hvi2ScheduleLoader(p, "SingleShot", dig)
+
 ## create waveforms
 seg = p.mk_segment()
 for awg in awgs:

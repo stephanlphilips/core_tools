@@ -1,6 +1,5 @@
 import time
 import logging
-import os
 from PyQt5 import QtCore
 
 import qcodes
@@ -10,10 +9,9 @@ from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
 from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
 from core_tools.drivers.M3102A import SD_DIG
 from keysight_fpga.sd1.fpga_utils import \
-    print_fpga_info, config_fpga_debug_log, print_fpga_log, get_fpga_image_path
-from keysight_fpga.sd1.sd1_utils import check_error
+    print_fpga_info, config_fpga_debug_log, print_fpga_log
 from keysight_fpga.sd1.dig_iq import load_iq_image
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 from pulse_lib.base_pulse import pulselib
 
@@ -23,18 +21,16 @@ from PyQt5.QtCore import QTimer
 #logger.get_file_handler().setLevel(logging.DEBUG)
 
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
 
 
-
-def return_pulse_lib_quad_dot(*args):
+def create_pulse_lib(awgs):
     """
     return pulse library object
 
@@ -45,12 +41,13 @@ def return_pulse_lib_quad_dot(*args):
     pulse = pulselib()
 
     # add to pulse_lib
-    for i in range(len(args)):
-        pulse.add_awgs('AWG{}'.format(i+1),args[i])
+    for i, awg in enumerate(awgs):
+
+        pulse.add_awgs(awg.name, awg)
 
         # define channels
         for ch in range(1,5):
-            pulse.define_channel(f'AWG{i+1}.{ch}',f'AWG{i+1}', ch)
+            pulse.define_channel(f'{awg.name}.{ch}', awg.name, ch)
 
     pulse.finish_init()
     return pulse
@@ -128,18 +125,12 @@ for ch in dig_channels:
 
 logging.info('init pulse lib')
 # load the AWG library
-pulse = return_pulse_lib_quad_dot(*awgs)
-
-logging.info('create hvi2 schedule')
-print('create schedule')
-schedules = Hvi2Schedules(pulse, dig)
-schedule = schedules.get_video_mode(dig_mode, awg_channel_los=awg_channel_los)
-schedule.load()
+pulse = create_pulse_lib(awgs)
 
 print('start gui')
 
 logging.info('open plotting')
-plotting = liveplotting(pulse, dig, "Keysight", hw_schedule=schedule, iq_mode={1:'I', 2:'I', 3:'angle_deg', 4:'angle_deg'})
+plotting = liveplotting(pulse, dig, "Keysight", iq_mode={1:'I', 2:'I', 3:'angle_deg', 4:'angle_deg'})
 plotting._2D_gate2_name.setCurrentIndex(1)
 plotting._2D_t_meas.setValue(1)
 plotting._2D_V1_swing.setValue(100)

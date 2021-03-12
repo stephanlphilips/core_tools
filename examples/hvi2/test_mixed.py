@@ -14,8 +14,7 @@ from qcodes_contrib_drivers.drivers.Keysight.M3202A import M3202A
 from core_tools.drivers.M3102A import SD_DIG
 from pulse_lib.base_pulse import pulselib
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
-
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 import qcodes
 
@@ -28,11 +27,10 @@ import qcodes
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedules.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -114,9 +112,6 @@ def create_ss_seq(p, dig_mode):
     t_pulse = 8000
     pulse_duration = 100
 
-    schedule = schedules.get_single_shot(dig_mode)
-    schedule.load()
-
     ## create waveforms
     seg = p.mk_segment()
     for awg in awgs:
@@ -129,7 +124,7 @@ def create_ss_seq(p, dig_mode):
 
     ## create sequencer
     seq = p.mk_sequence([seg])
-    seq.set_hw_schedule(schedule)
+    seq.set_hw_schedule(Hvi2ScheduleLoader(p, "SingleShot", dig))
     seq.n_rep = n_rep
     return seq
 
@@ -138,9 +133,6 @@ def create_ssr_seq(p, dig_mode):
     t_pulse_1 = 3000
     t_pulse_2 = 9000
     pulse_duration = 100
-
-    schedule = schedules.get_single_shot(dig_mode, n_triggers=2)
-    schedule.load()
 
     ## create waveforms
     seg = p.mk_segment()
@@ -156,21 +148,18 @@ def create_ssr_seq(p, dig_mode):
 
     ## create sequencer
     seq = p.mk_sequence([seg])
-    seq.set_hw_schedule(schedule)
+    seq.set_hw_schedule(Hvi2ScheduleLoader(p, "SingleShot", dig))
     seq.n_rep = n_rep
     return seq
 
 def create_vidmod_seq(p, dig_mode):
-    schedule = schedules.get_video_mode(dig_mode)
-
-    schedule.load()
 
     ## create sequencer
     gate1, swing1, n_pt1 = 'AWG3_1', 500, 50
     gate2, swing2, n_pt2 = 'AWG3_2', 500, 50
     t_step = t_measure
     seq = scan2D_keysight(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, p)
-    seq.set_hw_schedule(schedule)
+    seq.set_hw_schedule(Hvi2ScheduleLoader(p, "VideoMode", dig))
     seq.n_rep = 1
     return seq
 
@@ -216,7 +205,6 @@ for awg in awgs:
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
 ## create schedule
-schedules = Hvi2Schedules(p, dig)
 
 
 for q in range(3000):
@@ -242,6 +230,10 @@ for q in range(3000):
                           downsampled_rate=1e9/t_average,
                           power2decimation=p2decim, Vmax=full_scale)
 
+    # dummy for schedule switch or compile/load
+    sequencer.upload(index=[0])
+    sequencer.play(index=[0])
+    data = dig.measure.get_data()
     ## run
     N = 10
     start = time.perf_counter()
@@ -255,8 +247,7 @@ for q in range(3000):
         print(f'duration {duration*1000/N:5.1f} ms')
 
 
-
-schedules.close()
+Hvi2ScheduleLoader.close_all()
 for awg in awgs:
     awg.close()
 dig.close()

@@ -1,6 +1,4 @@
 import logging
-from dataclasses import dataclass, field
-from typing import List
 
 from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
 
@@ -11,80 +9,46 @@ The start time of this schedule is 5 to 10 ms faster for repeated starts than th
 because it keeps the HVI running and uses a start flag to restart the schedule.
 The gain is bigger when more modules are being used.
 '''
-@dataclass
-class DigChannels:
-    all_channels: List[int] = field(default_factory=list)
-    raw_channels: List[int] = field(default_factory=list)
-    iq_channels: List[int] = field(default_factory=list)
-    ds_channels: List[int] = field(default_factory=list)
-
 
 class Hvi2SingleShot():
     verbose = True
 
-    def __init__(self, dig_channel_modes, awg_channel_los=[], n_triggers=1, switch_los=False,
-                 enabled_los=None, hvi_queue_control=False, n_waveforms=1, trigger_out=False, acquisition_delay_ns=0):
+    name = "SingleShot"
+    ''' Name of the script (class varriable) '''
+
+    def __init__(self, configuration):
         '''
         Args:
-            dig_channel_modes (Dict[str,Dict[int,int]]): per digitizer and channel the mode.
-            awg_channel_los (List[Tuple[str,int,int]]): list with (AWG, channel, active local oscillator).
-            n_trigger (int): number of measurement and lo switching intervals.
-            switch_los (bool): switch los on/off with measurements
-            enabled_los (List[List[Tuple[str, int,int]]): per switch interval list with (AWG, channel, active local oscillator).
-                if None, then all los are switched on/off.
-            hvi_queue_control (bool): if True enables waveform queueing by hvi script.
-            n_waveforms (int): number of waveforms per channel (only applies when hvi_queue_control=True)
-            trigger_out (bool): if True enables markers via Trigger Out channel.
-            acquisition_delay_ns (int):
+            configuration (Dict[str,Any]):
+                'n_waveforms' (int): number of waveforms per channel (only applies when hvi_queue_control=True)
+                'n_triggers' (int): number of digitizer triggers
+                'acquisition_delay_ns' (int):
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
+                'digitizer_name':
+                    'all_ch' (List[int]): all channels
+                    'raw_ch' (List[int]): channels in raw mode
+                    'ds_ch' (List[int]): channels in downsampler mode
+                    'iq_ch' (List[int]): channels in IQ mode
+                `awg_name`:
+                    'active_los' (List[Tuple[int,int]]): pairs of (channel, LO).
+                    'switch_los' (bool): whether to switch LOs on/off
+                    'enabled_los' (List[List[Tuple[int,int]]): per switch interval list with (channel, active local oscillator).
+                                  if None, then all los are switched on/off.
+                    'hvi_queue_control' (bool): if True enables waveform queueing by hvi script.
+                    'trigger_out' (bool): if True enables markers via Trigger Out channel.
         '''
-        self.digitizer_config = {}
-        for dig, channels in dig_channel_modes.items():
-            dig_channels = DigChannels()
-            self.digitizer_config[dig] = dig_channels
-
-            dig_channels.all_channels = list(channels.keys())
-            # modes: 0 = direct, 1 = averaging/downsampling, 2,3 = IQ demodulation
-            dig_channels.raw_channels = [channel for channel, mode in channels.items() if mode == 0]
-            dig_channels.ds_channels = [channel for channel, mode in channels.items() if mode != 0]
-            dig_channels.iq_channels = [channel for channel, mode in channels.items() if mode in [2,3]]
+        self._configuration = configuration.copy()
 
         self.started = False
-        self.awg_channel_los = awg_channel_los
-        self.n_triggers= n_triggers
-        self.switch_los = switch_los
-        self.enabled_los = enabled_los
-        self.hvi_queue_control = hvi_queue_control
-        self.n_waveforms = n_waveforms
-        self.trigger_out = trigger_out
 
         self._n_starts = 0
-        self._acquisition_delay = int(acquisition_delay_ns/10) * 10
+        self._acquisition_delay = int(configuration.get('acquisition_delay_ns', 0)/10) * 10
 
-    @property
-    def name(self):
-        return 'SingleShot'
 
-    def _get_dig_channel_config(self, dig_seq):
-        return self.digitizer_config[dig_seq.engine.alias]
+    def _module_config(self, seq, key):
+        return self._configuration[seq.engine.alias][key]
 
-    def _get_awg_channel_los(self, awg_seq):
-        result = []
-        for awg, channel, lo in self.awg_channel_los:
-            if awg == awg_seq.engine.alias:
-                result.append((channel, lo))
-        return result
-
-    def _get_enabled_channel_los(self, awg_seq, switch_number):
-        if self.enabled_los is None:
-            return self._get_awg_channel_los(awg_seq)
-
-        result = []
-        for awg, channel, lo in self.enabled_los[switch_number]:
-            if awg == awg_seq.engine.alias:
-                result.append((channel, lo))
-        return result
 
     def _wait_state_clear(self, dig_seq, **kwargs):
         dig_seq.ds.set_state_mask(**kwargs)
@@ -98,37 +62,46 @@ class Hvi2SingleShot():
 
     def _push_data(self, dig_seqs):
         for dig_seq in dig_seqs:
-            ds_channels = self._get_dig_channel_config(dig_seq).ds_channels
-            if len(ds_channels) > 0:
+            ds_ch = self._module_config(dig_seq, 'ds_ch')
+            if len(ds_ch) > 0:
                 # NOTE: loop costs PXI registers. Better wait fixed time.
                 dig_seq.wait(600)
-#                self._wait_state_clear(dig_seq, running=ds_channels)
+    #            self._wait_state_clear(dig_seq, running=ds_ch)
 
-                dig_seq.ds.control(push=ds_channels)
+                dig_seq.ds.control(push=ds_ch)
                 dig_seq.wait(600)
-#                self._wait_state_clear(dig_seq, pushing=ds_channels)
+    #            self._wait_state_clear(dig_seq, pushing=ds_ch)
 
 
     def sequence(self, sequencer, hardware):
         self.hardware = hardware
-        n_triggers = self.n_triggers
+        n_triggers = self._configuration['n_triggers']
 
         self.r_start = sequencer.add_sync_register('start')
         self.r_stop = sequencer.add_sync_register('stop')
         self.r_nrep = sequencer.add_sync_register('n_rep')
         self.r_wave_duration = sequencer.add_module_register('wave_duration', module_type='awg')
-        if self.hvi_queue_control:
-            for register in FpgaAwgQueueingExtension.get_registers():
-                sequencer.add_module_register(register, module_type='awg')
+        for awg in hardware.awgs:
+            if self._configuration[awg.name]['hvi_queue_control']:
+                for register in FpgaAwgQueueingExtension.get_registers():
+                    sequencer.add_module_register(register, module_aliases=[awg.name])
 
         self.r_dig_wait = []
         self.r_awg_los_wait = []
         self.r_awg_los_duration = []
         for i in range(n_triggers):
             self.r_dig_wait.append(sequencer.add_module_register(f'dig_wait_{i+1}', module_type='digitizer'))
-            if self.switch_los:
-                self.r_awg_los_wait.append(sequencer.add_module_register(f'awg_los_wait_{i+1}', module_type='awg'))
-                self.r_awg_los_duration.append(sequencer.add_module_register(f'awg_los_duration_{i+1}', module_type='awg'))
+        self.r_awg_los_wait = {}
+        self.r_awg_los_duration = {}
+        for awg in hardware.awgs:
+            if self._configuration[awg.name]['switch_los']:
+                r_wait = []
+                r_los = []
+                self.r_awg_los_wait[awg.name] = r_wait
+                self.r_awg_los_duration[awg.name] = r_los
+                for i in range(n_triggers):
+                    r_wait.append(sequencer.add_module_register(f'awg_los_wait_{i+1}', module_aliases=[awg.name]))
+                    r_los.append(sequencer.add_module_register(f'awg_los_duration_{i+1}', module_aliases=[awg.name]))
 
         sequencer.add_module_register('channel_state', module_type='digitizer')
 
@@ -147,68 +120,74 @@ class Hvi2SingleShot():
 
                     with sync.SyncedModules():
                         for awg_seq in awg_seqs:
-                            if self.hvi_queue_control:
-                                awg_seq.queueing.queue_waveforms(self.n_waveforms)
+                            if self._module_config(awg_seq, 'hvi_queue_control'):
+                                awg_seq.queueing.queue_waveforms()
                             awg_seq.log.write(1)
                             awg_seq.start()
                             awg_seq.wait(1000)
 
                         for dig_seq in dig_seqs:
-                            dig_config = self._get_dig_channel_config(dig_seq)
+                            all_ch = self._module_config(dig_seq, 'all_ch')
+                            ds_ch = self._module_config(dig_seq, 'ds_ch')
 
                             dig_seq.log.write(1)
-                            dig_seq.start(dig_config.all_channels)
+                            dig_seq.start(all_ch)
 
-                            ds_channels = self._get_dig_channel_config(dig_seq).ds_channels
-                            if len(ds_channels) > 0:
+                            if len(ds_ch) > 0:
                                 dig_seq.wait(40)
-                                dig_seq.trigger(ds_channels)
+                                dig_seq.trigger(ds_ch)
 
                     with sync.Repeat(sync['n_rep']):
                         with sync.SyncedModules():
                             for awg_seq in awg_seqs:
-                                los = self._get_awg_channel_los(awg_seq)
+                                los = self._module_config(awg_seq, 'active_los')
                                 awg_seq.log.write(2)
+                                if len(los)>0:
+                                    awg_seq.lo.reset_phase(los)
+                                else:
+                                    awg_seq.wait(10)
                                 awg_seq.trigger()
-                                awg_seq.lo.reset_phase(los)
-                                if self.trigger_out:
+                                if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.start()
                                     awg_seq.marker.trigger()
                                 else:
                                     awg_seq.wait(20)
-                                if self.switch_los:
+                                if self._module_config(awg_seq, 'switch_los'):
+                                    enabled_los = self._module_config(awg_seq, 'enabled_los')
                                     # enable local oscillators
                                     for i in range(n_triggers):
-                                        enabled_los = self._get_enabled_channel_los(awg_seq, i)
+                                        enabled_los_i = enabled_los[i] if enabled_los else los
                                         awg_seq.wait(awg_seq[f'awg_los_wait_{i+1}'])
                                         # start delay of instruction after wait_register is 0!
-                                        awg_seq.lo.set_los_enabled(enabled_los, True)
+                                        awg_seq.lo.set_los_enabled(enabled_los_i, True)
                                         awg_seq.wait(awg_seq[f'awg_los_duration_{i+1}'])
-                                        awg_seq.lo.set_los_enabled(enabled_los, False)
+                                        awg_seq.lo.set_los_enabled(enabled_los_i, False)
 
                                 awg_seq.wait(awg_seq['wave_duration'])
-                                if self.trigger_out:
+                                if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.stop()
 
                             for dig_seq in dig_seqs:
-                                dig_config = self._get_dig_channel_config(dig_seq)
+                                iq_ch = self._module_config(dig_seq, 'iq_ch')
+                                ds_ch = self._module_config(dig_seq, 'ds_ch')
+                                raw_ch = self._module_config(dig_seq, 'raw_ch')
 
                                 dig_seq.log.write(2)
-                                if len(dig_config.iq_channels) > 0:
-                                    dig_seq.ds.control(phase_reset=dig_config.iq_channels)
+                                if len(iq_ch) > 0:
+                                    dig_seq.ds.control(phase_reset=iq_ch)
                                 else:
                                     dig_seq.wait(10)
 
                                 for i in range(n_triggers):
                                     dig_seq.wait(dig_seq[f'dig_wait_{i+1}'])
-                                    if len(dig_config.raw_channels) > 0:
-                                        dig_seq.trigger(dig_config.raw_channels)
+                                    if len(raw_ch) > 0:
+                                        dig_seq.trigger(raw_ch)
                                     else:
                                         dig_seq.wait(10)
                                     dig_seq.wait(40)
 
-                                    if len(dig_config.ds_channels) > 0:
-                                        dig_seq.ds.control(start=dig_config.ds_channels)
+                                    if len(ds_ch) > 0:
+                                        dig_seq.ds.control(start=ds_ch)
                                     else:
                                         dig_seq.wait(10)
 
@@ -267,37 +246,38 @@ class Hvi2SingleShot():
         # update digitizer measurement time
         if 'averaging' in hvi_params and 't_measure'in hvi_params:
             for dig in self.hardware.digitizers:
-                if dig.name in self.digitizer_config:
-                    dig_config = self.digitizer_config[dig.name]
-                    for ch in dig_config.ds_channels:
+                ds_ch = self._configuration[dig.name]['ds_ch']
+                for ch in ds_ch:
                         dig.set_measurement_time_averaging(ch, hvi_params['t_measure'])
 
-        if self.hvi_queue_control:
-            for awg in self.hardware.awgs:
+        for awg in self.hardware.awgs:
+            if self._configuration[awg.name]['hvi_queue_control']:
                 awg.write_queue_mem()
 
-        # add 300 ns delay to start acquiring when awg signal arrives at digitizer.
-        dig_offset = 300 + self._acquisition_delay
+        # add 310 ns delay to start acquiring when awg signal arrives at digitizer.
+        dig_offset = 310 + self._acquisition_delay
         tot_wait = -dig_offset
-        for i in range(0, self.n_triggers):
+        for i in range(0, self._configuration['n_triggers']):
             t_trigger = self._get_dig_trigger(hvi_params, i)
             self._set_wait_time(hvi_exec, self.r_dig_wait[i], t_trigger - tot_wait)
-            tot_wait = t_trigger + 70 # wait: +40 ns, wait_reg: +20 ns, ds.control: +10 ns
+            tot_wait = t_trigger + 80 # wait: +40 ns, wait_reg: +20 ns, wait: +10 ns, ds.control: +10 ns
 
-        if self.switch_los:
-            tot_wait_awg = 40 # 20 ns for marker trigger, 20 ns awg trigger + reset phase
-            for i in range(0, self.n_triggers):
-                t_on = hvi_params[f'awg_los_on_{i+1}']
-                t_off = hvi_params[f'awg_los_off_{i+1}']
-                self._set_wait_time(hvi_exec, self.r_awg_los_wait[i], t_on - tot_wait_awg)
-                tot_wait_awg = t_on + 30 # wait_reg: +30 ns, lo.set_los_enabled: +0 ns
-                self._set_wait_time(hvi_exec, self.r_awg_los_duration[i], t_off - tot_wait_awg)
-                tot_wait_awg = t_off + 30
-        else:
-            tot_wait_awg = 0
+        for awg in self.hardware.awgs:
+            if self._configuration[awg.name]['switch_los']:
+                tot_wait_awg = 20 # 20 ns for marker trigger, 10 ns awg trigger, -10 ns fpga_array_write
+                for i in range(0, self._configuration['n_triggers']):
+                    t_on = hvi_params[f'awg_los_on_{i+1}']
+                    t_off = hvi_params[f'awg_los_off_{i+1}']
+                    self._set_wait_time(hvi_exec, self.r_awg_los_wait[awg.name][i], t_on - tot_wait_awg)
+                    tot_wait_awg = t_on + 30 # wait_reg: +30 ns, lo.set_los_enabled: +0 ns
+                    self._set_wait_time(hvi_exec, self.r_awg_los_duration[awg.name][i], t_off - tot_wait_awg)
+                    tot_wait_awg = t_off + 30
+            else:
+                tot_wait_awg = 0
 
         # add 250 ns for AWG and digitizer to get ready for next trigger.
-        self._set_wait_time(hvi_exec, self.r_wave_duration, waveform_duration + 250 - tot_wait_awg + self._acquisition_delay)
+            self._set_wait_time(hvi_exec, self.r_wave_duration.registers[awg.name],
+                                waveform_duration + 250 - tot_wait_awg + self._acquisition_delay)
 
         hvi_exec.write_register(self.r_stop, 0)
         hvi_exec.write_register(self.r_start, 1)

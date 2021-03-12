@@ -11,16 +11,16 @@ from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
 from core_tools.drivers.M3102A import SD_DIG, OPERATION_MODES
 from pulse_lib.base_pulse import pulselib
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
+import qcodes
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -36,6 +36,7 @@ def create_pulse_lib(awgs):
         # define channels
         for ch in range(1,5):
             pulse.define_channel(f'{awg.name}_{ch}', awg.name, ch)
+#        pulse.define_marker(f'{awg.name}_T', awg.name, 0)
 
     pulse.finish_init()
     return pulse
@@ -52,6 +53,7 @@ pulse_duration = 100
 awg_channel_los = [('AWG3',1,0), ('AWG3',1,1), ('AWG3',3,0), ('AWG3',3,1)]
 awg_lo_amps = [600, 200]
 awg_lo_freq = [60e6, 190e6]
+switch_los = False
 
 dig_channel_modes = {1:1, 2:2, 3:2}
 t_measure = 1000
@@ -76,18 +78,14 @@ dig.set_operating_mode(OPERATION_MODES.HVI_TRG)
 for awg in awgs:
     for awg_name, channel, lo in awg_channel_los:
         if awg_name == awg.name:
-            awg.config_lo(channel, lo, False, awg_lo_freq[lo], awg_lo_amps[lo])
+            awg.config_lo(channel, lo, not switch_los, awg_lo_freq[lo], awg_lo_amps[lo])
             awg.set_lo_mode(channel, True)
 
 
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
-## create schedule
-schedules = Hvi2Schedules(p, dig)
-schedule = schedules.get_single_shot(dig_channel_modes={'DIG1':dig_channel_modes},
-                                     awg_channel_los=awg_channel_los,
-                                     switch_los=True)
-schedule.load()
+
+schedule = Hvi2ScheduleLoader(p, "SingleShot", dig, switch_los=switch_los)
 
 ## create waveforms
 seg = p.mk_segment()
@@ -108,7 +106,6 @@ sequencer.n_rep = n_rep
 
 for ch, mode in dig_channel_modes.items():
     dig.set_lo(ch, lo_f[ch], 0, input_channel=1)
-
 
 
 #config_fpga_debug_log(dig.SD_AIN,

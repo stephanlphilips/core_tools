@@ -9,14 +9,12 @@ from keysight_fpga.sd1.fpga_utils import \
     print_fpga_info, config_fpga_debug_log, print_fpga_log, get_fpga_image_path, fpga_list_registers
 from keysight_fpga.sd1.sd1_utils import check_error
 from keysight_fpga.sd1.dig_iq import load_iq_image
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 from qcodes_contrib_drivers.drivers.Keysight.M3202A import M3202A
 from core_tools.drivers.M3102A import SD_DIG
 from pulse_lib.base_pulse import pulselib
 import pulse_lib.segments.utility.looping as looping
-
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
-
 
 import qcodes
 
@@ -29,11 +27,10 @@ import qcodes
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -72,9 +69,7 @@ pulse_duration = 100
 
 dig_mode = 1
 t_measure = 400
-p2decim = 0
 lo_f = 20e6
-t_average = t_measure
 
 n_rep = 10
 
@@ -98,10 +93,8 @@ dig.set_acquisition_mode(dig_mode)
 
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
-## create schedule
-schedules = Hvi2Schedules(p, dig)
-schedule = schedules.get_single_shot(dig_mode)
-schedule.load()
+
+schedule = Hvi2ScheduleLoader(p, "SingleShot", dig)
 
 ## create waveforms
 seg = p.mk_segment()
@@ -135,9 +128,7 @@ for ch in dig_channels:
 
 #time.sleep(1)
 sequencer.upload(index=[0])
-
-dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
-                      power2decimation=p2decim, Vmax=full_scale)
+dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels, Vmax=full_scale)
 sequencer.play(index=[0])
 data = dig.measure.get_data()
 
@@ -190,14 +181,13 @@ if dig_mode == 1:
     # plot averages
     for ch in dig_channels:
         c = ch-1
-        t = (np.arange(len(dig_data[c])) + 0.5) * t_average
+        t = np.arange(len(dig_data[c]))
         pt.figure(ch)
-        pt.plot(t, dig_data[c], '-', label=f'p2d={p2decim}, {1000/t_average} MSa/s')
+        pt.plot(t, dig_data[c], '-')
     #    pt.ylim(-0.8, 0.8)
         pt.legend()
         pt.figure(5)
-        pt.plot(t, dig_data[c], '-', ms=4, color=colors[ch],
-                label=f'p2d={p2decim}, {1000/t_average} MSa/s')
+        pt.plot(t, dig_data[c], '-', ms=4, color=colors[ch], label=f'ch{ch}')
         pt.legend()
     #    pt.ylim(-0.8, 0.8)
 
@@ -206,7 +196,7 @@ if dig_mode in [2,3]:
     ## plot IQ
     for ch in dig_channels:
         c = ch-1
-        t = (np.arange(len(dig_data[c])) + 0.5) * t_average
+        t = np.arange(len(dig_data[c]))
         pt.figure(20)
         pt.plot(t, dig_data[c].real, label=f'ch{ch} I')
         pt.legend()
@@ -222,11 +212,11 @@ if dig_mode in [2,3]:
 
         pt.figure(7)
         pt.plot(t, np.abs(dig_data[c]),
-                label=f'ch{ch} p2d={p2decim}, {1000/t_average} MSa/s')
+                label=f'ch{ch}')
         pt.legend()
         pt.figure(8)
         pt.plot(t, np.angle(dig_data[c], deg=True),
-                label=f'ch{ch} p2d={p2decim}, {1000/t_average} MSa/s')
+                label=f'ch{ch}')
         pt.legend()
 
 

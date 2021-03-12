@@ -8,6 +8,8 @@ import logging
 
 from pulse_lib.schedule.hardware_schedule import HardwareSchedule
 
+from .hvi2_schedule_extensions import add_extensions
+
 from hvi2_script.system import HviSystem
 from hvi2_script.sequencer import HviSequencer
 import keysightSD1 as SD1
@@ -16,10 +18,10 @@ import uuid
 class Hvi2Schedule(HardwareSchedule):
     verbose = False
 
-    def __init__(self, hardware, script, extensions=None):
+    def __init__(self, hardware, script):
         self.hardware = hardware
         self.script = script
-        self.extensions = extensions
+        self.extensions = add_extensions
         self.hvi_system = None
         self.hvi_sequence = None
         self.hvi_exec = None
@@ -76,13 +78,13 @@ class Hvi2Schedule(HardwareSchedule):
             logging.info(f'HVI2 schedule already loaded')
             return
 
-        logging.info(f"Load HVI2 schedule with script '{self.script.name}'")
         self.hardware.release_schedule()
         self.configure_modules()
 
         if self.hvi_exec is None:
             self.compile()
 
+        logging.info(f"Load HVI2 schedule with script '{self.script.name}' (id:{self.hvi_id})")
         self.hardware.set_schedule(self)
         self._might_be_loaded = True
         self.hvi_exec.load()
@@ -98,13 +100,13 @@ class Hvi2Schedule(HardwareSchedule):
         if not self.hvi_exec:
             return
         if self._is_loaded:
-        self.script.stop(self.hvi_exec)
-        logging.info(f"Unload HVI2 schedule with script '{self.script.name}'")
+            self.script.stop(self.hvi_exec)
             self._is_loaded = False
         if self._might_be_loaded:
-        self.hvi_exec.unload()
-        self.hardware.release_schedule()
+            logging.info(f"Unload HVI2 schedule with script'{self.script.name}' (id:{self.hvi_id})")
+            self.hvi_exec.unload()
             self._might_be_loaded = False
+            self.hardware.release_schedule()
 
     def is_running(self):
         return self.hvi_exec.is_running()
@@ -123,6 +125,6 @@ class Hvi2Schedule(HardwareSchedule):
         if self._is_loaded:
             try:
                 logging.warning(f'Automatic close of Hvi2Schedule in __del__()')
-                self.unload()
+#                self.unload()
             except:
                 logging.error(f'Exception unloading HVI', exc_info=True)

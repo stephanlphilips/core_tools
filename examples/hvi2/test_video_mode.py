@@ -14,9 +14,8 @@ from qcodes_contrib_drivers.drivers.Keysight.M3202A import M3202A
 from core_tools.drivers.M3102A import SD_DIG, MODES
 from pulse_lib.base_pulse import pulselib
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
-
-import keysightSD1 as SD1
+from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 import qcodes
 
@@ -28,11 +27,10 @@ logger.get_file_handler().setLevel(logging.DEBUG)
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -79,7 +77,7 @@ def scan2D_keysight(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, pulse_li
     if dig_mode == MODES.NORMAL:
         step_eff = 1800 + t_step
     else:
-        step_eff = 50 + t_step
+        step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(dig, acquisition_delay_ns)
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
@@ -97,14 +95,14 @@ def scan2D_keysight(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, pulse_li
         voltages2 = voltages2_sp
 
     sweep_channel.add_ramp_ss(0, step_eff*n_pt1, -vp1, vp1)
-    sweep_channel.repeat(n_pt1)
+    sweep_channel.repeat(n_pt1-1)
 
     for voltage in voltages2:
         step_channel.add_block(0, step_eff*n_pt1, voltage)
         step_channel.reset_time()
 
     # 100 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step /10
+    awg_t_step = t_step / 10
     sample_rate = 1/(awg_t_step*1e-9)
 
     # generate the sequence and upload it.
@@ -121,11 +119,12 @@ dig_channels = [1,2,3,4]
 full_scale = 2.0
 
 
-dig_mode = 1
+dig_mode = MODES.AVERAGE
 t_measure = 250
-t_average = t_measure
+t_average = 10 #t_measure
 p2decim = 0
 lo_f = 20e6
+acquisition_delay_ns = 500
 
 n_rep = 1
 
@@ -152,18 +151,13 @@ dig.set_acquisition_mode(dig_mode)
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
 
-schedules = Hvi2Schedules(p, dig)
-
-## create schedule
-schedule = schedules.get_video_mode(dig_mode)
-
-schedule.load()
 
 ## create sequencer
 gate1, swing1, n_pt1 = 'AWG3_1', 500, 100
 gate2, swing2, n_pt2 = 'AWG3_2', 500, 100
 t_step = t_measure
 sequencer = scan2D_keysight(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, p, dig_mode)
+schedule = Hvi2ScheduleLoader(p, 'VideoMode', dig, acquisition_delay_ns=acquisition_delay_ns)
 sequencer.set_hw_schedule(schedule)
 sequencer.n_rep = n_rep
 

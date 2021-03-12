@@ -15,7 +15,7 @@ from keysight_fpga.sd1.dig_iq import load_iq_image
 from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
 from core_tools.drivers.M3102A import SD_DIG, MODES
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 from pulse_lib.base_pulse import pulselib
 
@@ -25,18 +25,15 @@ from PyQt5.QtCore import QTimer
 #logger.get_file_handler().setLevel(logging.DEBUG)
 
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
 try:
     qcodes.Instrument.close_all()
 except: pass
 
 
-
-def return_pulse_lib_quad_dot(*args):
+def create_pulse_lib(awgs):
     """
     return pulse library object
 
@@ -47,12 +44,13 @@ def return_pulse_lib_quad_dot(*args):
     pulse = pulselib()
 
     # add to pulse_lib
-    for i in range(len(args)):
-        pulse.add_awgs('AWG{}'.format(i+1),args[i])
+    for i, awg in enumerate(awgs):
+
+        pulse.add_awgs(awg.name, awg)
 
         # define channels
         for ch in range(1,5):
-            pulse.define_channel(f'AWG{i+1}.{ch}',f'AWG{i+1}', ch)
+            pulse.define_channel(f'{awg.name}.{ch}', awg.name, ch)
 
     pulse.finish_init()
     return pulse
@@ -108,18 +106,13 @@ dig.set_acquisition_mode(dig_mode)
 
 logging.info('init pulse lib')
 # load the AWG library
-pulse = return_pulse_lib_quad_dot(*awgs)
+pulse = create_pulse_lib(awgs)
 
-logging.info('create hvi2 schedule')
-print('create schedule')
-schedules = Hvi2Schedules(pulse, dig)
-schedule = schedules.get_video_mode(dig_mode, hvi_queue_control=True)
-schedule.load()
 
 print('start gui')
 
 logging.info('open plotting')
-plotting = liveplotting(pulse, dig, "Keysight", hw_schedule=schedule)
+plotting = liveplotting(pulse, dig, "Keysight")
 plotting.move(222,0)
 plotting.resize(1618,590)
 plotting._2D_gate2_name.setCurrentIndex(1)

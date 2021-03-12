@@ -2,8 +2,6 @@ import time
 import logging
 from PyQt5 import QtCore
 
-import keysightSD1 as SD1
-
 import qcodes
 import qcodes.logger as logger
 from qcodes.logger import start_all_logging
@@ -15,7 +13,7 @@ from keysight_fpga.sd1.dig_iq import load_iq_image
 from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
 from core_tools.drivers.M3102A import SD_DIG, MODES
 
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
 
 
@@ -27,15 +25,13 @@ from PyQt5.QtCore import QTimer
 #logger.get_file_handler().setLevel(logging.DEBUG)
 
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
-
 
 
 def init_pulselib(awgs):
@@ -49,23 +45,23 @@ def init_pulselib(awgs):
 
     # add to pulse_lib
     for i,awg in enumerate(awgs):
-        pulse.add_awgs(f'AWG{i+1}', awg)
+        pulse.add_awgs(awg.name, awg)
 
         # define channels
         if i == 0: # AWG-3
-            pulse.define_channel(f'P1',f'AWG{i+1}', 1) # digitizer
-            pulse.define_channel(f'P2',f'AWG{i+1}', 2) # digitizer
-            pulse.define_marker(f'M3',f'AWG{i+1}', 3, setup_ns=50, hold_ns=50) # Scope
-            pulse.define_channel(f'P4',f'AWG{i+1}', 4)
+            pulse.define_channel(f'P1', awg.name, 1) # digitizer
+            pulse.define_channel(f'P2', awg.name, 2) # digitizer
+            pulse.define_marker(f'M3', awg.name, 3, setup_ns=50, hold_ns=50) # Scope
+            pulse.define_channel(f'P4', awg.name, 4)
         elif i == 1: # AWG-7
-            pulse.define_channel(f'B1',f'AWG{i+1}', 1)
-            pulse.define_channel(f'B2',f'AWG{i+1}', 2) # Scope
-            pulse.define_channel(f'B3',f'AWG{i+1}', 3) # digitizer
-            pulse.define_marker(f'B4',f'AWG{i+1}', 4) # digitizer
+            pulse.define_channel(f'B1', awg.name, 1)
+            pulse.define_channel(f'B2', awg.name, 2) # Scope
+            pulse.define_channel(f'B3', awg.name, 3) # digitizer
+            pulse.define_marker(f'M4', awg.name, 4, setup_ns=50, hold_ns=50) # digitizer
         else:
             for ch in range(1,5):
-                pulse.define_channel(f'AWG{i+1}.{ch}',f'AWG{i+1}', ch)
-        pulse.define_marker(f'M{i+1}.T',f'AWG{i+1}', 0, setup_ns=50, hold_ns=50)
+                pulse.define_channel(f'{awg.name}.{ch}', awg.name, ch)
+        pulse.define_marker(f'M{i+1}.T', awg.name, 0, setup_ns=50, hold_ns=50)
 
     pulse.finish_init()
     return pulse
@@ -123,17 +119,11 @@ logging.info('init pulse lib')
 # load the AWG library
 pulse = init_pulselib(awgs)
 
-logging.info('create hvi2 schedule')
-print('create schedule')
-schedules = Hvi2Schedules(pulse, dig)
-schedule = schedules.get_video_mode(dig_mode, hvi_queue_control=True,
-                                    trigger_out=True, enable_markers=['M3','M1.T', 'M2.T'])
-schedule.load()
 
 print('start gui')
 
 logging.info('open plotting')
-plotting = liveplotting(pulse, dig, "Keysight", hw_schedule=schedule)
+plotting = liveplotting(pulse, dig, "Keysight", cust_defaults={'gen':{'enabled_markers':['M3','M1.T']}})
 plotting.move(222,0)
 plotting.resize(1618,590)
 plotting._2D_gate2_name.setCurrentIndex(1)

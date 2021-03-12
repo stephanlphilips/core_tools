@@ -7,22 +7,20 @@ import matplotlib.pyplot as pt
 from keysight_fpga.sd1.fpga_utils import print_fpga_info, config_fpga_debug_log, print_fpga_log
 from keysight_fpga.sd1.dig_iq import load_iq_image
 
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
 from core_tools.drivers.M3102A import SD_DIG, OPERATION_MODES
 from pulse_lib.base_pulse import pulselib
-
-from core_tools.HVI2.hvi2_schedules import Hvi2Schedules
 
 import qcodes
 
 
 # close objects still active since previous run (IPython)
 try:
-    for awg in awgs:
-        awg.close()
-    dig.close()
-    schedule.close()
+    oldLoader.close_all()
 except: pass
+oldLoader = Hvi2ScheduleLoader
+
 try:
     qcodes.Instrument.close_all()
 except: pass
@@ -105,15 +103,8 @@ for ch, mode in dig_channel_modes.items():
 
 ## add to pulse lib.
 p = create_pulse_lib(awgs)
-## create schedule
-schedules = Hvi2Schedules(p, dig)
-schedule = schedules.get_single_shot(dig_channel_modes={'DIG1':dig_channel_modes},
-                                     n_triggers=n_triggers,
-                                     awg_channel_los=awg_los,
-                                     enabled_los=enabled_los,
-                                     switch_los=True
-                                     )
-schedule.load()
+
+schedule = Hvi2ScheduleLoader(p, "SingleShot", dig, switch_los=True, enabled_los=enabled_los)
 
 ## create waveforms
 seg = p.mk_segment()

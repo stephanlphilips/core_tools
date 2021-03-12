@@ -7,6 +7,8 @@ Created on Fri Aug  9 16:50:02 2019
 from qcodes import MultiParameter
 from core_tools.HVI.charge_stability_diagram.HVI_charge_stability_diagram import load_HVI, set_and_compile_HVI, excute_HVI, HVI_ID
 from core_tools.drivers.M3102A import DATA_MODE, is_sd1_3x, MODES
+from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
+from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -16,7 +18,8 @@ import logging
 use_hvi2 = is_sd1_3x
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
-                           dig_samplerate, dig_vmax=2.0, hw_schedule=None, iq_mode=None):
+                           dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
+                           enabled_markers=[]):
     """
     1D fast scan object for V2.
 
@@ -28,10 +31,13 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
-        hw_schedule : hardware schedule to trigger AWGs and digitizer
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
+        acquisition_delay_ns (float):
+                Time in ns between AWG output change and digitizer acquisition start.
+                This also increases the gap between acquisitions.
+        enable_markers (List[str]): marker channels to enable during scan
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
@@ -50,9 +56,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     # set up timing for the scan
     if use_hvi2:
-        if hw_schedule is None:
-            raise Exception('hw_schedule must be set for HVI2')
-        step_eff = t_step + hw_schedule.script.acquisition_gap
+        step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
     else:
         # 2us needed to rearm digitizer
         # 120ns HVI waiting time
@@ -72,9 +76,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         seg.add_block(0, step_eff, voltage)
         seg.reset_time()
 
-    if use_hvi2 and hasattr(hw_schedule.script, 'enable_markers'):
-        # TODO: make a clean implementation of markers
-        for marker in hw_schedule.script.enable_markers:
+    for marker in enabled_markers:
             marker_seg = getattr(charge_st_1D, marker)
             marker_seg.add_marker(0, n_pt*step_eff)
 
@@ -88,9 +90,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([charge_st_1D])
     if use_hvi2:
-        if hw_schedule is None:
-            raise Exception('hw_schedule must be set for HVI2')
-        my_seq.set_hw_schedule(hw_schedule)
+        my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer,
+                                                  acquisition_delay_ns=acquisition_delay_ns))
     else:
         my_seq.add_HVI(HVI_ID, load_HVI, set_and_compile_HVI, excute_HVI)
     my_seq.n_rep = 1
@@ -104,7 +105,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels, dig_samplerate, dig_vmax=2.0, hw_schedule=None, iq_mode=None):
+                           digitizer, channels, dig_samplerate, dig_vmax=2.0, iq_mode=None,
+                           acquisition_delay_ns=None, enabled_markers=[]):
     """
     1D fast scan object for V2.
 
@@ -119,11 +121,13 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
-        hw_schedule : hardware schedule to trigger AWGs and digitizer
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
-
+        acquisition_delay_ns (float):
+                Time in ns between AWG output change and digitizer acquisition start.
+                This also increases the gap between acquisitions.
+        enable_markers (List[str]): marker channels to enable during scan
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
@@ -140,9 +144,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     # set up timing for the scan
     if use_hvi2:
-        if hw_schedule is None:
-            raise Exception('hw_schedule must be set for HVI2')
-        step_eff = t_step + hw_schedule.script.acquisition_gap
+        step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
     else:
         # 2us needed to rearm digitizer
         # 120ns HVI waiting time
@@ -170,14 +172,12 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         seg2.add_block(0, step_eff*n_pt1, voltage)
         seg2.reset_time()
 
-    if use_hvi2 and hasattr(hw_schedule.script, 'enable_markers'):
-        # TODO: improve. this is an ungly short-cut
-        for marker in hw_schedule.script.enable_markers:
+    for marker in enabled_markers:
             marker_seg = getattr(charge_st_2D, marker)
             marker_seg.add_marker(0, n_pt1*n_pt2*step_eff)
 
-    # 10 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step / 10
+    # 20 time points per step to make sure that everything looks good (this is more than needed).
+    awg_t_step = step_eff / 20
     # prescaler is limited to 255 when hvi_queueing_control is enabled. Limit other cases as well
     if awg_t_step > 5 * 255:
         awg_t_step = 5 * 255
@@ -188,9 +188,8 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     my_seq = pulse_lib.mk_sequence([charge_st_2D])
     logging.info(f'Add HVI')
     if use_hvi2:
-        if hw_schedule is None:
-            raise Exception('hw_schedule must be set for HVI2')
-        my_seq.set_hw_schedule(hw_schedule)
+        my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer,
+                                                  acquisition_delay_ns=acquisition_delay_ns))
     else:
         my_seq.add_HVI(HVI_ID, load_HVI, set_and_compile_HVI, excute_HVI)
     my_seq.n_rep = 1
@@ -262,19 +261,16 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def get_raw(self):
 
-        if not use_hvi2:
-            # Note: The settings do not change. HVI2 allows new trigger without configuring.
-            #       This is not tested for HVI1.
-            # set digitizer
-            self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
-                                       data_mode = self.data_mode, channels = self.channels, Vmax=self.Vmax)
+        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
+                                   data_mode = self.data_mode, channels = self.channels, Vmax=self.Vmax)
 
         logging.info(f'Play')
         start = time.perf_counter()
         # play sequence
         self.my_seq.play([0], release = False)
+        start2 = time.perf_counter()
         self.pulse_lib.uploader.wait_until_AWG_idle()
-        logging.info(f'AWG idle after {(time.perf_counter()-start)*1000:3.1f} ms')
+        logging.info(f'AWG idle after {(time.perf_counter()-start)*1000:3.1f} ms, ({(time.perf_counter()-start2)*1000:3.1f} ms)')
 
         data_out = []
         for i in self.channels:
@@ -319,8 +315,8 @@ class _digitzer_scan_parameter(MultiParameter):
     def stop(self):
         if not self.my_seq is None and not self.pulse_lib is None:
             logging.info('stop: release memory')
-            # remove pulse sequence from the AWG's memory.
-            self.my_seq.release_memory()
+            # remove pulse sequence from the AWG's memory, unload schedule and free memory.
+            self.my_seq.close()
             self.my_seq = None
             self.pulse_lib = None
 

@@ -2,12 +2,11 @@
 
 # Form implementation generated from reading ui file 'GUI.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.2
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -578,12 +577,12 @@ class Ui_MainWindow(object):
         self.tab_3 = QtWidgets.QWidget()
         self.tab_3.setObjectName("tab_3")
         self.frame_4 = QtWidgets.QFrame(self.tab_3)
-        self.frame_4.setGeometry(QtCore.QRect(0, 10, 221, 151))
+        self.frame_4.setGeometry(QtCore.QRect(0, 10, 261, 251))
         self.frame_4.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_4.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_4.setObjectName("frame_4")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.frame_4)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(9, 9, 201, 131))
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(9, 9, 241, 231))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
@@ -658,6 +657,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self._gen_sample_rate = QtWidgets.QComboBox(self.verticalLayoutWidget)
+        self._gen_sample_rate.setMaximumSize(QtCore.QSize(100, 100))
         self._gen_sample_rate.setEditable(False)
         self._gen_sample_rate.setObjectName("_gen_sample_rate")
         self._gen_sample_rate.addItem("")
@@ -673,6 +673,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_vmax = QtWidgets.QHBoxLayout()
         self.horizontalLayout_vmax.setObjectName("horizontalLayout_vmax")
         self._gen_dig_vmax = QtWidgets.QComboBox(self.verticalLayoutWidget)
+        self._gen_dig_vmax.setMaximumSize(QtCore.QSize(100, 100))
         self._gen_dig_vmax.setEditable(False)
         self._gen_dig_vmax.setObjectName("_gen_dig_vmax")
         self._gen_dig_vmax.addItem("")
@@ -686,16 +687,38 @@ class Ui_MainWindow(object):
         self.label_volt.setObjectName("label_volt")
         self.horizontalLayout_vmax.addWidget(self.label_volt)
         self.formLayout_4.setLayout(4, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_vmax)
+        self.label_acq_delay = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_acq_delay.setObjectName("label_acq_delay")
+        self.formLayout_4.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.label_acq_delay)
+        self.horizontalLayout1 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout1.setObjectName("horizontalLayout1")
+        self._gen_acquisition_delay_ns = QtWidgets.QSpinBox(self.verticalLayoutWidget)
+        self._gen_acquisition_delay_ns.setMaximumSize(QtCore.QSize(100, 100))
+        self._gen_acquisition_delay_ns.setMinimum(0)
+        self._gen_acquisition_delay_ns.setMaximum(10000)
+        self._gen_acquisition_delay_ns.setSingleStep(100)
+        self._gen_acquisition_delay_ns.setProperty("value", 500)
+        self._gen_acquisition_delay_ns.setObjectName("_gen_acquisition_delay_ns")
+        self.horizontalLayout1.addWidget(self._gen_acquisition_delay_ns)
+        self.label_acq_delay_ns = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_acq_delay_ns.setObjectName("label_acq_delay_ns")
+        self.horizontalLayout1.addWidget(self.label_acq_delay_ns)
+        self.formLayout_4.setLayout(5, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout1)
+        self.label_blank = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_blank.setText("")
+        self.label_blank.setObjectName("label_blank")
+        self.formLayout_4.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.label_blank)
+        self.horizontalLayout_markers = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_markers.setObjectName("horizontalLayout_markers")
+        self.formLayout_4.setLayout(6, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_markers)
+        self.label_markers = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_markers.setObjectName("label_markers")
+        self.formLayout_4.setWidget(7, QtWidgets.QFormLayout.LabelRole, self.label_markers)
+        self.horizontalLayout_markers_checks = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_markers_checks.setObjectName("horizontalLayout_markers_checks")
+        self.formLayout_4.setLayout(7, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_markers_checks)
         self.verticalLayout_4.addLayout(self.formLayout_4)
-        self.label_26 = QtWidgets.QLabel(self.tab_3)
-        self.label_26.setGeometry(QtCore.QRect(230, 90, 191, 16))
-        self.label_26.setObjectName("label_26")
-        self.label_27 = QtWidgets.QLabel(self.tab_3)
-        self.label_27.setGeometry(QtCore.QRect(230, 110, 191, 16))
-        self.label_27.setObjectName("label_27")
-        self.label_27.raise_()
         self.frame_4.raise_()
-        self.label_26.raise_()
         self.tabWidget.addTab(self.tab_3, "")
         self.gridLayout_8.addWidget(self.tabWidget, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -776,8 +799,8 @@ class Ui_MainWindow(object):
         self._gen_dig_vmax.setItemText(4, _translate("MainWindow", "0.25"))
         self._gen_dig_vmax.setItemText(5, _translate("MainWindow", "0.125"))
         self.label_volt.setText(_translate("MainWindow", "V"))
-        self.label_26.setText(_translate("MainWindow", "Currently, there is a bug with Keysight"))
-        self.label_27.setText(_translate("MainWindow", "only allowing 100 and 500 MS."))
+        self.label_acq_delay.setText(_translate("MainWindow", "Acquisition delay"))
+        self.label_acq_delay_ns.setText(_translate("MainWindow", "ns"))
+        self.label_markers.setText(_translate("MainWindow", "Markers"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("MainWindow", "Settings"))
-
 
