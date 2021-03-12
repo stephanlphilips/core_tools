@@ -78,8 +78,10 @@ class SQL_sync_manager(SQL_database_init):
         while self.do_sync == True:
             uuid_update_list = sync_mgr_queries.get_sync_items_raw_data(self)
 
-            for uuid in uuid_update_list:
-                print(f'updating raw data of {uuid}')
+
+            for i in range(len(uuid_update_list)):
+                uuid = uuid_update_list[i]
+                print(f'updating raw data {i} of {len(uuid_update_list)}')
                 sync_mgr_queries.sync_raw_data(self, uuid)
 
             if len(uuid_update_list) == 0:
@@ -87,8 +89,9 @@ class SQL_sync_manager(SQL_database_init):
 
             uuid_update_list = sync_mgr_queries.get_sync_items_meas_table(self)
     
-            for uuid in uuid_update_list:
-                print(f'updating table entry of {uuid}')
+            for i in range(0,len(uuid_update_list)):
+                uuid = uuid_update_list[i]
+                print(f'updating table entry {i} of {len(uuid_update_list)}')
                 sync_mgr_queries.sync_table(self, uuid)
             if len(uuid_update_list) == 0:
                 print(f'not entries to update')

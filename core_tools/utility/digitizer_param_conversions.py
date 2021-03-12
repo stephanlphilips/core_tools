@@ -67,9 +67,9 @@ class IQ_to_scalar(MultiParameter):
 
     def get_raw(self):
         data_in = self.dig.get_raw()
-        data_out = (data_in[0] + 1j*data_in[1])*np.exp(1j*self.phase_rotation)
-
-        return (data_out.real, )
+        data_out = (data_in[0] + 1j*data_in[1])*np.exp(1j*self.phase_rotation[0])
+        data_out_SD2 = (data_in[2] + 1j*data_in[3])*np.exp(1j*self.phase_rotation[1])
+        return (data_out.real+1j*data_out_SD2.real, ) #EDITED Mateusz
 
 
 class down_sampler(MultiParameter):
@@ -283,13 +283,14 @@ if __name__ == '__main__':
 class PSB_param(MultiParameter):
     """
     """
-    def __init__(self, digitizer, threshold=None):
+    def __init__(self, digitizer, order, threshold=None):
         '''
         Args:
             digitizer (MultiParameter) :  parameter providing the data for the dip detection
              '''
         self.dig = digitizer
-        self.threshold = threshold
+        self.order = order
+        self.threshold = threshold        
         names = tuple()
         shapes = tuple()
         labels = tuple()
@@ -318,7 +319,18 @@ class PSB_param(MultiParameter):
     
     def get_raw(self):
         # expected format from the getter <tuple<np.ndarray[ndim=2,dtype=double]>>
-        data_in = self.dig.get()
+        data_inn = self.dig.get()
+        data_in_SD1 = []
+        data_in_SD2 = []   
+        data_in =[]     
+        for data_slice in data_inn:
+            data_in_SD1 += [data_slice.real]
+            data_in_SD2 += [data_slice.imag]
+        for n in range(len(self.order)):
+            if self.order[n] == 1:
+                data_in +=  [data_in_SD1[n]] 
+            else:
+                data_in +=  [data_in_SD2[n]] 
         data_out = []
         if not isinstance(self.threshold, list):
             for n in range(len(data_in)):
@@ -361,19 +373,34 @@ class PSB_param(MultiParameter):
                 sel=np.intersect1d(selection_1, selection_2)
 
                 if selection_1.size != 0:
-                    selected_data_1 = (np.where(data_in[2][sel] < self.threshold[1])[0].size)/sel.size
+                    selected_data_1 = (np.where(data_in[2][sel] < self.threshold[2])[0].size)/sel.size
                 # print(selected_data_1)
                 return (selection_1.size, sel.size, selected_data_1)                
 
             elif len(self.threshold) == 4:
-                selection_1 = np.where(data_in[0] < self.threshold[0])[0]
+                selection_1 = np.where(data_in[0] > self.threshold[0])[0]
                 selection_2 = np.where(data_in[1] > self.threshold[1])[0]
-
-                selected_data_1, selected_data_2 = 0
-
                 if selection_1.size != 0:
                     selected_data_1 = (np.where(data_in[2][selection_1] < self.threshold[2])[0].size)/selection_1.size
                 if selection_2.size != 0:
                     selected_data_2 = (np.where(data_in[3][selection_2] < self.threshold[3])[0].size)/selection_2.size
 
                 return (selection_1.size, selected_data_1, selection_2.size, selected_data_2)
+
+            elif len(self.threshold) == 8:
+                selection_1 = np.where(data_in[0] < self.threshold[0])[0]
+                selection_2 = np.where(data_in[1] > self.threshold[1])[0]
+                selection_3 = np.where(data_in[2] < self.threshold[2])[0]
+                selection_4 = np.where(data_in[3] > self.threshold[3])[0]
+
+                sel123=np.intersect1d(selection_1, selection_2)
+                sel456=np.intersect1d(selection_3, selection_4)
+                sel=np.intersect1d(sel123, sel456)
+
+                if sel.size != 0:
+                    Q12 = (np.where(data_in[4][sel] < self.threshold[4])[0].size)/sel.size
+                    Q3 = (np.where((data_in[4][sel] < self.threshold[4]) & (data_in[5][sel] > self.threshold[5]) | (data_in[4][sel] > self.threshold[4]) & (data_in[5][sel] < self.threshold[5]))[0].size)/sel.size
+                    Q56 = (np.where(data_in[6][sel] < self.threshold[6])[0].size)/sel.size
+                    Q4 = (np.where((data_in[6][sel] < self.threshold[6]) & (data_in[7][sel] > self.threshold[7]) | (data_in[6][sel] > self.threshold[6]) & (data_in[7][sel] < self.threshold[7]))[0].size)/sel.size
+
+                return (sel123.size, sel456.size, sel.size, (sel.size/data_in[0].size), Q12, Q3, Q4, Q56)

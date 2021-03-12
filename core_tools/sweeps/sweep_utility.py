@@ -25,7 +25,7 @@ FAST = "FAST"
 SLOW = "SLOW"
 
 
-MODE = SLOW
+MODE = FAST
 
 
 class PulseLibParameter(Parameter):
@@ -47,6 +47,9 @@ class PulseLibParameter(Parameter):
 
     def set_raw(self, value):
         if self.lowest_level:
+            if self.flat_index == 0 and hasattr(self.sequencer, 'starting_lambda'):
+                    self.sequencer.starting_lambda(self.sequencer)
+
             if MODE == SLOW or self.flat_index == 0:
                 self.sequencer.upload(np.unravel_index(self.flat_index, self.sequencer.shape))
 

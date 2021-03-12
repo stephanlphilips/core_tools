@@ -31,13 +31,13 @@ class ScheduleMgr():
     def video_mode(self):
         for dig in self.digitisers:
             dig.set_acquisition_mode(MODES.AVERAGE)
-        return self.schedules.get_video_mode(MODES.AVERAGE)
+        return self.schedules.get_video_mode(MODES.AVERAGE, hvi_queue_control=True)
 
     def single_shot(self, n_triggers):
-        return self.schedules.get_single_shot(MODES.AVERAGE, n_triggers=n_triggers)
+        return self.schedules.get_single_shot(MODES.AVERAGE, n_triggers=n_triggers, hvi_queue_control=True)
 
     def single_shot_raw(self, n_triggers):
-        return self.schedules.get_single_shot(MODES.NORMAL, n_triggers=n_triggers)
+        return self.schedules.get_single_shot(MODES.NORMAL, n_triggers=n_triggers, hvi_queue_control=True)
 
     def __check_init(self):
         if self.schedules is None:

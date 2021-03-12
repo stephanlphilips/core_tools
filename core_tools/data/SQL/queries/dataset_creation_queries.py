@@ -114,8 +114,8 @@ class measurement_overview_queries:
 			completed (bool) : tell that the measurement is completed.
 		'''
 		var_names = ['exp_data_location','metadata', 'snapshot', 'keywords', 'data_size', 'data_synchronized', 'completed']
-		var_values = [meas_table_name, psycopg2.extras.Json(metadata),
-			psycopg2.extras.Json(snapshot), psycopg2.extras.Json(keywords),
+		var_values = [meas_table_name, psycopg2.Binary(str(json.dumps(metadata)).encode('ascii')),
+			psycopg2.Binary(str(json.dumps(snapshot)).encode('ascii')), psycopg2.extras.Json(keywords),
 			data_size, str(data_synchronized), str(completed) ]
 
 		if start_time is not None:
@@ -177,8 +177,8 @@ class data_table_queries:
 
 		var_values = (data_item.param_id, data_item.nth_set, data_item.nth_dim, 
 			data_item.param_id_m_param, data_item.setpoint, data_item.setpoint_local, 
-			text(data_item.name_gobal), text(data_item.name), text(data_item.label), 
-			text(data_item.unit), psycopg2.extras.Json(data_item.dependency), psycopg2.extras.Json(data_item.shape),
+			data_item.name_gobal, data_item.name, data_item.label, 
+			data_item.unit, psycopg2.extras.Json(data_item.dependency), psycopg2.extras.Json(data_item.shape),
 			0, data_item.size, data_item.oid)
 		
 		insert_row_in_table(conn, table_name, var_names, var_values)
