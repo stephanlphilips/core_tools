@@ -17,6 +17,7 @@ def execute_query(conn, query, dict_cursor=False, placeholders = []):
 		cursor = conn.cursor(cursor_factory=RealDictCursor)
 	
 	cursor.execute(query, placeholders)
+
 	return_values =cursor.fetchall()
 	cursor.close()
 	
@@ -31,7 +32,7 @@ def select_elements_in_table(conn, table_name, var_names, where=None, order_by =
 		table_name (str) : name of the table to update
 		var_names (tuple<str>) : variable names of the table
 		where (str) : selection critere (e.g. 'id = 5')
-		order_by (str) : order results (e.g. 'uuid DESC')
+		order_by (tuple, str) : order results (e.g. ('uuid',  'DESC')
 		limit (int) : limit the amount of results
 		dict_cursor (bool) : return result as an ordered dict
 	'''
@@ -45,9 +46,9 @@ def select_elements_in_table(conn, table_name, var_names, where=None, order_by =
 	if where is not None:
 		query += sql.SQL("WHERE {0} = {1} ").format(sql.Identifier(where[0]), sql.Literal(where[1]))
 	if order_by is not None:
-		query += sql.SQL("ORDER BY {0} ").format(sql.Identifier(order_by))
+		query += sql.SQL("ORDER BY {0} {1} ").format(sql.Identifier(order_by[0]), sql.SQL(order_by[1]))
 	if limit is not None:
-		query += sql.SQL("LIMIT {0} ").format(sql.Identifier(int(limit)))
+		query += sql.SQL("LIMIT {0} ").format(sql.SQL(str(int(limit))))
 
 	return execute_query(conn, query, dict_cursor)
 
@@ -93,10 +94,25 @@ def update_table(conn, table_name, var_names, var_values, condition=None):
 	names_values = name_value_formatter(var_names, var_values)
 	if len(names_values) == 0:
 		return ""
-	
+
 	statement += sql.SQL(', ').join(sql.SQL("{} = {} ").format(i,j) for i,j in names_values.var_name_pairs)
 
 	if condition is not None:
 		statement += sql.SQL("WHERE {0} = {1} ").format(sql.Identifier(condition[0]), sql.Literal(condition[1]))
 
-	return execute_statement(conn, statement, names_values.placeholders)
+	return execute_statement(conn, statement, placeholders=names_values.placeholders)
+
+def alter_table(conn, table_name, colums, dtypes):
+	'''
+	add columns to a table
+
+	Args:
+		conn (psycopg2.connect) : connection object from psycopg2 librabry
+		table_name (str) : name of the table to update
+		colums (tuple<str>) : names of the columns
+		dtypes (tuple<str>) : type of the column's
+	'''
+	statement = sql.SQL("ALTER TABLE {} ADD COLUMN ").format(sql.SQL(table_name))
+	statement += sql.SQL(" , ADD COLUMN ").join(sql.SQL(" {0} {1} ").format(sql.Identifier(i), sql.SQL(j)) for i, j in zip(colums, dtypes))
+
+	return execute_statement(conn, statement)

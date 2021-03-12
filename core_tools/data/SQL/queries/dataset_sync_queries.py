@@ -45,6 +45,8 @@ class sync_mgr_queries:
 			remote_content = select_elements_in_table(sync_agent.conn_remote, "global_measurement_overview",
 				('*', ), where=("uuid",uuid), dict_cursor=True)[0]
 			sync_mgr_queries.convert_SQL_raw_table_entry_to_python(remote_content)
+			
+			del remote_content['id']
 
 			content_to_update = dict()
 
@@ -120,7 +122,6 @@ class sync_mgr_queries:
 				result['write_cursor'] = 0
 				result['depencies'] = json.dumps(result['depencies'])
 				result['shape'] = json.dumps(result['shape'])
-
 				insert_row_in_table(sync_agent.conn_remote, raw_data_table_name, 
 					result.keys(), result.values())
 
@@ -129,9 +130,9 @@ class sync_mgr_queries:
 	@staticmethod
 	def _sync_raw_data_lobj(sync_agent, raw_data_table_name):
 		res_loc = select_elements_in_table(sync_agent.conn_local, raw_data_table_name,
-			('write_cursor', 'total_size', 'oid'), order_by='id')
+			('write_cursor', 'total_size', 'oid'), order_by=('id', ''))
 		res_rem = select_elements_in_table(sync_agent.conn_remote, raw_data_table_name,
-			('write_cursor', 'total_size', 'oid'), order_by='id')
+			('write_cursor', 'total_size', 'oid'), order_by=('id', ''))
 		
 		for i in range(len(res_loc)):
 			r_cursor = res_rem[i]['write_cursor']
@@ -160,14 +161,19 @@ class sync_mgr_queries:
 		content['start_time'] = psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(content['start_time'].timestamp()))
 
 		if content['snapshot'] is not None:
-			content['snapshot'] = str(content['snapshot'].tobytes()).replace('\'', '')
+			content['snapshot'] = str(content['snapshot'].tobytes()).replace('\\\'', '').replace('\\\\\"', '')
 			if content['snapshot'].startswith('b'):
 				content['snapshot'] = content['snapshot'][1:]
-
+			if content['snapshot'].startswith('\''):
+				content['snapshot'] = content['snapshot'][1:-1]
+			content['snapshot'] = psycopg2.extras.Json(json.loads(content['snapshot']))
 		if content['metadata'] is not None:
-			content['metadata'] = str(content['metadata'].tobytes()).replace('\'', '')
+			content['metadata'] = str(content['metadata'].tobytes()).replace('\\\'', '')
 			if content['metadata'].startswith('b'):
 				content['metadata'] = content['metadata'][1:]
+			if content['metadata'].startswith('\''):
+				content['metadata'] = content['metadata'][1:-1]
+			content['metadata'] = psycopg2.extras.Json(json.loads(content['metadata']))
 
 		if content['stop_time'] is not None:
 			content['stop_time'] = psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(content['stop_time'].timestamp()))

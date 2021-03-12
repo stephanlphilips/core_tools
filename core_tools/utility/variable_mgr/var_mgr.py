@@ -17,7 +17,7 @@ class variable_descriptor:
             var_sql_queries.add_variable(variable_mgr().conn_local, name , unit, category, step, value)
     
     def __get__(self, obj, objtype=None):
-        return obj.vars[self.name.lower()]
+        return obj.vars[self.name]
 
     def __set__(self, obj, value):
         all_vals, last_id = var_sql_queries.update_val(variable_mgr().conn_local, self.name, value)
@@ -64,6 +64,10 @@ class variable_mgr():
     def update_GUI(self):
         if self.__GUI is not None:
             self.__GUI.set_data()
+
+    def update_column_name(self, old, new):
+        var_sql_queries.change_column_name(self.conn_local, old, new)
+
     def add_variable(self, category, name ,unit, step, value=0, skip_init=False):
         if not hasattr(self, name):
             my_desc = variable_descriptor(name, unit, category,step, value, skip_init)
@@ -81,10 +85,10 @@ class variable_mgr():
     def remove_variable(self, variable_name):
         obj = super().__getattribute__(variable_name)
         
-        self.data[obj.category].pop(variable_name)
+        self.data[obj.category].pop(variable_name, None)
         if len(self.data[obj.category]) == 0:
-            self.data.pop(obj.category)
-        self.vars.pop(variable_name.lower())
+            self.data.pop(obj.category, None)
+        self.vars.pop(variable_name, None)
 
         var_sql_queries.remove_variable(self.conn_local, variable_name)
         super().__delattr__(variable_name)
