@@ -98,12 +98,12 @@ class Hvi2Schedule(HardwareSchedule):
         if not self.hvi_exec:
             return
         if self._is_loaded:
-        self.script.stop(self.hvi_exec)
-        logging.info(f"Unload HVI2 schedule with script '{self.script.name}'")
+            self.script.stop(self.hvi_exec)
+            logging.info(f"Unload HVI2 schedule with script '{self.script.name}'")
             self._is_loaded = False
         if self._might_be_loaded:
-        self.hvi_exec.unload()
-        self.hardware.release_schedule()
+            self.hvi_exec.unload()
+            self.hardware.release_schedule()
             self._might_be_loaded = False
 
     def is_running(self):
