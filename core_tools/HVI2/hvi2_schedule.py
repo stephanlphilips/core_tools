@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jun 16 15:49:54 2020
-
 @author: sdesnoo
 """
 import logging

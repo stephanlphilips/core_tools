@@ -15,13 +15,14 @@ class ScheduleMgr():
             ScheduleMgr.__instance = object.__new__(cls)
         return ScheduleMgr.__instance
 
-    def __init__(self, pulse_lib=None, digitisers=None):
+    def __init__(self, pulse_lib=None, digitisers=None, markers=[]):
         if self.pulse_lib is None:
             self.pulse_lib = pulse_lib
             if not isinstance(digitisers, (list, tuple)):
                 digitisers = [digitisers]
 
             self.digitisers = digitisers
+            self.markers = markers
 
             for dig in digitisers:
                 load_iq_image(dig.SD_AIN)
@@ -29,16 +30,16 @@ class ScheduleMgr():
     def video_mode(self):
         for dig in self.digitisers:
             dig.set_acquisition_mode(MODES.AVERAGE)
-        return Hvi2ScheduleLoader(self.pulse_lib, 'VideoMode', self.digitisers,
-                                  # acquisition_delay_ns=1000 # Add acquisition delay if video mode is too fast for resonator
-                                  )
+        
+        schedule = Hvi2ScheduleLoader(self.pulse_lib, 'VideoMode', self.digitisers) #acquisition_delay_ns=1000# Add acquisition delay if video mode is too fast for resonator
+
+        return schedule
 
     def single_shot(self, n_triggers):
-        return Hvi2ScheduleLoader(self.pulse_lib, 'SingleShot', self.digitisers)
+        schedule =  Hvi2ScheduleLoader(self.pulse_lib, 'SingleShot', self.digitisers)
 
-    def single_shot_raw(self, n_triggers):
-        return Hvi2ScheduleLoader(self.pulse_lib, 'SingleShot', self.digitisers)
-
+        return schedule
+        
     def __check_init(self):
         if self.pulse_lib is None:
             raise ValueError('ScheduleMgr is not initialized. Please run in init.')
