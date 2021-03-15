@@ -47,6 +47,7 @@ def create_pulse_lib(awgs):
         for ch in range(1,5):
             pulse.define_channel(f'{awg.name}_{ch}', awg.name, ch)
 
+    pulse.add_channel_compensation_limit('AWG3_1', (-100, 100))
     pulse.finish_init()
     return pulse
 
@@ -113,7 +114,7 @@ def scan2D_keysight(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, pulse_li
 
 
 
-awg_slots = [3]
+awg_slots = [7,3]
 dig_slot = 6
 dig_channels = [1,2,3,4]
 full_scale = 2.0
