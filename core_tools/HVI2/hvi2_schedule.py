@@ -44,6 +44,26 @@ class Hvi2Schedule(HardwareSchedule):
             dig.daq_stop_multiple(0b1111)
             dig.daq_flush_multiple(0b1111)
 
+    def reconfigure_modules(self):
+        for awg in self.hardware.awgs:
+            for ch in range(1, 5):
+                awg.awg_stop(ch)
+                # rewrite amplitude and offset bypassing cache.
+                amplitude = awg._settings_cache['amplitude'][ch]
+                if amplitude is not None:
+                    awg._settings_cache['amplitude'][ch] = None
+                    awg.set_channel_amplitude(amplitude, ch)
+                offset = awg._settings_cache['offset'][ch]
+                if offset is not None:
+                    awg._settings_cache['offset'][ch] = None
+                    awg.set_channel_offset(offset, ch)
+
+                awg.set_channel_wave_shape(SD1.SD_Waveshapes.AOU_AWG, ch)
+                awg.awg_queue_config(ch, SD1.SD_QueueMode.CYCLIC)
+        for dig in self.hardware.digitizers:
+            dig.daq_stop_multiple(0b1111)
+            dig.daq_flush_multiple(0b1111)
+
     def compile(self):
         logging.info(f"Build HVI2 schedule with script '{self.script.name}'")
         hvi_system = HviSystem()
@@ -91,7 +111,7 @@ class Hvi2Schedule(HardwareSchedule):
         if self.hvi_exec.is_running():
             logging.warning(f'HVI running after load; attempting to stop HVI and modules')
             self.hvi_exec.stop()
-            self.configure_modules()
+            self.reconfigure_modules()
             if self.hvi_exec.is_running():
                 logging.eror(f'Still Running after stop')
         self._is_loaded = True
@@ -116,6 +136,9 @@ class Hvi2Schedule(HardwareSchedule):
         if self.verbose:
             logging.debug(f'start: {hvi_params}')
         self.script.start(self.hvi_exec, waveform_duration, n_repetitions, hvi_params)
+
+    def stop(self):
+        self.script.stop(self.hvi_exec)
 
     def close(self):
         self.unload()
