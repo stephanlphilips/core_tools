@@ -77,10 +77,11 @@ class Hvi2SingleShot():
     def sequence(self, sequencer, hardware):
         self.hardware = hardware
         n_triggers = self._configuration['n_triggers']
+        self.use_systicks = hasattr(self.hardware.awgs[0], 'get_sys_ticks')
 
         self.r_start = sequencer.add_sync_register('start')
         self.r_stop = sequencer.add_sync_register('stop')
-        sequencer.add_sync_register('ticks')
+        self.r_ticks = sequencer.add_sync_register('ticks')
         self.r_nrep = sequencer.add_sync_register('n_rep')
         self.r_wave_duration = sequencer.add_module_register('wave_duration', module_type='awg')
         for awg in hardware.awgs:
@@ -207,15 +208,19 @@ class Hvi2SingleShot():
                             seq.sys.clear_ticks()
                             # this delay saves 1 PXI trigger
                             seq.wait(100)
+                        awg_seqs[0]['ticks'] = 0
 
                 # A simple statement after with sync.While(sync['start'] == 1).
                 # The last statement inside with sync.While(sync['stop'] == 0) shouldn't
                 # be a while loop, because this results in strange timing constraint in the compiler
                 with sync.SyncedModules():
+                    if self.use_systicks:
                     # update tick time for timeout in stop loop.
                     awg_seqs[0]['ticks'] = awg_seqs[0].sys.ticks
                     awg_seqs[0].wait(100)
-
+                    else:
+                        awg_seqs[0]['ticks'] += 200
+                        awg_seqs[0].wait(280)
 
     def _get_dig_trigger(self, hvi_params, i):
         warn = self._n_starts == 1
@@ -249,7 +254,10 @@ class Hvi2SingleShot():
             logging.debug(f'HVI running: {not self.started}; started: {self.started}')
             self.started = not self.started
         if self.started:
+            if self.use_systicks:
             sys_ticks = self.hardware.awgs[0].get_sys_ticks()//200_000
+            else:
+                sys_ticks = hvi_exec.read_register(self.r_ticks)//200_000
             logging.debug(f'HVI idle: {sys_ticks} ms')
             # check restart timeout with margin of 50 ms.
             if sys_ticks > StartTimeout - 50:
