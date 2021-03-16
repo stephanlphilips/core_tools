@@ -215,9 +215,9 @@ class Hvi2SingleShot():
                 # be a while loop, because this results in strange timing constraint in the compiler
                 with sync.SyncedModules():
                     if self.use_systicks:
-                    # update tick time for timeout in stop loop.
-                    awg_seqs[0]['ticks'] = awg_seqs[0].sys.ticks
-                    awg_seqs[0].wait(100)
+                        # update tick time for timeout in stop loop.
+                        awg_seqs[0]['ticks'] = awg_seqs[0].sys.ticks
+                        awg_seqs[0].wait(100)
                     else:
                         awg_seqs[0]['ticks'] += 200
                         awg_seqs[0].wait(280)
@@ -255,7 +255,7 @@ class Hvi2SingleShot():
             self.started = not self.started
         if self.started:
             if self.use_systicks:
-            sys_ticks = self.hardware.awgs[0].get_sys_ticks()//200_000
+                sys_ticks = self.hardware.awgs[0].get_sys_ticks()//200_000
             else:
                 sys_ticks = hvi_exec.read_register(self.r_ticks)//200_000
             logging.debug(f'HVI idle: {sys_ticks} ms')
