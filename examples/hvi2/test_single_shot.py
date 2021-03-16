@@ -10,7 +10,7 @@ from keysight_fpga.sd1.fpga_utils import \
 from keysight_fpga.sd1.sd1_utils import check_error
 from keysight_fpga.sd1.dig_iq import load_iq_image
 
-from qcodes_contrib_drivers.drivers.Keysight.M3202A import M3202A
+from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
 from core_tools.drivers.M3102A import SD_DIG, MODES
 from pulse_lib.base_pulse import pulselib
 
@@ -18,8 +18,8 @@ from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 
 import qcodes
 
-import qcodes.logger as logger
-from qcodes.logger import start_all_logging
+#import qcodes.logger as logger
+#from qcodes.logger import start_all_logging
 
 #start_all_logging()
 #logger.get_console_handler().setLevel(logging.WARN)
@@ -63,7 +63,7 @@ dig_slot = 6
 dig_channels = [1,2,3,4]
 full_scale = 2.0
 
-t_wave = 100_000
+t_wave = 20_000
 t_pulse = 800
 pulse_duration = 100
 
@@ -77,7 +77,8 @@ n_rep = 3
 
 awgs = []
 for i, slot in enumerate(awg_slots):
-    awg = M3202A(f'AWG{slot}', 1, slot, waveform_size_limit=1e7)
+    awg = M3202A_fpga(f'AWG{slot}', 1, slot, waveform_size_limit=1e7)
+#    awg.set_hvi_queue_control(True)
     awgs.append(awg)
 
 
@@ -86,15 +87,6 @@ load_iq_image(dig.SD_AIN)
 print_fpga_info(dig.SD_AIN)
 dig.set_acquisition_mode(dig_mode)
 
-time.sleep(1)
-for awg in awgs:
-    load_awg_image(awg)
-#    load_default_awg_image(awg)
-    print_fpga_info(awg.awg)
-#    fpga_list_registers(awg.awg)
-    for ch in range(1,5):
-        awg.set_channel_amplitude(1.5, ch)
-        awg.set_channel_offset(0, ch)
 
 
 ## add to pulse lib.
@@ -117,9 +109,12 @@ sequencer = p.mk_sequence([seg])
 sequencer.set_hw_schedule(schedule)
 sequencer.n_rep = n_rep
 
-#for ch in dig_channels:
-#    dig.set_lo(ch, lo_f, 0, input_channel=ch) @@@@@@@@@@@@
 
+downsampled_rate = 1e9/t_average if dig_mode != MODES.NORMAL else None
+power2decimation = p2decim if dig_mode != MODES.NORMAL else 0
+
+#for ch in dig_channels:
+#    dig.set_lo(ch, lo_f, 0, input_channel=ch)
 
 
 #config_fpga_debug_log(dig.SD_AIN,
@@ -130,8 +125,9 @@ sequencer.n_rep = n_rep
 #                      )
 
 dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
-                      downsampled_rate=1e9/t_average,
-                      power2decimation=p2decim, Vmax=full_scale)
+                      downsampled_rate=downsampled_rate,
+                      power2decimation=power2decimation,
+                      Vmax=full_scale)
 sequencer.upload(index=[0])
 sequencer.play(index=[0])
 data = dig.measure.get_data()
@@ -140,14 +136,15 @@ data = dig.measure.get_data()
 
 
 ## run
-N = 1
+N = 10
 start = time.perf_counter()
 for i in range(N):
-    t_measure += 100
-    print(i, t_measure)
+#    t_measure += 100
+#    print(i, t_measure)
     dig.set_digitizer_HVI(t_measure, n_rep, channels=dig_channels,
-                          downsampled_rate=1e9/t_average,
-                          power2decimation=p2decim, Vmax=full_scale)
+                          downsampled_rate=downsampled_rate,
+                          power2decimation=power2decimation,
+                          Vmax=full_scale)
     sequencer.upload(index=[0])
     sequencer.play(index=[0])
     data = dig.measure.get_data()
@@ -155,6 +152,9 @@ for i in range(N):
 if N > 0:
     duration = time.perf_counter() - start
     print(f'duration {duration*1000/N:5.1f} ms')
+
+# for awg in awgs:
+#     print(awg.read_queue_mem())
 
 #print_fpga_log(dig.SD_AIN)
 #for awg in awgs:

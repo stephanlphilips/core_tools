@@ -10,7 +10,8 @@ from keysight_fpga.sd1.fpga_utils import \
 from keysight_fpga.sd1.sd1_utils import check_error
 from keysight_fpga.sd1.dig_iq import load_iq_image
 
-from qcodes_contrib_drivers.drivers.Keysight.M3202A import M3202A
+from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
+
 from core_tools.drivers.M3102A import SD_DIG
 from pulse_lib.base_pulse import pulselib
 
@@ -164,7 +165,7 @@ def create_vidmod_seq(p, dig_mode):
     return seq
 
 
-awg_slots = [3]
+awg_slots = [7,3]
 dig_slot = 6
 dig_channels = [1,2,3,4]
 full_scale = 2.0
@@ -179,7 +180,8 @@ n_rep = 1000
 
 awgs = []
 for i, slot in enumerate(awg_slots):
-    awg = M3202A(f'AWG{slot}', 1, slot)
+    awg = M3202A_fpga(f'AWG{slot}', 1, slot)
+    awg.set_hvi_queue_control(True)
     awgs.append(awg)
 
 
@@ -208,7 +210,7 @@ p = create_pulse_lib(awgs)
 
 
 for q in range(3000):
-    s = (q+2) % 3
+    s = (q) % 3
     n_points = 0
     if s == 0:
         sequencer = create_ss_seq(p, dig_mode)

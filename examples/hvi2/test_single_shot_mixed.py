@@ -41,7 +41,7 @@ def create_pulse_lib(awgs):
     return pulse
 
 
-awg_slots = [3]
+awg_slots = [3,7]
 dig_slot = 6
 full_scale = 2.0
 
