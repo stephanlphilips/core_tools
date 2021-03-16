@@ -62,6 +62,7 @@ def init_pulselib(awgs):
             for ch in range(1,5):
                 pulse.define_channel(f'{awg.name}.{ch}', awg.name, ch)
         pulse.define_marker(f'M{i+1}.T', awg.name, 0, setup_ns=50, hold_ns=50)
+        pulse.add_channel_compensation_limit('P1', (-100, 100))
 
     pulse.finish_init()
     return pulse
