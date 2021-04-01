@@ -7,11 +7,11 @@ import copy
 class gates(qc.Instrument):
 	"""
 	gates class, generate qcodes parameters for the real gates and the virtual gates
-	It also manages the virtual gate matrix. 
+	It also manages the virtual gate matrix.
 	"""
 	def __init__(self, name ,hardware, dac_sources):
 		'''
-		gates object 
+		gates object
 		args:
 			name (str) : name of the instrument
 			hardware (class) : class describing the instrument (standard qtt issue, see example below to generate a gate set).
@@ -20,25 +20,25 @@ class gates(qc.Instrument):
 		super(gates, self).__init__(name)
 		self.hardware = hardware
 		self.dac_sources = dac_sources
-		
+
 		self._gv = dict()
 
 		# add gates:
 		for gate_name, dac_location in hardware.dac_gate_map.items():
 			self.add_parameter(gate_name, set_cmd = partial(self._set_voltage,  gate_name), get_cmd=partial(self._get_voltage,  gate_name), unit = "mV")
-		
+
 		# make virtual gates:
 		for virt_gate_set in self.hardware.virtual_gates:
 			for gate_name in virt_gate_set.virtual_gate_names:
 				self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
 					get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
-	
+
 	def _set_voltage(self, gate_name, voltage):
 		'''
 		set a voltage to the dac
 		Args:
-			voltage (double) : voltage to set	
-			gate_name (str) : name of the gate to set 
+			voltage (double) : voltage to set
+			gate_name (str) : name of the gate to set
 		'''
 		dac_location = self.hardware.dac_gate_map[gate_name]
 		if gate_name in self.hardware.boundaries.keys():
@@ -46,21 +46,21 @@ class gates(qc.Instrument):
 			if voltage < min_voltage or voltage > max_voltage:
 				raise ValueError("Voltage boundaries violated, trying to set gate {} to {}mV. \nThe limit is set to {} to {} mV.\nThe limit can be changed by updating the hardware class".format(gate_name, voltage, min_voltage, max_voltage))
 
-		getattr(self.dac_sources[dac_location[0]], 'dac{}'.format(int(dac_location[1])) )(voltage)
+		getattr(self.dac_sources[dac_location[0]], f'dac{int(dac_location[1])}')(voltage)
 
 	def _get_voltage(self, gate_name):
 		'''
 		get a voltage to the dac
 		Args:
-			gate_name (str) : name of the gate to set 
+			gate_name (str) : name of the gate to set
 		'''
 		dac_location = self.hardware.dac_gate_map[gate_name]
-		return getattr(self.dac_sources[dac_location[0]], 'dac{}'.format(int(dac_location[1])) )()
+		return getattr(self.dac_sources[dac_location[0]], f'dac{int(dac_location[1])}').cache()
 
 	def _set_voltage_virt(self, gate_name, virt_gate_obj, voltage):
 		'''
 		set a voltage to the virtual dac
-		Args: 
+		Args:
 			voltage (double) : voltage to set
 			name : name of the real gate (that corresponds the certain virtual gate)
 		'''
@@ -77,9 +77,9 @@ class gates(qc.Instrument):
 		new_voltages = np.matmul(np.linalg.inv(virt_gate_obj.virtual_gate_matrix), virtual_voltages)
 
 		i = 0
-		for gate_name in virt_gate_obj.real_gate_names: 
+		for gate_name in virt_gate_obj.real_gate_names:
 			if new_voltages[i] != current_voltages_formatted[i]:
-				self._set_voltage(gate_name,new_voltages[i]) 
+				self._set_voltage(gate_name,new_voltages[i])
 			i+=1
 
 	def _get_voltage_virt(self, gate_name, virt_gate_obj):
@@ -158,7 +158,7 @@ class gates(qc.Instrument):
 
 
 if __name__ == '__main__':
-	from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example 
+	from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
 	from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
 
 	my_dac_1 = virtual_dac("dac_a", "virtual")
