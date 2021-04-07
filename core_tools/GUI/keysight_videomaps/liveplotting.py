@@ -526,18 +526,22 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             is_ds_configured = isinstance(sample_info.project, str)
         except: pass
 
-        if is_ds_configured:
-            job = do0D(self.vm_data_param, name=label)
-            job.run()
-        else:
-            # use qcodes measurement
-            measure = Measure(self.vm_data_param)
-            data = measure.get_data_set(location=None,
-                                        loc_record={
-                                        'name': 'vm_data',
-                                        'label': label})
-            data = measure.run(quiet=True)
-            data.finalize()
+        try:
+            if is_ds_configured:
+                logging.info('Save')
+                job = do0D(self.vm_data_param, name=label)
+                job.run()
+            else:
+                # use qcodes measurement
+                measure = Measure(self.vm_data_param)
+                data = measure.get_data_set(location=None,
+                                            loc_record={
+                                            'name': 'vm_data',
+                                            'label': label})
+                data = measure.run(quiet=True)
+                data.finalize()
+        except:
+            logging.error(f'Error during save data', exc_info=True)
 
 class vm_data_param(MultiParameter):
     def __init__(self, param, plot, metadata):

@@ -1,3 +1,4 @@
+import logging
 from core_tools.data.ds.data_set_core import data_set_raw, data_set
 from core_tools.data.SQL.SQL_dataset_creator import SQL_dataset_creator
 import json
@@ -36,6 +37,9 @@ def create_new_data_set(experiment_name, *m_params):
         snapshot = qc.Station.default.snapshot()
         snapshot_json = json.dumps({'station': snapshot}, cls=qc.utils.helpers.NumpyJSONEncoder)
         ds.snapshot = json.loads(snapshot_json)
+    else:
+        logging.error('No station configured')
+        snapshot_json = ''
 
     # intialize the buffers for the measurement
     for m_param in m_params:
