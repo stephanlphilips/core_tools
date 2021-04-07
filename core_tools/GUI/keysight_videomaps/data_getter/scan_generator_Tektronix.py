@@ -204,7 +204,7 @@ class _digitzer_scan_parameter(MultiParameter):
         self.iq_mode = iq_mode
 
         if sample_rate > 20e6:
-            sample_rate = 10e6
+            sample_rate = 20e6
         # digitizer sample rate is matched to hardware value by driver
         digitizer.sample_rate(sample_rate)
         self.sample_rate = digitizer.sample_rate()
