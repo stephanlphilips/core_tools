@@ -22,6 +22,8 @@ class digitizer_param(MultiParameter):
         sample_rate (Optional[int]): Sampling rate to be set in the digitizer.
         mV_range (Optional[list]): mV_range of each active channel.
         sw_trigger (bool): Use software trigger instead of EXT0 trigger settings.
+        start_func (Callable[[None],None]): function to call to start acquisition.
+        box_averages (Optional[int]): Use boxcar averaging with specified length.
         average_time (bool): Average time values (removes time dimension)
         average_repetitions (bool): Average over repetitions (removes repetition dimension)
         name (Optional[str]): the local name of the whole parameter. Should be a valid
@@ -39,10 +41,13 @@ class digitizer_param(MultiParameter):
             digitizer.set_channel_settings(...), or
             digitizer.initialize_channels(...)
             digitizer.set_ext0_OR_trigger_settings(...)
+
+        `start_func` can be used to (externally) trigger the digitizer acquisition.
+        `start_func` is called in every get_raw() call.
     """
     def __init__(self, digitizer, t_measure, n_rep=None, n_triggers=None,
                  channels=None, sample_rate = None, mV_range= None,
-                 sw_trigger=False,
+                 sw_trigger=False, start_func=None, box_averages=None,
                  average_time=False, average_repetitions=False,
                  name=None, names=None, labels=None, units=None):
 
@@ -82,13 +87,15 @@ class digitizer_param(MultiParameter):
         self.average_time = average_time
         self.average_repetitions = average_repetitions
         self.n_seg = ifNone(self.n_rep, 1) * ifNone(self.n_trigger, 1)
+        self.start_func = start_func
 
         if sample_rate is not None:
             self._digitizer.sample_rate(sample_rate)
         # read sample rate after setting, because M4i adjusts automatically to supported rates
         self.sample_rate = self._instrument.sample_rate()
 
-        self.seg_size = int(np.round(self.sample_rate * self.t_measure))
+        self.eff_sample_rate = self.sample_rate / box_averages if box_averages is not None else self.sample_rate
+        self.seg_size = int(np.round(self.eff_sample_rate * self.t_measure))
         if self.seg_size == 0:
             raise ValueError(f'invalid settings: sample_rate:{self.sample_rate} t_measure:{self.t_measure}')
 
@@ -124,7 +131,10 @@ class digitizer_param(MultiParameter):
         else:
             self.digitizer.trigger_or_mask(pyspcm.SPC_TMASK_EXT0)
 
-        self.digitizer.setup_multi_recording(self.seg_size, n_triggers=self.n_seg)
+        if box_averages:
+            self.digitizer.box_averages(box_averages)
+        self.digitizer.setup_multi_recording(self.seg_size, n_triggers=self.n_seg,
+                                             boxcar_average=box_averages is not None)
         acq_shape = (self.num_ch, )
         if self.n_rep:
             acq_shape += (self.n_rep, )
@@ -142,7 +152,7 @@ class digitizer_param(MultiParameter):
 
         # build dimensions from last to first for correct setpoints
         if add_time:
-            setp_time = tuple((np.arange(self.seg_size))/self.sample_rate)
+            setp_time = tuple((np.arange(self.seg_size))/self.eff_sample_rate)
             shape = (self.seg_size,)
             setpoints = (setp_time,)
             sp_names = ('t',)
@@ -231,6 +241,9 @@ class digitizer_param(MultiParameter):
 
 
     def get_raw(self):
+        if self.start_func:
+            self.start_func()
+
         m4i_seg_size = self.digitizer.segment_size()
         memsize = self.digitizer.data_memory_size()
         pretrigger = self.digitizer.pretrigger_memory_size()
@@ -257,6 +270,7 @@ class digitizer_param(MultiParameter):
         derived_params = [dp(res_volt) for dp in self.derived_params]
 #        print(derived_params)
         return list(res_volt)+derived_params
+
 
 def ifNone(x, value):
     return x if x is not None else value
