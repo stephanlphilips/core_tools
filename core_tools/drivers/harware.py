@@ -128,33 +128,33 @@ class harware_parent(qc.Instrument):
         self.RF_source_names = []
         self.RF_params = ['frequency_stepsize', 'frequency', 'power']
         self._RF_settings = dict()
-        
+
         # set this one in the GUI.
         self._AWG_to_dac_conversion = dict()
         if 'AWG2DAC' in list(self.sync.keys()):
             self._AWG_to_dac_conversion = self.sync['AWG2DAC']
-                
+
         self._virtual_gates = virtual_gates_mgr(self.sync)
 
     @property
     def virtual_gates(self):
         return self._virtual_gates
-    
+
     @property
     def RF_settings(self):
         return self._RF_settings
-    
+
     @RF_settings.setter
     def RF_settings(self, RF_settings):
         if self._RF_settings.keys() == RF_settings.keys():
             RF_settings = self._RF_settings
         else:
             self._RF_settings = RF_settings
-    
+
     @property
     def AWG_to_dac_conversion(self):
         return self._AWG_to_dac_conversion
-    
+
     @AWG_to_dac_conversion.setter
     def AWG_to_dac_conversion(self, AWG_to_dac_ratio):
         if self._AWG_to_dac_conversion.keys() == AWG_to_dac_ratio.keys():
@@ -171,7 +171,7 @@ class harware_parent(qc.Instrument):
                 param(val)
         else:
             self.RF_settings = self.gen_RF_settings(sources = sources)
-    
+
     def gen_RF_settings(self, sources):
         RF_settings = dict()
         qc_params = []
@@ -186,13 +186,15 @@ class harware_parent(qc.Instrument):
 
     def sync_data(self):
         for item in self.virtual_gates:
+            # invoke property to update normalized matrix
+            item.virtual_gate_matrix
             self.sync[item.name] = item
         self.sync['AWG2DAC'] = self._AWG_to_dac_conversion
         self.sync['RFsettings'] = self._RF_settings
         self.sync.sync()
-        
+
     def snapshot_base(self, update: bool=False,
-                  params_to_skip_update: Sequence[str]=None):        
+                  params_to_skip_update: Sequence[str]=None):
         vg_snap = {}
         for vg in self.virtual_gates:
             vg_mat = np.reshape(np.frombuffer(vg.virtual_gate_matrix, dtype=float),np.shape(vg.virtual_gate_matrix))
