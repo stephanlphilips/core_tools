@@ -11,6 +11,7 @@ class boudaries_mgr():
             return self.key_vals[gate]
         else:
             raise ValueError('Gate {} is not defined (gates present are : {})'.format(gate, hardware().dac_to_gate.keys()))
+    
     def __setitem__(self, gate, value):
         if gate in hardware().dac_to_gate.keys():
             self.key_vals[gate] = value
@@ -117,12 +118,14 @@ if __name__ == '__main__':
     print(h.dac_to_gate)
 
     h.boudaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
-    h.virtual_gates.add('test', ['B0', 'B1'])
-    h.awg2dac_ratios.add(['B0', 'B1', 'B2'])
+    h.virtual_gates.add('test', ['B0', 'B1', 'B2'])
+    h.awg2dac_ratios.add(['B0', 'B1', 'B2', 'B3'])
 
-    h.rf_sources.add(param)
+    # h.rf_sources.add(param)
     
+    # h.awg2dac_ratios['B0'] = 0.78
+    # print(h.virtual_gates.test[0, 1])
     print(h.awg2dac_ratios)
-
-    h2 = hardware()
-    print(h2.awg2dac_ratios)
+    # h.virtual_gates.test[0, 1] = 0.1
+    
+    print(h.virtual_gates.test[0, 1])

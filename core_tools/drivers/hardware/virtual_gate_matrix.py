@@ -105,10 +105,11 @@ def combine_lamdas(l1, l2):
 
 def load_virtual_gate(name, real_gates, virtual_gates=None):
     conn = SQL_database_manager().conn_local
+    virtual_gate_queries.generate_table(conn)
         
     virtual_gates = name_virtual_gates(virtual_gates, real_gates)
 
-    if virtual_gate_queries.check_exist(conn, name):
+    if virtual_gate_queries.check_var_in_table_exist(conn, name):
         real_gate_db, virtual_gate_db, matrix_db = virtual_gate_queries.get_virtual_gate_matrix(conn, name)
 
         entries_to_add = set(real_gates) - set(real_gate_db)
@@ -134,7 +135,7 @@ def load_virtual_gate(name, real_gates, virtual_gates=None):
 def save(vg_matrix):
     conn = SQL_database_manager().conn_local
 
-    if virtual_gate_queries.check_exist(conn, vg_matrix.name):
+    if virtual_gate_queries.check_var_in_table_exist(conn, vg_matrix.name):
         # merge in case there are more entries
         real_gate_db, virtual_gate_db, matrix_db = virtual_gate_queries.get_virtual_gate_matrix(conn, vg_matrix.name)
         all_gates = list(set(real_gate_db + vg_matrix.gates))
