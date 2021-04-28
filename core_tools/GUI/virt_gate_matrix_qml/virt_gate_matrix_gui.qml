@@ -1,14 +1,15 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import QtQuick.Controls.Material 2.12
+
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.12
-import QtQuick.Controls.Material 2.12
 
 
 import Qt.labs.qmlmodels 1.0
 
 ApplicationWindow{
-    title: "Data Browser"
+    title: "Virtual gate matrix GUI"
     width: 1600
     height: 800
     visible: true
@@ -24,8 +25,10 @@ ApplicationWindow{
         anchors.top: parent.top
         anchors.topMargin: 0
 
+        z : 2
+
         TabButton {
-            text: qsTr("AWG to dac Ratios")
+            text: qsTr("AWG to DAC Ratios")
             anchors.top: parent.top
             anchors.topMargin: 0
             anchors.bottom: parent.bottom
@@ -76,36 +79,7 @@ ApplicationWindow{
                         height : parent.height
                         Layout.alignment: Qt.AlignLeft | Qt.AlignTop
                         spacing: 0
-
-                        ListModel {
-                            id : variable_name_value_pair_list
-                            ListElement {
-                                name: "P1"
-                                ratios : 0.215
-                                db : -13.5
-                            }
-                            ListElement {
-                                name: "P2"
-                                ratios : 0.215
-                                db : -13.5
-                            }
-                            ListElement {
-                                name: "P3"
-                                ratios : 0.215
-                                db : -13.5
-                            }
-                            ListElement {
-                                name: "P4"
-                                ratios : 0.215
-                                db : -13.5
-                            }
-                            ListElement {
-                                name: "P5"
-                                ratios : 0.215
-                                db : -13.5
-                            }
-                        }
-
+                        
                         Component{
                             id : variable_name_value_pair_delegate
                             Item{
@@ -117,6 +91,7 @@ ApplicationWindow{
                                 RowLayout {
                                     id: rowLayout5
                                     height: 40
+                                    spacing : 5
                                     anchors.left: parent.left
                                     Rectangle {
                                         id: rectangle14
@@ -144,32 +119,123 @@ ApplicationWindow{
 
                                     }
 
-                                    TextField {
-                                        id: ratios_text_field
-
-                                        height : 20
+                                    Rectangle{
+                                    	height : 40
                                         width : 250
+	                                    color : ratios_text_field.focus ? "#8E24AA" : "#E0E0E0" 
 
-                                        Layout.minimumWidth: 250
-                                        text: ratios
-                                        Layout.rightMargin: 5
-                                        Layout.bottomMargin: -6
-                                        Layout.alignment: Qt.AlignLeft | Qt.AlignBottom
-                                        font.pointSize: 12
+	                                    Rectangle{
+	                                    	anchors.top: parent.top
+	                                    	anchors.left: parent.left
+	                                        anchors.topMargin: 1
+	                                        anchors.leftMargin: 1
+	                                    	height : 38
+	                                        width : 248
+		                                    color : "#FFFFFF"
+		                                    
+		                                    MouseArea{
+	                                    		height : 38
+		                                        width : 248
+									            anchors.fill: parent
+									            propagateComposedEvents: true
+									            hoverEnabled: true
+
+									            onWheel: {
+									            	if (wheel.angleDelta.y < 0 ){
+										            	var v = Number.fromLocaleString(Qt.locale(), ratios_text_field.text)
+										            	ratios_text_field.text = parseFloat(v-0.05).toFixed(3)
+										            }else{
+										            	var v = Number.fromLocaleString(Qt.locale(), ratios_text_field.text)
+										            	ratios_text_field.text = parseFloat(v+0.05).toFixed(3)
+										            }
+                                                    ratios_text_field.text = singal_hander.process_attenuation_update_nrml(index, ratios_text_field.text)
+                                                    dbs_text_field.text = parseFloat(Math.log10(Number.fromLocaleString(Qt.locale(), ratios_text_field.text))*20).toFixed(1)
+
+									            }
+		                                    }
+
+		                                    TextInput {
+		                                        id: ratios_text_field
+		                                        text : ratio
+		                                        width : 248
+		                                        anchors.left: parent.left
+		                                        anchors.top: parent.top
+		                                        anchors.leftMargin: 5
+		                                        anchors.topMargin : 10 
+		                                        font.pointSize: 12
+
+    	                                        validator : DoubleValidator{bottom :  0 ; decimals : 5}
+	                                            selectByMouse : true
+	                                            selectedTextColor : '#FFFFFF'
+	                                            selectionColor : '#EC407A'
+	                                            onEditingFinished : {
+                                                        text = singal_hander.process_attenuation_update_nrml(index, text)
+                                                        dbs_text_field.text = parseFloat(Math.log10(Number.fromLocaleString(Qt.locale(), text))*20).toFixed(1)
+                                                        focus = false
+                                                    }
+		                                    }
+
+	                                    }
                                     }
-                                    TextField {
-                                        id: db_ratios_text_field
 
-                                        height : 20
+                                    Rectangle{
+                                    	height : 40
                                         width : 250
+	                                    color : dbs_text_field.focus ? "#1E88E5" : "#BDBDBD" 
 
-                                        Layout.minimumWidth: 250
-                                        text: db
-                                        Layout.rightMargin: 5
-                                        Layout.bottomMargin: -6
-                                        Layout.alignment: Qt.AlignLeft | Qt.AlignBottom
-                                        font.pointSize: 12
+	                                    Rectangle{
+	                                    	anchors.top: parent.top
+	                                    	anchors.left: parent.left
+	                                        anchors.topMargin: 1
+	                                        anchors.leftMargin: 1
+	                                    	height : 38
+	                                        width : 248
+		                                    color : "#FFFFFF"
+		                                    
+		                                    MouseArea{
+	                                    		height : 38
+		                                        width : 248
+									            anchors.fill: parent
+									            propagateComposedEvents: true
+									            hoverEnabled: true
+
+									            onWheel: {
+									            	if (wheel.angleDelta.y < 0 ){
+										            	var v = Number.fromLocaleString(Qt.locale(), dbs_text_field.text)
+										            	dbs_text_field.text = parseFloat(v-0.5).toFixed(1)
+										            }else{
+										            	var v = Number.fromLocaleString(Qt.locale(), dbs_text_field.text)
+										            	dbs_text_field.text = parseFloat(v+0.5).toFixed(1)
+										            }
+                                                    dbs_text_field.text = singal_hander.process_attenuation_update_db(index, dbs_text_field.text)
+                                                    ratios_text_field.text = parseFloat(10**(Number.fromLocaleString(Qt.locale(), dbs_text_field.text)/20)).toFixed(3)
+									            }
+		                                    }
+
+		                                    TextInput {
+		                                        id: dbs_text_field
+		                                        text : db
+		                                        width : 248
+		                                        anchors.left: parent.left
+		                                        anchors.top: parent.top
+		                                        anchors.leftMargin: 5
+		                                        anchors.topMargin : 10 
+		                                        font.pointSize: 12
+
+		                                        validator : DoubleValidator{bottom :  -60 ; decimals : 3}
+	                                            selectByMouse : true
+	                                            selectedTextColor : '#FFFFFF'
+	                                            selectionColor : '#EC407A'
+	                                            onEditingFinished : {
+                                                    text = singal_hander.process_attenuation_update_db(index, text)
+                                                    ratios_text_field.text = parseFloat(10**(Number.fromLocaleString(Qt.locale(), text)/20)).toFixed(3)
+                                                    focus = false
+                                                }
+		                                    }
+
+	                                    }
                                     }
+                                    
                                     anchors.right: parent.right
                                     anchors.rightMargin: 0
                                 }
@@ -183,11 +249,13 @@ ApplicationWindow{
                                 width : parent.width
                                 Layout.fillWidth: true
                                 height : 45
+                                z: 2
 
                                 RowLayout {
                                     id: rowLayout5
                                     width : parent.width
                                     height: 40
+                                    spacing : 5
 
                                     Rectangle {
                                         id: rectangle7
@@ -218,9 +286,8 @@ ApplicationWindow{
                                     Rectangle {
                                         id: rectangle15
                                         height: 40
+                                        width : 250
                                         color: "#8e24aa"
-                                        Layout.rightMargin: 5
-                                        Layout.minimumWidth: 250
                                         Text {
                                             id: element7
                                             color: "#FFFFFF"
@@ -244,9 +311,8 @@ ApplicationWindow{
                                     Rectangle {
                                         id: rectangle156
                                         height: 40
+                                        width : 250
                                         color: "#8e24aa"
-                                        Layout.rightMargin: 5
-                                        Layout.minimumWidth: 250
                                         Text {
                                             id: element712
                                             color: "#FFFFFF"
@@ -272,15 +338,15 @@ ApplicationWindow{
 
                         ListView {
                             id:list_var_name_pair
-
                             Layout.fillHeight: true
                             Layout.fillWidth: true
 
-                            model: variable_name_value_pair_list
+                            headerPositioning: ListView.OverlayHeader
+                            model: attenuation_model
                             delegate: variable_name_value_pair_delegate
                             header: variable_name_value_pair_header
                             focus: true
-                            onCurrentItemChanged: console.log(model.get(list_var_name_pair.currentIndex).name + ' selected')
+                            // onCurrentItemChanged: console.log(model.get(list_var_name_pair.currentIndex).name + ' selected')
                             ScrollBar.vertical: ScrollBar {}
                         }
 
@@ -300,7 +366,9 @@ ApplicationWindow{
                 id: virt_gate_matrix_content
                 spacing: 0
                 width: parent.width
-                height: parent.height
+                // height: parent.height -50
+                anchors.bottom : setting_row_virt_mat.top
+                anchors.top : parent.top
 
                 Rectangle {
                 	Layout.topMargin : 20
@@ -316,7 +384,7 @@ ApplicationWindow{
 	                	id:tableView
 				        anchors.fill: parent
 
-				        columnWidthProvider: function (column) { return 100; }
+				        columnWidthProvider: function (column) { return 80; }
 				        rowHeightProvider: function (column) { return 43; }
 
 				        leftMargin: rowsHeader.implicitWidth
@@ -364,12 +432,12 @@ ApplicationWindow{
                                     anchors.right: parent.right
                                     anchors.topMargin: 3
                                     anchors.leftMargin: 3
-					        		width : 97
+					        		width : 77
 					        		height : 40
 					                color: "#F5F5F5"
 
                                     MouseArea {
-                                    	width : 97
+                                    	width : 77
                                     	height : 40
 							            anchors.fill: parent
 							            propagateComposedEvents: true
@@ -378,11 +446,11 @@ ApplicationWindow{
 							            onWheel: {
 							            	if (wheel.angleDelta.y < 0 ){
 								            	var v = Number.fromLocaleString(Qt.locale(), text_field_measurment_overview.text)
-								            	v += Number.fromLocaleString(Qt.locale(), step_size_virt_mat.text)
+								            	v -= Number.fromLocaleString(Qt.locale(), step_size_virt_mat.text)
 								            	text_field_measurment_overview.text = parseFloat(v).toFixed(3)
 								            }else{
 								            	var v = Number.fromLocaleString(Qt.locale(), text_field_measurment_overview.text)
-								            	v -= Number.fromLocaleString(Qt.locale(), step_size_virt_mat.text)
+								            	v += Number.fromLocaleString(Qt.locale(), step_size_virt_mat.text)
 								            	text_field_measurment_overview.text = parseFloat(v).toFixed(3)
 
 								            }
@@ -391,9 +459,10 @@ ApplicationWindow{
 							            TextInput{
                                             id : text_field_measurment_overview
                                             anchors.right: parent.right
+                                            anchors.top: parent.top
                                             anchors.rightMargin: 8
-                                            // anchors.rightMargin: 0
-                                            font.pixelSize: 28
+                                            anchors.topMargin: 8
+                                            font.pixelSize: 20
 
                                             text : '1'
 
@@ -420,7 +489,7 @@ ApplicationWindow{
 					            y: tableView.contentY
 					            z: 2
 					            Repeater {
-					                model: ['P1', 'P2', 'P3', 'P4', 'P5']
+					                model: ['vP1', 'vP2', 'vP3', 'vP4', 'vP5', 'vP6', 'vB1', 'vB2', 'vB3', 'vB4', 'vB5', 'vB6', 'vvS6', 'vSD1_P', 'vSD2_P']
                                     RowLayout{
                                         spacing : 0
     					                Rectangle{
@@ -429,16 +498,17 @@ ApplicationWindow{
                                             color: "#FFFFFF"
                                         }
                                         Rectangle{
-    					                    width: 97
+    					                    width: 77
     					                    height: 43
     					                    color: '#8E24AA'
     						                Text {
     						                	anchors.right: parent.right
+    						                	anchors.top: parent.top
     						                    text: modelData
                                                 rightPadding : 8
+                                                topPadding : 10
     						                    color : '#FFFFFF'
-    						                    font.pixelSize: 28
-                                                topPadding : 5
+    						                    font.pixelSize: 18
     						                }
 
     					                }
@@ -450,7 +520,7 @@ ApplicationWindow{
 					            x: tableView.contentX
 					            z: 2
 					            Repeater {
-					                model: ['vP1', 'vP2', 'vP3' ]
+					                model: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P']
                                     ColumnLayout{
                                         spacing : 0
                                         Rectangle{
@@ -465,9 +535,9 @@ ApplicationWindow{
                                             Text{
                                                 anchors.right: parent.right
                                                 rightPadding : 8
-                                                topPadding : 3 
+                                                topPadding : 8 
                                                 text: modelData
-                                                font.pixelSize : 28
+                                                font.pixelSize : 18
                                                 color: "#FFFFFF"
                                             }
                                         }
@@ -475,13 +545,18 @@ ApplicationWindow{
 					            }
 					        }
 
-					        ScrollIndicator.horizontal: ScrollIndicator { }
-					        ScrollIndicator.vertical: ScrollIndicator { }
+					        clip: true
+			                ScrollBar.vertical: ScrollBar{
+			                	active:  tableVerticalBar.active
+			                }
+			                ScrollBar.horizontal: ScrollBar{
+			                	active:  tableVerticalBar.active
+			                }
 				    }
 	        }}
 
             RowLayout {
-                id: measurement_overview_state_info
+                id: setting_row_virt_mat
                 spacing  :0
                 height: 50
 
@@ -515,8 +590,6 @@ ApplicationWindow{
                 
                 }
 
-                // Item {
-                // }
                 Rectangle {
                     width: 250
                     height: 50
@@ -529,7 +602,6 @@ ApplicationWindow{
                         font.pixelSize: 20
                         Layout.preferredWidth: 250
                         checked: false
-                        // onToggled : signal_handler.enable_liveplotting(enable_liveplotting.checked);
                     }
                 }
             }
