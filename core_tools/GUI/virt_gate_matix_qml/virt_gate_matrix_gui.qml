@@ -1,7 +1,7 @@
-import QtQuick 2.15
+import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.3
-import QtQuick.Window 2.15
+import QtQuick.Window 2.12
 import QtQuick.Controls.Material 2.12
 
 
@@ -281,6 +281,7 @@ ApplicationWindow{
                             header: variable_name_value_pair_header
                             focus: true
                             onCurrentItemChanged: console.log(model.get(list_var_name_pair.currentIndex).name + ' selected')
+                            ScrollBar.vertical: ScrollBar {}
                         }
 
                     }
@@ -309,14 +310,14 @@ ApplicationWindow{
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.alignment: Qt.AlignLeft | Qt.AlignTop
-                    color: "#FFFFF0"
+                    color: "#FFFFFF"
 
 	                TableView {
 	                	id:tableView
 				        anchors.fill: parent
 
 				        columnWidthProvider: function (column) { return 100; }
-				        rowHeightProvider: function (column) { return 40; }
+				        rowHeightProvider: function (column) { return 43; }
 
 				        leftMargin: rowsHeader.implicitWidth
 				        topMargin: columnsHeader.implicitHeight
@@ -359,12 +360,16 @@ ApplicationWindow{
 				        delegate: 
 				        	Item{
 				        		Rectangle {
-					        		width : 100
+                                    anchors.top: parent.top
+                                    anchors.right: parent.right
+                                    anchors.topMargin: 3
+                                    anchors.leftMargin: 3
+					        		width : 97
 					        		height : 40
-					                color: "#efefef"
-						        	
+					                color: "#F5F5F5"
+
                                     MouseArea {
-                                    	width : 100
+                                    	width : 97
                                     	height : 40
 							            anchors.fill: parent
 							            propagateComposedEvents: true
@@ -373,11 +378,11 @@ ApplicationWindow{
 							            onWheel: {
 							            	if (wheel.angleDelta.y < 0 ){
 								            	var v = Number.fromLocaleString(Qt.locale(), text_field_measurment_overview.text)
-								            	v += 0.1
+								            	v += Number.fromLocaleString(Qt.locale(), step_size_virt_mat.text)
 								            	text_field_measurment_overview.text = parseFloat(v).toFixed(3)
 								            }else{
 								            	var v = Number.fromLocaleString(Qt.locale(), text_field_measurment_overview.text)
-								            	v -= 0.1
+								            	v -= Number.fromLocaleString(Qt.locale(), step_size_virt_mat.text)
 								            	text_field_measurment_overview.text = parseFloat(v).toFixed(3)
 
 								            }
@@ -386,7 +391,10 @@ ApplicationWindow{
 							            TextInput{
                                             id : text_field_measurment_overview
                                             anchors.right: parent.right
-                                            font.pixelSize: 20
+                                            anchors.rightMargin: 8
+                                            // anchors.rightMargin: 0
+                                            font.pixelSize: 28
+
                                             text : '1'
 
                                             validator : DoubleValidator{bottom :  0 ; decimals : 3}
@@ -395,12 +403,12 @@ ApplicationWindow{
                                             selectionColor : '#EC407A'
                                         }
 							        }
-						        }
+                                }
 						    }
 
 					        Rectangle { // mask the headers
 					            z: 3
-					            color: "#222222"
+					            color: "#9C27B0"
 					            y: tableView.contentY
 					            x: tableView.contentX
 					            width: tableView.leftMargin
@@ -413,19 +421,28 @@ ApplicationWindow{
 					            z: 2
 					            Repeater {
 					                model: ['P1', 'P2', 'P3', 'P4', 'P5']
-					                Rectangle{
-					                    width: 100
-					                    height: 40
-					                    color: '#333333'
-						                Text {
-						                	anchors.right: parent.right
-						                    text: modelData
-						                    color : '#FFFFFF'
-						                    font.pixelSize: 20
-						                    padding: 10
-						                }
+                                    RowLayout{
+                                        spacing : 0
+    					                Rectangle{
+                                            width : 3
+                                            height : 43
+                                            color: "#FFFFFF"
+                                        }
+                                        Rectangle{
+    					                    width: 97
+    					                    height: 43
+    					                    color: '#8E24AA'
+    						                Text {
+    						                	anchors.right: parent.right
+    						                    text: modelData
+                                                rightPadding : 8
+    						                    color : '#FFFFFF'
+    						                    font.pixelSize: 28
+                                                topPadding : 5
+    						                }
 
-					                }
+    					                }
+                                    }
 					            }
 					        }
 					        Column {
@@ -434,17 +451,27 @@ ApplicationWindow{
 					            z: 2
 					            Repeater {
 					                model: ['vP1', 'vP2', 'vP3' ]
-					                Label {
-					                    width : 50
-					                    height : 40
-					                    text: modelData
-					                    color: '#aaaaaa'
-					                    font.pixelSize: 15
-					                    padding: 10
-					                    verticalAlignment: Text.AlignVCenter
-
-					                    background: Rectangle { color: "#333333" }
-					                }
+                                    ColumnLayout{
+                                        spacing : 0
+                                        Rectangle{
+                                            width : 100
+                                            height : 3
+                                            color : '#FFFFFF'
+                                        }
+                                        Rectangle{
+                                            width : 100
+                                            height : 40
+                                            color: "#8E24AA"
+                                            Text{
+                                                anchors.right: parent.right
+                                                rightPadding : 8
+                                                topPadding : 3 
+                                                text: modelData
+                                                font.pixelSize : 28
+                                                color: "#FFFFFF"
+                                            }
+                                        }
+                                    }
 					            }
 					        }
 
@@ -453,81 +480,61 @@ ApplicationWindow{
 				    }
 	        }}
 
+            RowLayout {
+                id: measurement_overview_state_info
+                spacing  :0
+                height: 50
+
+                anchors.right: parent.right
+                anchors.left: parent.left
+                anchors.bottom: parent.bottom
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 50
+                    color : "#F5F5F5"
+
+                        Text{
+                            id : step_size_descr
+                            anchors.left: parent.left
+                            anchors.bottom: parent.bottom
+                            anchors.leftMargin: 20
+                            anchors.bottomMargin: 15
+                            text : 'Steptize virtual gate matrix : '
+                            font.pixelSize: 20
+                            padding : 0
+                        }
+                        TextField {
+                            id : step_size_virt_mat
+                            anchors.left: step_size_descr.right
+                            anchors.leftMargin: 10
+                            text: '0.01'
+                            font.pixelSize: 25
+                            onAccepted: step_size_virt_mat.focus = false
+                        }
+                
+                }
+
+                // Item {
+                // }
+                Rectangle {
+                    width: 250
+                    height: 50
+                    color: "#F5F5F5"
+
+                    SwitchDelegate {
+                        id: mat_inv
+                        height: 50
+                        text: qsTr("Inverted Matrix")
+                        font.pixelSize: 20
+                        Layout.preferredWidth: 250
+                        checked: false
+                        // onToggled : signal_handler.enable_liveplotting(enable_liveplotting.checked);
+                    }
+                }
+            }
 
 		}
 	}
 }
 
-
-
-// TableView {
-// 			        id: tableView
-
-// 			        columnWidthProvider: function (column) { return 300; }
-// 			        rowHeightProvider: function (column) { return 60; }
-// 			        anchors.fill: parent
-// 			        leftMargin: rowsHeader.implicitWidth
-// 			        topMargin: columnsHeader.implicitHeight
-// 			        model: TableModel {}
-// 			        delegate: Item {
-// 			            Text {
-// 			                text: display
-// 			                anchors.fill: parent
-// 			                anchors.margins: 10
-
-// 			                color: '#aaaaaa'
-// 			                font.pixelSize: 15
-// 			                verticalAlignment: Text.AlignVCenter
-// 			            }
-// 			        }
-// 			        Rectangle { // mask the headers
-// 			            z: 3
-// 			            color: "#222222"
-// 			            y: tableView.contentY
-// 			            x: tableView.contentX
-// 			            width: tableView.leftMargin
-// 			            height: tableView.topMargin
-// 			        }
-
-// 			        Row {
-// 			            id: columnsHeader
-// 			            y: tableView.contentY
-// 			            z: 2
-// 			            Repeater {
-// 			                model: tableView.columns > 0 ? tableView.columns : 1
-// 			                Label {
-// 			                    width: tableView.columnWidthProvider(modelData)
-// 			                    height: 35
-// 			                    text: "Column" + modelData
-// 			                    color: '#aaaaaa'
-// 			                    font.pixelSize: 15
-// 			                    padding: 10
-// 			                    verticalAlignment: Text.AlignVCenter
-
-// 			                    background: Rectangle { color: "#333333" }
-// 			                }
-// 			            }
-// 			        }
-// 			        Column {
-// 			            id: rowsHeader
-// 			            x: tableView.contentX
-// 			            z: 2
-// 			            Repeater {
-// 			                model: tableView.rows > 0 ? tableView.rows : 1
-// 			                Label {
-// 			                    width: 180
-// 			                    height: tableView.rowHeightProvider(modelData)
-// 			                    text: "Row" + modelData
-// 			                    color: '#aaaaaa'
-// 			                    font.pixelSize: 15
-// 			                    padding: 10
-// 			                    verticalAlignment: Text.AlignVCenter
-
-// 			                    background: Rectangle { color: "#333333" }
-// 			                }
-// 			            }
-// 			        }
-
-// 			        ScrollIndicator.horizontal: ScrollIndicator { }
-// 			        ScrollIndicator.vertical: ScrollIndicator { }
-// 			    }
