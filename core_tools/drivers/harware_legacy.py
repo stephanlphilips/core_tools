@@ -132,6 +132,7 @@ class harware_parent(qc.Instrument):
         # set this one in the GUI.
         self._AWG_to_dac_conversion = dict()
         if 'AWG2DAC' in list(self.sync.keys()):
+            print(self.sync['AWG2DAC'])
             self._AWG_to_dac_conversion = self.sync['AWG2DAC']
                 
         self._virtual_gates = virtual_gates_mgr(self.sync)

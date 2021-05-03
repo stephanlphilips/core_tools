@@ -148,7 +148,7 @@ ApplicationWindow{
 										            	var v = Number.fromLocaleString(Qt.locale(), ratios_text_field.text)
 										            	ratios_text_field.text = parseFloat(v+0.05).toFixed(3)
 										            }
-                                                    ratios_text_field.text = singal_hander.process_attenuation_update_nrml(index, ratios_text_field.text)
+                                                    ratios_text_field.text = attenuation_model.process_attenuation_update_nrml(index, ratios_text_field.text)
                                                     dbs_text_field.text = parseFloat(Math.log10(Number.fromLocaleString(Qt.locale(), ratios_text_field.text))*20).toFixed(1)
 
 									            }
@@ -169,7 +169,7 @@ ApplicationWindow{
 	                                            selectedTextColor : '#FFFFFF'
 	                                            selectionColor : '#EC407A'
 	                                            onEditingFinished : {
-                                                        text = singal_hander.process_attenuation_update_nrml(index, text)
+                                                        text = attenuation_model.process_attenuation_update_nrml(index, text)
                                                         dbs_text_field.text = parseFloat(Math.log10(Number.fromLocaleString(Qt.locale(), text))*20).toFixed(1)
                                                         focus = false
                                                     }
@@ -207,7 +207,7 @@ ApplicationWindow{
 										            	var v = Number.fromLocaleString(Qt.locale(), dbs_text_field.text)
 										            	dbs_text_field.text = parseFloat(v+0.5).toFixed(1)
 										            }
-                                                    dbs_text_field.text = singal_hander.process_attenuation_update_db(index, dbs_text_field.text)
+                                                    dbs_text_field.text = attenuation_model.process_attenuation_update_db(index, dbs_text_field.text)
                                                     ratios_text_field.text = parseFloat(10**(Number.fromLocaleString(Qt.locale(), dbs_text_field.text)/20)).toFixed(3)
 									            }
 		                                    }
@@ -227,7 +227,7 @@ ApplicationWindow{
 	                                            selectedTextColor : '#FFFFFF'
 	                                            selectionColor : '#EC407A'
 	                                            onEditingFinished : {
-                                                    text = singal_hander.process_attenuation_update_db(index, text)
+                                                    text = attenuation_model.process_attenuation_update_db(index, text)
                                                     ratios_text_field.text = parseFloat(10**(Number.fromLocaleString(Qt.locale(), text)/20)).toFixed(3)
                                                     focus = false
                                                 }
@@ -237,7 +237,7 @@ ApplicationWindow{
                                     }
                                     
                                     anchors.right: parent.right
-                                    anchors.rightMargin: 0
+                                    anchors.rightMargin: 20
                                 }
                             }
                         }
@@ -253,7 +253,9 @@ ApplicationWindow{
 
                                 RowLayout {
                                     id: rowLayout5
-                                    width : parent.width
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 20
                                     height: 40
                                     spacing : 5
 
@@ -390,40 +392,7 @@ ApplicationWindow{
 				        leftMargin: rowsHeader.implicitWidth
 				        topMargin: columnsHeader.implicitHeight
 
-				        model: TableModel {
-				        	id : model_of_the_table
-				            TableModelColumn { display: "checked" }
-				            TableModelColumn { display: "amount" }
-				            TableModelColumn { display: "fruitType" }
-				            TableModelColumn { display: "fruitName" }
-				            TableModelColumn { display: "fruitPrice" }
-
-				            // Each row is one type of fruit that can be ordered
-				            rows: [
-				                {
-				                    // Each property is one cell/column.
-				                    checked: false,
-				                    amount: 1,
-				                    fruitType: "Apple",
-				                    fruitName: "Granny Smith",
-				                    fruitPrice: 1.50
-				                },
-				                {
-				                    checked: true,
-				                    amount: 4,
-				                    fruitType: "Orange",
-				                    fruitName: "Navel",
-				                    fruitPrice: 2.50
-				                },
-				                {
-				                    checked: false,
-				                    amount: 1,
-				                    fruitType: "Banana",
-				                    fruitName: "Cavendish",
-				                    fruitPrice: 3.50
-				                }
-				            ]
-				        }
+				        model: vg_matrix_model
 
 				        delegate: 
 				        	Item{
@@ -448,14 +417,23 @@ ApplicationWindow{
 								            	var v = Number.fromLocaleString(Qt.locale(), text_field_measurment_overview.text)
 								            	v -= Number.fromLocaleString(Qt.locale(), step_size_virt_mat.text)
 								            	text_field_measurment_overview.text = parseFloat(v).toFixed(3)
+                                                vg_matrix_model.update_vg_matrix(row, column, text_field_measurment_overview.text)
 								            }else{
 								            	var v = Number.fromLocaleString(Qt.locale(), text_field_measurment_overview.text)
 								            	v += Number.fromLocaleString(Qt.locale(), step_size_virt_mat.text)
 								            	text_field_measurment_overview.text = parseFloat(v).toFixed(3)
-
+                                                vg_matrix_model.update_vg_matrix(row, column, text_field_measurment_overview.text)
 								            }
 							            }
 
+                                        onEntered: {
+                                            columnsHeader_repeater.itemAt(column).children[1].color =  '#EC407A'
+                                            rowHeader_repeater.itemAt(row).children[1].color =  '#EC407A'
+                                        }
+                                        onExited : {
+                                            columnsHeader_repeater.itemAt(column).children[1].color =  '#8E24AA'
+                                            rowHeader_repeater.itemAt(row).children[1].color =  '#8E24AA'                                            
+                                        }
 							            TextInput{
                                             id : text_field_measurment_overview
                                             anchors.right: parent.right
@@ -464,12 +442,15 @@ ApplicationWindow{
                                             anchors.topMargin: 8
                                             font.pixelSize: 20
 
-                                            text : '1'
+                                            text : vg_matrix_data
 
                                             validator : DoubleValidator{bottom :  0 ; decimals : 3}
                                             selectByMouse : true
                                             selectedTextColor : '#FFFFFF'
                                             selectionColor : '#EC407A'
+                                            onEditingFinished : {
+                                                vg_matrix_model.update_vg_matrix(row, column, text_field_measurment_overview.text)
+                                            }
                                         }
 							        }
                                 }
@@ -488,31 +469,35 @@ ApplicationWindow{
 					            id: columnsHeader
 					            y: tableView.contentY
 					            z: 2
-					            Repeater {
-					                model: ['vP1', 'vP2', 'vP3', 'vP4', 'vP5', 'vP6', 'vB1', 'vB2', 'vB3', 'vB4', 'vB5', 'vB6', 'vvS6', 'vSD1_P', 'vSD2_P']
-                                    RowLayout{
-                                        spacing : 0
-    					                Rectangle{
-                                            width : 3
-                                            height : 43
-                                            color: "#FFFFFF"
-                                        }
-                                        Rectangle{
-    					                    width: 77
-    					                    height: 43
-    					                    color: '#8E24AA'
-    						                Text {
-    						                	anchors.right: parent.right
-    						                	anchors.top: parent.top
-    						                    text: modelData
-                                                rightPadding : 8
-                                                topPadding : 10
-    						                    color : '#FFFFFF'
-    						                    font.pixelSize: 18
-    						                }
 
-    					                }
-                                    }
+					            Repeater {
+                                    id : columnsHeader_repeater
+					                model: column_header_model
+                                    
+                                    delegate : 
+                                        RowLayout{
+                                            spacing : 0
+        					                Rectangle{
+                                                width : 3
+                                                height : 43
+                                                color: "#FFFFFF"
+                                            }
+                                            Rectangle{
+        					                    width: 77
+        					                    height: 43
+        					                    color: '#8E24AA'
+        						                Text {
+        						                	anchors.right: parent.right
+        						                	anchors.top: parent.top
+        						                    text: HeaderName
+                                                    rightPadding : 8
+                                                    topPadding : 10
+        						                    color : '#FFFFFF'
+        						                    font.pixelSize: 18
+        						                }
+
+        					                }
+                                        }
 					            }
 					        }
 					        Column {
@@ -520,7 +505,8 @@ ApplicationWindow{
 					            x: tableView.contentX
 					            z: 2
 					            Repeater {
-					                model: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P']
+					                model: row_header_model
+                                    id : rowHeader_repeater
                                     ColumnLayout{
                                         spacing : 0
                                         Rectangle{
@@ -536,7 +522,7 @@ ApplicationWindow{
                                                 anchors.right: parent.right
                                                 rightPadding : 8
                                                 topPadding : 8 
-                                                text: modelData
+                                                text: HeaderName
                                                 font.pixelSize : 18
                                                 color: "#FFFFFF"
                                             }
@@ -553,7 +539,8 @@ ApplicationWindow{
 			                	active:  tableVerticalBar.active
 			                }
 				    }
-	        }}
+    	        }
+            }
 
             RowLayout {
                 id: setting_row_virt_mat

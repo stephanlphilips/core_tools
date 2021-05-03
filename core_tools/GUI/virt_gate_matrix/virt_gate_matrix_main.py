@@ -50,7 +50,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         for gate in pulse_lib.awg_channels.keys():
-                self.add_gate(gate)
+            self.add_gate(gate)
 
 
         self.add_spacer()
@@ -260,9 +260,8 @@ if __name__ == "__main__":
     my_dac_3 = virtual_dac("dac_c", "virtual")
     my_dac_4 = virtual_dac("dac_d", "virtual")
 
-    hw =  hardware6dot('test')
+    hw =  hardware6dot('test1')
     my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
-    pulse = get_demo_lib('six', hw)
-
+    pulse = get_demo_lib('six')
 
     ui = virt_gate_matrix_GUI(my_gates, pulse)

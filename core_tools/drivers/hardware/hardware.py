@@ -26,6 +26,12 @@ class virtual_gates_mgr():
         self.virtual_gate_names += [name]
         setattr(self, name, load_virtual_gate(name , gates, virtual_gates))
 
+    def __len__(self):
+        return len(self.virtual_gate_names)
+
+    def __getitem__(self, idx):
+        return getattr(self, self. virtual_gate_names[idx])
+
 class awg2dac_ratios_mgr():
     def __init__(self):
         self.__ratios = dict()
@@ -41,10 +47,19 @@ class awg2dac_ratios_mgr():
             else:
                 self.__ratios[gate] = 1 
 
+    def keys(self):
+        return self.__ratios.keys()
+
+    def values(self):
+        return self.__ratios.values()
+
     def __getitem__(self, gate):
         return self.__ratios[gate]
 
     def __setitem__(self, gate, value):
+        if isinstance(gate, int):
+            gate = list(self.keys())[gate]
+
         if gate not in self.__ratios.keys():
             raise ValueError('Gate {} not defined in AWG2dac ratios. Please add first.'.format(gate))
 
@@ -54,6 +69,9 @@ class awg2dac_ratios_mgr():
         ratios_db = AWG_2_dac_ratio_queries.get_AWG_2_dac_ratios(conn, 'general')
         ratios_db[gate] = value
         AWG_2_dac_ratio_queries.set_AWG_2_dac_ratios(conn, 'general', ratios_db)
+
+    def __len__(self):
+        return len(self.__ratios.keys())
 
     def __repr__(self):
         doc = 'AWG to dac ratios :: \n\n'
@@ -128,4 +146,6 @@ if __name__ == '__main__':
     print(h.awg2dac_ratios)
     # h.virtual_gates.test[0, 1] = 0.1
     
-    print(h.virtual_gates.test[0, 1])
+    print(h.virtual_gates.test.matrix)
+
+
