@@ -20,7 +20,7 @@ class virtual_gate_queries:
     @staticmethod
     def get_virtual_gate_matrix(conn, name):
         res = select_elements_in_table(conn, virtual_gate_queries.table_name(),  ('real_gates', 'virtual_gates', 'vg_matrix'), where=('name', name))
-        print(res)
+
         if len(res) == 0: #if empty
             return list(), list(), np.asarray([[],])
 
@@ -45,7 +45,6 @@ class virtual_gate_queries:
     def check_var_in_table_exist(conn, name):
         return_data = select_elements_in_table(conn, virtual_gate_queries.table_name(), ('name', ), where=('name', name), dict_cursor=False)
 
-        print(return_data)
         if len(return_data) == 0 or return_data[0][0] is None:
             return False
         return True

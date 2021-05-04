@@ -21,17 +21,27 @@ class virtual_gate_matrix():
     def matrix(self):
         return self.forward_conv_lamda(self._matrix)
 
+    @matrix.setter
+    def matrix(self, matrix):
+        if self._matrix.shape != matrix.shape:
+            raise ValueError('input shape of matrix does not match the one in the virtual gate matrix')
+        self._matrix[:,:] = self.backward_conv_lamda(matrix)
+        
+        if self.name != 'dummy':
+            save(self)
+
     @property
     def inv(self):
         l_inv_f = combine_lamdas(self.forward_conv_lamda, lamda_invert)
         l_inv_b = combine_lamdas(self.backward_conv_lamda, lamda_invert)
         return virtual_gate_matrix(self.name, self.gates, self.v_gates, self._matrix, l_inv_f, l_inv_b)
     
-    @property
-    def norm(self):
-        l_norm_f = combine_lamdas(self.forward_conv_lamda, lamda_norm)
-        l_norm_b = combine_lamdas(self.backward_conv_lamda, lamda_unnorm)
-        return virtual_gate_matrix(self.name, self.gates, self.v_gates, self._matrix, l_norm_f, l_norm_b)
+    # this should not be done I think?
+    # @property
+    # def norm(self):
+    #     l_norm_f = combine_lamdas(self.forward_conv_lamda, lamda_norm)
+    #     l_norm_b = combine_lamdas(self.backward_conv_lamda, lamda_unnorm)
+    #     return virtual_gate_matrix(self.name, self.gates, self.v_gates, self._matrix, l_norm_f, l_norm_b)
     
     def __getitem__(self, index):
         if isinstance(index, tuple):
@@ -49,8 +59,9 @@ class virtual_gate_matrix():
             idx_1 = self.__evaluate_index(idx_1, self.v_gates)
             idx_2 = self.__evaluate_index(idx_2, self.gates)
 
-            self.matrix[idx_1,idx_2] = value
-            self._matrix = self.backward_conv_lamda(self.matrix)
+            m = self.matrix
+            m[idx_1,idx_2] = value
+            self._matrix[:,:] = self.backward_conv_lamda(m)
 
             if self.name != 'dummy':
                 save(self)
@@ -82,21 +93,21 @@ class virtual_gate_matrix():
 def lamda_invert(matrix):
     return np.linalg.inv(matrix)
 
-def lamda_norm(matrix_no_norm):
-    matrix_norm = np.empty(matrix_no_norm.shape)
-
-    for i in range(matrix_norm.shape[0]):
-        matrix_norm[i, :] = matrix_no_norm[i]/np.sum(np.abs(matrix_no_norm[i, :]))
-
-    return matrix_norm
-
-def lamda_unnorm(matrix_norm):
+def lamda_norm(matrix_norm):
     matrix_no_norm = np.empty(matrix_norm.shape)
 
     for i in range(matrix_norm.shape[0]):
         matrix_no_norm[i, :] = matrix_norm[i, :]/matrix_norm[i, i]
 
     return matrix_no_norm
+
+def lamda_unnorm(matrix_no_norm):
+    matrix_norm = np.empty(matrix_no_norm.shape)
+
+    for i in range(matrix_norm.shape[0]):
+        matrix_norm[i, :] = matrix_no_norm[i]/np.sum(matrix_no_norm[i, :])
+
+    return matrix_norm
 
 def combine_lamdas(l1, l2):
     def new_lamda(matrix):
@@ -118,7 +129,6 @@ def load_virtual_gate(name, real_gates, virtual_gates=None):
 
         dummy_matrix = np.eye(len(gates))
         dummy_matrix[:len(real_gate_db) , :len(real_gate_db)] = matrix_db
-
         dummy_v_gates = virtual_gate_matrix('dummy', gates, name_virtual_gates(None, gates), dummy_matrix)
 
         v_gate_matrix = np.eye(len(real_gates))
@@ -126,7 +136,6 @@ def load_virtual_gate(name, real_gates, virtual_gates=None):
         for i in range(len(real_gates)):
             for j in range(len(real_gates)):
                 v_gate_matrix[i, j] = dummy_v_gates['v' + real_gates[i],real_gates[j]]
-
         return virtual_gate_matrix(name, real_gates, virtual_gates, v_gate_matrix)
 
     else:

@@ -2,6 +2,10 @@ from core_tools.drivers.hardware.hardware_SQL_backend import AWG_2_dac_ratio_que
 from core_tools.drivers.hardware.virtual_gate_matrix import load_virtual_gate
 from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
 
+import qcodes as qc
+import numpy as np
+import json
+
 class boudaries_mgr():
     def __init__(self):
         self.key_vals = dict()
@@ -30,11 +34,21 @@ class virtual_gates_mgr():
         return len(self.virtual_gate_names)
 
     def __getitem__(self, idx):
-        return getattr(self, self. virtual_gate_names[idx])
+        if isinstance(idx, int):
+            return getattr(self, self.virtual_gate_names[idx])
+        return getattr(self, idx)
+
+    def __repr__(self):
+        content = f'Found {len(self)} virtual gate matrix :\n'
+
+        for vg in self:
+            content += f'\tname :: {vg.name} \t(size = {vg.matrix.shape[0]}x{vg.matrix.shape[1]})'
+
+        return content + '\n'
 
 class awg2dac_ratios_mgr():
     def __init__(self):
-        self.__ratios = dict()
+        self._ratios = dict()
     
     def add(self, gates):
         conn = SQL_database_manager().conn_local
@@ -43,27 +57,27 @@ class awg2dac_ratios_mgr():
 
         for gate in gates:
             if gate in ratios_db:
-                self.__ratios[gate] = ratios_db[gate]
+                self._ratios[gate] = ratios_db[gate]
             else:
-                self.__ratios[gate] = 1 
+                self._ratios[gate] = 1 
 
     def keys(self):
-        return self.__ratios.keys()
+        return self._ratios.keys()
 
     def values(self):
-        return self.__ratios.values()
+        return self._ratios.values()
 
     def __getitem__(self, gate):
-        return self.__ratios[gate]
+        return self._ratios[gate]
 
     def __setitem__(self, gate, value):
         if isinstance(gate, int):
             gate = list(self.keys())[gate]
 
-        if gate not in self.__ratios.keys():
+        if gate not in self._ratios.keys():
             raise ValueError('Gate {} not defined in AWG2dac ratios. Please add first.'.format(gate))
 
-        self.__ratios[gate] = value
+        self._ratios[gate] = value
 
         conn = SQL_database_manager().conn_local
         ratios_db = AWG_2_dac_ratio_queries.get_AWG_2_dac_ratios(conn, 'general')
@@ -71,11 +85,11 @@ class awg2dac_ratios_mgr():
         AWG_2_dac_ratio_queries.set_AWG_2_dac_ratios(conn, 'general', ratios_db)
 
     def __len__(self):
-        return len(self.__ratios.keys())
+        return len(self._ratios.keys())
 
     def __repr__(self):
         doc = 'AWG to dac ratios :: \n\n'
-        for gate, val  in self.__ratios.items():
+        for gate, val  in self._ratios.items():
             doc += '{}\t:  {}\n'.format(gate, val)
 
         return doc
@@ -96,12 +110,18 @@ class rf_source_mgr():
         self.rf_source_names += [paramter.name]
         setattr(self, name, rf_source(parameter)) 
 
-class hardware():
+class hardware(qc.Instrument):
+    __instanciated = False
     _dac_to_gate = dict()
     _boudaries = boudaries_mgr()   
     virtual_gates = virtual_gates_mgr()
     awg2dac_ratios = awg2dac_ratios_mgr()
 
+    def __init__(self, name=None):
+        if self.__instanciated == True: # this should happen in the station
+            super().__init__('hardware')
+        self.__instanciated = True
+    
     @property
     def dac_to_gate(self):
         return hardware._dac_to_gate
@@ -119,11 +139,21 @@ class hardware():
         for key, value in boundary_dict.items():
             self._boudaries[key] = value
 
+    def snapshot_base(self, update=False, params_to_skip_update =None):        
+        vg_snap = {}
+        for vg in self.virtual_gates:
+            vg_snap[vg.name] = {'real_gate_names' : vg.gates, 'virtual_gate_names' : vg.v_gates, 
+                        'virtual_gate_matrix' : json.dumps(np.asarray(vg.matrix).tolist())}
+
+        return {'awg2dac_ratios': self.awg2dac_ratios._ratios,
+                     'dac_to_gate': self.dac_to_gate,
+                     'virtual_gates': vg_snap                     }
+
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
     set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
 
-    h = hardware()
+    h = hardware('6dotHW')
     h.dac_to_gate = {
         # dacs for creating the quantum dots -- syntax, "gate name": (dac module number, dac index)
         'B0': (0, 1), 'P1': (0, 2), 
@@ -146,6 +176,6 @@ if __name__ == '__main__':
     print(h.awg2dac_ratios)
     # h.virtual_gates.test[0, 1] = 0.1
     
-    print(h.virtual_gates.test.matrix)
+    print(h.virtual_gates)
 
-
+    # print(h.snapshot_base())

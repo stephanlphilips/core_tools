@@ -117,13 +117,16 @@ class table_header_model(QtCore.QAbstractListModel):
 
 class vg_matrix_model(QtCore.QAbstractTableModel):
     vg_matrix_data = QtCore.Qt.UserRole + 1
+
     def __init__(self, data, parent=None):
         super().__init__(parent)
-        self._data = data
+        self.__data = data
+        self._data = self.__data
 
     def data(self, index, role):
         if role == vg_matrix_model.vg_matrix_data:
             val = self._data[index.row(), index.column()]
+            val = round(val, 3)
             if val == 1:
                 return '1'
             if val == 0:
@@ -131,12 +134,34 @@ class vg_matrix_model(QtCore.QAbstractTableModel):
 
             return f'{self._data[index.row(), index.column()]:.3f}'
 
+    def setData(self, index, value, role):
+        if role == QtCore.Qt.EditRole:
+            idx0 = QtCore.QModelIndex()
+            idx0.child(0,0)
+            idx1  = QtCore.QModelIndex()
+            idx1.child(0, 0)
+            self.dataChanged.emit(idx0, idx1, [QtCore.Qt.EditRole])
+            self.beginResetModel()
+            self.endResetModel()
+
+            return True
+
     @QtCore.pyqtSlot('int','int', 'QString')
     def update_vg_matrix(self, row, coll, value):
         value = float(value)
+        print('updating to value', value)
         self._data[row, coll] = value
-        print('assigning data', row, coll, value)
-        print(type(self._data))
+
+    @QtCore.pyqtSlot('int', 'int')
+    def manipulate_matrix(self, invert, norm):
+        self._data = self.__data
+        
+        if norm == True:
+            self._data = self._data.norm
+        if invert == True:
+            self._data = self._data.inv
+
+        self.setData(None, 0, QtCore.Qt.EditRole)
 
     def rowCount(self, index):
         return len(self._data.matrix)

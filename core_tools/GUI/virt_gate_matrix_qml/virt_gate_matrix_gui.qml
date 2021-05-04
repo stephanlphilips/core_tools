@@ -392,6 +392,11 @@ ApplicationWindow{
 				        leftMargin: rowsHeader.implicitWidth
 				        topMargin: columnsHeader.implicitHeight
 
+                        property int currentRow : 0
+                        property int currentColumn : 0
+
+                        property int active_col : -1
+                        property int active_row : -1
 				        model: vg_matrix_model
 
 				        delegate: 
@@ -403,7 +408,11 @@ ApplicationWindow{
                                     anchors.leftMargin: 3
 					        		width : 77
 					        		height : 40
-					                color: "#F5F5F5"
+                                    color:{
+                                        if (tableView.active_col === column && tableView.active_row === row){'#E0E0E0'}
+                                        else if (tableView.active_col === column || tableView.active_row === row){'#EEEEEE'}
+                                        else{'#F5F5F5'}
+                                    }
 
                                     MouseArea {
                                     	width : 77
@@ -426,13 +435,24 @@ ApplicationWindow{
 								            }
 							            }
 
+                                        onClicked: {
+                                            text_field_measurment_overview.focus = true
+                                        }
+
                                         onEntered: {
                                             columnsHeader_repeater.itemAt(column).children[1].color =  '#EC407A'
                                             rowHeader_repeater.itemAt(row).children[1].color =  '#EC407A'
+
+                                            tableView.active_col = column
+                                            tableView.active_row = row
+
                                         }
                                         onExited : {
                                             columnsHeader_repeater.itemAt(column).children[1].color =  '#8E24AA'
-                                            rowHeader_repeater.itemAt(row).children[1].color =  '#8E24AA'                                            
+                                            rowHeader_repeater.itemAt(row).children[1].color =  '#8E24AA'
+
+                                            tableView.active_col = -1
+                                            tableView.active_row = -1                                      
                                         }
 							            TextInput{
                                             id : text_field_measurment_overview
@@ -444,100 +464,113 @@ ApplicationWindow{
 
                                             text : vg_matrix_data
 
-                                            validator : DoubleValidator{bottom :  0 ; decimals : 3}
+                                            validator : DoubleValidator{bottom :  -100 ; decimals : 3}
                                             selectByMouse : true
                                             selectedTextColor : '#FFFFFF'
                                             selectionColor : '#EC407A'
                                             onEditingFinished : {
                                                 vg_matrix_model.update_vg_matrix(row, column, text_field_measurment_overview.text)
+                                                focus = false
                                             }
+                                            onActiveFocusChanged: if (activeFocus) {tableView.currentColumn = column;tableView.currentRow = row }
                                         }
 							        }
                                 }
 						    }
 
-					        Rectangle { // mask the headers
-					            z: 3
-					            color: "#9C27B0"
-					            y: tableView.contentY
-					            x: tableView.contentX
-					            width: tableView.leftMargin
-					            height: tableView.topMargin
-					        }
+				        Rectangle { // mask the headers
+				            z: 3
+				            color: "#9C27B0"
+				            y: tableView.contentY
+				            x: tableView.contentX
+				            width: tableView.leftMargin
+				            height: tableView.topMargin
+				        }
 
-					        Row {
-					            id: columnsHeader
-					            y: tableView.contentY
-					            z: 2
+				        Row {
+				            id: columnsHeader
+				            y: tableView.contentY
+				            z: 2
 
-					            Repeater {
-                                    id : columnsHeader_repeater
-					                model: column_header_model
-                                    
-                                    delegate : 
-                                        RowLayout{
-                                            spacing : 0
-        					                Rectangle{
-                                                width : 3
-                                                height : 43
-                                                color: "#FFFFFF"
-                                            }
-                                            Rectangle{
-        					                    width: 77
-        					                    height: 43
-        					                    color: '#8E24AA'
-        						                Text {
-        						                	anchors.right: parent.right
-        						                	anchors.top: parent.top
-        						                    text: HeaderName
-                                                    rightPadding : 8
-                                                    topPadding : 10
-        						                    color : '#FFFFFF'
-        						                    font.pixelSize: 18
-        						                }
-
-        					                }
-                                        }
-					            }
-					        }
-					        Column {
-					            id: rowsHeader
-					            x: tableView.contentX
-					            z: 2
-					            Repeater {
-					                model: row_header_model
-                                    id : rowHeader_repeater
-                                    ColumnLayout{
+				            Repeater {
+                                id : columnsHeader_repeater
+				                model: column_header_model
+                                
+                                delegate : 
+                                    RowLayout{
                                         spacing : 0
-                                        Rectangle{
-                                            width : 100
-                                            height : 3
-                                            color : '#FFFFFF'
+    					                Rectangle{
+                                            width : 3
+                                            height : 43
+                                            color: "#FFFFFF"
                                         }
                                         Rectangle{
-                                            width : 100
-                                            height : 40
-                                            color: "#8E24AA"
-                                            Text{
-                                                anchors.right: parent.right
+    					                    width: 77
+    					                    height: 43
+    					                    color: '#8E24AA'
+    						                Text {
+    						                	anchors.right: parent.right
+    						                	anchors.top: parent.top
+    						                    text: HeaderName
                                                 rightPadding : 8
-                                                topPadding : 8 
-                                                text: HeaderName
-                                                font.pixelSize : 18
-                                                color: "#FFFFFF"
-                                            }
+                                                topPadding : 10
+    						                    color : '#FFFFFF'
+    						                    font.pixelSize: 18
+    						                }
+
+    					                }
+                                    }
+				            }
+				        }
+				        Column {
+				            id: rowsHeader
+				            x: tableView.contentX
+				            z: 2
+				            Repeater {
+				                model: row_header_model
+                                id : rowHeader_repeater
+                                ColumnLayout{
+                                    spacing : 0
+                                    Rectangle{
+                                        width : 100
+                                        height : 3
+                                        color : '#FFFFFF'
+                                    }
+                                    Rectangle{
+                                        width : 100
+                                        height : 40
+                                        color: "#8E24AA"
+                                        Text{
+                                            anchors.right: parent.right
+                                            rightPadding : 8
+                                            topPadding : 8 
+                                            text: HeaderName
+                                            font.pixelSize : 18
+                                            color: "#FFFFFF"
                                         }
                                     }
-					            }
-					        }
+                                }
+				            }
+				        }
 
-					        clip: true
-			                ScrollBar.vertical: ScrollBar{
-			                	active:  tableVerticalBar.active
-			                }
-			                ScrollBar.horizontal: ScrollBar{
-			                	active:  tableVerticalBar.active
-			                }
+				        clip: true
+		                ScrollBar.vertical: ScrollBar{
+		                }
+		                ScrollBar.horizontal: ScrollBar{
+		                }
+
+                        Keys.onTabPressed : {
+                            console.log(currentRow, currentColumn)
+                            currentColumn ++
+                            var current_cell_number  = 3+currentRow*tableView.rows + currentColumn
+
+                            if (currentRow+1 == tableView.rows && currentColumn == tableView.columns){
+                                current_cell_number = 3
+                            }
+                            // More generic way neeeded to access, this messes up on resize
+                            tableView.children[0].children[current_cell_number].children[0].children[0].children[0].focus = true
+                            tableView.children[0].children[current_cell_number].children[0].children[0].children[0].selectAll()
+                        }
 				    }
     	        }
             }
@@ -572,10 +605,28 @@ ApplicationWindow{
                             anchors.leftMargin: 10
                             text: '0.01'
                             font.pixelSize: 25
-                            onAccepted: step_size_virt_mat.focus = false
+                            onEditingFinished: {
+                                step_size_virt_mat.focus = false}
                         }
                 
                 }
+
+                // Rectangle {
+                //     width: 250
+                //     height: 50
+                //     color: "#F5F5F5"
+
+                //     SwitchDelegate {
+                //         id: mat_norm
+                //         height: 50
+                //         text: qsTr("Normalize Matrix")
+                //         font.pixelSize: 20
+                //         Layout.preferredWidth: 250
+                //         checked: false
+                //         onToggled: vg_matrix_model.manipulate_matrix(mat_inv.checked, mat_norm.checked)
+
+                //     }
+                // }
 
                 Rectangle {
                     width: 250
@@ -589,6 +640,8 @@ ApplicationWindow{
                         font.pixelSize: 20
                         Layout.preferredWidth: 250
                         checked: false
+                        onToggled: vg_matrix_model.manipulate_matrix(mat_inv.checked, false)
+
                     }
                 }
             }
