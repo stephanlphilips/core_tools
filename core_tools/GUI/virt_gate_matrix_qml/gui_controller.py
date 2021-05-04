@@ -6,7 +6,7 @@ from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets, QtQml
 import core_tools.GUI.virt_gate_matrix_qml  as qml_in
 import os, sys
 
-class GUI_controller:
+class virt_gate_matrix_GUI:
     def __init__(self):
         super().__init__()
         # self.app =  QtGui.QGuiApplication(sys.argv)
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # h.virtual_gates.test.matrix = a #np.linalg.inv(a)
 
 
-    g = GUI_controller()
+    g = virt_gate_matrix_GUI()
 
 
 

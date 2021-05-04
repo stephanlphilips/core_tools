@@ -27,7 +27,9 @@ class virtual_gates_mgr():
         self.virtual_gate_names = []
 
     def add(self, name, gates, virtual_gates=None):
-        self.virtual_gate_names += [name]
+        if name not in self.virtual_gate_names:
+            self.virtual_gate_names += [name]
+
         setattr(self, name, load_virtual_gate(name , gates, virtual_gates))
 
     def __len__(self):
@@ -111,16 +113,16 @@ class rf_source_mgr():
         setattr(self, name, rf_source(parameter)) 
 
 class hardware(qc.Instrument):
-    __instanciated = False
+    instanciated = False
     _dac_gate_map = dict()
     _boundaries = boundaries_mgr()   
     virtual_gates = virtual_gates_mgr()
     awg2dac_ratios = awg2dac_ratios_mgr()
 
     def __init__(self, name=None):
-        if self.__instanciated == True: # this should happen in the station
+        if hardware.instanciated == False: # this should happen in the station
             super().__init__('hardware')
-        self.__instanciated = True
+        hardware.instanciated = True
     
     @property
     def dac_gate_map(self):
@@ -146,8 +148,8 @@ class hardware(qc.Instrument):
                         'virtual_gate_matrix' : json.dumps(np.asarray(vg.matrix).tolist())}
 
         return {'awg2dac_ratios': self.awg2dac_ratios._ratios,
-                     'dac_gate_map': self.dac_gate_map,
-                     'virtual_gates': vg_snap                     }
+                 'dac_gate_map': self.dac_gate_map,
+                 'virtual_gates': vg_snap                     }
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage

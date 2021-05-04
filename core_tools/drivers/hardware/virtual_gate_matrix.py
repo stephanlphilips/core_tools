@@ -26,9 +26,7 @@ class virtual_gate_matrix():
         if self._matrix.shape != matrix.shape:
             raise ValueError('input shape of matrix does not match the one in the virtual gate matrix')
         self._matrix[:,:] = self.backward_conv_lamda(matrix)
-        
-        if self.name != 'dummy':
-            save(self)
+        self.save()
 
     @property
     def inv(self):
@@ -73,9 +71,7 @@ class virtual_gate_matrix():
             m = self.matrix
             m[idx_1,idx_2] = value
             self._matrix[:,:] = self.backward_conv_lamda(m)
-
-            if self.name != 'dummy':
-                save(self)
+            self.save()
         else:
             raise ValueError("wrong input foramt provided ['virtual_gate','gate'] expected).".format(v_gate))
 
@@ -91,6 +87,10 @@ class virtual_gate_matrix():
         
         return idx
     
+    def save(self):
+        if self.name != 'dummy':
+            save(self)
+
     def __len__(self):
         return len(self.gates)
 

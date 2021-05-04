@@ -4,7 +4,6 @@ from core_tools.GUI.param_viewer.param_viewer_GUI_window import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
 import qcodes as qc
-from qcodes import Station
 import numpy as np
 from dataclasses import dataclass
 
@@ -17,13 +16,11 @@ class param_data_obj:
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, station : Station, gates_object: Optional[object] = None):
-        if type(station) is not Station:
-            raise Exception('Syntax changed, to support RF_settings now supply station')
+    def __init__(self, gates_object: Optional[object] = None):
         self.real_gates = list()
         self.virtual_gates = list()
         self.rf_settings = list()
-        self.station = station
+        self.station = qc.Station.default
         if gates_object:
             self.gates_object = gates_object
         else:
@@ -253,10 +250,13 @@ if __name__ == "__main__":
         'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
 
     hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
-    hw.awg2dac_ratios.add(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P'])
     hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P'])
-    
-    my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
-    station=qc.Station(my_gates)
-    ui = param_viewer(station, my_gates)
+    print(hw.virtual_gates)
+    print(hw.virtual_gates.test)
+    hw.awg2dac_ratios.add(hw.virtual_gates.test.gates)
 
+    my_gates = gates("gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
+    station=qc.Station(my_gates)
+    # ui = param_viewer()
+    from core_tools.GUI.virt_gate_matrix_qml.gui_controller import virt_gate_matrix_GUI
+    virt_gate_matrix_GUI()
