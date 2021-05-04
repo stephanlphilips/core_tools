@@ -62,7 +62,7 @@ if __name__ == "__main__":
     set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
 
     h = hardware()
-    h.dac_to_gate = {
+    h.dac_gate_map = {
         # dacs for creating the quantum dots -- syntax, "gate name": (dac module number, dac index)
         'B0': (0, 1), 'P1': (0, 2), 
         'B1': (0, 3), 'P2': (0, 4),
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         'B5': (0, 11),'P6': (0, 12),
         'B6': (0, 13)}
 
-    h.boudaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
+    h.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
     h.awg2dac_ratios.add(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P'])
     h.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P', 'COMP1', 'COMP2', 'COMP3'])
     

@@ -36,13 +36,24 @@ class virtual_gate_matrix():
         l_inv_b = combine_lamdas(self.backward_conv_lamda, lamda_invert)
         return virtual_gate_matrix(self.name, self.gates, self.v_gates, self._matrix, l_inv_f, l_inv_b)
     
-    # this should not be done I think?
-    # @property
-    # def norm(self):
-    #     l_norm_f = combine_lamdas(self.forward_conv_lamda, lamda_norm)
-    #     l_norm_b = combine_lamdas(self.backward_conv_lamda, lamda_unnorm)
-    #     return virtual_gate_matrix(self.name, self.gates, self.v_gates, self._matrix, l_norm_f, l_norm_b)
-    
+    def reduce(self, gates, v_gates = None):
+        '''
+        reduce size of the virtual gate matrix
+
+        Args:
+            gates (list<str>) : name of the gates where to reduce to reduce the current matrix to.
+            v_gates (list<str>) : list with the names of the virtual gates (optional)
+        '''
+        v_gates = name_virtual_gates(v_gates, gates)
+        v_gate_matrix = np.eye(len(gates))
+
+        for i in range(len(gates)):
+            for j in range(len(gates)):
+                if gates[i] in self.gates:
+                    v_gate_matrix[i, j] = self[v_gates[i],gates[j]]
+        
+        return virtual_gate_matrix('dummy', gates, v_gates, v_gate_matrix)
+
     def __getitem__(self, index):
         if isinstance(index, tuple):
             idx_1, idx_2 = index
@@ -79,6 +90,9 @@ class virtual_gate_matrix():
                 idx = options.index(idx)
         
         return idx
+    
+    def __len__(self):
+        return len(self.gates)
 
     def __repr__(self):
         descr =  "Virtual gate matrix named {}\nContents:\n".format(self.name)

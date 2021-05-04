@@ -57,7 +57,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # add virtual gates
         for virt_gate_set in self.gates_object.hardware.virtual_gates:
-            for gate_name in virt_gate_set.virtual_gate_names:
+            for gate_name in virt_gate_set.v_gates:
                 param = getattr(self.gates_object, gate_name)
                 self._add_gate(param, True)
 
@@ -226,8 +226,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 if __name__ == "__main__":
     import sys
     import qcodes as qc
-    from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
-    from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
+
+    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
+    set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
+    from core_tools.drivers.hardware.hardware import hardware
+    from core_tools.drivers.virtual_dac import virtual_dac
     from core_tools.drivers.gates import gates
 
     my_dac_1 = virtual_dac("dac_a", "virtual")
@@ -235,14 +238,25 @@ if __name__ == "__main__":
     my_dac_3 = virtual_dac("dac_c", "virtual")
     my_dac_4 = virtual_dac("dac_d", "virtual")
 
-    hw =  hardware_example("hw")
+    hw =  hardware()
     hw.RF_source_names = []
-    my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
+    hw.dac_gate_map = {
+        'B0': (0, 1), 'P1': (0, 2), 
+        'B1': (0, 3), 'P2': (0, 4),
+        'B2': (0, 5), 'P3': (0, 6), 
+        'B3': (0, 7), 'P4': (0, 8), 
+        'B4': (0, 9), 'P5': (0, 10),
+        'B5': (0, 11),'P6': (0, 12),
+        'B6': (0, 13), 'S6' : (0,14,),
+        'SD1_P': (1, 1), 'SD2_P': (1, 2), 
+        'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
+        'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
 
-    # app = QtWidgets.QApplication(sys.argv)
-    # MainWindow = QtWidgets.QMainWindow()
+    hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
+    hw.awg2dac_ratios.add(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P'])
+    hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P'])
+    
+    my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
     station=qc.Station(my_gates)
     ui = param_viewer(station, my_gates)
 
-    # MainWindow.show()
-    # sys.exit(app.exec_())

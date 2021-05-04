@@ -22,6 +22,7 @@ class gates(qc.Instrument):
 		self.dac_sources = dac_sources
 
 		self._gv = dict()
+		self.__v_gates = list()
 
 		# add gates:
 		for gate_name, dac_location in hardware.dac_gate_map.items():
@@ -29,7 +30,7 @@ class gates(qc.Instrument):
 
 		# make virtual gates:
 		for virt_gate_set in self.hardware.virtual_gates:
-			for gate_name in virt_gate_set.virtual_gate_names:
+			for gate_name in virt_gate_set.v_gates:
 				self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
 					get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
 
@@ -64,20 +65,23 @@ class gates(qc.Instrument):
 			voltage (double) : voltage to set
 			name : name of the real gate (that corresponds the certain virtual gate)
 		'''
-		current_voltages_formatted = np.zeros([len(virt_gate_obj)])
-		current_voltages = list(self.gv.values())
 		names = list(self.gv.keys())
+		current_voltages = list(self.gv.values())
+		
+		names_in_vg_matrix = list(set(names).intersection(virt_gate_obj.gates))
+		red_virt_gates_obj = virt_gate_obj.reduce(names_in_vg_matrix)
+		current_voltages_formatted = np.zeros([len(red_virt_gates_obj)])
 
-		for i in range(len(virt_gate_obj)):
-			current_voltages_formatted[i] = current_voltages[names.index(virt_gate_obj.real_gate_names[i])]
+		for i in range(len(red_virt_gates_obj)):
+			current_voltages_formatted[i] = current_voltages[names.index(red_virt_gates_obj.gates[i])]
 
-		voltage_key = virt_gate_obj.virtual_gate_names.index(gate_name)
-		virtual_voltages =  np.matmul(virt_gate_obj.virtual_gate_matrix,current_voltages_formatted)
+		voltage_key = red_virt_gates_obj.v_gates.index(gate_name)
+		virtual_voltages =  np.matmul(red_virt_gates_obj.matrix,current_voltages_formatted)
 		virtual_voltages[voltage_key] = voltage
-		new_voltages = np.matmul(np.linalg.inv(virt_gate_obj.virtual_gate_matrix), virtual_voltages)
+		new_voltages = np.matmul(np.linalg.inv(red_virt_gates_obj.matrix), virtual_voltages)
 
 		i = 0
-		for gate_name in virt_gate_obj.real_gate_names:
+		for gate_name in red_virt_gates_obj.gates:
 			if new_voltages[i] != current_voltages_formatted[i]:
 				self._set_voltage(gate_name,new_voltages[i])
 			i+=1
@@ -89,15 +93,18 @@ class gates(qc.Instrument):
 			name : name of the real gate (that corresponds the certain virtual gate)
 		'''
 
-		current_voltages_formatted = np.zeros([len(virt_gate_obj)])
-		current_voltages = list(self.gv.values())
 		names = list(self.gv.keys())
+		current_voltages = list(self.gv.values())
 
-		for i in range(len(virt_gate_obj)):
-			current_voltages_formatted[i] = current_voltages[names.index(virt_gate_obj.real_gate_names[i])]
+		names_in_vg_matrix = list(set(names).intersection(virt_gate_obj.gates))
+		red_virt_gates_obj = virt_gate_obj.reduce(names_in_vg_matrix)
+		current_voltages_formatted = np.zeros([len(red_virt_gates_obj)])
 
-		voltage_key = virt_gate_obj.virtual_gate_names.index(gate_name)
-		virtual_voltages =  np.matmul(virt_gate_obj.virtual_gate_matrix,current_voltages_formatted)
+		for i in range(len(red_virt_gates_obj)):
+			current_voltages_formatted[i] = current_voltages[names.index(red_virt_gates_obj.gates[i])]
+
+		voltage_key = red_virt_gates_obj.v_gates.index(gate_name)
+		virtual_voltages =  np.matmul(red_virt_gates_obj.matrix,current_voltages_formatted)
 
 		return virtual_voltages[voltage_key]
 
@@ -158,20 +165,39 @@ class gates(qc.Instrument):
 
 
 if __name__ == '__main__':
-	from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
-	from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
-
+	from core_tools.drivers.virtual_dac import virtual_dac
+	from core_tools.drivers.hardware.hardware import hardware
 	my_dac_1 = virtual_dac("dac_a", "virtual")
 	my_dac_2 = virtual_dac("dac_b", "virtual")
 	my_dac_3 = virtual_dac("dac_c", "virtual")
 	my_dac_4 = virtual_dac("dac_d", "virtual")
 
-	hw =  hardware_example("hw")
+	from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
+	set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
+
+	hw =  hardware()
+
+	hw.dac_gate_map = {
+	    # dacs for creating the quantum dots -- syntax, "gate name": (dac module number, dac index)
+	    'B0': (0, 1), 'P1': (0, 2), 
+	    'B1': (0, 3), 'P2': (0, 4),
+	    'B2': (0, 5), 'P3': (0, 6), 
+	    'B3': (0, 7), 'P4': (0, 8), 
+	    'B4': (0, 9), 'P5': (0, 10),
+	    'B5': (0, 11),'P6': (0, 12),
+	    'B6': (0, 13), 'S6' : (0,14,),
+	    'SD1_P': (1, 1), 'SD2_P': (1, 2), 
+	    'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
+	    'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
+
+	hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
+	hw.awg2dac_ratios.add(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P'])
+	hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P', 'COMP1'])
+
 	my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
-	# print(my_gates.vgv)
-	print(my_gates.vB0())
 	my_gates.vB0(1200)
 	my_gates.vB0(1800)
+
 	gv = my_gates.gv
 	print(my_gates.vB0())
 	my_gates.set_all_zero()

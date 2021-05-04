@@ -6,21 +6,21 @@ import qcodes as qc
 import numpy as np
 import json
 
-class boudaries_mgr():
+class boundaries_mgr():
     def __init__(self):
         self.key_vals = dict()
 
     def __getitem__(self, gate):
-        if gate in hardware().dac_to_gate.keys():
+        if gate in hardware().dac_gate_map.keys():
             return self.key_vals[gate]
         else:
-            raise ValueError('Gate {} is not defined (gates present are : {})'.format(gate, hardware().dac_to_gate.keys()))
+            raise ValueError('Gate {} is not defined (gates present are : {})'.format(gate, hardware().dac_gate_map.keys()))
     
     def __setitem__(self, gate, value):
-        if gate in hardware().dac_to_gate.keys():
+        if gate in hardware().dac_gate_map.keys():
             self.key_vals[gate] = value
         else:
-            raise ValueError('Gate {} is not defined (gates present are : {})'.format(gate, hardware().dac_to_gate.keys()))
+            raise ValueError('Gate {} is not defined (gates present are : {})'.format(gate, hardware().dac_gate_map.keys()))
 
 class virtual_gates_mgr():
     def __init__(self):
@@ -112,8 +112,8 @@ class rf_source_mgr():
 
 class hardware(qc.Instrument):
     __instanciated = False
-    _dac_to_gate = dict()
-    _boudaries = boudaries_mgr()   
+    _dac_gate_map = dict()
+    _boundaries = boundaries_mgr()   
     virtual_gates = virtual_gates_mgr()
     awg2dac_ratios = awg2dac_ratios_mgr()
 
@@ -123,21 +123,21 @@ class hardware(qc.Instrument):
         self.__instanciated = True
     
     @property
-    def dac_to_gate(self):
-        return hardware._dac_to_gate
+    def dac_gate_map(self):
+        return hardware._dac_gate_map
 
-    @dac_to_gate.setter
-    def dac_to_gate(self, val):
-        hardware._dac_to_gate = val
+    @dac_gate_map.setter
+    def dac_gate_map(self, val):
+        hardware._dac_gate_map = val
 
     @property
-    def boudaries(self):
-        return self._boudaries.key_vals
+    def boundaries(self):
+        return self._boundaries.key_vals
 
-    @boudaries.setter
-    def boudaries(self, boundary_dict):
+    @boundaries.setter
+    def boundaries(self, boundary_dict):
         for key, value in boundary_dict.items():
-            self._boudaries[key] = value
+            self._boundaries[key] = value
 
     def snapshot_base(self, update=False, params_to_skip_update =None):        
         vg_snap = {}
@@ -146,7 +146,7 @@ class hardware(qc.Instrument):
                         'virtual_gate_matrix' : json.dumps(np.asarray(vg.matrix).tolist())}
 
         return {'awg2dac_ratios': self.awg2dac_ratios._ratios,
-                     'dac_to_gate': self.dac_to_gate,
+                     'dac_gate_map': self.dac_gate_map,
                      'virtual_gates': vg_snap                     }
 
 if __name__ == '__main__':
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
 
     h = hardware('6dotHW')
-    h.dac_to_gate = {
+    h.dac_gate_map = {
         # dacs for creating the quantum dots -- syntax, "gate name": (dac module number, dac index)
         'B0': (0, 1), 'P1': (0, 2), 
         'B1': (0, 3), 'P2': (0, 4),
@@ -163,9 +163,9 @@ if __name__ == '__main__':
         'B4': (0, 9), 'P5': (0, 10),
         'B5': (0, 11),'P6': (0, 12),
         'B6': (0, 13)}
-    print(h.dac_to_gate)
+    print(h.dac_gate_map)
 
-    h.boudaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
+    h.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
     h.virtual_gates.add('test', ['B0', 'B1', 'B2'])
     h.awg2dac_ratios.add(['B0', 'B1', 'B2', 'B3'])
 
