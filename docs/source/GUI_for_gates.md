@@ -15,7 +15,7 @@ hw = hardware()
 
 print(hw.virtual_gates)
 ```
-This returns if configured as in TODO reference:
+This returns if configured as in the previous section:
 ```
 Found 1 virtual gate matrix :
 	name :: test 	(size = 16x16)
@@ -30,6 +30,7 @@ v_mat = hw.virtual_gates.test
 # printing the contents
 print(v_mat)
 ```
+Returning:
 ```
 Virtual gate matrix named test
 Contents:
@@ -52,7 +53,7 @@ v_mat.matrix = np.eye(len(v_mat.matrix))
 Using a GUI
 -----------
 
-This is by far the easiest method, the GUI can be opened by calling:
+This is by far the easiest method for modifying the virtual gate matrix, the GUI can be opened by calling:
 ```python
 from core_tools.GUI.virt_gate_matrix_qml.gui_controller import virt_gate_matrix_GUI
 virt_gate_matrix_GUI()
@@ -61,5 +62,5 @@ virt_gate_matrix_GUI()
 The result should look something like:
 ![](img/virt_gate_matrix_gui.png)
 
-In the AWG to DAC ratio tab, the AWG to dac ratio's can be set.
+In the AWG to DAC ratio tab, the AWG to dac ratio's can be set:
 ![](img/AWG_to_dac_ratio.png)
