@@ -2,7 +2,7 @@ from qcodes import Parameter
 import qcodes as qc
 
 class combi_par(Parameter):
-    def __init__(self,param, label):
+    def __init__(self, param, label, name = 'combi_par'):
         """
         Make a combined parameter:
         Args:
@@ -10,7 +10,7 @@ class combi_par(Parameter):
             label (list) : list of labels
             
         """
-        super().__init__("combi_par", label = label, unit= "mV" )
+        super().__init__(name, label = label, unit= "mV" )
         self.param = param
     
     def set_raw(self, value):
@@ -21,7 +21,7 @@ class combi_par(Parameter):
         new = combi_par(self.param + other.param, self.label + other.label)
         return new
                 
-def make_combiparameter(*args):
+def make_combiparameter(*args, **kwargs):
     """
     Make a combined qcodes parameter. 
     Args: 
@@ -40,7 +40,12 @@ def make_combiparameter(*args):
     for i in parameters:
         label += i.label + " "
 
-    return combi_par(parameters, label)
+    try:
+        name = kwargs['name']
+    except:
+        name = 'combi_par'
+
+    return combi_par(parameters, label, name)
 
 class v_src_rescaler(Parameter):
     def __init__(self, parameter, scale):
