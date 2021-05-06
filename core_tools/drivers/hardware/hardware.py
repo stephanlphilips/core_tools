@@ -69,6 +69,9 @@ class awg2dac_ratios_mgr():
     def values(self):
         return self._ratios.values()
 
+    def items(self):
+        return self._ratios.items()
+        
     def __getitem__(self, gate):
         return self._ratios[gate]
 

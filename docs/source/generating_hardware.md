@@ -4,7 +4,7 @@ Hardware class and gates
 Setting up the hardware
 -----------------------
 
-The hardware class is a class that links the hardware together. This are DACs and AWGs to the electrode layout of a chip.
+The hardware class is a class that links the hardware together. These are DACs and AWGs to the electrode layout of a chip.
 
 To set up the link between the electrode names and the DACs, a map like this can be made:
 ```python

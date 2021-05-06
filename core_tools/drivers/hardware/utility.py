@@ -110,5 +110,4 @@ if __name__ == '__main__':
 
     # do1D(station.gates.B0, 0, 20, 50, 0.1, instr.measure).run()
     
-    from core_tools.drivers.hardware.utility import load_virtual_gate_matrix_from_ds, load_AWG_to_dac_conversion_from_ds
     # load_AWG_to_dac_conversion_from_ds(18, 'hardware')

@@ -60,7 +60,7 @@ class virtual_gate_queries:
     @staticmethod
     def table_name():
         sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
-        return set_up+project+sample+'_virtual_gates'
+        return (set_up+project+sample+'_virtual_gates').replace(" ", "_").replace('-', '_')
 
 
 class AWG_2_dac_ratio_queries:
@@ -113,7 +113,7 @@ class AWG_2_dac_ratio_queries:
     @staticmethod
     def table_name():
         sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
-        return set_up+project+sample+'_AWG_to_DAC_ratios'
+        return (set_up+project+sample+'_AWG_to_DAC_ratios').replace(" ", "_").replace('-', '_')
 
 
 class RF_readout_settings_queries:
@@ -157,7 +157,7 @@ class RF_readout_settings_queries:
     @staticmethod
     def table_name():
         sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
-        return set_up+project+sample+'_RF_readout_settings'
+        return (set_up+project+sample+'_RF_readout_settings').replace(" ", "_").replace('-', '_')
 
 
 
