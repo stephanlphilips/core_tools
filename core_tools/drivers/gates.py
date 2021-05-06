@@ -1,4 +1,5 @@
 from functools import partial
+from core_tools.drivers.hardware.hardware import hardware as hw_parent
 
 import qcodes as qc
 import numpy as np
@@ -18,21 +19,29 @@ class gates(qc.Instrument):
 			dac_sources (list<virtual_dac>) : list with the dacs
 		'''
 		super(gates, self).__init__(name)
+
+		if not isinstance(hardware, type(hw_parent())):
+			raise ValueError('Please use the updated hardware class (see https://core-tools.readthedocs.io/ for more info).')
+
 		self.hardware = hardware
 		self.dac_sources = dac_sources
 
 		self._gv = dict()
-		self.__v_gates = list()
+		self.v_gates = dict()
 
 		# add gates:
-		for gate_name, dac_location in hardware.dac_gate_map.items():
+		for gate_name, dac_location in self.hardware.dac_gate_map.items():
 			self.add_parameter(gate_name, set_cmd = partial(self._set_voltage,  gate_name), get_cmd=partial(self._get_voltage,  gate_name), unit = "mV")
 
 		# make virtual gates:
 		for virt_gate_set in self.hardware.virtual_gates:
-			for gate_name in virt_gate_set.v_gates:
-				self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
-					get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
+			self.v_gates[virt_gate_set.name] = list()
+			for i in range(len(virt_gate_set)):
+				if virt_gate_set.gates[i] in self.hardware.dac_gate_map.keys():
+					gate_name = virt_gate_set.v_gates[i]
+					self.v_gates[virt_gate_set.name].append(gate_name)
+					self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
+						get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
 
 	def _set_voltage(self, gate_name, voltage):
 		'''
@@ -108,7 +117,6 @@ class gates(qc.Instrument):
 
 		return virtual_voltages[voltage_key]
 
-
 	def set_all_zero(self):
 		'''
 		set all dacs in the gate set to 0. Is ramped down 1 per 1
@@ -117,28 +125,6 @@ class gates(qc.Instrument):
 		for gate_name, dac_location in self.hardware.dac_gate_map.items():
 			self._set_voltage(gate_name, 0)
 		print("All gates set to 0!")
-
-	def update_virtual_gate_entry(self, virtual_gate_set, gate_name, gate_names_CC, values):
-		'''
-		update a row in the virtual gate matrix
-
-		Args:
-			virtual_gate_set (str) : name of the virtual gate matrix you want to update as defined in the hardware class.
-			gate_name (str) : name of the row where changes need to occur (e.g. 'P1')
-			gate_names_CC (list<str>) : list with the names of the gates that need to be updated.
-			values (np.ndarray) : array with the new values.
-		'''
-		idx = self.hardware.virtual_gates.index(virtual_gate_set)
-		virtual_gate_item = self.hardware.virtual_gates[idx]
-
-		i = virtual_gate_item.real_gate_names.index(gate_name)
-		j = np.empty([len(gate_names_CC)], dtype=np.int)
-		for k in range(len(gate_names_CC)):
-			j[k] = virtual_gate_item.real_gate_names.index(gate_names_CC[k])
-
-		np.asarray(virtual_gate_item.virtual_gate_matrix)[i,j] = np.asarray(values)
-
-		self.hardware.sync_data()
 
 	@property
 	def gv(self):
@@ -197,14 +183,10 @@ if __name__ == '__main__':
 	my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
 	my_gates.vB0(1200)
 	my_gates.vB0(1800)
+	print(my_gates.v_gates)
 
 	gv = my_gates.gv
 	print(my_gates.vB0())
 	my_gates.set_all_zero()
 	my_gates.gv = gv
 	print(my_gates.vB0())
-	print(np.array(my_gates.hardware.virtual_gates['general'].virtual_gate_matrix))
-
-	# my_gates.update_virtual_gate_entry("general", "B0", ["B0", "B1", "B2",], [1,0.8,0.3])
-	print(np.array(my_gates.hardware.virtual_gates['general'].virtual_gate_matrix))
-	print(my_dac_1)

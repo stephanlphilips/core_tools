@@ -53,8 +53,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             self._add_gate(param, False)
 
         # add virtual gates
-        for virt_gate_set in self.gates_object.hardware.virtual_gates:
-            for gate_name in virt_gate_set.v_gates:
+        for virtual_gates_names in self.gates_object.v_gates.values():
+            for gate_name in virtual_gates_names:
                 param = getattr(self.gates_object, gate_name)
                 self._add_gate(param, True)
 
@@ -250,13 +250,13 @@ if __name__ == "__main__":
         'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
 
     hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
-    hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P'])
-    print(hw.virtual_gates)
-    print(hw.virtual_gates.test)
+    hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P', 'COMP1'])
     hw.awg2dac_ratios.add(hw.virtual_gates.test.gates)
-
+    print(hw)
+    print(hw.dac_gate_map)
+    print(type(hw))
     my_gates = gates("gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
     station=qc.Station(my_gates)
-    # ui = param_viewer()
+    ui = param_viewer()
     from core_tools.GUI.virt_gate_matrix_qml.gui_controller import virt_gate_matrix_GUI
-    virt_gate_matrix_GUI()
+    # virt_gate_matrix_GUI()
