@@ -85,8 +85,10 @@ station=qc.Station(my_dac_1, my_dac_2, my_gates, hw)
 
 A GUI for the gates can be pulled up using the following code:
 ```python
-from core_tools.GUI.param_viewer.param_viewer_GUI_main import param_viewer
+from core_tools.GUI.parameter_viewer_qml.param_viewer import param_viewer
 
 # if gates are not names gates, it needs to be provided as an argument.
-ui = param_viewer()
+ui = param_viewer(my_gates)
 ```
+
+![](img/parameter_viewer.png)

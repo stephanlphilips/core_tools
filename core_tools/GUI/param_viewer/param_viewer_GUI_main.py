@@ -252,9 +252,8 @@ if __name__ == "__main__":
     hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
     hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P', 'COMP1'])
     hw.awg2dac_ratios.add(hw.virtual_gates.test.gates)
-    print(hw)
-    print(hw.dac_gate_map)
-    print(type(hw))
+
+
     my_gates = gates("gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
     station=qc.Station(my_gates)
     ui = param_viewer()

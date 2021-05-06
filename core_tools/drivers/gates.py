@@ -183,10 +183,17 @@ if __name__ == '__main__':
 	my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
 	my_gates.vB0(1200)
 	my_gates.vB0(1800)
-	print(my_gates.v_gates)
+	print(my_gates.vB0())
+	print(my_gates.B0())
+	# print(my_gates.v_gates)
 
 	gv = my_gates.gv
-	print(my_gates.vB0())
+	# print(my_gates.vB0())
 	my_gates.set_all_zero()
 	my_gates.gv = gv
-	print(my_gates.vB0())
+	# print(my_gates.vB0())
+
+	from core_tools.GUI.parameter_viewer_qml.param_viewer import param_viewer
+
+	# if gates are not names gates, it needs to be provided as an argument.
+	ui = param_viewer(my_gates)

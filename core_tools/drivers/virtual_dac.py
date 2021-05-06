@@ -19,7 +19,6 @@ class virtual_dac(qc.Instrument):
 		self.my_voltages = np.zeros([16])
 		n_dacs = 16
 		self._gv = dict()
-		self._vgv = dict()
 		for i in range(n_dacs):
 			self.add_parameter('dac{}'.format(i + 1),
 								   label='DAC {}'.format(i + 1),
@@ -35,11 +34,7 @@ class virtual_dac(qc.Instrument):
 			voltage (int) : voltage the needs to be set
 		'''
 		self.my_voltages[number] = voltage
-		# if self.virtual_instrument_initialized == False:
-		# 	raise "virutal dac not connected to any insturement, please set up a connection."
-		# self.connected_instance.send((number,voltage))
-		# self.connected_instance.get()
-
+		
 	def _get_dac(self, number):
 		return self.my_voltages[number]
 		# self.connected_instance.send(number)
