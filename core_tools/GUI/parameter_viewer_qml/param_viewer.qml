@@ -10,8 +10,8 @@ import Qt.labs.qmlmodels 1.0
 
 ApplicationWindow{
     title: "Parameter Viewer"
-    width: 450
-    height: 1050
+    width: 350
+    height: 1030
     visible: true
     Material.theme: Material.Light
 
@@ -25,6 +25,8 @@ ApplicationWindow{
         anchors.top: parent.top
         anchors.topMargin: 0
 
+        z : 3
+        
         TabButton {
             text: qsTr("Gates")
             anchors.top: parent.top
@@ -74,6 +76,7 @@ ApplicationWindow{
                         width : parent.width
                         Layout.fillWidth: true
                         height : 45
+                        z : 0
 
                         RowLayout {
                             id: rowLayout5
@@ -256,7 +259,6 @@ ApplicationWindow{
                     anchors.fill: parent
 
                     property int current_item : 0
-
                     headerPositioning: ListView.OverlayHeader
                     model: real_gate_model
                     delegate: real_voltages_delegate
