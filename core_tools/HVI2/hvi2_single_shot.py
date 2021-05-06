@@ -155,6 +155,9 @@ class Hvi2SingleShot():
                                     awg_seq.lo.reset_phase(los)
                                 else:
                                     awg_seq.wait(10)
+                                awg_seq.qs.reset_phase()
+                                awg_seq.qs.start()
+                                awg_seq.qs.trigger()
                                 awg_seq.trigger()
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.start()
@@ -175,6 +178,7 @@ class Hvi2SingleShot():
                                 awg_seq.wait(awg_seq['wave_duration'])
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.stop()
+                                awg_seq.qs.stop()
 
                             for dig_seq in dig_seqs:
                                 iq_ch = self._module_config(dig_seq, 'iq_ch')
@@ -186,6 +190,10 @@ class Hvi2SingleShot():
                                     dig_seq.ds.control(phase_reset=iq_ch)
                                 else:
                                     dig_seq.wait(10)
+
+                                    dig_seq.qs.stop()
+                                    dig_seq.qs.start()
+                                    dig_seq.qs.trigger()
 
                                 for i in range(n_triggers):
                                     dig_seq.wait(dig_seq[f'dig_wait_{i+1}'])
@@ -205,6 +213,7 @@ class Hvi2SingleShot():
                         self._push_data(dig_seqs)
                         for seq in all_seqs:
                             seq.stop()
+                            seq.qs.stop()
                             seq.sys.clear_ticks()
                             # this delay saves 1 PXI trigger
                             seq.wait(100)

@@ -100,6 +100,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
         for awg_name, awg in self._pulse_lib.awg_devices.items():
             awg_conf = {}
             awg_conf['hvi_queue_control'] = hasattr(awg, 'hvi_queue_control') and awg.hvi_queue_control
+            awg_conf['sequencer'] = hasattr(awg, 'get_sequencer')
             # 'active_lost' is List[Typle[channel, LO]]
             awg_conf['active_los'] = awg.active_los if hasattr(awg, 'active_los') else {}
             # TODO: retrieve switch_los en enabled_los from measurements / resonator_channels
@@ -131,6 +132,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             dig_conf['raw_ch'] = [channel for channel, mode in modes.items() if mode == 0]
             dig_conf['ds_ch'] = [channel for channel, mode in modes.items() if mode != 0]
             dig_conf['iq_ch'] = [channel for channel, mode in modes.items() if mode in [2,3]]
+            dig_conf['sequencer'] = hasattr(dig, 'get_sequencer')
             conf[dig.name] = dig_conf
 
         if self._configuration != conf:
