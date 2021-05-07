@@ -1,22 +1,17 @@
-import sys
 import qdarkstyle
 import numpy as np
-import threading as th
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
-from core_tools.sweeps.sweeps import do0D, do1D, do2D
+from core_tools.sweeps.sweeps import do0D
 from core_tools.data.SQL.connect import sample_info
 
 from dataclasses import dataclass
-from PyQt5.QtCore import QThread
-from PyQt5 import QtCore, QtGui, QtWidgets
-from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Keysight
+from PyQt5 import QtCore, QtWidgets
 from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
 from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
 from qcodes import MultiParameter
 from qcodes.measure import Measure
 from core_tools.utility.powerpoint import addPPTslide
-import time
 import logging
 
 #TODO: Fix the measurement codes, to transpose the data properly (instead of fixing it in the plot)
@@ -94,8 +89,13 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.construct_1D_scan_fast = scan_generator_Virtual.construct_1D_scan_fast
             self.construct_2D_scan_fast = scan_generator_Virtual.construct_2D_scan_fast
         elif scan_type == "Keysight":
+            from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Keysight
             self.construct_1D_scan_fast = scan_generator_Keysight.construct_1D_scan_fast
             self.construct_2D_scan_fast = scan_generator_Keysight.construct_2D_scan_fast
+        elif scan_type == "Tektronix":
+            from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Tektronix
+            self.construct_1D_scan_fast = scan_generator_Tektronix.construct_1D_scan_fast
+            self.construct_2D_scan_fast = scan_generator_Tektronix.construct_2D_scan_fast
         else:
             raise ValueError("Unsupported agrument for scan type.")
         self.current_plot = plot_content(None, None)
@@ -526,18 +526,22 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             is_ds_configured = isinstance(sample_info.project, str)
         except: pass
 
-        if is_ds_configured:
-            job = do0D(self.vm_data_param, name=label)
-            job.run()
-        else:
-            # use qcodes measurement
-            measure = Measure(self.vm_data_param)
-            data = measure.get_data_set(location=None,
-                                        loc_record={
-                                        'name': 'vm_data',
-                                        'label': label})
-            data = measure.run(quiet=True)
-            data.finalize()
+        try:
+            if is_ds_configured:
+                logging.info('Save')
+                job = do0D(self.vm_data_param, name=label)
+                job.run()
+            else:
+                # use qcodes measurement
+                measure = Measure(self.vm_data_param)
+                data = measure.get_data_set(location=None,
+                                            loc_record={
+                                            'name': 'vm_data',
+                                            'label': label})
+                data = measure.run(quiet=True)
+                data.finalize()
+        except:
+            logging.error(f'Error during save data', exc_info=True)
 
 class vm_data_param(MultiParameter):
     def __init__(self, param, plot, metadata):
@@ -573,7 +577,7 @@ if __name__ == '__main__':
 
     # V2_liveplotting(t,dig)
 
-    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
+    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer
     # from V2_software.pulse_lib_config.Init_pulse_lib import return_pulse_lib
 
     # load a virtual version of the digitizer.

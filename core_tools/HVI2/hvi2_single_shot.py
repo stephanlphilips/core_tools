@@ -151,10 +151,15 @@ class Hvi2SingleShot():
                             for awg_seq in awg_seqs:
                                 los = self._module_config(awg_seq, 'active_los')
                                 awg_seq.log.write(2)
+                                awg_seq.qs.reset_phase()
+                                awg_seq.qs.start()
                                 if len(los)>0:
                                     awg_seq.lo.reset_phase(los)
                                 else:
                                     awg_seq.wait(10)
+                                if self._module_config(awg_seq, 'sequencer'):
+                                    awg_seq.wait(10)
+                                awg_seq.qs.trigger()
                                 awg_seq.trigger()
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.start()
@@ -175,6 +180,7 @@ class Hvi2SingleShot():
                                 awg_seq.wait(awg_seq['wave_duration'])
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.stop()
+                                awg_seq.qs.stop()
 
                             for dig_seq in dig_seqs:
                                 iq_ch = self._module_config(dig_seq, 'iq_ch')
@@ -182,6 +188,9 @@ class Hvi2SingleShot():
                                 raw_ch = self._module_config(dig_seq, 'raw_ch')
 
                                 dig_seq.log.write(2)
+                                dig_seq.qs.stop()
+                                dig_seq.qs.start()
+                                dig_seq.qs.trigger()
                                 if len(iq_ch) > 0:
                                     dig_seq.ds.control(phase_reset=iq_ch)
                                 else:
@@ -205,6 +214,7 @@ class Hvi2SingleShot():
                         self._push_data(dig_seqs)
                         for seq in all_seqs:
                             seq.stop()
+                            seq.qs.stop()
                             seq.sys.clear_ticks()
                             # this delay saves 1 PXI trigger
                             seq.wait(100)
