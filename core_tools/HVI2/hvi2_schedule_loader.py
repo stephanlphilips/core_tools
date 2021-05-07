@@ -50,17 +50,18 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             if awg not in hw.awgs:
                 hw.add_awg(awg)
 
-        if hasattr(pulse_lib, 'digitizer_devices'):
-            for digitizer in pulse_lib.digitizer_devices.values():
+        if hasattr(pulse_lib, 'digitizers'):
+            for digitizer in pulse_lib.digitizers.values():
                 if digitizer not in hw.digitizers:
                     hw.add_digitizer(digitizer)
 
-        if isinstance(digitizers, SD_DIG):
-            digitizers = [digitizers]
+        if digitizers is not None:
+            if isinstance(digitizers, SD_DIG):
+                digitizers = [digitizers]
 
-        for digitizer in digitizers:
-            if digitizer not in hw.digitizers:
-                hw.add_digitizer(digitizer)
+            for digitizer in digitizers:
+                if digitizer not in hw.digitizers:
+                    hw.add_digitizer(digitizer)
         return hw
 
     @staticmethod

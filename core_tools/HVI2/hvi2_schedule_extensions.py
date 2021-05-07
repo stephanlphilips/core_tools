@@ -7,7 +7,7 @@ from keysight_fpga.qcodes.M3202A_fpga import (
         )
 from keysight_fpga.sd1.fpga_utils import (
     FpgaSysExtension, FpgaLogExtension, FpgaNoLogExtension,
-    get_fpga_image_path, has_fpga_info, FpgaMissingExtension
+    get_fpga_image_path, has_fpga_info, get_fpga_info, FpgaMissingExtension
     )
 from keysight_fpga.sd1.dig_iq import get_iq_image_filename, is_iq_image_loaded, FpgaDownsamplerExtension
 
@@ -34,17 +34,23 @@ def add_extensions(hvi_system):
         logging.info(f'Adding {awg_engine.name} extensions')
         awg = awg_engine.module
         if has_fpga_info(awg):
-            bitstream = get_awg_image_filename(awg)
+            image_id, version_date, clock_frequency = get_fpga_info(awg)
+            if 22000 <= image_id <= 22012:
+                bitstream = os.path.join(get_fpga_image_path(awg), f'awg_sequencer_{image_id}.k7z')
+            else:
+                bitstream = get_awg_image_filename(awg)
             logging.info(f'{awg_engine.name} load symbols {bitstream}')
             awg_engine.load_fpga_symbols(bitstream)
             awg_engine.add_extension('sys', FpgaSysExtension)
             awg_engine.add_extension('log', FpgaLogExtension)
-            awg_engine.add_extension('lo', FpgaLocalOscillatorExtension)
-            awg_engine.add_extension('queueing', FpgaAwgQueueingExtension)
             awg_engine.add_extension('marker', FpgaTriggerOutExtension)
-            if add_awg_sequencer:
+            if 22000 <= image_id <= 22012:
                 awg_engine.add_extension('qs', FpgaAwgSequencerExtension)
+                awg_engine.add_extension('lo', FpgaMissingExtension)
+                awg_engine.add_extension('queueing', FpgaMissingExtension)
             else:
+                awg_engine.add_extension('lo', FpgaLocalOscillatorExtension)
+                awg_engine.add_extension('queueing', FpgaAwgQueueingExtension)
                 awg_engine.add_extension('qs', FpgaMissingExtension)
         else:
             for ext in ['sys']:
