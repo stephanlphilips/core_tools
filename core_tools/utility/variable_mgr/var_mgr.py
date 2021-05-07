@@ -96,6 +96,9 @@ class variable_mgr():
         if self.__GUI is not None:
                     self.__GUI.set_data()
 
+    def __getitem__(self, item):
+        return getattr(self, item)
+    
     def __getattribute__(self, name): #little hack to make make the descriptors work.
         attr = super().__getattribute__(name)
         if isinstance(attr, variable_descriptor):
