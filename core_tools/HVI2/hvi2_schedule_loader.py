@@ -76,7 +76,6 @@ class Hvi2ScheduleLoader(HardwareSchedule):
     def set_schedule_parameters(self, **kwargs):
         self._schedule_parameters = kwargs
 
-
     def _get_n_measurements(self, hvi_params):
         n = 0
         while(True):

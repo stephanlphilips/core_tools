@@ -1,4 +1,5 @@
 from functools import partial
+from core_tools.drivers.hardware.hardware import hardware as hw_parent
 
 import qcodes as qc
 import numpy as np
@@ -18,20 +19,29 @@ class gates(qc.Instrument):
 			dac_sources (list<virtual_dac>) : list with the dacs
 		'''
 		super(gates, self).__init__(name)
+
+		if not isinstance(hardware, type(hw_parent())):
+			raise ValueError('Please use the updated hardware class (see https://core-tools.readthedocs.io/ for more info).')
+
 		self.hardware = hardware
 		self.dac_sources = dac_sources
 
 		self._gv = dict()
+		self.v_gates = dict()
 
 		# add gates:
-		for gate_name, dac_location in hardware.dac_gate_map.items():
+		for gate_name, dac_location in self.hardware.dac_gate_map.items():
 			self.add_parameter(gate_name, set_cmd = partial(self._set_voltage,  gate_name), get_cmd=partial(self._get_voltage,  gate_name), unit = "mV")
 
 		# make virtual gates:
 		for virt_gate_set in self.hardware.virtual_gates:
-			for gate_name in virt_gate_set.virtual_gate_names:
-				self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
-					get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
+			self.v_gates[virt_gate_set.name] = list()
+			for i in range(len(virt_gate_set)):
+				if virt_gate_set.gates[i] in self.hardware.dac_gate_map.keys():
+					gate_name = virt_gate_set.v_gates[i]
+					self.v_gates[virt_gate_set.name].append(gate_name)
+					self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
+						get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
 
 	def _set_voltage(self, gate_name, voltage):
 		'''
@@ -64,20 +74,23 @@ class gates(qc.Instrument):
 			voltage (double) : voltage to set
 			name : name of the real gate (that corresponds the certain virtual gate)
 		'''
-		current_voltages_formatted = np.zeros([len(virt_gate_obj)])
-		current_voltages = list(self.gv.values())
 		names = list(self.gv.keys())
+		current_voltages = list(self.gv.values())
+		
+		names_in_vg_matrix = list(set(names).intersection(virt_gate_obj.gates))
+		red_virt_gates_obj = virt_gate_obj.reduce(names_in_vg_matrix)
+		current_voltages_formatted = np.zeros([len(red_virt_gates_obj)])
 
-		for i in range(len(virt_gate_obj)):
-			current_voltages_formatted[i] = current_voltages[names.index(virt_gate_obj.real_gate_names[i])]
+		for i in range(len(red_virt_gates_obj)):
+			current_voltages_formatted[i] = current_voltages[names.index(red_virt_gates_obj.gates[i])]
 
-		voltage_key = virt_gate_obj.virtual_gate_names.index(gate_name)
-		virtual_voltages =  np.matmul(virt_gate_obj.virtual_gate_matrix,current_voltages_formatted)
+		voltage_key = red_virt_gates_obj.v_gates.index(gate_name)
+		virtual_voltages =  np.matmul(red_virt_gates_obj.matrix,current_voltages_formatted)
 		virtual_voltages[voltage_key] = voltage
-		new_voltages = np.matmul(np.linalg.inv(virt_gate_obj.virtual_gate_matrix), virtual_voltages)
+		new_voltages = np.matmul(np.linalg.inv(red_virt_gates_obj.matrix), virtual_voltages)
 
 		i = 0
-		for gate_name in virt_gate_obj.real_gate_names:
+		for gate_name in red_virt_gates_obj.gates:
 			if new_voltages[i] != current_voltages_formatted[i]:
 				self._set_voltage(gate_name,new_voltages[i])
 			i+=1
@@ -89,18 +102,20 @@ class gates(qc.Instrument):
 			name : name of the real gate (that corresponds the certain virtual gate)
 		'''
 
-		current_voltages_formatted = np.zeros([len(virt_gate_obj)])
-		current_voltages = list(self.gv.values())
 		names = list(self.gv.keys())
+		current_voltages = list(self.gv.values())
 
-		for i in range(len(virt_gate_obj)):
-			current_voltages_formatted[i] = current_voltages[names.index(virt_gate_obj.real_gate_names[i])]
+		names_in_vg_matrix = list(set(names).intersection(virt_gate_obj.gates))
+		red_virt_gates_obj = virt_gate_obj.reduce(names_in_vg_matrix)
+		current_voltages_formatted = np.zeros([len(red_virt_gates_obj)])
 
-		voltage_key = virt_gate_obj.virtual_gate_names.index(gate_name)
-		virtual_voltages =  np.matmul(virt_gate_obj.virtual_gate_matrix,current_voltages_formatted)
+		for i in range(len(red_virt_gates_obj)):
+			current_voltages_formatted[i] = current_voltages[names.index(red_virt_gates_obj.gates[i])]
+
+		voltage_key = red_virt_gates_obj.v_gates.index(gate_name)
+		virtual_voltages =  np.matmul(red_virt_gates_obj.matrix,current_voltages_formatted)
 
 		return virtual_voltages[voltage_key]
-
 
 	def set_all_zero(self):
 		'''
@@ -110,28 +125,6 @@ class gates(qc.Instrument):
 		for gate_name, dac_location in self.hardware.dac_gate_map.items():
 			self._set_voltage(gate_name, 0)
 		print("All gates set to 0!")
-
-	def update_virtual_gate_entry(self, virtual_gate_set, gate_name, gate_names_CC, values):
-		'''
-		update a row in the virtual gate matrix
-
-		Args:
-			virtual_gate_set (str) : name of the virtual gate matrix you want to update as defined in the hardware class.
-			gate_name (str) : name of the row where changes need to occur (e.g. 'P1')
-			gate_names_CC (list<str>) : list with the names of the gates that need to be updated.
-			values (np.ndarray) : array with the new values.
-		'''
-		idx = self.hardware.virtual_gates.index(virtual_gate_set)
-		virtual_gate_item = self.hardware.virtual_gates[idx]
-
-		i = virtual_gate_item.real_gate_names.index(gate_name)
-		j = np.empty([len(gate_names_CC)], dtype=np.int)
-		for k in range(len(gate_names_CC)):
-			j[k] = virtual_gate_item.real_gate_names.index(gate_names_CC[k])
-
-		np.asarray(virtual_gate_item.virtual_gate_matrix)[i,j] = np.asarray(values)
-
-		self.hardware.sync_data()
 
 	@property
 	def gv(self):
@@ -158,27 +151,49 @@ class gates(qc.Instrument):
 
 
 if __name__ == '__main__':
-	from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
-	from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
-
+	from core_tools.drivers.virtual_dac import virtual_dac
+	from core_tools.drivers.hardware.hardware import hardware
 	my_dac_1 = virtual_dac("dac_a", "virtual")
 	my_dac_2 = virtual_dac("dac_b", "virtual")
 	my_dac_3 = virtual_dac("dac_c", "virtual")
 	my_dac_4 = virtual_dac("dac_d", "virtual")
 
-	hw =  hardware_example("hw")
+	from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
+	set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
+
+	hw =  hardware()
+
+	hw.dac_gate_map = {
+	    # dacs for creating the quantum dots -- syntax, "gate name": (dac module number, dac index)
+	    'B0': (0, 1), 'P1': (0, 2), 
+	    'B1': (0, 3), 'P2': (0, 4),
+	    'B2': (0, 5), 'P3': (0, 6), 
+	    'B3': (0, 7), 'P4': (0, 8), 
+	    'B4': (0, 9), 'P5': (0, 10),
+	    'B5': (0, 11),'P6': (0, 12),
+	    'B6': (0, 13), 'S6' : (0,14,),
+	    'SD1_P': (1, 1), 'SD2_P': (1, 2), 
+	    'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
+	    'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
+
+	hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
+	hw.awg2dac_ratios.add(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P'])
+	hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P', 'COMP1'])
+
 	my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
-	# print(my_gates.vgv)
-	print(my_gates.vB0())
 	my_gates.vB0(1200)
 	my_gates.vB0(1800)
-	gv = my_gates.gv
 	print(my_gates.vB0())
+	print(my_gates.B0())
+	# print(my_gates.v_gates)
+
+	gv = my_gates.gv
+	# print(my_gates.vB0())
 	my_gates.set_all_zero()
 	my_gates.gv = gv
-	print(my_gates.vB0())
-	print(np.array(my_gates.hardware.virtual_gates['general'].virtual_gate_matrix))
+	# print(my_gates.vB0())
 
-	# my_gates.update_virtual_gate_entry("general", "B0", ["B0", "B1", "B2",], [1,0.8,0.3])
-	print(np.array(my_gates.hardware.virtual_gates['general'].virtual_gate_matrix))
-	print(my_dac_1)
+	from core_tools.GUI.parameter_viewer_qml.param_viewer import param_viewer
+
+	# if gates are not names gates, it needs to be provided as an argument.
+	ui = param_viewer(my_gates)
