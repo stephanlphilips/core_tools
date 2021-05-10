@@ -86,7 +86,6 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             else:
                 return n
 
-
     # TODO: @@@ change hvi_params to measurements
     def set_configuration(self, hvi_params, n_waveforms):
         conf = {}
@@ -97,6 +96,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
         if self._acquisition_delay_ns is not None:
             # only add if configured
             conf['acquisition_delay_ns'] = self._acquisition_delay_ns
+
         for awg_name, awg in self._pulse_lib.awg_devices.items():
             awg_conf = {}
             awg_conf['hvi_queue_control'] = hasattr(awg, 'hvi_queue_control') and awg.hvi_queue_control
@@ -133,6 +133,9 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             dig_conf['ds_ch'] = [channel for channel, mode in modes.items() if mode != 0]
             dig_conf['iq_ch'] = [channel for channel, mode in modes.items() if mode in [2,3]]
             dig_conf['sequencer'] = hasattr(dig, 'get_sequencer')
+            if f'dig_trigger_channels_{dig.name}' in hvi_params:
+                dig_conf['trigger_ch'] = hvi_params[f'dig_trigger_channels_{dig.name}']
+
             conf[dig.name] = dig_conf
 
         if self._configuration != conf:
