@@ -43,9 +43,10 @@ def run_qubit_exp(exp_name, sequence):
             else [dig_channel.channel_number])
         
         for ch in channel_numbers:
-            station.dig.set_channel_properties(ch, V_range=1.0)
-            station.dig.set_daq_settings(ch, my_seq.n_rep*n_acq[channel_name], 10)
-            active_channels.append(ch)
+            if n_acq[channel_name] > 0: 
+                station.dig.set_channel_properties(ch, V_range=1.0)
+                station.dig.set_daq_settings(ch, my_seq.n_rep*n_acq[channel_name], 10)
+                active_channels.append(ch)
     
     station.dig.set_active_channels(active_channels)
 
@@ -56,7 +57,7 @@ def run_qubit_exp(exp_name, sequence):
     dig_param = mc.all_results()
     dig_param.setUpParam(mc, station.dig)
     my_seq.m_param = dig_param
-    
+
     return check_OD_scan(my_seq, dig_param) + (exp_name, )
 
 

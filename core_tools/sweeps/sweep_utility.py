@@ -111,8 +111,9 @@ def check_OD_scan(sequence, minstr):
 
     def wrap_getter(get_raw_function):
         def meas(*args, **kwargs):
-            sequence.upload([0])
-            sequence.play([0])
+            sequence.starting_lambda(sequence)
+            sequence.upload()
+            sequence.play()
 
             data = get_raw_function(*args, **kwargs)
 
