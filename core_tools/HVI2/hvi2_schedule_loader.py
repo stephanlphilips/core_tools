@@ -165,6 +165,10 @@ class Hvi2ScheduleLoader(HardwareSchedule):
     def is_running(self):
         return self._schedule and self._schedule.is_running()
 
+    def stop(self):
+        if self._schedule:
+            self._schedule.stop()
+
     def close(self):
         if self._schedule:
             self._schedule.close()
