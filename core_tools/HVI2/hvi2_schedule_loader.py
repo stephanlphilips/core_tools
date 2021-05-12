@@ -3,6 +3,7 @@
 """
 import logging
 from typing import List, Union
+from collections.abc import Iterable
 
 from pulse_lib.base_pulse import pulselib
 from pulse_lib.schedule.hardware_schedule import HardwareSchedule
@@ -56,7 +57,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
                     hw.add_digitizer(digitizer)
 
         if digitizers is not None:
-            if isinstance(digitizers, SD_DIG):
+            if not isinstance(digitizers, Iterable):
                 digitizers = [digitizers]
 
             for digitizer in digitizers:
