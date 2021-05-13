@@ -18,8 +18,9 @@ class fake_digitizer(MultiParameter):
 
         def get_raw(self):
             return 0
-            
-def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate, hw_schedule=None):
+
+def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate,
+                           channel_map=None):
     """
     1D fast scan object for V2.
 
@@ -31,14 +32,13 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
-        hw_schedule : hardware schedule to trigger AWGs and digitizer
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-    
 
-    
+
+
     vp = swing/2
 
     # set up timing for the scan
@@ -54,15 +54,16 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     else:
         voltages = np.linspace(-vp,vp,n_pt)
 
-    
+
     # 100 time points per step to make sure that everything looks good (this is more than needed).
     awg_t_step = t_step /10
     sample_rate = 1/(awg_t_step*1e-9)
-    
+
     return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ), ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
 
 
-def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate, hw_schedule=None):
+def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer,
+                           channels, dig_samplerate, channel_map=None):
     """
     1D fast scan object for V2.
 
@@ -77,17 +78,16 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
-        hw_schedule : hardware schedule to trigger AWGs and digitizer
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-    
+
     # set up timing for the scan
     # 2us needed to rearm digitizer
     # 100ns HVI waiting time
     step_eff = 2000 + 120 + t_step
- 
+
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
     vp2 = swing2/2
@@ -99,19 +99,21 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         voltages2[1::2] = np.linspace(-vp2,vp2,n_pt2)[len(voltages2[1::2]):][::-1]
     else:
         voltages2 = np.linspace(-vp2,vp2,n_pt2)
-            
+
     # 100 time points per step to make sure that everything looks good (this is more than needed).
     awg_t_step = t_step /10
     sample_rate = 1/(awg_t_step*1e-9)
-    
-    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt1, n_pt2), (gate1, gate2), (tuple(voltages1),tuple(np.sort(voltages2))), biasT_corr, 500e6)
+
+    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt1, n_pt2), (gate1, gate2),
+                                         (tuple(voltages1),tuple(np.sort(voltages2))), biasT_corr, 500e6)
 
 
 class dummy_digitzer_scan_parameter(MultiParameter):
     """
     generator for the parameter f
     """
-    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate, data_mode = 0, channels = [1,2]):
+    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate,
+                 data_mode = 0, channels = [1,2]):
         """
         args:
             digitizer (SD_DIG) : digizer driver:
@@ -121,7 +123,7 @@ class dummy_digitzer_scan_parameter(MultiParameter):
             shape (tuple<int>): expected output shape
             names (tuple<str>): name of the gate(s) that are measured.
             setpoint (tuple<np.ndarray>): array witht the setpoints of the input data
-            biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data. 
+            biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
             sample_rate (float): sample rate of the digitizer card that should be used.
             data mode (int): data mode of the digizer
             channels (list<int>): channels to measure
@@ -166,7 +168,7 @@ class dummy_digitzer_scan_parameter(MultiParameter):
 
         # time.sleep(0.02)
         # print(data_out)
-        
+
         return tuple(data_out)
 
     def __del__(self):
