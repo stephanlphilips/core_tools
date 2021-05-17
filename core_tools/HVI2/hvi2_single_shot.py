@@ -162,8 +162,6 @@ class Hvi2SingleShot():
                                     awg_seq.lo.reset_phase(los)
                                 else:
                                     awg_seq.wait(10)
-                                if self._module_config(awg_seq, 'sequencer'):
-                                    awg_seq.wait(10)
 
                                 awg_seq.qs.reset_phase()
                                 awg_seq.qs.start()
