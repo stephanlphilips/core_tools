@@ -55,7 +55,7 @@ class PulseLibParameter(Parameter):
 
             index = np.unravel_index(self.flat_index, self.sequencer.shape)
             self.sequencer.play(index, release=True)
-            self.sequencer.m_param.setIndex(index)
+            self.sequencer.m_param.setIndex(tuple(index))
             if MODE == SLOW:
                 self.sequencer.uploader.wait_until_AWG_idle()
             if MODE==FAST and self.flat_index < np.prod(self.sequencer.shape) - 1:
@@ -112,8 +112,9 @@ def check_OD_scan(sequence, minstr):
     def wrap_getter(get_raw_function):
         def meas(*args, **kwargs):
             sequence.starting_lambda(sequence)
-            sequence.upload()
-            sequence.play()
+            sequence.upload((0, ))
+            sequence.play((0, ))
+            sequence.m_param.setIndex((0, ))
 
             data = get_raw_function(*args, **kwargs)
 

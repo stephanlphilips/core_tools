@@ -38,14 +38,11 @@ def run_qubit_exp(exp_name, sequence):
     
     for channel_name in md.acquisitions:
         dig_channel = station.pulse.digitizer_channels[channel_name]
-        channel_numbers = (dig_channel.channel_numbers 
-            if isinstance(dig_channel, digitizer_channel_iq)
-            else [dig_channel.channel_number])
         
-        for ch in channel_numbers:
+        for ch in dig_channel.channel_numbers:
             if n_acq[channel_name] > 0: 
                 station.dig.set_channel_properties(ch, V_range=1.0)
-                station.dig.set_daq_settings(ch, my_seq.n_rep*n_acq[channel_name], 10)
+                station.dig.set_daq_settings(ch, my_seq.n_rep*n_acq[channel_name], 2e3)
                 active_channels.append(ch)
     
     station.dig.set_active_channels(active_channels)
