@@ -5,8 +5,8 @@ from core_tools.data.gui.plot_mgr import data_plotter
 from core_tools.data.gui.data_browser_models.result_table_gui import result_table_model
 from core_tools.data.gui.data_browser_models.date_list_GUI import data_list_model
 
-from core_tools.data.SQL.SQL_measurment_queries import query_for_samples, query_for_measurement_results
-from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+from core_tools.data.SQL.queries.dataset_gui_queries import query_for_samples, query_for_measurement_results
+from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
@@ -37,7 +37,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
         self.dates_overview_model = data_list_model()
         self.dates_overview.setModel(self.dates_overview_model)
         self.dates_overview.clicked.connect(self.load_meas_data)
-        
+
         self.data_table_model = result_table_model()
         self.data_table.setSortingEnabled(True);
         self.data_table.sortByColumn(3, QtCore.Qt.DescendingOrder)
@@ -61,7 +61,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
         self.Sample_scroll_box.activated.connect(partial(self.update_index, ('sample', self.Sample_scroll_box),
             ('set_up',self.set_up_scroll_box), ('project', self.Project_scroll_box), True))
         self.Project_scroll_box.activated.connect(
-            partial(self.update_index, 
+            partial(self.update_index,
                         ('project', self.Project_scroll_box),
                         ('set_up',self.set_up_scroll_box),
                         ('sample', self.Sample_scroll_box),
@@ -78,7 +78,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
             ('project', self.project_search), ('sample', self.sample_search)))
         self.sample_search.activated.connect(partial(self.update_index, ('sample', self.sample_search),
             ('set_up',self.set_up_search), ('project', self.project_search)))
-        self.project_search.activated.connect(partial(self.update_index, 
+        self.project_search.activated.connect(partial(self.update_index,
             ('project', self.project_search), ('set_up',self.set_up_search),('sample', self.sample_search)))
 
         self.reset_search_box()
@@ -101,8 +101,8 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.check_for_updates)
         self.timer.start(200)
-        
-        
+
+
         self.app.exec_()
 
     def enable_date(self, item, state):
@@ -118,9 +118,9 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
         other_1_val = other_1[1].currentText()
         other_2_val = other_2[1].currentText()
 
-        vals_1 = ['any'] + query_for_samples.get_x_given_yz(other_1[0], (other_2[0],if_any_to_none(other_2_val)), 
+        vals_1 = ['any'] + query_for_samples._query_for_samples__get_x_given_yz(other_1[0], (other_2[0],if_any_to_none(other_2_val)),
                                     (current[0], if_any_to_none(current_val)))
-        vals_2 = ['any'] + query_for_samples.get_x_given_yz(other_2[0], (other_1[0],if_any_to_none(other_1_val)), 
+        vals_2 = ['any'] + query_for_samples._query_for_samples__get_x_given_yz(other_2[0], (other_1[0],if_any_to_none(other_1_val)),
                                     (current[0], if_any_to_none(current_val)))
 
         self.init_index(other_1[1], vals_1, vals_1.index(other_1_val))
@@ -134,7 +134,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
                 self.sample_info['set_up'], self.sample_info['sample'])
 
             self.dates_overview_model.update_content(data)
-            
+
             if len(self.dates_overview_model.data_list) > 0:
                 self.selected_date = self.dates_overview_model.data_list[0]
                 self.load_data_table(self.selected_date)
@@ -142,7 +142,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
     def load_meas_data(self, idx):
         self.selected_date = self.dates_overview_model.data_list[idx.row()]
         self.load_data_table(self.selected_date)
-    
+
     def load_data_table(self, date):
         data = query_for_measurement_results.get_results_for_date(date, **self.sample_info)
         self.data_table_model.overwrite_data(data)
@@ -152,7 +152,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
 
     def load_measurement_search(self, index):
         self.plot_ds(self.search_table_data_model._data[index.row()].uuid)
-        
+
     def plot_ds(self, uuid):
         ds = load_by_uuid(uuid)
         p = data_plotter(ds)
@@ -199,7 +199,7 @@ class data_browser(data_browser_autogen.Ui_MainWindow):
             exp_id = id_uuid
         elif seach_type_id_uuid == 'uuid' and id_uuid!="":
             exp_uuid = id_uuid
-        
+
         project = if_any_to_none(self.project_search.currentText())
         set_up = if_any_to_none(self.set_up_search.currentText())
         sample = if_any_to_none(self.sample_search.currentText())
