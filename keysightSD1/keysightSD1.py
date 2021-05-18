@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 import keysightSD1.SD1constants as constants
 import numpy as np
 
-if sys.version_info[1] > 7 :
+if sys.version_info[1] > 7 and sys.platform != 'linux':
     os.add_dll_directory('C:\\Program Files\\Keysight\\SD1\\shared')
     os.add_dll_directory('C:\\Program Files\\Common Files\\Keysight\\PathWave Test Sync Executive\\Core\\bin')
 

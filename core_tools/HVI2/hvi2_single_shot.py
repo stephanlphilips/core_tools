@@ -31,6 +31,7 @@ class Hvi2SingleShot():
                     'raw_ch' (List[int]): channels in raw mode
                     'ds_ch' (List[int]): channels in downsampler mode
                     'iq_ch' (List[int]): channels in IQ mode
+                    'trigger_ch' (Optional[List[List[int]]]): channels to trigger on trigger i.
                 `awg_name`:
                     'active_los' (List[Tuple[int,int]]): pairs of (channel, LO).
                     'switch_los' (bool): whether to switch LOs on/off
@@ -48,7 +49,7 @@ class Hvi2SingleShot():
 
 
     def _module_config(self, seq, key):
-        return self._configuration[seq.engine.alias][key]
+        return self._configuration[seq.engine.alias].get(key, None)
 
 
     def _wait_state_clear(self, dig_seq, **kwargs):
@@ -73,6 +74,12 @@ class Hvi2SingleShot():
                 dig_seq.wait(600)
                 # self._wait_state_clear(dig_seq, pushing=ds_ch)
 
+    def _get_trigger_channels(self, dig_seq, i):
+        trigger_ch = self._module_config(dig_seq, 'trigger_ch')
+        if trigger_ch is None:
+            return self._module_config(dig_seq, 'ds_ch')
+        else:
+            return trigger_ch[i]
 
     def sequence(self, sequencer, hardware):
         self.hardware = hardware
@@ -155,6 +162,11 @@ class Hvi2SingleShot():
                                     awg_seq.lo.reset_phase(los)
                                 else:
                                     awg_seq.wait(10)
+
+                                awg_seq.qs.reset_phase()
+                                awg_seq.qs.start()
+                                # total time since start loop: 50 ns (with QS)
+                                awg_seq.qs.trigger()
                                 awg_seq.trigger()
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.start()
@@ -175,6 +187,7 @@ class Hvi2SingleShot():
                                 awg_seq.wait(awg_seq['wave_duration'])
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.stop()
+                                awg_seq.qs.stop()
 
                             for dig_seq in dig_seqs:
                                 iq_ch = self._module_config(dig_seq, 'iq_ch')
@@ -187,6 +200,11 @@ class Hvi2SingleShot():
                                 else:
                                     dig_seq.wait(10)
 
+                                dig_seq.qs.stop()
+                                dig_seq.qs.start()
+                                # total time since start loop: 30 ns
+                                dig_seq.qs.trigger()
+
                                 for i in range(n_triggers):
                                     dig_seq.wait(dig_seq[f'dig_wait_{i+1}'])
                                     if len(raw_ch) > 0:
@@ -195,8 +213,9 @@ class Hvi2SingleShot():
                                         dig_seq.wait(10)
                                     dig_seq.wait(40)
 
-                                    if len(ds_ch) > 0:
-                                        dig_seq.ds.control(start=ds_ch)
+                                    trigger_ch = self._get_trigger_channels(dig_seq, i)
+                                    if len(trigger_ch) > 0:
+                                        dig_seq.ds.control(start=trigger_ch)
                                     else:
                                         dig_seq.wait(10)
 
@@ -205,6 +224,7 @@ class Hvi2SingleShot():
                         self._push_data(dig_seqs)
                         for seq in all_seqs:
                             seq.stop()
+                            seq.qs.stop()
                             seq.sys.clear_ticks()
                             # this delay saves 1 PXI trigger
                             seq.wait(100)
@@ -245,7 +265,7 @@ class Hvi2SingleShot():
     def _set_wait_time(self, hvi_exec, register, value_ns):
         if value_ns < 0:
             # negative value results in wait time of 40 s.
-            raise Exception(f'Invalid wait time {value_ns}')
+            raise Exception(f'Invalid wait time {value_ns} [{register}]')
         hvi_exec.write_register(register, int(value_ns/10))
 
 
@@ -282,8 +302,8 @@ class Hvi2SingleShot():
             if self._configuration[awg.name]['hvi_queue_control']:
                 awg.write_queue_mem()
 
-        # add 310 ns delay to start acquiring when awg signal arrives at digitizer.
-        dig_offset = 310 + self._acquisition_delay
+        # add 300 ns delay to start acquiring when awg signal arrives at digitizer.
+        dig_offset = 300 + self._acquisition_delay
         tot_wait = -dig_offset
         for i in range(0, self._configuration['n_triggers']):
             t_trigger = self._get_dig_trigger(hvi_params, i)

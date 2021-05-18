@@ -3,6 +3,7 @@
 """
 import logging
 from typing import List, Union
+from collections.abc import Iterable
 
 from pulse_lib.base_pulse import pulselib
 from pulse_lib.schedule.hardware_schedule import HardwareSchedule
@@ -50,17 +51,18 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             if awg not in hw.awgs:
                 hw.add_awg(awg)
 
-        if hasattr(pulse_lib, 'digitizer_devices'):
-            for digitizer in pulse_lib.digitizer_devices.values():
+        if hasattr(pulse_lib, 'digitizers'):
+            for digitizer in pulse_lib.digitizers.values():
                 if digitizer not in hw.digitizers:
                     hw.add_digitizer(digitizer)
 
-        if isinstance(digitizers, SD_DIG):
-            digitizers = [digitizers]
+        if digitizers is not None:
+            if not isinstance(digitizers, Iterable):
+                digitizers = [digitizers]
 
-        for digitizer in digitizers:
-            if digitizer not in hw.digitizers:
-                hw.add_digitizer(digitizer)
+            for digitizer in digitizers:
+                if digitizer not in hw.digitizers:
+                    hw.add_digitizer(digitizer)
         return hw
 
     @staticmethod
@@ -75,7 +77,6 @@ class Hvi2ScheduleLoader(HardwareSchedule):
     def set_schedule_parameters(self, **kwargs):
         self._schedule_parameters = kwargs
 
-
     def _get_n_measurements(self, hvi_params):
         n = 0
         while(True):
@@ -85,7 +86,6 @@ class Hvi2ScheduleLoader(HardwareSchedule):
                 n += 1
             else:
                 return n
-
 
     # TODO: @@@ change hvi_params to measurements
     def set_configuration(self, hvi_params, n_waveforms):
@@ -97,9 +97,11 @@ class Hvi2ScheduleLoader(HardwareSchedule):
         if self._acquisition_delay_ns is not None:
             # only add if configured
             conf['acquisition_delay_ns'] = self._acquisition_delay_ns
+
         for awg_name, awg in self._pulse_lib.awg_devices.items():
             awg_conf = {}
             awg_conf['hvi_queue_control'] = hasattr(awg, 'hvi_queue_control') and awg.hvi_queue_control
+            awg_conf['sequencer'] = hasattr(awg, 'get_sequencer')
             # 'active_lost' is List[Typle[channel, LO]]
             awg_conf['active_los'] = awg.active_los if hasattr(awg, 'active_los') else {}
             # TODO: retrieve switch_los en enabled_los from measurements / resonator_channels
@@ -131,6 +133,10 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             dig_conf['raw_ch'] = [channel for channel, mode in modes.items() if mode == 0]
             dig_conf['ds_ch'] = [channel for channel, mode in modes.items() if mode != 0]
             dig_conf['iq_ch'] = [channel for channel, mode in modes.items() if mode in [2,3]]
+            dig_conf['sequencer'] = hasattr(dig, 'get_sequencer')
+            if f'dig_trigger_channels_{dig.name}' in hvi_params:
+                dig_conf['trigger_ch'] = hvi_params[f'dig_trigger_channels_{dig.name}']
+
             conf[dig.name] = dig_conf
 
         if self._configuration != conf:
@@ -159,6 +165,10 @@ class Hvi2ScheduleLoader(HardwareSchedule):
 
     def is_running(self):
         return self._schedule and self._schedule.is_running()
+
+    def stop(self):
+        if self._schedule:
+            self._schedule.stop()
 
     def close(self):
         if self._schedule:

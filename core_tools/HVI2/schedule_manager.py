@@ -23,22 +23,14 @@ class ScheduleMgr():
 
             self.digitisers = digitisers
 
+
             for dig in digitisers:
                 load_iq_image(dig.SD_AIN)
 
-    def video_mode(self):
-        for dig in self.digitisers:
-            dig.set_acquisition_mode(MODES.AVERAGE)
-        return Hvi2ScheduleLoader(self.pulse_lib, 'VideoMode', self.digitisers,
-                                  # acquisition_delay_ns=1000 # Add acquisition delay if video mode is too fast for resonator
-                                  )
-
     def single_shot(self, n_triggers):
-        return Hvi2ScheduleLoader(self.pulse_lib, 'SingleShot', self.digitisers)
-
-    def single_shot_raw(self, n_triggers):
-        return Hvi2ScheduleLoader(self.pulse_lib, 'SingleShot', self.digitisers)
-
+        schedule =  Hvi2ScheduleLoader(self.pulse_lib, 'SingleShot', self.digitisers)
+        return schedule
+        
     def __check_init(self):
         if self.pulse_lib is None:
             raise ValueError('ScheduleMgr is not initialized. Please run in init.')

@@ -3,6 +3,7 @@ import logging
 import os
 from PyQt5 import QtCore
 from pprint import pprint
+import numpy as np
 
 import qcodes
 #import qcodes.logger as logger
@@ -129,7 +130,11 @@ pulse = create_pulse_lib(awgs)
 print('start gui')
 
 logging.info('open plotting')
-plotting = liveplotting(pulse, dig, "Keysight")
+channel_map={'ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-amplitude':(3, np.abs), 'ch3-angle':(3, np.angle),
+             'ch1-neg':(1, lambda x:-x)}
+
+plotting = liveplotting(pulse, dig, "Keysight", channel_map=channel_map)
+
 plotting._2D_gate2_name.setCurrentIndex(1)
 plotting._2D_t_meas.setValue(1)
 plotting._2D_V1_swing.setValue(100)

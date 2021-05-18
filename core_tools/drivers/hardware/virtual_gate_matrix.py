@@ -21,18 +21,37 @@ class virtual_gate_matrix():
     def matrix(self):
         return self.forward_conv_lamda(self._matrix)
 
+    @matrix.setter
+    def matrix(self, matrix):
+        if self._matrix.shape != matrix.shape:
+            raise ValueError('input shape of matrix does not match the one in the virtual gate matrix')
+        self._matrix[:,:] = self.backward_conv_lamda(matrix)
+        self.save()
+
     @property
     def inv(self):
         l_inv_f = combine_lamdas(self.forward_conv_lamda, lamda_invert)
         l_inv_b = combine_lamdas(self.backward_conv_lamda, lamda_invert)
         return virtual_gate_matrix(self.name, self.gates, self.v_gates, self._matrix, l_inv_f, l_inv_b)
     
-    @property
-    def norm(self):
-        l_norm_f = combine_lamdas(self.forward_conv_lamda, lamda_norm)
-        l_norm_b = combine_lamdas(self.backward_conv_lamda, lamda_unnorm)
-        return virtual_gate_matrix(self.name, self.gates, self.v_gates, self._matrix, l_norm_f, l_norm_b)
-    
+    def reduce(self, gates, v_gates = None):
+        '''
+        reduce size of the virtual gate matrix
+
+        Args:
+            gates (list<str>) : name of the gates where to reduce to reduce the current matrix to.
+            v_gates (list<str>) : list with the names of the virtual gates (optional)
+        '''
+        v_gates = name_virtual_gates(v_gates, gates)
+        v_gate_matrix = np.eye(len(gates))
+
+        for i in range(len(gates)):
+            for j in range(len(gates)):
+                if gates[i] in self.gates:
+                    v_gate_matrix[i, j] = self[v_gates[i],gates[j]]
+        
+        return virtual_gate_matrix('dummy', gates, v_gates, v_gate_matrix)
+
     def __getitem__(self, index):
         if isinstance(index, tuple):
             idx_1, idx_2 = index
@@ -49,11 +68,10 @@ class virtual_gate_matrix():
             idx_1 = self.__evaluate_index(idx_1, self.v_gates)
             idx_2 = self.__evaluate_index(idx_2, self.gates)
 
-            self.matrix[idx_1,idx_2] = value
-            self._matrix = self.backward_conv_lamda(self.matrix)
-
-            if self.name != 'dummy':
-                save(self)
+            m = self.matrix
+            m[idx_1,idx_2] = value
+            self._matrix[:,:] = self.backward_conv_lamda(m)
+            self.save()
         else:
             raise ValueError("wrong input foramt provided ['virtual_gate','gate'] expected).".format(v_gate))
 
@@ -68,6 +86,13 @@ class virtual_gate_matrix():
                 idx = options.index(idx)
         
         return idx
+    
+    def save(self):
+        if self.name != 'dummy':
+            save(self)
+
+    def __len__(self):
+        return len(self.gates)
 
     def __repr__(self):
         descr =  "Virtual gate matrix named {}\nContents:\n".format(self.name)
@@ -82,21 +107,21 @@ class virtual_gate_matrix():
 def lamda_invert(matrix):
     return np.linalg.inv(matrix)
 
-def lamda_norm(matrix_no_norm):
-    matrix_norm = np.empty(matrix_no_norm.shape)
-
-    for i in range(matrix_norm.shape[0]):
-        matrix_norm[i, :] = matrix_no_norm[i]/np.sum(np.abs(matrix_no_norm[i, :]))
-
-    return matrix_norm
-
-def lamda_unnorm(matrix_norm):
+def lamda_norm(matrix_norm):
     matrix_no_norm = np.empty(matrix_norm.shape)
 
     for i in range(matrix_norm.shape[0]):
         matrix_no_norm[i, :] = matrix_norm[i, :]/matrix_norm[i, i]
 
     return matrix_no_norm
+
+def lamda_unnorm(matrix_no_norm):
+    matrix_norm = np.empty(matrix_no_norm.shape)
+
+    for i in range(matrix_norm.shape[0]):
+        matrix_norm[i, :] = matrix_no_norm[i]/np.sum(matrix_no_norm[i, :])
+
+    return matrix_norm
 
 def combine_lamdas(l1, l2):
     def new_lamda(matrix):
@@ -105,10 +130,11 @@ def combine_lamdas(l1, l2):
 
 def load_virtual_gate(name, real_gates, virtual_gates=None):
     conn = SQL_database_manager().conn_local
+    virtual_gate_queries.generate_table(conn)
         
     virtual_gates = name_virtual_gates(virtual_gates, real_gates)
 
-    if virtual_gate_queries.check_exist(conn, name):
+    if virtual_gate_queries.check_var_in_table_exist(conn, name):
         real_gate_db, virtual_gate_db, matrix_db = virtual_gate_queries.get_virtual_gate_matrix(conn, name)
 
         entries_to_add = set(real_gates) - set(real_gate_db)
@@ -117,7 +143,6 @@ def load_virtual_gate(name, real_gates, virtual_gates=None):
 
         dummy_matrix = np.eye(len(gates))
         dummy_matrix[:len(real_gate_db) , :len(real_gate_db)] = matrix_db
-
         dummy_v_gates = virtual_gate_matrix('dummy', gates, name_virtual_gates(None, gates), dummy_matrix)
 
         v_gate_matrix = np.eye(len(real_gates))
@@ -125,7 +150,6 @@ def load_virtual_gate(name, real_gates, virtual_gates=None):
         for i in range(len(real_gates)):
             for j in range(len(real_gates)):
                 v_gate_matrix[i, j] = dummy_v_gates['v' + real_gates[i],real_gates[j]]
-
         return virtual_gate_matrix(name, real_gates, virtual_gates, v_gate_matrix)
 
     else:
@@ -134,7 +158,7 @@ def load_virtual_gate(name, real_gates, virtual_gates=None):
 def save(vg_matrix):
     conn = SQL_database_manager().conn_local
 
-    if virtual_gate_queries.check_exist(conn, vg_matrix.name):
+    if virtual_gate_queries.check_var_in_table_exist(conn, vg_matrix.name):
         # merge in case there are more entries
         real_gate_db, virtual_gate_db, matrix_db = virtual_gate_queries.get_virtual_gate_matrix(conn, vg_matrix.name)
         all_gates = list(set(real_gate_db + vg_matrix.gates))

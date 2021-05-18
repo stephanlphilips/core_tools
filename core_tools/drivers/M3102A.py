@@ -42,6 +42,8 @@ class MODES:
         AVERAGE : averaging / downsampling of traces
         IQ_DEMODULATION : IQ demodulation
         IQ_DEMOD_I_ONLY : IQ demodulation output I-only
+        IQ_INPUT_SHIFTED_IQ_OUT : IQ input pair (1+2 or 3+4), phase shift and complex output on odd channel.
+        IQ_INPUT_SHIFTED_I_OUT  : IQ input pair (1+2 or 3+4), phase shift and I value output on odd channel.
 
     The operating modes other than NORMAL require an FPGA image.
     """
@@ -49,6 +51,8 @@ class MODES:
     AVERAGE = 1
     IQ_DEMODULATION = 2
     IQ_DEMOD_I_ONLY = 3
+    IQ_INPUT_SHIFTED_IQ_OUT = 4
+    IQ_INPUT_SHIFTED_I_OUT = 5
 
 
 class OPERATION_MODES:
@@ -241,7 +245,7 @@ class line_trace(MultiParameter):
                 # remove extra samples due to alignment
                 channel_data_raw = channel_data_raw[:,:channel_property.points_per_cycle]
 
-            elif channel_property.acquisition_mode == MODES.IQ_DEMODULATION:
+            elif channel_property.acquisition_mode in [MODES.IQ_DEMODULATION, MODES.IQ_INPUT_SHIFTED_IQ_OUT]:
                 # remove aligment point
                 total_points = channel_property.points_per_cycle * channel_property.cycles * 2
                 channel_data_raw = channel_data_raw[:total_points]
@@ -778,7 +782,10 @@ class SD_DIG(Instrument):
 
             eff_t_measure = points_per_cycle * downsampling_factor * 10 * 2**power2decimation
 
-            values_per_point = 2 if properties.acquisition_mode == MODES.IQ_DEMODULATION else 1
+            values_per_point = (
+                    2
+                    if properties.acquisition_mode in [MODES.IQ_DEMODULATION, MODES.IQ_INPUT_SHIFTED_IQ_OUT]
+                    else 1)
             daq_points_per_cycle = n_cycles * points_per_cycle * values_per_point
             daq_cycles = 1
             config_input_channel = properties.input_channel if properties.input_channel != 0 else channel
@@ -947,6 +954,38 @@ class SD_DIG(Instrument):
     # firmware specific functions #  Only for FPGA image firmware 2.x
     ###############################
 
+    def set_input_channel(self, channel, input_channel):
+        '''
+        Selects the input channel to use for averaging/downsampling and IQ demodulation.
+
+        Args:
+            channel (int): channel to configure, i.e. the DAQ buffer.
+            input_channel (int): input channel to use, i.e. the physical input.
+        '''
+        if not is_iq_image_loaded(self.SD_AIN):
+            raise Exception('IQ demodulation FPGA image not loaded')
+
+        properties = self.channel_properties[f'ch{channel}']
+        properties.input_channel = input_channel if input_channel is not None else channel
+
+        if properties.acquisition_mode == MODES.NORMAL:
+            logging.warning('Input channel selection has no effect when normal mode is selected')
+        dig_set_input_channel(self.SD_AIN, channel, properties.input_channel)
+
+    def set_demodulated_in(self, channel, phase, output_IQ):
+        '''
+        Sets demoduled I/Q input with phase shifting.
+        '''
+        if channel not in [1, 3]:
+            raise Exception(f'demodulated IQ input must be configured on channel 1 (=1+2) or 3 (=3+4)')
+        properties = self.channel_properties[f'ch{channel}']
+        mode = MODES.IQ_INPUT_SHIFTED_IQ_OUT if output_IQ else MODES.IQ_INPUT_SHIFTED_I_OUT
+        properties.acquisition_mode = mode
+        properties.lo_phase = phase
+        properties.lo_frequency = 0
+        dig_set_lo(self.SD_AIN, channel, 0, phase)
+        self.measure._generate_parameter_info()
+
     def set_lo(self, channel, frequency, phase, input_channel=None):
         '''
         Set the local oscillator for IQ demodulation.
@@ -961,13 +1000,11 @@ class SD_DIG(Instrument):
             raise Exception('IQ demodulation FPGA image not loaded')
 
         properties = self.channel_properties[f'ch{channel}']
-        properties.lo_frequency = frequency
         properties.lo_phase = phase
         properties.input_channel = input_channel if input_channel is not None else channel
 
-        if properties.acquisition_mode in [MODES.IQ_DEMODULATION, MODES.IQ_DEMOD_I_ONLY]:
-            dig_set_lo(self.SD_AIN, channel, frequency, phase)
-            dig_set_input_channel(self.SD_AIN, channel, properties.input_channel)
+        dig_set_lo(self.SD_AIN, channel, frequency, phase)
+        dig_set_input_channel(self.SD_AIN, channel, properties.input_channel)
 
     def set_measurement_time_averaging(self, channel, t_measure):
         '''

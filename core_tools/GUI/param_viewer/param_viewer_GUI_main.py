@@ -4,7 +4,6 @@ from core_tools.GUI.param_viewer.param_viewer_GUI_window import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
 import qcodes as qc
-from qcodes import Station
 import numpy as np
 from dataclasses import dataclass
 
@@ -17,15 +16,12 @@ class param_data_obj:
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, station : Station, gates_object: Optional[object] = None, keysight_rf: Optional[object] = None):
-        if type(station) is not Station:
-            raise Exception('Syntax changed, to support RF_settings now supply station')
+    def __init__(self, gates_object: Optional[object] = None, keysight_rf: Optional[object] = None):
         self.real_gates = list()
         self.virtual_gates = list()
         self.rf_settings = list()
-        self.station = station
+        self.station = qc.Station.default
         self.keysight_rf = keysight_rf
-        
         if gates_object:
             self.gates_object = gates_object
         else:
@@ -63,8 +59,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             self._add_gate(param, False)
 
         # add virtual gates
-        for virt_gate_set in self.gates_object.hardware.virtual_gates:
-            for gate_name in virt_gate_set.virtual_gate_names:
+        for virtual_gates_names in self.gates_object.v_gates.values():
+            for gate_name in virtual_gates_names:
                 param = getattr(self.gates_object, gate_name)
                 self._add_gate(param, True)
 
@@ -249,8 +245,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 if __name__ == "__main__":
     import sys
     import qcodes as qc
-    from users.Stephan.V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
-    from users.Stephan.V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
+
+    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
+    set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
+    from core_tools.drivers.hardware.hardware import hardware
+    from core_tools.drivers.virtual_dac import virtual_dac
     from core_tools.drivers.gates import gates
 
     my_dac_1 = virtual_dac("dac_a", "virtual")
@@ -258,14 +257,27 @@ if __name__ == "__main__":
     my_dac_3 = virtual_dac("dac_c", "virtual")
     my_dac_4 = virtual_dac("dac_d", "virtual")
 
-    hw =  hardware_example("hwsss")
+    hw =  hardware()
     hw.RF_source_names = []
-    my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
+    hw.dac_gate_map = {
+        'B0': (0, 1), 'P1': (0, 2), 
+        'B1': (0, 3), 'P2': (0, 4),
+        'B2': (0, 5), 'P3': (0, 6), 
+        'B3': (0, 7), 'P4': (0, 8), 
+        'B4': (0, 9), 'P5': (0, 10),
+        'B5': (0, 11),'P6': (0, 12),
+        'B6': (0, 13), 'S6' : (0,14,),
+        'SD1_P': (1, 1), 'SD2_P': (1, 2), 
+        'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
+        'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
 
-    # app = QtWidgets.QApplication(sys.argv)
-    # MainWindow = QtWidgets.QMainWindow()
+    hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
+    hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P', 'COMP1'])
+    hw.awg2dac_ratios.add(hw.virtual_gates.test.gates)
+
+
+    my_gates = gates("gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
     station=qc.Station(my_gates)
-    ui = param_viewer(station, my_gates)
-
-    # MainWindow.show()
-    # sys.exit(app.exec_())
+    ui = param_viewer()
+    from core_tools.GUI.virt_gate_matrix_qml.gui_controller import virt_gate_matrix_GUI
+    # virt_gate_matrix_GUI()

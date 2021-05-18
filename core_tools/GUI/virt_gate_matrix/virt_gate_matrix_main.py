@@ -55,7 +55,6 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
             if gate not in pulse_lib.marker_channels:
                 self.add_gate(gate)
 
-
         self.add_spacer()
 
         for virtual_gate_set in hardware.virtual_gates:
@@ -93,7 +92,9 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         v_ratio.setMaximum(1.0)
         v_ratio.setSingleStep(0.01)
         v_ratio.setMinimumSize(QtCore.QSize(0, 26))
+
         v_ratio.setValue(v_ratio_value)
+
         v_ratio.valueChanged.connect(partial(self.update_v_ratio, gate_name))
         self.verticalLayout_4.addWidget(v_ratio)
 
@@ -102,6 +103,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         db_ratio.setMaximum(0.0)
         db_ratio.setMinimum(-100.0)
         db_ratio.setMinimumSize(QtCore.QSize(0, 26))
+
         db_ratio.setValue(20*np.log10(v_ratio_value))
         db_ratio.valueChanged.connect(partial(self.update_db_ratio, gate_name))
         self.verticalLayout_3.addWidget(db_ratio)
@@ -132,6 +134,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         v_ratio, db_ratio = self.AWG_attentuation_local_data[gate_name]
         db_ratio_value = 20*np.log10(v_ratio.value())
         db_ratio.setValue(db_ratio_value)
+
         self.update_awg_attenuation(gate_name, v_ratio.value())
 
     def update_awg_attenuation(self, gate_name, v_ratio):
@@ -260,11 +263,11 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 if __name__ == "__main__":
-    import sys
-    from V2_software.pulse_lib_config.Init_pulse_lib_debug import return_pulse_lib
     import qcodes as qc
-    from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
-    from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
+
+    from pulse_templates.demo_pulse_lib.virtual_awg import get_demo_lib
+    from hardware_example import hardware6dot
+    from core_tools.drivers.virtual_dac import virtual_dac
     from core_tools.drivers.gates import gates
 
     my_dac_1 = virtual_dac("dac_a", "virtual")
@@ -272,8 +275,8 @@ if __name__ == "__main__":
     my_dac_3 = virtual_dac("dac_c", "virtual")
     my_dac_4 = virtual_dac("dac_d", "virtual")
 
-    hw =  hardware_example("hw")
+    hw =  hardware6dot('test1')
     my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
+    pulse = get_demo_lib('six')
 
-    pulse = return_pulse_lib(hw)
     ui = virt_gate_matrix_GUI(my_gates, pulse)

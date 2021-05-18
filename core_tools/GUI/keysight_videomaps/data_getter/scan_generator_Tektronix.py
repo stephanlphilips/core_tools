@@ -13,7 +13,7 @@ from pulse_lib.schedule.tektronix_schedule import TektronixSchedule
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
                            dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
-                           enabled_markers=[]):
+                           enabled_markers=[], channel_map=None):
     """
     1D fast scan object for V2.
 
@@ -27,11 +27,17 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         digitizer_measure : digitizer object
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
-                all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
+                all channels. A dict can be used to specify selection per channel, e.g. {1:'abs', 2:'angle'}.
+                Note: channel_map is a more generic replacement for iq_mode.
         acquisition_delay_ns (float):
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
         enable_markers (List[str]): marker channels to enable during scan
+        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
+            defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
+            E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+            The default channel_map is:
+                {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
@@ -79,12 +85,13 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, acquisition_delay_ns,
                                     (n_pt, ), (gate, ), (tuple(voltages), ),
-                                    biasT_corr, dig_samplerate, channels = channels, Vmax=dig_vmax, iq_mode=iq_mode)
+                                    biasT_corr, dig_samplerate, channels = channels, Vmax=dig_vmax, iq_mode=iq_mode,
+                                    channel_map=channel_map)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
                            digitizer, channels, dig_samplerate, dig_vmax=2.0, iq_mode=None,
-                           acquisition_delay_ns=None, enabled_markers=[]):
+                           acquisition_delay_ns=None, enabled_markers=[], channel_map=None):
     """
     1D fast scan object for V2.
 
@@ -102,10 +109,16 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
+                Note: channel_map is a more generic replacement for iq_mode.
         acquisition_delay_ns (float):
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
         enable_markers (List[str]): marker channels to enable during scan
+        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
+            defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
+            E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+            The default channel_map is:
+                {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
@@ -163,7 +176,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, acquisition_delay_ns,
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(np.sort(voltages2)),tuple(voltages1)), biasT_corr, dig_samplerate,
-                                     channels=channels, Vmax=dig_vmax, iq_mode=iq_mode)
+                                     channels=channels, Vmax=dig_vmax, iq_mode=iq_mode, channel_map=channel_map)
 
 
 class _digitzer_scan_parameter(MultiParameter):
@@ -172,7 +185,7 @@ class _digitzer_scan_parameter(MultiParameter):
     """
     def __init__(self, digitizer, my_seq, pulse_lib, t_measure, acquisition_delay_ns,
                  shape, names, setpoint, biasT_corr, sample_rate,
-                 channels = [1,2,3,4], Vmax=2.0, iq_mode=None):
+                 channels = [1,2,3,4], Vmax=2.0, iq_mode=None, channel_map=None):
         """
         args:
             digitizer (SD_DIG) : digizer driver:
@@ -189,6 +202,12 @@ class _digitzer_scan_parameter(MultiParameter):
             iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                     complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                     all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
+                    Note: channel_map is a more generic replacement for iq_mode.
+            channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
+                defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
+                E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+                The default channel_map is:
+                    {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
         """
         self.dig = digitizer
         self.my_seq = my_seq
@@ -199,9 +218,8 @@ class _digitzer_scan_parameter(MultiParameter):
         self.channels = [ch-1 for ch in channels]
         self.biasT_corr = biasT_corr
         self.shape = shape
-        self.n_ch = len(channels)
         self.Vmax = Vmax
-        self.iq_mode = iq_mode
+        self._init_channels(channels, channel_map, iq_mode)
 
         if sample_rate > 20e6:
             sample_rate = 20e6
@@ -219,31 +237,53 @@ class _digitzer_scan_parameter(MultiParameter):
 
         self.dig.setup_multi_recording(self.seg_size, n_triggers=1)
 
-        self.names = tuple(f'ch{ch}' for ch in self.channels)
+        n_out_ch = len(self.channel_names)
+        self.names = self.channel_names
         self.labels = tuple(f"digitizer output {name}" for name in self.names)
-        self.units = tuple(["mV"]*len(self.channels))
+        self.units = tuple(["mV"]*n_out_ch)
 
         super().__init__(name=digitizer.name, names=self.names,
-                        shapes=tuple([shape]*self.n_ch),
+                        shapes=tuple([shape]*n_out_ch),
                         labels=self.labels,
                         units=self.units,
-                        setpoints = tuple([setpoint]*self.n_ch), setpoint_names=tuple([names]*self.n_ch),
-                        setpoint_labels=tuple([names]*self.n_ch), setpoint_units=(("mV",)*len(names),)*self.n_ch,
+                        setpoints = tuple([setpoint]*n_out_ch), setpoint_names=tuple([names]*n_out_ch),
+                        setpoint_labels=tuple([names]*n_out_ch), setpoint_units=(("mV",)*len(names),)*n_out_ch,
                         docstring='Scan parameter for digitizer')
+
+    def _init_channels(self, channels, channel_map, iq_mode):
+
+        self.channel_map = (
+                channel_map if channel_map is not None
+                else {f'ch{i+1}':(i, np.real) for i in channels})
+
+        # backwards compatibility with older iq_mode parameter
+        iq_mode2numpy = {'I': np.real, 'Q': np.imag, 'abs': np.abs,
+                    'angle': np.angle, 'angle_deg': lambda x:np.angle(x, deg=True)}
+
+        if iq_mode is not None:
+            if channel_map is not None:
+                logging.warning('iq_mode is ignored when channel_map is also specified')
+            elif isinstance(iq_mode, str):
+                self.channel_map = {f'ch{i+1}':(i, iq_mode2numpy(iq_mode)) for i in channels}
+            else:
+                for ch, mode in iq_mode.items():
+                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy(mode))
+
+        self.channel_names = tuple(self.channel_map.keys())
 
     def get_raw(self):
         start = time.perf_counter()
-        logging.info(f'Play')
+        # logging.info(f'Play')
         # play sequence
         self.my_seq.play(release=False)
 
 
         # get the data
-        data = self.dig.get_data()
+        raw_data = self.dig.get_data()
         pretrigger = self.dig.pretrigger_memory_size()
 
         duration = (time.perf_counter() - start)*1000
-        logging.info(f'Acquired ({duration:5.1f} ms)')
+        # logging.info(f'Acquired ({duration:5.1f} ms)')
 
         point_data = np.zeros((len(self.channels), self.n_points))
 
@@ -254,17 +294,22 @@ class _digitzer_scan_parameter(MultiParameter):
         start_sample = pretrigger
         for i in range(self.n_points):
             end_sample = pretrigger + int(samples_per_point*(i+1)- samples_acq_delay)
-            point_data[:,i] = np.mean(data[:,start_sample:end_sample], axis=1) * 1000
+            point_data[:,i] = np.mean(raw_data[:,start_sample:end_sample], axis=1) * 1000
             start_sample = end_sample
         duration = (time.perf_counter() - start)*1000
-        logging.info(f'Averaged ({duration:5.1f} ms)')
+        # logging.info(f'Averaged ({duration:5.1f} ms)')
 
-        data_out = []
-        for i in self.channels:
-            data_out.append(np.zeros(self.shape))
+        data = []
+        for setting in self.channel_map.values():
+            ch, func = setting
+            ch_data = point_data[self.channels.index(ch-1)]
+            data.append(func(ch_data))
 
-        for i in range(len(data_out)):
-            ch_data = point_data[i].reshape(self.shape)
+        # make sure that data is put in the right order.
+        data_out = [np.zeros(self.shape) for i in range(len(data))]
+
+        for i in range(len(data)):
+            ch_data = data[i].reshape(self.shape)
             if self.biasT_corr:
                 data_out[i][:len(ch_data[::2])] = ch_data[::2]
                 data_out[i][len(ch_data[::2]):] = ch_data[1::2][::-1]
@@ -272,7 +317,7 @@ class _digitzer_scan_parameter(MultiParameter):
                 data_out[i] = ch_data
 
         duration = (time.perf_counter() - start)*1000
-        logging.info(f'Done ({duration:5.1f} ms)')
+        # logging.info(f'Done ({duration:5.1f} ms)')
         return tuple(data_out)
 
     def restart(self):
