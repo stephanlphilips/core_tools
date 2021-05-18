@@ -31,15 +31,9 @@ class keysight_rfgen(Instrument):
         self.dig = dig
         self._los = []
         
-        self._awg_lo_settings = dict()
-        
         self._dig_lo_settings = dict()
-        for (lo_key, channel, hw_channel, ifreq, ifreq_band) in dig_channel_los:
-            self._dig_lo_settings.setdefault(lo_key, []).append((channel, hw_channel, ifreq, ifreq_band)) 
-        
-        load_iq_image(dig.SD_AIN)
-        dig.set_acquisition_mode(2)
-        
+        self._awg_lo_settings = dict()
+         
         for (lo_key, (awg_name, channel, amp, freq, enab)) in awg_channel_los.items():
             lo = self.generate_lo(lo_key, awg_name, channel, amp, freq, enab)
             
@@ -68,6 +62,24 @@ class keysight_rfgen(Instrument):
                                set_cmd = partial(self.set_enab, lo_key),
                                vals=Bool(),
                                docstring='enables output')
+        
+        self.set_dig_lo_settings(dig_channel_los)
+    
+    @property
+    def all_los(self):
+        return list(self._awg_lo_settings.keys())
+    
+    @property
+    def lo_status(self):
+        result = dict()
+        for lo_key in self.all_los:
+            param = getattr(self, f'enable_{lo_key}')
+            result[lo_key] = param()
+        return result
+            
+    @property
+    def all_params(self):
+        return list(self.parameters.values())[1:]
     
     def set_amp(self, lo_key, amp):
         self._awg_lo_settings[lo_key][3] = amp
@@ -95,7 +107,18 @@ class keysight_rfgen(Instrument):
         freq = self._awg_lo_settings[lo_key][4]
         for (channel, hw_channel, ifreq, ifreq_band) in self._dig_lo_settings[lo_key]:
             self.dig.set_lo(channel, freq + ifreq_band * ifreq, 0, input_channel = hw_channel)
-       
+    
+    def set_dig_lo_settings(self, dig_channel_los):
+        # empty old dict
+        for key in self._dig_lo_settings.keys():
+            self._dig_lo_settings[key] = []
+        
+        load_iq_image(self.dig.SD_AIN)
+        self.dig.set_acquisition_mode(2)
+        for (lo_key, channel, hw_channel, ifreq, ifreq_band) in dig_channel_los:
+            self._dig_lo_settings.setdefault(lo_key, []).append((channel, hw_channel, ifreq, ifreq_band))
+            self.write_dig_settings(lo_key)
+    
     def generate_lo(self, lo_key, awg_name, channel, amp, freq, enab):
         prev_los = [awg_set[2] for awg_set in self._awg_lo_settings.values() if 
                     awg_set[0] == awg_name and awg_set[1] == channel]
