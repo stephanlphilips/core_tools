@@ -51,6 +51,7 @@ class gate_model(QtCore.QAbstractListModel):
 
     def update_model(self):
         to_update = False
+
         for i in range(len(self.gates)):
             gv = getattr(self._data, self.gates[i])()
             
