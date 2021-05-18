@@ -95,8 +95,8 @@ class UpdateTimer(QtCore.QObject):
         logging.info(f'restart duration {time.monotonic()- start:5.2f} s')
 
 
-dig = SD_DIG("dig", 1, 6)
-awg_slots = [3] # [3,4]
+dig = SD_DIG("dig", 1, 10)
+awg_slots = [5] # [3,4]
 awgs = []
 for i,slot in enumerate(awg_slots):
     awg = M3202A(f"AWG{i}", 1, slot)

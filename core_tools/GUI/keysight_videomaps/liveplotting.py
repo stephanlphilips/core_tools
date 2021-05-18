@@ -385,7 +385,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     logging.info('Finished Param, now plot')
                     self.current_plot._2D = _2D_live_plot(
                             self, self._2D_plotter_frame, self._2D_plotter_layout, self.current_param_getter._2D,
-                            self._2D_average.value(), self._2D_diff.isChecked(), self._2D_av_progress)
+                            self._2D_average.value(), self._2D_diff.isChecked(), self._2D_av_progress, self._levels)
                     self.start_2D.setEnabled(True)
                     self.set_metadata()
                     logging.info('Finished init currentplot and current_param')

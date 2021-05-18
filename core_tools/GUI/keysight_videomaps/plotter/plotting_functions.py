@@ -64,7 +64,7 @@ class live_plot(live_plot_abs, QThread):
 
     # list of plot_widget_data (1 per plot)
     plot_widgets = []
-    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, differentiate, prog_bar = None):
+    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, differentiate, prog_bar = None, levels = None):
         '''
         init the class
 
@@ -92,7 +92,8 @@ class live_plot(live_plot_abs, QThread):
         # plot properties
         self._averaging = averaging
         self._differentiate = differentiate
-
+        self._levels = levels
+        
         self.set_busy(True)
 
         # generate the buffers needed for the plotting and construct the plots.
@@ -274,8 +275,13 @@ class _2D_live_plot(live_plot):
         if not self.plot_data_valid:
             return
         self.set_busy(False)
+        act_chs = [ch-1 for ch in self.parameter_getter.channels]
         for i in range(len(self.plot_widgets)):
             self.plot_widgets[i].plot_items[0].setImage(self.plot_data[i])
+            
+            if self._levels[act_chs[i]] is not None:
+                self.plot_widgets[i].plot_items[0].setLevels(self._levels[act_chs[i]])
+            
             self.prog_bar.setValue(self.prog_per)
 
             mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])

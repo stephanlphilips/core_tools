@@ -35,10 +35,11 @@ class _2D_plot:
         self.img = pg.ImageItem()
         self.img_view = pg.ImageView(view=self.plot, imageItem=self.img)
         self.img_view.setColorMap(get_color_map())
-
         self.label = QtGui.QLabel()
         self.label.setAlignment(QtCore.Qt.AlignRight)
-
+        # self.img_view.ui.histogram.hide()
+        self.img_view.ui.roiBtn.hide()
+        self.img_view.ui.menuBtn.hide()
         self.layout.addWidget(self.img_view)
         self.layout.addWidget(self.label)
         self.widget.setLayout(self.layout)
@@ -111,6 +112,7 @@ class _2D_plot:
                 self.img.translate(off, 0)
 
             self.plot.setLogMode(**{'x': self.logmode['x'], 'y': self.logmode['y']})
+            
         except:
             pass
 

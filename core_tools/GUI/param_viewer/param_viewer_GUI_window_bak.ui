@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="tab_menu">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="realgates">
        <attribute name="title">
@@ -54,27 +54,8 @@
         <string>Virtual Gates</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_5">
-        <item row="1" column="0">
-         <widget class="QScrollArea" name="scrollArea_2">
-          <property name="widgetResizable">
-           <bool>true</bool>
-          </property>
-          <widget class="QWidget" name="scrollAreaWidgetContents_2">
-           <property name="geometry">
-            <rect>
-             <x>0</x>
-             <y>0</y>
-             <width>756</width>
-             <height>495</height>
-            </rect>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_4">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="layout_virtual"/>
-            </item>
-           </layout>
-          </widget>
-         </widget>
+        <item row="0" column="0">
+         <layout class="QGridLayout" name="layout_virtual"/>
         </item>
        </layout>
       </widget>
@@ -82,11 +63,17 @@
        <attribute name="title">
         <string>RF Settings</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_8">
-        <item row="0" column="0">
-         <layout class="QGridLayout" name="layout_RF"/>
-        </item>
-       </layout>
+       <widget class="QWidget" name="layoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>761</width>
+          <height>501</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="layout_RF"/>
+       </widget>
       </widget>
       <widget class="QWidget" name="settings">
        <attribute name="title">

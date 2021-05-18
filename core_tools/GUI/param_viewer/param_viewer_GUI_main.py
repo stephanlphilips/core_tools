@@ -17,13 +17,15 @@ class param_data_obj:
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, station : Station, gates_object: Optional[object] = None):
+    def __init__(self, station : Station, gates_object: Optional[object] = None, keysight_rf: Optional[object] = None):
         if type(station) is not Station:
             raise Exception('Syntax changed, to support RF_settings now supply station')
         self.real_gates = list()
         self.virtual_gates = list()
         self.rf_settings = list()
         self.station = station
+        self.keysight_rf = keysight_rf
+        
         if gates_object:
             self.gates_object = gates_object
         else:
@@ -49,6 +51,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             for RFpar in self.gates_object.hardware.RF_params:
                 param = getattr(inst, RFpar)
                 self._add_RFset(param)
+        try:
+            for ks_param in self.keysight_rf.all_params:
+                self._add_RFset(ks_param)
+        except Exception as e:
+            print(e)
 
         # add real gates
         for gate_name in self.gates_object.hardware.dac_gate_map.keys():
@@ -99,32 +106,40 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         unit = parameter.unit
         step_size = 0.5
         division = 1
-
-        if parameter.name[0:10] == 'frequency':
+        
+        name = name.replace('keysight_rfgen_','')
+        
+        if 'freq' in parameter.name:
             division = 1e6
             step_size = 0.1
             unit = f'M{unit}'
 
         _translate = QtCore.QCoreApplication.translate
-
+        
         set_name = QtWidgets.QLabel(self.RFsettings)
         set_name.setObjectName(name)
         set_name.setMinimumSize(QtCore.QSize(100, 0))
         set_name.setText(_translate("MainWindow", name))
         layout.addWidget(set_name, i, 0, 1, 1)
-
-        set_input = QtWidgets.QDoubleSpinBox(self.RFsettings)
-        set_input.setObjectName(name + "_input")
-        set_input.setMinimumSize(QtCore.QSize(100, 0))
-
-        # TODO collect boundaries out of the harware
-        set_input.setRange(-1e9,1e9)
-        set_input.valueChanged.connect(partial(self._set_set, parameter, set_input.value,division))
-        set_input.setKeyboardTracking(False)
-        set_input.setSingleStep(step_size)
-
-        layout.addWidget(set_input, i, 1, 1, 1)
-
+        
+        if 'enable' in name:
+            set_input = QtWidgets.QCheckBox(self.RFsettings)
+            set_input.setObjectName(name + "_input")
+            set_input.stateChanged.connect(partial(self._set_bool, parameter, set_input.isChecked))
+            layout.addWidget(set_input, i, 1, 1, 1)
+        else:
+            set_input = QtWidgets.QDoubleSpinBox(self.RFsettings)
+            set_input.setObjectName(name + "_input")
+            set_input.setMinimumSize(QtCore.QSize(100, 0))
+    
+            # TODO collect boundaries out of the harware
+            set_input.setRange(-1e9,1e9)
+            set_input.valueChanged.connect(partial(self._set_set, parameter, set_input.value,division))
+            set_input.setKeyboardTracking(False)
+            set_input.setSingleStep(step_size)
+    
+            layout.addWidget(set_input, i, 1, 1, 1)
+    
         set_unit = QtWidgets.QLabel(self.RFsettings)
         set_unit.setObjectName(name + "_unit")
         set_unit.setText(_translate("MainWindow", unit))
@@ -186,7 +201,12 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         setting.set(value()*division)
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
         self.gates_object.hardware.sync_data()
-
+        
+    def _set_bool(self, setting, value):
+        setting.set(value())
+        self.gates_object.hardware.RF_settings[setting.full_name] = value()
+        self.gates_object.hardware.sync_data()
+        
     def _finish_gates_GUI(self):
 
         for items, layout_widget in [ (self.real_gates, self.layout_real), (self.virtual_gates, self.layout_virtual),
@@ -217,17 +237,20 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             return
 
         for param in params:
-            # do not update when a user clicks on it.
+            # do not update when a user cdisplicks on it.
             if not param.gui_input_param.hasFocus():
-                param.gui_input_param.setValue(param.param_parameter()/param.division)
+                if type(param.gui_input_param) == QtWidgets.QDoubleSpinBox:
+                    param.gui_input_param.setValue(param.param_parameter()/param.division)
+                elif type(param.gui_input_param) == QtWidgets.QCheckBox:
+                    param.gui_input_param.setChecked(param.param_parameter())
 
 
 
 if __name__ == "__main__":
     import sys
     import qcodes as qc
-    from V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
-    from V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
+    from users.Stephan.V2_software.drivers.virtual_gates.examples.hardware_example import hardware_example
+    from users.Stephan.V2_software.drivers.virtual_gates.instrument_drivers.virtual_dac import virtual_dac
     from core_tools.drivers.gates import gates
 
     my_dac_1 = virtual_dac("dac_a", "virtual")
@@ -235,7 +258,7 @@ if __name__ == "__main__":
     my_dac_3 = virtual_dac("dac_c", "virtual")
     my_dac_4 = virtual_dac("dac_d", "virtual")
 
-    hw =  hardware_example("hw")
+    hw =  hardware_example("hwsss")
     hw.RF_source_names = []
     my_gates = gates("my_gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
 

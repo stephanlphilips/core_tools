@@ -172,13 +172,14 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
         _translate = QtCore.QCoreApplication.translate
         tableWidget = QtWidgets.QTableWidget(Virtual_gates_matrix)
+        self.tablewid = tableWidget
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(tableWidget.sizePolicy().hasHeightForWidth())
         tableWidget.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setPointSize(12)
+        font.setPointSize(2)
         tableWidget.setFont(font)
         tableWidget.setColumnCount(len(virtual_gate_set))
         tableWidget.setObjectName("virtgates")
@@ -192,10 +193,10 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
             tableWidget.setVerticalHeaderItem(i, item)
             item.setText(_translate("MainWindow", virtual_gate_set.real_gate_names[i]))
 
-        tableWidget.horizontalHeader().setDefaultSectionSize(65)
+        tableWidget.horizontalHeader().setDefaultSectionSize(45)
         tableWidget.horizontalHeader().setMaximumSectionSize(100)
         tableWidget.horizontalHeader().setMinimumSectionSize(30)
-        tableWidget.verticalHeader().setDefaultSectionSize(37)
+        tableWidget.verticalHeader().setDefaultSectionSize(20)
         gridLayout.addWidget(tableWidget, 0, 0, 1, 1)
 
         update_list = []
@@ -207,11 +208,11 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 sizePolicy.setVerticalStretch(0)
                 sizePolicy.setHeightForWidth(doubleSpinBox.sizePolicy().hasHeightForWidth())
                 font = QtGui.QFont()
-                font.setPointSize(11)
+                font.setPointSize(10)
                 doubleSpinBox.setFont(font)
                 doubleSpinBox.setSizePolicy(sizePolicy)
                 doubleSpinBox.setMinimumSize(QtCore.QSize(30, 0))
-                doubleSpinBox.setMaximumSize(QtCore.QSize(100, 100))
+                doubleSpinBox.setMaximumSize(QtCore.QSize(100, 50))
                 doubleSpinBox.setWrapping(False)
                 doubleSpinBox.setFrame(False)
                 # doubleSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
@@ -219,14 +220,16 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setMaximum(5.0)
                 doubleSpinBox.setMinimum(-5.0)
                 doubleSpinBox.setSingleStep(0.01)
-                doubleSpinBox.setDecimals(3)
+                doubleSpinBox.setDecimals(2)
+                doubleSpinBox.setContentsMargins(0,0,0,0)
                 inverted_matrix = np.linalg.inv(virtual_gate_set.virtual_gate_matrix_no_norm)
                 doubleSpinBox.setValue(inverted_matrix[i,j])
                 doubleSpinBox.setObjectName("doubleSpinBox")
                 doubleSpinBox.valueChanged.connect(partial(self.linked_result, virtual_gate_set.virtual_gate_matrix_no_norm, i, j, doubleSpinBox))
                 update_list.append((i,j, doubleSpinBox))
                 tableWidget.setCellWidget(i, j, doubleSpinBox)
-
+                if i==0 and j==0:
+                    self.temp =doubleSpinBox
         # make a timer to refresh the data in the plot when the matrix is changed externally.
         timer = QtCore.QTimer()
         timer.timeout.connect(partial(self.update_v_gates, virtual_gate_set.virtual_gate_matrix_no_norm, update_list))

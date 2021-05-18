@@ -138,6 +138,6 @@ class Measurement:
             return True
         if exc_type == KeyboardInterrupt:
             print('Keyboard Interrupt detected. Data will be saved and a neat exit will be made.')
-            return True
+            return False
 
         return False

@@ -49,7 +49,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     vp = swing/2
 
     seg = getattr(charge_st_1D, gate)
-    seg .add_HVI_variable("t_measure", int(t_step))
+    seg.add_HVI_variable("t_measure", int(t_step))
     seg.add_HVI_variable("digitizer", digitizer)
     seg.add_HVI_variable("number_of_points", int(n_pt))
     seg.add_HVI_variable("averaging", True)
