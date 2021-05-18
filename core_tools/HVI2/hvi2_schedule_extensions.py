@@ -44,13 +44,13 @@ def add_extensions(hvi_system):
             awg_engine.add_extension('sys', FpgaSysExtension)
             awg_engine.add_extension('log', FpgaLogExtension)
             awg_engine.add_extension('marker', FpgaTriggerOutExtension)
+            awg_engine.add_extension('queueing', FpgaAwgQueueingExtension)
             if 22000 <= image_id <= 22012:
                 awg_engine.add_extension('qs', FpgaAwgSequencerExtension)
                 awg_engine.add_extension('lo', FpgaMissingExtension)
-                awg_engine.add_extension('queueing', FpgaMissingExtension)
+#                awg_engine.add_extension('queueing', FpgaMissingExtension)
             else:
                 awg_engine.add_extension('lo', FpgaLocalOscillatorExtension)
-                awg_engine.add_extension('queueing', FpgaAwgQueueingExtension)
                 awg_engine.add_extension('qs', FpgaMissingExtension)
         else:
             for ext in ['sys']:
