@@ -14,8 +14,11 @@ class gate_model(QtCore.QAbstractListModel):
         self.gates = gates
 
         self.current_vals = list()
+        self.virtual_gate_updates = list()
         for gate in self.gates:
             self.current_vals += [getattr(self._data, gate)()]
+        for v_gate in self._data.hardware.virtual_gates:
+            self.virtual_gate_updates += [v_gate.last_update]
 
     def rowCount(self, parent=None):
         return len(self.gates)
@@ -53,7 +56,13 @@ class gate_model(QtCore.QAbstractListModel):
             
             if self.current_vals[i] != gv:
                 to_update = True
+
             self.current_vals[i] = gv
+
+        for i in range(len(self.virtual_gate_updates)):
+            if self.virtual_gate_updates[i] != self._data.hardware.virtual_gates[i].last_update:
+                to_update = True
+                self.virtual_gate_updates[i] = self._data.hardware.virtual_gates[i].last_update
 
         if to_update == True:
             self.setData(0, 0, QtCore.Qt.EditRole)

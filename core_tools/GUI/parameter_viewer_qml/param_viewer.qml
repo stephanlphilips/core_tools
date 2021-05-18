@@ -11,7 +11,7 @@ import Qt.labs.qmlmodels 1.0
 ApplicationWindow{
     title: "Parameter Viewer"
     width: 350
-    height: 1030
+    height: 1010
     visible: true
     Material.theme: Material.Light
 
@@ -153,7 +153,6 @@ ApplicationWindow{
                                         anchors.topMargin : 10 
                                         font.pointSize: 12
 
-                                        validator : DoubleValidator{bottom :  -1000 ; decimals : 2}
                                         selectByMouse : true
                                         selectedTextColor : '#FFFFFF'
                                         selectionColor : '#EC407A'
@@ -165,6 +164,16 @@ ApplicationWindow{
                                             }
                                         onActiveFocusChanged: if (activeFocus) {real_voltage_listview.current_item = index}
 
+                                        Keys.onUpPressed: {
+                                                var v = Number.fromLocaleString(Qt.locale(), real_voltage_values.text)
+                                                real_voltage_values.text = parseFloat(v+Number.fromLocaleString(Qt.locale(), stepsize_step.text)).toFixed(2)
+                                                real_gate_model.set_voltage(gate, real_voltage_values.text)
+                                            }
+                                        Keys.onDownPressed: {
+                                                var v = Number.fromLocaleString(Qt.locale(), real_voltage_values.text)
+                                                real_voltage_values.text = parseFloat(v-Number.fromLocaleString(Qt.locale(), stepsize_step.text)).toFixed(2)
+                                                real_gate_model.set_voltage(gate, real_voltage_values.text)
+                                            }
                                     }
 
                                 }
@@ -387,6 +396,16 @@ ApplicationWindow{
                                             }
                                         onActiveFocusChanged: if (activeFocus) {virt_voltage_listview.current_item = index}
 
+                                        Keys.onUpPressed:{
+                                            var v = Number.fromLocaleString(Qt.locale(), virtual_voltage_values.text)
+                                            virtual_voltage_values.text = parseFloat(v+Number.fromLocaleString(Qt.locale(), stepsize_step.text)).toFixed(2)
+                                            virtual_gate_model.set_voltage(gate, virtual_voltage_values.text)
+                                            }
+                                        Keys.onDownPressed:{
+                                            var v = Number.fromLocaleString(Qt.locale(), virtual_voltage_values.text)
+                                            virtual_voltage_values.text = parseFloat(v-Number.fromLocaleString(Qt.locale(), stepsize_step.text)).toFixed(2)
+                                            virtual_gate_model.set_voltage(gate, virtual_voltage_values.text)
+                                            }
                                     }
 
                                 }

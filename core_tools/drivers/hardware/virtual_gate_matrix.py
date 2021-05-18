@@ -1,6 +1,7 @@
 from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
 
 from core_tools.drivers.hardware.hardware_SQL_backend import virtual_gate_queries
+import time
 import numpy as np
 
 def lamda_do_nothing(matrix):
@@ -16,6 +17,7 @@ class virtual_gate_matrix():
 
         self.forward_conv_lamda = forward_conv_lamda
         self.backward_conv_lamda = backward_conv_lamda
+        self.last_update = time.time()
 
     @property
     def matrix(self):
@@ -63,6 +65,8 @@ class virtual_gate_matrix():
             raise ValueError("wrong input foramt provided ['virtual_gate','gate'] expected).".format(v_gate))
         
     def __setitem__(self, index, value):
+        self.last_update = time.time()
+        
         if isinstance(index, tuple):
             idx_1, idx_2 = index
             idx_1 = self.__evaluate_index(idx_1, self.v_gates)
