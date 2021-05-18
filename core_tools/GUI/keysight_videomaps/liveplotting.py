@@ -156,7 +156,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.channel_map = {f'ch{i}':(i, iq_mode2numpy(iq_mode)) for i in range(1,5)}
             else:
                 for ch, mode in iq_mode.items():
-                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy(mode))
+                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
 
         # add to GUI
         self.channel_check_boxes = {}
