@@ -292,10 +292,10 @@ class _digitzer_scan_parameter(MultiParameter):
             if channel_map is not None:
                 logging.warning('iq_mode is ignored when channel_map is also specified')
             elif isinstance(iq_mode, str):
-                self.channel_map = {f'ch{i}':(i, iq_mode2numpy(iq_mode)) for i in channels}
+                self.channel_map = {f'ch{i}':(i, iq_mode2numpy[iq_mode]) for i in channels}
             else:
                 for ch, mode in iq_mode.items():
-                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy(mode))
+                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
 
         self.channel_names = tuple(self.channel_map.keys())
 
