@@ -680,7 +680,7 @@ class SD_DIG(Instrument):
                 result.append(properties.number)
         return result
 
-    def set_channel_properties(self, channel, V_range, impedance=1, coupling=0):
+    def set_channel_properties(self, channel, V_range, impedance = None, coupling = None):
         """
         sets quickly relevant channel properties.
         TODO: We need a validator on Vrange.
@@ -695,8 +695,12 @@ class SD_DIG(Instrument):
             or properties.impedance != impedance
             or properties.coupling != coupling):
             properties.full_scale = V_range
-            properties.coupling = coupling
-            properties.impedance = impedance
+            # hacky way to default to 0,1
+            properties.coupling = 0 if properties.coupling is None else properties.coupling
+            properties.impedance = 1 if properties.impedance is None else properties.impedance
+            # overwrite only if supplied
+            properties.coupling = coupling if coupling is not None else properties.coupling
+            properties.impedance = impedance if impedance is not None else properties.impedance
             self.measure._generate_parameter_info()
             self.SD_AIN.channelInputConfig(channel, V_range, impedance, coupling)
 
