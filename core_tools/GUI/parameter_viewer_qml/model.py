@@ -52,6 +52,7 @@ class gate_model(QtCore.QAbstractListModel):
             gv = getattr(self._data, self.gates[i])()
             
             if self.current_vals[i] != gv:
+                print(f'updating {i}, {gv}')
                 to_update = True
             self.current_vals[i] = gv
 
@@ -61,6 +62,6 @@ class gate_model(QtCore.QAbstractListModel):
     @QtCore.pyqtSlot('QString','QString')
     def set_voltage(self, name, voltage):
         voltage = float(voltage)
-
+        print(f'setting {name} to {voltage}')
         self.current_vals[self.gates.index(name)] = voltage
         getattr(self._data, name)(voltage)

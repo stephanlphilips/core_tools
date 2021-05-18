@@ -29,7 +29,7 @@ def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name):
     print('Loading  virtual gates matrices from dataset:')
 
     for key, value in virtual_gates.items():
-        matrix = value['virtual_gate_matrix'].replace('\n', '').replace('[', '').replace(']', '')
+        matrix = value['virtual_gate_matrix_no_norm'].replace('\n', '').replace('[', '').replace(']', '')
         mat = np.loadtxt(StringIO(matrix), delimiter=',')
         mat = mat.reshape([int(np.sqrt(mat.size)), int(np.sqrt(mat.size))])
 
