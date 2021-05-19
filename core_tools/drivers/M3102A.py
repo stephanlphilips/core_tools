@@ -997,6 +997,7 @@ class SD_DIG(Instrument):
 
         properties = self.channel_properties[f'ch{channel}']
         properties.lo_phase = phase
+        properties.lo_frequency = frequency
         properties.input_channel = input_channel if input_channel is not None else channel
 
         dig_set_lo(self.SD_AIN, channel, frequency, phase)
