@@ -58,7 +58,7 @@ This is by far the easiest method for modifying the virtual gate matrix, the GUI
 from core_tools.GUI.virt_gate_matrix_qml.gui_controller import virt_gate_matrix_GUI
 
 # keep reference to GUI in variable to avoid garbage collection of whole GUI.
-gui = virt_gate_matrix_GUI()
+gui_virt_gates = virt_gate_matrix_GUI()
 ```
 
 The result should look something like:
