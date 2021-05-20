@@ -10,6 +10,8 @@ from core_tools.utility.qubit_param_gen.digitizer_parameter import get_digitizer
 import qcodes as qc
 from pulse_lib.segments.utility.measurement_converter import measurement_converter
 from pulse_lib.configuration.physical_channels import digitizer_channel_iq
+from pulse_lib.keysight.qs_uploader import QsUploader
+
 
 def add_schedule_to_lambda(schedule):
     def new_lamdba(seq):
@@ -36,15 +38,17 @@ def run_qubit_exp(exp_name, sequence):
     
     active_channels = []
     
+    if not QsUploader.use_digitizer_sequencers:
+        print(f'QsUploader.use_digitizer_sequencers set to {QsUploader.use_digitizer_sequencers}')
     for channel_name in md.acquisitions:
         dig_channel = station.pulse.digitizer_channels[channel_name]
         
         for ch in dig_channel.channel_numbers:
             if n_acq[channel_name] > 0: 
                 station.dig.set_channel_properties(ch, V_range=1.0)
-                station.dig.set_daq_settings(ch, my_seq.n_rep*n_acq[channel_name], 2e3)
+                station.dig.set_daq_settings(ch, my_seq.n_rep*n_acq[channel_name], 30)
                 active_channels.append(ch)
-    
+
     station.dig.set_active_channels(active_channels)
 
     starting_lambda = add_schedule_to_lambda(ScheduleMgr().single_shot())

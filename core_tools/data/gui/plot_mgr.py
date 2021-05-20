@@ -10,7 +10,7 @@ from core_tools.data.gui.plots._2D_plotting import _2D_plot
 class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
     def __init__(self, ds):
         self.ds = ds
-
+        self.alive = True
         self.app = QtCore.QCoreApplication.instance()
         self.instance_ready = True
         if self.app is None:
@@ -39,6 +39,9 @@ class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
         if self.instance_ready == False:
             self.app.exec()
 
+    def closeEvent(self, event):
+        self.alive = False
+    
 class ui_box_mgr():
     def __init__(self, app, ds, plot_layout):
         '''
@@ -98,8 +101,7 @@ class ui_box_mgr():
 
 
 if __name__ == '__main__':
-    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
-    from core_tools.data.SQL.SQL_measurment_queries import query_for_measurement_results
+    from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
     from core_tools.data.ds.data_set import load_by_uuid, load_by_id
     import sys
     import datetime
