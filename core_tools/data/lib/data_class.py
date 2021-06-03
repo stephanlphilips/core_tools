@@ -3,6 +3,7 @@ from core_tools.data.SQL.buffer_writer import buffer_writer, buffer_reader
 from core_tools.data.ds.data_set_raw import m_param_raw
 from dataclasses import dataclass, field
 
+import uuid
 import numpy as np
 import numbers
 import json
@@ -47,9 +48,8 @@ class dataclass_raw_parent:
             txt = 'Key not found. A write is attempted to a parameter that has not been declaired yet. '
             txt += 'Please first register the parameter with register_set_parameter/register_get_parameter '
             raise KeyError(txt)
-        
         data_in = input_data[self.id_info]
-                
+
         if len(self.data) == 1:
             # data in is not a iterator
             data = np.ravel(np.asarray(data_in))
@@ -73,7 +73,7 @@ class dataclass_raw_parent:
         '''
         data_items = list()
         for i in range(len(self.data)):
-            data_items +=[m_param_raw(self.id_info, i, nth_dim, m_param_id, setpoint, setpoint_local,
+            data_items +=[m_param_raw(self.uuid_dc, i, nth_dim, m_param_id, setpoint, setpoint_local,
                 self.name, self.names[i], self.labels[i],
                 self.units[i], dependencies[i], self.data[i].shape, self.data[i].size, self.oid[i], self.data_buffer[i])]
 
@@ -92,6 +92,7 @@ class setpoint_dataclass(dataclass_raw_parent):
     data : list = field(default_factory=lambda: [])
     oid : list = field(default_factory=lambda: [])
     data_buffer : list = field(default_factory=lambda: [])
+    uuid_dc : int = field(default_factory=lambda: uuid.uuid1().int>>64)
 
     def __repr__(self):
         description = "id :: {} \tname :: {}\tnpt :: {}\n".format(self.id_info, self.name, self.npt)
@@ -106,9 +107,12 @@ class setpoint_dataclass(dataclass_raw_parent):
             dep_tot.append([])
         return dep_tot
 
+    def __copy__(self):
+        return setpoint_dataclass(self.id_info, self.npt, self.name, self.names, self.labels, self.units, self.shapes, self.nth_set)
+
 @dataclass 
 class m_param_dataclass(dataclass_raw_parent):
-    id_info : id 
+    id_info : id
     name : str
     names : list
     labels : list
@@ -119,6 +123,7 @@ class m_param_dataclass(dataclass_raw_parent):
     data : list = field(default_factory=lambda: [])
     oid : list = field(default_factory=lambda: [])
     data_buffer : list = field(default_factory=lambda: [])
+    uuid_dc : int = field(default_factory=lambda: uuid.uuid1().int>>64)
     __initialized : bool = False
 
     def write_data(self, input_data):
@@ -136,15 +141,15 @@ class m_param_dataclass(dataclass_raw_parent):
     def to_SQL_data_structure(self):
         data_items = []
 
-        data_items += super().to_SQL_data_structure(self.id_info, False, False, -1, self.dependencies)
+        data_items += super().to_SQL_data_structure(self.uuid_dc, False, False, -1, self.dependencies)
         for i in range(len(self.setpoints_local)):
             setpt_list = self.setpoints_local[i]
             for setpt in setpt_list:
-                data_items += setpt.to_SQL_data_structure(self.id_info, False, True, i, setpt.dependencies)
+                data_items += setpt.to_SQL_data_structure(self.uuid_dc, False, True, i, setpt.dependencies)
 
         for i in range(len(self.setpoints)):
             setpt = self.setpoints[i]
-            data_items += setpt.to_SQL_data_structure(self.id_info, True, False, i, setpt.dependencies)
+            data_items += setpt.to_SQL_data_structure(self.uuid_dc, True, False, i, setpt.dependencies)
 
         return data_items
 
@@ -172,11 +177,11 @@ class m_param_dataclass(dataclass_raw_parent):
         for i in range(len(self.data)):
             dep = []
             for setpt in self.setpoints:
-                dep.append(setpt.id_info)
+                dep.append(setpt.uuid_dc)
 
             if len(self.setpoints_local) > i:
                 for setpt_l in self.setpoints_local[i]:
-                    dep.append(setpt_l.id_info)
+                    dep.append(setpt_l.uuid_dc)
                     
             dep_tot.append(dep)
 
