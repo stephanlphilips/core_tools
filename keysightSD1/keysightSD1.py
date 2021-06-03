@@ -32,6 +32,13 @@ def to_numpy_int32(data):
 		return data.astype(np.int32)
 	return data
 
+def to_numpy_uint32(data):
+	if type(data) != np.ndarray:
+		return np.array(data, np.uint32)
+	if data.dtype != np.uint32:
+		return data.astype(np.uint32)
+	return data
+
 class SD_Object :
     __core_dll = cdll.LoadLibrary("SD1core" if os.name == 'nt' else "libSD1core.so")
 
@@ -385,7 +392,19 @@ class SD_SandBoxRegister(SD_Object):
 
     def writeRegisterBuffer(self, indexOffset, buffer, addressMode, accessMode) :
         if self._SD_Object__handle > 0 :
-            if len(buffer) > 0 :
+            if len(buffer) > 100 :
+                # for long arrays conversion via numpy is much faster.
+                data_np = to_numpy_uint32(buffer)
+                data_C = data_np.ctypes.data_as(POINTER(c_int32 * len(data_np))).contents
+                return self._SD_Object__core_dll.SD_Module_FPGAwriteRegisterBuffer(
+                        self._SD_Object__handle,
+                        self._SD_Register_Id,
+                        indexOffset,
+                        data_C,
+                        len(buffer),
+                        addressMode,
+                        accessMode);
+            elif len(buffer) > 0 :
                 data = (c_int * len(buffer))(*buffer);
                 return self._SD_Object__core_dll.SD_Module_FPGAwriteRegisterBuffer(self._SD_Object__handle, self._SD_Register_Id, indexOffset, data, data._length_, addressMode, accessMode);
             else :
