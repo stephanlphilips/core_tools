@@ -53,7 +53,7 @@ def add_extensions(hvi_system):
                 awg_engine.add_extension('lo', FpgaLocalOscillatorExtension)
                 awg_engine.add_extension('qs', FpgaMissingExtension)
         else:
-            for ext in ['sys']:
+            for ext in ['sys', 'qs','lo','marker','queueing']:
                 awg_engine.add_extension(ext, FpgaMissingExtension)
             awg_engine.add_extension('log', FpgaNoLogExtension)
 
