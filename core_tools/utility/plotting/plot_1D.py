@@ -96,8 +96,8 @@ if __name__ == '__main__':
 
 	a = plotter_1D(graph_setings=g)
 	a[0].set_labels('x_label', 'y_label')
-	a[0].add_data(np.linspace(10,50,200), np.sin(np.linspace(10,50,200)), w = 'p', alpha = 1, c=Red[5])
-	a[0].add_data(np.linspace(10,50,200), np.sin(np.linspace(10,50,200)), w = 'l', alpha = 0.3, c=Red[5])
+	a[0].add_data(np.linspace(0,50,200), np.sin(np.linspace(10,50,200)), w = 'p', alpha = 1, c=Red[5])
+	a[0].add_data(np.linspace(0,50,200), np.sin(np.linspace(10,50,200)), w = 'l', alpha = 0.3, c=Red[5])
 
 	# a.plot()
 	a.save('test1D_single.svg')
