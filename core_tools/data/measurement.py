@@ -106,8 +106,6 @@ class Measurement:
 
 
         for setpoint in setpoints:
-            print((self.setpoints[id(setpoint)]).uuid_dc)
-            print(copy.copy(self.setpoints[id(setpoint)]).uuid_dc)
             m_param_parameter_spec.setpoints.append(copy.copy(self.setpoints[id(setpoint)]))        
 
         self.m_param[m_param_parameter_spec.id_info] = m_param_parameter_spec

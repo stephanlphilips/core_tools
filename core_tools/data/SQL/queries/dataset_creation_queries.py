@@ -141,7 +141,7 @@ class data_table_queries:
 	@staticmethod
 	def generate_table(conn, table_name):
 		statement = "CREATE TABLE if not EXISTS {} ( ".format(table_name )
-		statement += "id BIGSERIAL primary key, "
+		statement += "id SERIAL primary key, "
 		statement += "param_id BIGINT, "
 		statement += "nth_set INT, "
 		statement += "nth_dim INT, "
@@ -174,7 +174,7 @@ class data_table_queries:
 			"setpoint", "setpoint_local", "name_gobal", "name", 
 			"label", "unit", "depencies", "shape", 
 			"write_cursor", "total_size", "oid")
-
+		print(data_item.param_id, data_item.param_id_m_param)
 		var_values = (data_item.param_id, data_item.nth_set, data_item.nth_dim, 
 			data_item.param_id_m_param, data_item.setpoint, data_item.setpoint_local, 
 			data_item.name_gobal, data_item.name, data_item.label, 
