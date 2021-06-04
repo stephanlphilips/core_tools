@@ -24,8 +24,10 @@ general structure:
 '''
 from core_tools.data.lib.data_class import setpoint_dataclass, m_param_dataclass
 from core_tools.data.ds.data_set import create_new_data_set
+
 import qcodes as qc
 import numpy as np
+import copy
 
 class Measurement:
     '''
@@ -104,7 +106,9 @@ class Measurement:
 
 
         for setpoint in setpoints:
-            m_param_parameter_spec.setpoints.append(self.setpoints[id(setpoint)])                
+            print((self.setpoints[id(setpoint)]).uuid_dc)
+            print(copy.copy(self.setpoints[id(setpoint)]).uuid_dc)
+            m_param_parameter_spec.setpoints.append(copy.copy(self.setpoints[id(setpoint)]))        
 
         self.m_param[m_param_parameter_spec.id_info] = m_param_parameter_spec
 
