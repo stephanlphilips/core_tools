@@ -141,7 +141,7 @@ class data_table_queries:
 	@staticmethod
 	def generate_table(conn, table_name):
 		statement = "CREATE TABLE if not EXISTS {} ( ".format(table_name )
-		statement += "id serial primary key, "
+		statement += "id BIGSERIAL primary key, "
 		statement += "param_id BIGINT, "
 		statement += "nth_set INT, "
 		statement += "nth_dim INT, "
