@@ -60,6 +60,9 @@ class data_set:
         return len(self.__repr_attr_overview)
 
     def __getitem__(self, i):
+        if isinstance(i, str):
+            return self(i)
+        
         return self.__repr_attr_overview[i]
 
     def __init_properties(self, data_set_content):

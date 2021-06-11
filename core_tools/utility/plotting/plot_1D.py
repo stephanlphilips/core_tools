@@ -18,10 +18,19 @@ class _1D_plot_single:
 	def __init__(self, graph_settings):
 		self.settings = graph_settings #default settings
 		self.data     = []
+		self.x_lim    = None
+		self.y_lim    = None
 
 	def set_labels(self, xlabel, ylabel):
 		self.settings.xlabel = xlabel
 		self.settings.ylabel = ylabel
+
+	def set_range(self, x_range=None, y_range=None):
+		if x_range is not None:
+			self.x_lim = x_range
+		if y_range is not None:
+			self.y_lim = y_range
+
 
 	def add_data(self, x, y, xerr = None, yerr = None, label = None, settings = None, w=None, c=None, alpha=None):
 		if settings == None:
@@ -55,6 +64,11 @@ class _1D_plot_single:
 			ax.set_xscale('log')
 		if self.settings.ylog == True:
 			ax.set_yscale('log')
+
+		if self.x_lim is not None:
+			ax.set_xlim(*self.x_lim)
+		if self.y_lim is not None:
+			ax.set_ylim(*self.y_lim)
 
 		labels = False
 		for i in range(len(self.data)):
