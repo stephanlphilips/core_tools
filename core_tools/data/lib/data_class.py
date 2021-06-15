@@ -92,7 +92,7 @@ class setpoint_dataclass(dataclass_raw_parent):
     data : list = field(default_factory=lambda: [])
     oid : list = field(default_factory=lambda: [])
     data_buffer : list = field(default_factory=lambda: [])
-    uuid_dc : int = field(default_factory=lambda: uuid.uuid1().int>>64)
+    uuid_dc : int = field(default_factory=lambda: int.from_bytes(uuid.uuid1().bytes, byteorder='big', signed=True)>>64)
 
     def __repr__(self):
         description = "id :: {} \tname :: {}\tnpt :: {}\n".format(self.id_info, self.name, self.npt)
@@ -123,7 +123,7 @@ class m_param_dataclass(dataclass_raw_parent):
     data : list = field(default_factory=lambda: [])
     oid : list = field(default_factory=lambda: [])
     data_buffer : list = field(default_factory=lambda: [])
-    uuid_dc : int = field(default_factory=lambda: uuid.uuid1().int>>64)
+    uuid_dc : int = field(default_factory=lambda: int.from_bytes(uuid.uuid1().bytes, byteorder='big', signed=True)>>64)
     __initialized : bool = False
 
     def write_data(self, input_data):

@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 import keysightSD1.SD1constants as constants
 import numpy as np
 
-if sys.version_info[1] > 7 and sys.platform != 'linux':
+if sys.version_info[1] > 7 and sys.platform not in  ['linux', 'darwin']:
     os.add_dll_directory('C:\\Program Files\\Keysight\\SD1\\shared')
     os.add_dll_directory('C:\\Program Files\\Common Files\\Keysight\\PathWave Test Sync Executive\\Core\\bin')
 
@@ -40,7 +40,8 @@ def to_numpy_uint32(data):
 	return data
 
 class SD_Object :
-    __core_dll = cdll.LoadLibrary("SD1core" if os.name == 'nt' else "libSD1core.so")
+    if sys.platform not in  ['linux', 'darwin']:
+        __core_dll = cdll.LoadLibrary("SD1core" if os.name == 'nt' else "libSD1core.so")
 
     def __init__(self) :
         self.__handle = 0;

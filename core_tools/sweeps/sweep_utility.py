@@ -25,7 +25,7 @@ FAST = "FAST"
 SLOW = "SLOW"
 
 
-MODE = FAST
+MODE = SLOW
 
 
 class PulseLibParameter(Parameter):
