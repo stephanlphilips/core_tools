@@ -113,7 +113,7 @@ class sync_mgr_queries:
 						
 			data_table_queries.generate_table(sync_agent.conn_remote, raw_data_table_name)
 
-			res_loc = select_elements_in_table(sync_agent.conn_local, raw_data_table_name, ('*', ))
+			res_loc = select_elements_in_table(sync_agent.conn_local, raw_data_table_name, ('*', ), order_by=('id', ''))
 
 			for result in res_loc:
 				lobject = sync_agent.conn_remote.lobject(0,'w')
