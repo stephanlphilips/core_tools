@@ -345,16 +345,22 @@ ApplicationWindow{
                                             }
                                         }
 
-                                        Text {
+                                        TextEdit {
                                             height: 42
                                             text: id_
+                                            focus : true
+                                            readOnly : true
+                                            selectByMouse : true
                                             font.pixelSize: 16
                                             Layout.preferredWidth: 80
                                             Layout.leftMargin: 20
                                         }
 
-                                        Text {
+                                        TextEdit {
                                             text: uuid
+                                            focus : true
+                                            readOnly : true
+                                            selectByMouse : true
                                             font.pixelSize: 16
                                             Layout.preferredWidth: 220
                                         }

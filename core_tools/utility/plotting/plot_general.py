@@ -31,7 +31,7 @@ class _data_plotter:
 				self[j,i]._render(ax[i][j], layout, (i,j) ,scaler, figure= fig)
 
 	def plot(self):
-		self.render(2)
+		self.render(1)
 		plt.show()
 
 	def save(self, location):

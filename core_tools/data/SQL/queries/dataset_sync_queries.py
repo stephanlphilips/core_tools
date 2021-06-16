@@ -84,7 +84,7 @@ class sync_mgr_queries:
 			'global_measurement_overview', ('exp_data_location', ), 
 			where=("uuid",uuid), dict_cursor=False)[0][0]
 
-		# this could be more robust (balance between lightweight and rebustness)
+		data_table_queries.generate_table(sync_agent.conn_local, raw_data_table_name)
 		sync_mgr_queries._sync_raw_data_table(sync_agent, raw_data_table_name)
 		
 		update_table(sync_agent.conn_local, 'global_measurement_overview',
@@ -113,7 +113,7 @@ class sync_mgr_queries:
 						
 			data_table_queries.generate_table(sync_agent.conn_remote, raw_data_table_name)
 
-			res_loc = select_elements_in_table(sync_agent.conn_local, raw_data_table_name, ('*', ))
+			res_loc = select_elements_in_table(sync_agent.conn_local, raw_data_table_name, ('*', ), order_by=('id', ''))
 
 			for result in res_loc:
 				lobject = sync_agent.conn_remote.lobject(0,'w')

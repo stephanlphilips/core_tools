@@ -147,6 +147,7 @@ class Hvi2SingleShot():
 
                             dig_seq.sys.clear_ticks()
                             dig_seq.log.write(1)
+                            dig_seq.qs.clear()
                             dig_seq.start(all_ch)
 
                             if len(ds_ch) > 0:
