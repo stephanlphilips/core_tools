@@ -142,11 +142,24 @@ class sync_mgr_queries:
 			l_lobject = sync_agent.conn_local.lobject(l_oid,'rb')
 			r_lobject = sync_agent.conn_remote.lobject(r_oid,'wb')
 			# read in data in a buffer
-			l_lobject.seek(r_cursor*8)
-			mybuffer = np.frombuffer(l_lobject.read(l_cursor*8-r_cursor*8))
-			# push data to the server
-			r_lobject.seek(r_cursor*8)
-			r_lobject.write(mybuffer.tobytes())
+			while(l_cursor != r_cursor):
+				# write in blocks of 2Mb (recommneded in the manual)
+				BLOCK_size = 2000000
+				if l_cursor*8-r_cursor*8 < BLOCK_size:
+					l_lobject.seek(r_cursor*8)
+					mybuffer = np.frombuffer(l_lobject.read(l_cursor*8-r_cursor*8))
+					# push data to the server
+					r_lobject.seek(r_cursor*8)
+					r_lobject.write(mybuffer.tobytes())
+					r_cursor = l_cursor
+				else:
+					l_lobject.seek(r_cursor*8)
+					mybuffer = np.frombuffer(l_lobject.read(BLOCK_size))
+					# push data to the server
+					r_lobject.seek(r_cursor*8)
+					r_lobject.write(mybuffer.tobytes())
+					r_cursor += int(BLOCK_size/8)
+
 			r_lobject.close()
 			l_lobject.close()
 
