@@ -15,7 +15,7 @@ class sync_mgr_queries:
 			meaurments <list<long>> : list of uuid's who's table entries need a sync
 		'''
 		res = select_elements_in_table(sync_agent.conn_local, "global_measurement_overview",
-			('uuid', ), where=("table_synchronized",False), dict_cursor=False)
+			('uuid', ), dict_cursor=False)
 		
 		uuid_entries = list(sum(res, ()))
 		uuid_entries.sort()
@@ -72,7 +72,7 @@ class sync_mgr_queries:
 			meaurments <list<long>> : list of uuid's where the data needs to be updated of.
 		'''
 		res = select_elements_in_table(sync_agent.conn_local, "global_measurement_overview",
-			('uuid', ), where=('data_synchronized',False), dict_cursor=False)
+			('uuid', ), dict_cursor=False)
 
 		uuid_entries = list(sum(res, ()))
 		uuid_entries.sort()
@@ -141,12 +141,19 @@ class sync_mgr_queries:
 			l_oid = res_loc[i]['oid']
 			l_lobject = sync_agent.conn_local.lobject(l_oid,'rb')
 			r_lobject = sync_agent.conn_remote.lobject(r_oid,'wb')
-			# read in data in a buffer
-			l_lobject.seek(r_cursor*8)
-			mybuffer = np.frombuffer(l_lobject.read(l_cursor*8-r_cursor*8))
-			# push data to the server
-			r_lobject.seek(r_cursor*8)
-			r_lobject.write(mybuffer.tobytes())
+
+			while (r_cursor != l_cursor):
+				l_lobject.seek(r_cursor*8)
+				r_lobject.seek(r_cursor*8)
+				if l_cursor*8 - r_cursor*8 < 2_000_000:
+					mybuffer = np.frombuffer(l_lobject.read(l_cursor*8-r_cursor*8))
+					r_cursor = l_cursor
+				else:
+					print(f'large dataset, {(l_cursor*8-r_cursor*8)*1e-9}GB')
+					mybuffer = np.frombuffer(l_lobject.read(2_000_000))
+					r_cursor += int(2_000_000/8)
+				r_lobject.write(mybuffer.tobytes())
+
 			r_lobject.close()
 			l_lobject.close()
 
@@ -179,19 +186,27 @@ class sync_mgr_queries:
 			content['stop_time'] = psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(content['stop_time'].timestamp()))
 
 if __name__ == '__main__':
-    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
-    set_up_local_storage('stephan', 'magicc', 'test', 'test_project', 'test_set_up', 'test_sample')
-    set_up_local_and_remote_storage('131.180.205.81', 5432, 'stephan', 'magicc', 'test',
-        'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
+	from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
+	set_up_local_storage('stephan', 'magicc', 'test', 'test_project', 'test_set_up', 'test_sample')
+	set_up_local_and_remote_storage('131.180.205.81', 5432, 'stephan', 'magicc', 'test',
+		'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
 
-    from core_tools.data.SQL.SQL_connection_mgr import SQL_sync_manager
-    s = SQL_sync_manager()
+	set_up_local_and_remote_storage('131.180.205.81', 5432,
+	"xld_user", "XLDspin001", "vandersypen_data",
+	'xld_measurement_pc', 'XLDspin001', 'sixdots',
+	 "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+	from core_tools.data.SQL.SQL_connection_mgr import SQL_sync_manager
+	s = SQL_sync_manager()
 
-    e = sync_mgr_queries.get_sync_items_meas_table(s)
-    
-    # for uuid in e:
-    sync_mgr_queries.sync_table(s, e[-1])
+	e = sync_mgr_queries.get_sync_items_meas_table(s)
+	# sync_mgr_queries.sync_raw_data(s,e[11049])
 
-    # e = sync_mgr_queries.get_sync_items_raw_data(s)
-    # print(e)
-    sync_mgr_queries.sync_raw_data(s, e[-1])
+	i = 0
+	for uuid in e:
+		# print(i)
+		# sync_mgr_queries.sync_raw_data(s,uuid)
+		sync_mgr_queries.sync_table(s, uuid)
+		i+= 1
+	# # e = sync_mgr_queries.get_sync_items_raw_data(s)
+	# # print(e)
+	# sync_mgr_queries.sync_raw_data(s, e[-1])

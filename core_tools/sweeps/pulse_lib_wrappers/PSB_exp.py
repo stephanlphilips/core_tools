@@ -34,7 +34,7 @@ def run_qubit_exp(exp_name, sequence):
     
     n_acq = md.acquisition_count
     station.dig.set_operating_mode(OPERATION_MODES.HVI_TRG)
-    station.dig.set_acquisition_mode(MODES.AVERAGE)
+    station.dig.set_acquisition_mode(MODES.IQ_INPUT_SHIFTED_I_OUT)
     
     active_channels = []
     
