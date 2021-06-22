@@ -397,28 +397,32 @@ class line_trace(MultiParameter):
         """
         Generate the correct labels/units for the digitizer parameter
         """
-        channels_changed = False
-        mode_changed = False
-        shape_changed = False
+        info_changed = False
 
         for properties in self.my_instrument.channel_properties.values():
             if not properties.name in self.cached_properties:
                 self.cached_properties[properties.name] = channel_properties(properties.name, properties.number)
             cached = self.cached_properties[properties.name]
 
-            channels_changed |= properties.active != cached.active
-            mode_changed |= properties.data_mode != cached.data_mode
-            shape_changed |= (
-                    properties.cycles != cached.cycles
+            info_changed |= (
+                    properties.active != cached.active
+                    or properties.acquisition_mode != cached.acquisition_mode
+                    or properties.data_mode != cached.data_mode
+                    or properties.cycles != cached.cycles
                     or properties.t_measure != cached.t_measure
                     or properties.points_per_cycle != cached.points_per_cycle
                     )
             self.cached_properties[properties.name] = copy.copy(properties)
 
-        if channels_changed:
+        if info_changed:
             self.names = tuple()
             self.labels = tuple()
             self.units = tuple()
+            self.setpoint_labels = tuple()
+            self.setpoint_names = tuple()
+            self.setpoint_units = tuple()
+            self.shapes = tuple()
+            self.setpoints = tuple()
 
             for properties in self.my_instrument.channel_properties.values():
                 if properties.active:
@@ -426,13 +430,6 @@ class line_trace(MultiParameter):
                     self.labels += (f"digitizer output {properties.name}", )
                     self.units += ("mV" , )
 
-        if channels_changed or mode_changed:
-            self.setpoint_labels = tuple()
-            self.setpoint_names = tuple()
-            self.setpoint_units = tuple()
-
-            for properties in self.my_instrument.channel_properties.values():
-                if properties.active:
                     setpoint_names = tuple()
                     setpoint_labels = tuple()
                     setpoint_units = tuple()
@@ -452,12 +449,6 @@ class line_trace(MultiParameter):
                     self.setpoint_names += (setpoint_names, )
                     self.setpoint_units += (setpoint_units, )
 
-        if channels_changed or mode_changed or shape_changed:
-            self.shapes = tuple()
-            self.setpoints = tuple()
-
-            for properties in self.my_instrument.channel_properties.values():
-                if properties.active:
                     shape = tuple()
                     setpoints = tuple()
 
@@ -476,7 +467,7 @@ class line_trace(MultiParameter):
                         and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
                         n = properties.points_per_cycle
                         shape += (n, )
-                        setpoints += ((tuple(np.linspace(properties.t_measure/n, properties.t_measure, n)), )*properties.cycles)
+                        setpoints += ((tuple(np.linspace(properties.t_measure/n, properties.t_measure, n)), ))
 
                     self.shapes += (shape, )
                     self.setpoints += (setpoints, )
