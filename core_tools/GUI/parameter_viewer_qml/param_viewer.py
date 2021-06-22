@@ -41,15 +41,13 @@ class param_viewer:
         self.engine.load(QtCore.QUrl.fromLocalFile(filename))
         self.win = self.engine.rootObjects()[0]
 
-        timer_real = QtCore.QTimer()
-        timer_real.timeout.connect(self.real_gate_model.update_model)
-        timer_real.start(500)
-        timer_virt = QtCore.QTimer()
-        timer_virt.timeout.connect(self.virtual_gate_model.update_model)
-        timer_virt.start(500)
-        self.timer_virt = timer_virt
-        self.timer_real = timer_real
-        
+        self.timer_real = QtCore.QTimer()
+        self.timer_real.timeout.connect(self.real_gate_model.update_model)
+        self.timer_real.start(500)
+        self.timer_virt = QtCore.QTimer()
+        self.timer_virt.timeout.connect(self.virtual_gate_model.update_model)
+        self.timer_virt.start(500)
+
         if self.instance_ready == False:
             self.app.exec_()
             print('exec')

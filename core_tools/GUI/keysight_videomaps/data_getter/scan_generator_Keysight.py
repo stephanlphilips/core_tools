@@ -329,7 +329,8 @@ class _digitzer_scan_parameter(MultiParameter):
             ch_data = data[i].reshape(self.shape)
             if self.biasT_corr:
                 data_out[i][:len(ch_data[::2])] = ch_data[::2]
-                data_out[i][len(ch_data[1::2]):] = ch_data[1::2][::-1]
+                data_out[i][len(ch_data[::2]):] = ch_data[1::2][::-1]
+
             else:
                 data_out[i] = ch_data
 

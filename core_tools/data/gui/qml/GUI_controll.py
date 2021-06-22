@@ -125,9 +125,15 @@ class signale_handler(QtQuick.QQuickView):
                 self.plot_ds(self.data_overview_model._data[0].uuid)
 
     def plot_ds(self, uuid):
+        # let the garbage collector collect the old plots
+
         ds = load_by_uuid(uuid)
         p = data_plotter(ds)
         self.plots.append(p)
+
+        for i in range(len(self.plots)-1, -1, -1):
+            if self.plots[i].alive == False:
+                self.plots.pop(i)
 
     @QtCore.pyqtSlot('QString')
     def plot_ds_qml(self, uuid):

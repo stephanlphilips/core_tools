@@ -22,12 +22,11 @@ class ScheduleMgr():
                 digitisers = [digitisers]
 
             self.digitisers = digitisers
-
-
             for dig in digitisers:
                 load_iq_image(dig.SD_AIN)
 
-    def single_shot(self, n_triggers):
+
+    def single_shot(self):
         schedule =  Hvi2ScheduleLoader(self.pulse_lib, 'SingleShot', self.digitisers)
         return schedule
         
