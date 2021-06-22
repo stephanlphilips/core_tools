@@ -221,16 +221,12 @@ try:
             # we have a figure, assume textbox is for dataset name only
             ppLayout = ppLayoutTitleOnly
 
-        max_slides_count_warning = 750
-        max_slides_count = 950
-        if ppt.Slides.Count > max_slides_count_warning:
-            warning_message = "Your presentation has more than {} slides! \
-                Please start a new measurement logbook.".format(max_slides_count_warning)
-            warnings.warn(warning_message)
-        if ppt.Slides.Count > max_slides_count:
+        max_slides_count = 500
+        if ppt.Slides.Count >= max_slides_count:
             error_message = "Your presentation has more than {} slides! \
                 Please start a new measurement logbook.".format(max_slides_count)
-            raise MemoryError(error_message)
+            logging.warning(error_message)
+            ppt = Application.Presentations.Add()
 
         if verbose:
             print('addPPTslide: presentation name: %s, adding slide %d' %
@@ -406,6 +402,24 @@ except ImportError:
                        printformat='fancy', customfig=None, extranotes=None, **kwargs):
         """ Dummy implementation """
         warnings.warn('addPPT_dataset is not available on your system')
+
+def addPPTvoltages(excludes = ['v', 'z']):
+    try:
+        gates = qcodes.Station.default.gates
+    except:
+        raise ValueError('no gates found')    
+    ppttext = ''
+    dt_string = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")    
+    for name, param in gates.parameters.items():
+        try:
+            if name[0] not in excludes:
+                ppttext += f'{name}: {param():.1f}\n'
+        except:
+            pass
+    ppttext = ppttext[:-3]
+    ppt, slide = addPPTslide(title=f'All voltages, {dt_string}',maintext=ppttext)
+    mainbox = slide.shapes.Item(2)
+    mainbox.TextFrame2.Column.Number = 4
 
 # %%
 from collections import OrderedDict

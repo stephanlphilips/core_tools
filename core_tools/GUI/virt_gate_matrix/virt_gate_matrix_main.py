@@ -34,6 +34,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         self.gates_object = gates_object
         self.AWG_attentuation_local_data = dict()
         self.timers =list()
+        self.stepsize = 0.001
         instance_ready = True
 
         self.pulse_lib = pulse_lib
@@ -51,7 +52,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
 
-        for gate in hardware.AWG_to_dac_conversion:
+        for gate in hardware.AWG_to_dac_conversion.keys():
             if gate not in pulse_lib.marker_channels:
                 self.add_gate(gate)
 
@@ -140,7 +141,10 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
     def update_awg_attenuation(self, gate_name, v_ratio):
         hardware = self.gates_object.hardware
         hardware.AWG_to_dac_conversion[gate_name] = v_ratio
-        hardware.sync_data()
+        try:
+            hardware.sync_data()
+        except:
+            pass
         self.pulse_lib.load_hardware(hardware)
 
     def add_spacer(self):
@@ -182,7 +186,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         sizePolicy.setHeightForWidth(tableWidget.sizePolicy().hasHeightForWidth())
         tableWidget.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setPointSize(2)
+        font.setPointSize(12)
         tableWidget.setFont(font)
         tableWidget.setColumnCount(len(virtual_gate_set))
         tableWidget.setObjectName("virtgates")
@@ -218,12 +222,12 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setMaximumSize(QtCore.QSize(100, 50))
                 doubleSpinBox.setWrapping(False)
                 doubleSpinBox.setFrame(False)
-                # doubleSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+                doubleSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
                 doubleSpinBox.setPrefix("")
                 doubleSpinBox.setMaximum(5.0)
                 doubleSpinBox.setMinimum(-5.0)
-                doubleSpinBox.setSingleStep(0.01)
-                doubleSpinBox.setDecimals(2)
+                doubleSpinBox.setSingleStep(0.001)
+                doubleSpinBox.setDecimals(3)
                 doubleSpinBox.setContentsMargins(0,0,0,0)
                 inverted_matrix = np.linalg.inv(virtual_gate_set.virtual_gate_matrix_no_norm)
                 doubleSpinBox.setValue(inverted_matrix[i,j])
@@ -241,12 +245,15 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def linked_result(self, matrix, i, j, spin_box):
-        matrix_no_view = np.asarray(matrix)
+        matrix_no_view = matrix
         inv_cap = cap_to_inv_cap_mat(matrix)
         inv_cap[i,j] = spin_box.value()
         cap_mat = inv_cap_to_cap_mat(inv_cap)
         matrix_no_view[:, :] = cap_mat
-        self.gates_object.hardware.sync_data()
+        try:
+            self.gates_object.hardware.sync_data()
+        except:
+            pass
 
     def update_v_gates(self, matrix, update_list):
         """ Update the virtual gate matrix elements
@@ -259,6 +266,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
         for i,j, spin_box in update_list:
             if not spin_box.hasFocus():
+                # print(f'setting {i},{j} to {inv_cap[i,j]}')
                 spin_box.setValue(inv_cap[i,j])
 
 

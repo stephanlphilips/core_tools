@@ -47,7 +47,9 @@ class param_viewer:
         timer_virt = QtCore.QTimer()
         timer_virt.timeout.connect(self.virtual_gate_model.update_model)
         timer_virt.start(500)
-
+        self.timer_virt = timer_virt
+        self.timer_real = timer_real
+        
         if self.instance_ready == False:
             self.app.exec_()
             print('exec')

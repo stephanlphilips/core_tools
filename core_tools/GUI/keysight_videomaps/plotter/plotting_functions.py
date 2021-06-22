@@ -64,7 +64,7 @@ class live_plot(live_plot_abs, QThread):
 
     # list of plot_widget_data (1 per plot)
     plot_widgets = []
-    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, differentiate, prog_bar = None, levels = None):
+    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, differentiate, indexrange, n_col, prog_bar = None):
         '''
         init the class
 
@@ -78,12 +78,13 @@ class live_plot(live_plot_abs, QThread):
         super(QThread, self).__init__()
         super(live_plot_abs, self).__init__()
         # general variables needed for the plotting
+        self.n_col = n_col
         self.app = app
         self.n_plots = len(parameter_getter.names)
         self.top_frame = top_frame
         self.top_layout = top_layout
         self.prog_bar = prog_bar
-
+        self.index_range = indexrange
         # getter for the scan.
         self.parameter_getter = parameter_getter
         self.shape = parameter_getter.shapes[0] #assume all the shapes are the same.
@@ -92,7 +93,6 @@ class live_plot(live_plot_abs, QThread):
         # plot properties
         self._averaging = averaging
         self._differentiate = differentiate
-        self._levels = levels
         
         self.set_busy(True)
 
@@ -186,13 +186,26 @@ class _1D_live_plot(live_plot):
     """1D live plot fuction"""
 
     def init_plot(self):
+        self.min_max = []
+        self.lt = time.time()
+        n_col = self.n_col
         for i in range(self.n_plots):
             plot_1D = pg.PlotWidget()
             plot_1D.showGrid(x=True, y=True)
             plot_1D.setLabel('left', self.parameter_getter.labels[i], self.parameter_getter.units[i])
             plot_1D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][0], self.parameter_getter.setpoint_units[i][0])
-            self.top_layout.addWidget(plot_1D, 0, i, 1, 1)
+            
+            ii = i % n_col
+            jj = int(i / n_col)
+            
+            self.top_layout.addWidget(plot_1D, jj, ii, 1, 1)
 
+            min_max = QtWidgets.QLabel(plot_1D)
+            min_max.setText(f"fr: {0:4.0f} ms")
+            min_max.setStyleSheet("QLabel { background-color : white; color : black; }")
+            min_max.setGeometry(50, 2, 150, 14)
+            self.min_max.append(min_max)
+            
             my_range = self.parameter_getter.setpoints[0][0][-1]
             self.x_data = np.linspace(-my_range, my_range, self.plot_data[i].size)
 
@@ -209,8 +222,12 @@ class _1D_live_plot(live_plot):
         if not self.plot_data_valid:
             return
         self.set_busy(False)
+        ct = time.time()
+        fr = 1000*(ct - self.lt) # finalize FR implementation
+        self.lt = ct
         for i in range(len(self.plot_widgets)):
-            self.plot_widgets[i].plot_items[0].setData(self.x_data,self.plot_data[i])
+            self.plot_widgets[i].plot_items[0].setData(self.x_data[self.index_range[0]:self.index_range[1]],self.plot_data[i][self.index_range[0]:self.index_range[1]])
+            self.min_max[i].setText(f"fr:{fr:4.0f} ms")
 
     def run(self):
         # fetch data here -- later ported through in update plot. Running update plot from here causes c++ to delethe the curves object for some wierd reason..
@@ -247,6 +264,7 @@ class _2D_live_plot(live_plot):
     """function that has as sole pupose generating live plots of a line trace (or mupliple if needed)"""
 
     def init_plot(self):
+        n_col = self.n_col
         self.prog_per = 0
         self.min_max = []
         for i in range(self.n_plots):
@@ -256,15 +274,24 @@ class _2D_live_plot(live_plot):
             plot_2D.addItem(img)
             plot_2D.setLabel('left', self.parameter_getter.setpoint_labels[i][0], self.parameter_getter.setpoint_units[i][0])
             plot_2D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][1], self.parameter_getter.setpoint_units[i][1])
+            
+            title = QtWidgets.QLabel(plot_2D)
+            title.setText(self.parameter_getter.channel_names[i])
+            title.setStyleSheet("QLabel { background-color : white; color : black; }")
+            title.setGeometry(50, 2, 50, 14)
 
             min_max = QtWidgets.QLabel(plot_2D)
             min_max.setText(f"min:{0:4.0f} mV max:{0:4.0f} mV    ")
             min_max.setStyleSheet("QLabel { background-color : white; color : black; }")
-            min_max.setGeometry(50, 2, 150, 14)
+            min_max.setGeometry(50, 2, 50, 14)
             self.min_max.append(min_max)
-
-            self.top_layout.addWidget(plot_2D, 0, i, 1, 1)
-
+            
+            ii = i % n_col
+            jj = int(i / n_col)
+            
+            self.top_layout.addWidget(plot_2D, jj, ii, 1, 1)
+            
+            # TODO implement axis fix for range 
             img.translate(-self.parameter_getter.setpoints[0][1][-1], -self.parameter_getter.setpoints[0][0][-1])
             img.scale(1/self.shape[0]*self.parameter_getter.setpoints[0][1][-1]*2, 1/self.shape[1]*self.parameter_getter.setpoints[0][0][-1]*2)
 
@@ -277,14 +304,13 @@ class _2D_live_plot(live_plot):
         self.set_busy(False)
         act_chs = [ch-1 for ch in self.parameter_getter.channels]
         for i in range(len(self.plot_widgets)):
-            self.plot_widgets[i].plot_items[0].setImage(self.plot_data[i])
-            
-            if self._levels[act_chs[i]] is not None:
-                self.plot_widgets[i].plot_items[0].setLevels(self._levels[act_chs[i]])
+            # print('upd')
+            data_map = self.plot_data[i][self.index_range[0][0]:self.index_range[0][1], self.index_range[1][0]:self.index_range[1][1]]
+            self.plot_widgets[i].plot_items[0].setImage(data_map)
             
             self.prog_bar.setValue(self.prog_per)
 
-            mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])
+            mn, mx = np.min(data_map), np.max(data_map)
             self.min_max[i].setText(f"min:{mn:4.0f} mV max:{mx:4.0f} mV  ")
             if self.active == False:
                 break

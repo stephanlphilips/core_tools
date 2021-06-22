@@ -42,11 +42,14 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         # add RF parameters
-        for src_name in self.gates_object.hardware.RF_source_names:
-            inst = getattr(station, src_name)
-            for RFpar in self.gates_object.hardware.RF_params:
-                param = getattr(inst, RFpar)
-                self._add_RFset(param)
+        try:
+            for src_name in self.gates_object.hardware.RF_source_names:
+                inst = getattr(station, src_name)
+                for RFpar in self.gates_object.hardware.RF_params:
+                    param = getattr(inst, RFpar)
+                    self._add_RFset(param)
+        except:
+            pass
         try:
             for ks_param in self.keysight_rf.all_params:
                 self._add_RFset(ks_param)

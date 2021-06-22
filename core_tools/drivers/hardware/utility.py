@@ -29,15 +29,19 @@ def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name):
     print('Loading  virtual gates matrices from dataset:')
 
     for key, value in virtual_gates.items():
-        matrix = value['virtual_gate_matrix_no_norm'].replace('\n', '').replace('[', '').replace(']', '')
+        try:
+            matrix = value['virtual_gate_matrix_no_norm'].replace('\n', '').replace('[', '').replace(']', '')
+        except:
+            print('no old style matrix found, trying new style')
+            matrix = value['virtual_gate_matrix'].replace('\n', '').replace('[', '').replace(']', '')
         mat = np.loadtxt(StringIO(matrix), delimiter=',')
         mat = mat.reshape([int(np.sqrt(mat.size)), int(np.sqrt(mat.size))])
 
         vg = virtual_gate_matrix(key, value['real_gate_names'], value['virtual_gate_names'], mat)
         vg.save()
-
+        
         h = hardware()
-        h.virtual_gates.add(vg.name, vg.gates)
+        h.virtual_gates.add(vg.name, vg.gates, vg.v_gates)
 
         print(f'\tfound virtual gate matrix named ::\t{key} ({mat.shape[0]}x{mat.shape[1]})')
 

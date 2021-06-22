@@ -86,16 +86,16 @@ ApplicationWindow{
                                 id : var_name_value_item
                                 width : parent.width
                                 Layout.fillWidth: true
-                                height : 45
+                                height : 22
 
                                 RowLayout {
                                     id: rowLayout5
-                                    height: 40
-                                    spacing : 5
+                                    height: 20
+                                    spacing : 2
                                     anchors.left: parent.left
                                     Rectangle {
                                         id: rectangle14
-                                        height: 40
+                                        height: 20
                                         Layout.fillWidth: true
                                         Layout.minimumWidth: 250
                                         color: "#F5F5F5"
@@ -120,7 +120,7 @@ ApplicationWindow{
                                     }
 
                                     Rectangle{
-                                    	height : 40
+                                        height : 20
                                         width : 250
 	                                    color : ratios_text_field.focus ? "#8E24AA" : "#E0E0E0" 
 
@@ -134,7 +134,7 @@ ApplicationWindow{
 		                                    color : "#FFFFFF"
 		                                    
 		                                    MouseArea{
-	                                    		height : 38
+                                                height : 18
 		                                        width : 248
 									            anchors.fill: parent
 									            propagateComposedEvents: true
@@ -161,7 +161,7 @@ ApplicationWindow{
 		                                        anchors.left: parent.left
 		                                        anchors.top: parent.top
 		                                        anchors.leftMargin: 5
-		                                        anchors.topMargin : 10 
+                                                anchors.topMargin : 0
 		                                        font.pointSize: 12
 
     	                                        validator : DoubleValidator{bottom :  0 ; decimals : 5}
@@ -179,7 +179,7 @@ ApplicationWindow{
                                     }
 
                                     Rectangle{
-                                    	height : 40
+                                        height : 20
                                         width : 250
 	                                    color : dbs_text_field.focus ? "#1E88E5" : "#BDBDBD" 
 
@@ -188,12 +188,12 @@ ApplicationWindow{
 	                                    	anchors.left: parent.left
 	                                        anchors.topMargin: 1
 	                                        anchors.leftMargin: 1
-	                                    	height : 38
+                                            height : 18
 	                                        width : 248
 		                                    color : "#FFFFFF"
 		                                    
 		                                    MouseArea{
-	                                    		height : 38
+                                                height : 18
 		                                        width : 248
 									            anchors.fill: parent
 									            propagateComposedEvents: true
@@ -219,7 +219,7 @@ ApplicationWindow{
 		                                        anchors.left: parent.left
 		                                        anchors.top: parent.top
 		                                        anchors.leftMargin: 5
-		                                        anchors.topMargin : 10 
+                                                anchors.topMargin : 0
 		                                        font.pointSize: 12
 
 		                                        validator : DoubleValidator{bottom :  -60 ; decimals : 3}
@@ -248,7 +248,7 @@ ApplicationWindow{
                                 id : var_name_value_item
                                 width : parent.width
                                 Layout.fillWidth: true
-                                height : 45
+                                height : 22
                                 z: 2
 
                                 RowLayout {
@@ -256,12 +256,12 @@ ApplicationWindow{
                                     anchors.left: parent.left
                                     anchors.right: parent.right
                                     anchors.rightMargin: 20
-                                    height: 40
-                                    spacing : 5
+                                    height: 20
+                                    spacing : 2
 
                                     Rectangle {
                                         id: rectangle7
-                                        height: 40
+                                        height: 20
                                         color: "#8e24aa"
                                         Layout.minimumWidth: 250
                                         Layout.fillWidth: true
@@ -287,7 +287,7 @@ ApplicationWindow{
 
                                     Rectangle {
                                         id: rectangle15
-                                        height: 40
+                                        height: 20
                                         width : 250
                                         color: "#8e24aa"
                                         Text {
@@ -312,7 +312,7 @@ ApplicationWindow{
 
                                     Rectangle {
                                         id: rectangle156
-                                        height: 40
+                                        height: 20
                                         width : 250
                                         color: "#8e24aa"
                                         Text {
@@ -373,10 +373,10 @@ ApplicationWindow{
                 anchors.top : parent.top
 
                 Rectangle {
-                	Layout.topMargin : 20
-                	Layout.leftMargin : 20
-                	Layout.rightMargin : 20
-                	Layout.bottomMargin : 20
+                    Layout.topMargin : 0
+                    Layout.leftMargin : 0
+                    Layout.rightMargin : 0
+                    Layout.bottomMargin : 0
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.alignment: Qt.AlignLeft | Qt.AlignTop
@@ -386,8 +386,8 @@ ApplicationWindow{
 	                	id:tableView
 				        anchors.fill: parent
 
-				        columnWidthProvider: function (column) { return 80; }
-				        rowHeightProvider: function (column) { return 43; }
+                        columnWidthProvider: function (column) { return 53; }
+                        rowHeightProvider: function (column) { return 23; }
 
 				        leftMargin: rowsHeader.implicitWidth
 				        topMargin: columnsHeader.implicitHeight
@@ -406,17 +406,20 @@ ApplicationWindow{
                                     anchors.right: parent.right
                                     anchors.topMargin: 3
                                     anchors.leftMargin: 3
-					        		width : 77
-					        		height : 40
+                                    width : 50
+                                    height : 20
                                     color:{
-                                        if (tableView.active_col === column && tableView.active_row === row){'#E0E0E0'}
-                                        else if (tableView.active_col === column || tableView.active_row === row){'#EEEEEE'}
-                                        else{'#F5F5F5'}
+                                        if ((tableView.active_col === column && tableView.active_row === row) && !(text_field_measurment_overview.text > 0.001 || text_field_measurment_overview.text < -0.001)){'#E0E0E0'}
+                                        else if ((tableView.active_col === column && tableView.active_row === row) && (text_field_measurment_overview.text > 0.001 || text_field_measurment_overview.text < -0.001)){'#FA0000'}
+                                        else if ((tableView.active_col === column || tableView.active_row === row) && !(text_field_measurment_overview.text > 0.001 || text_field_measurment_overview.text < -0.001)){'#EEEEEE'}
+                                        else if ((tableView.active_col === column || tableView.active_row === row) && (text_field_measurment_overview.text > 0.001 || text_field_measurment_overview.text < -0.001)){'#FF5555'}
+                                        else if (text_field_measurment_overview.text > 0.001 || text_field_measurment_overview.text < -0.001 ){'#FFAAAA'}
+                                        else {'#F5F5F5'}
                                     }
 
                                     MouseArea {
-                                    	width : 77
-                                    	height : 40
+                                        width : 50
+                                        height : 20
 							            anchors.fill: parent
 							            propagateComposedEvents: true
 							            hoverEnabled: true
@@ -458,9 +461,9 @@ ApplicationWindow{
                                             id : text_field_measurment_overview
                                             anchors.right: parent.right
                                             anchors.top: parent.top
-                                            anchors.rightMargin: 8
-                                            anchors.topMargin: 8
-                                            font.pixelSize: 20
+                                            anchors.rightMargin: 4
+                                            anchors.topMargin: 0
+                                            font.pixelSize: 15
 
                                             text : vg_matrix_data
 
@@ -501,21 +504,21 @@ ApplicationWindow{
                                         spacing : 0
     					                Rectangle{
                                             width : 3
-                                            height : 43
+                                            height : 23
                                             color: "#FFFFFF"
                                         }
                                         Rectangle{
-    					                    width: 77
-    					                    height: 43
+                                            width: 50
+                                            height: 23
     					                    color: '#8E24AA'
     						                Text {
     						                	anchors.right: parent.right
     						                	anchors.top: parent.top
     						                    text: HeaderName
-                                                rightPadding : 8
-                                                topPadding : 10
+                                                rightPadding : 4
+                                                topPadding : 0
     						                    color : '#FFFFFF'
-    						                    font.pixelSize: 18
+                                                font.pixelSize: 15
     						                }
 
     					                }
@@ -532,20 +535,20 @@ ApplicationWindow{
                                 ColumnLayout{
                                     spacing : 0
                                     Rectangle{
-                                        width : 100
+                                        width : 70
                                         height : 3
                                         color : '#FFFFFF'
                                     }
                                     Rectangle{
-                                        width : 100
-                                        height : 40
+                                        width : 70
+                                        height : 20
                                         color: "#8E24AA"
                                         Text{
                                             anchors.right: parent.right
-                                            rightPadding : 8
-                                            topPadding : 8 
+                                            rightPadding : 4
+                                            topPadding : 0
                                             text: HeaderName
-                                            font.pixelSize : 18
+                                            font.pixelSize : 15
                                             color: "#FFFFFF"
                                         }
                                     }

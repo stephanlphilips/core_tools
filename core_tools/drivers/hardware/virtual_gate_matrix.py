@@ -16,7 +16,23 @@ class virtual_gate_matrix():
 
         self.forward_conv_lamda = forward_conv_lamda
         self.backward_conv_lamda = backward_conv_lamda
-
+    
+    @property
+    def real_gate_names(self):
+        return self.gates
+    
+    @property
+    def virtual_gate_names(self):
+        return self.v_gates
+    
+    @property
+    def virtual_gate_matrix_no_norm(self):
+        return self
+    
+    @virtual_gate_matrix_no_norm.setter
+    def virtual_gate_matrix_no_norm(self, matrix):
+        self.matrix(matrix)
+    
     @property
     def matrix(self):
         return self.forward_conv_lamda(self._matrix)
@@ -42,7 +58,7 @@ class virtual_gate_matrix():
             gates (list<str>) : name of the gates where to reduce to reduce the current matrix to.
             v_gates (list<str>) : list with the names of the virtual gates (optional)
         '''
-        v_gates = name_virtual_gates(v_gates, gates)
+        v_gates = self.get_v_gate_names(v_gates, gates)
         v_gate_matrix = np.eye(len(gates))
 
         for i in range(len(gates)):
@@ -52,13 +68,29 @@ class virtual_gate_matrix():
         
         return virtual_gate_matrix('dummy', gates, v_gates, v_gate_matrix)
 
+    def get_v_gate_names(self, v_gate_names, real_gates):
+        if v_gate_names is None:
+            v_gates = []
+            for rg in real_gates:
+                gate_index = self.gates.index(rg)
+                v_gates.append(self.v_gates[gate_index])
+        else:
+            v_gates = v_gate_names
+    
+        return v_gates
+
     def __getitem__(self, index):
+        # print(index)
         if isinstance(index, tuple):
             idx_1, idx_2 = index
             idx_1 = self.__evaluate_index(idx_1, self.v_gates)
             idx_2 = self.__evaluate_index(idx_2, self.gates)
             
             return self.matrix[idx_1,idx_2]
+        elif isinstance(index, int):
+            idx = index
+            idx = self.__evaluate_index(idx, self.v_gates)
+            return self.matrix[idx,:]            
         else:
             raise ValueError("wrong input foramt provided ['virtual_gate','gate'] expected).".format(v_gate))
         

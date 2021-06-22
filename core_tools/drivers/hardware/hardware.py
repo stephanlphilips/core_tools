@@ -121,7 +121,8 @@ class hardware(qc.Instrument):
     _boundaries = boundaries_mgr()   
     virtual_gates = virtual_gates_mgr()
     awg2dac_ratios = awg2dac_ratios_mgr()
-
+    AWG_to_dac_conversion = awg2dac_ratios
+    
     def __init__(self, name=None):
         if hardware.instanciated == False: # this should happen in the station
             super().__init__('hardware')

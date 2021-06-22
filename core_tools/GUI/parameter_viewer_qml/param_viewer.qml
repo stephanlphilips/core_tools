@@ -11,7 +11,7 @@ import Qt.labs.qmlmodels 1.0
 ApplicationWindow{
     title: "Parameter Viewer"
     width: 350
-    height: 1030
+    height: 1000
     visible: true
     Material.theme: Material.Light
 
@@ -58,10 +58,10 @@ ApplicationWindow{
             height: parent.height
 
             Rectangle {
-                Layout.topMargin : 20
-                Layout.leftMargin : 20
-                Layout.rightMargin : 20
-                Layout.bottomMargin : 20
+                Layout.topMargin : 2
+                Layout.leftMargin : 2
+                Layout.rightMargin : 2
+                Layout.bottomMargin : 2
 
                 width: parent.width
                 height: parent.height
@@ -75,17 +75,17 @@ ApplicationWindow{
                         id : var_name_value_item
                         width : parent.width
                         Layout.fillWidth: true
-                        height : 45
+                        height : 20
                         z : 0
 
                         RowLayout {
                             id: rowLayout5
-                            height: 40
-                            spacing : 5
+                            height: 20
+                            spacing : 0
 
                             Rectangle {
                                 id: rectangle14
-                                height: 40
+                                height: 20
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 100
                                 color: "#F5F5F5"
@@ -110,7 +110,7 @@ ApplicationWindow{
 
                             Rectangle{
                                 id : real_voltages_deg_rect
-                                height : 40
+                                height : 20
                                 Layout.minimumWidth: 100
                                 Layout.preferredWidth : 180
                                 color : real_voltage_values.focus ? "#8E24AA" : "#E0E0E0" 
@@ -120,12 +120,12 @@ ApplicationWindow{
                                     anchors.left: parent.left
                                     anchors.topMargin: 1
                                     anchors.leftMargin: 1
-                                    height : 38
+                                    height : 20
                                     width : real_voltages_deg_rect.width-2
                                     color : "#FFFFFF"
                                     
                                     MouseArea{
-                                        height : 38
+                                        height : 20
                                         width : real_voltages_deg_rect.width-2
                                         anchors.fill: parent
                                         propagateComposedEvents: true
@@ -150,10 +150,9 @@ ApplicationWindow{
                                         anchors.left: parent.left
                                         anchors.top: parent.top
                                         anchors.leftMargin: 5
-                                        anchors.topMargin : 10 
+                                        anchors.topMargin : 0
                                         font.pointSize: 12
 
-                                        validator : DoubleValidator{bottom :  -1000 ; decimals : 2}
                                         selectByMouse : true
                                         selectedTextColor : '#FFFFFF'
                                         selectionColor : '#EC407A'
@@ -184,7 +183,7 @@ ApplicationWindow{
                         id : var_name_value_item
                         width : parent.width
                         Layout.fillWidth: true
-                        height : 55
+                        height : 20
                         z: 2
 
                         RowLayout {
@@ -194,13 +193,13 @@ ApplicationWindow{
                             anchors.left: parent.left
                             anchors.leftMargin: 10
                             anchors.top: parent.top
-                            anchors.topMargin: 10
-                            height: 40
-                            spacing : 5
+                            anchors.topMargin: 0
+                            height: 20
+                            spacing : 0
 
                             Rectangle {
                                 id: rectangle7
-                                height: 40
+                                height: 20
                                 color: "#8e24aa"
                                 Layout.minimumWidth: 100
                                 Layout.fillWidth: true
@@ -226,7 +225,7 @@ ApplicationWindow{
 
                             Rectangle {
                                 id: rectangle15
-                                height: 40
+                                height: 20
                                 Layout.minimumWidth: 100
                                 Layout.preferredWidth : 180
                                 color: "#8e24aa"
@@ -300,15 +299,15 @@ ApplicationWindow{
                     Item{
                         width : parent.width
                         Layout.fillWidth: true
-                        height : 45
+                        height : 20
 
                         RowLayout {
-                            height: 40
-                            spacing : 5
+                            height: 20
+                            spacing : 0
 
                             Rectangle {
                                 id: rectangle_virt_gates_1
-                                height: 40
+                                height: 20
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 100
                                 color: "#F5F5F5"
@@ -333,7 +332,7 @@ ApplicationWindow{
 
                             Rectangle{
                                 id : virt_voltages_deg_rect
-                                height : 40
+                                height : 20
                                 Layout.minimumWidth: 100
                                 Layout.preferredWidth : 180
                                 color : virtual_voltage_values.focus ? "#8E24AA" : "#E0E0E0" 
@@ -343,12 +342,12 @@ ApplicationWindow{
                                     anchors.left: parent.left
                                     anchors.topMargin: 1
                                     anchors.leftMargin: 1
-                                    height : 38
+                                    height : 20
                                     width : virt_voltages_deg_rect.width-2
                                     color : "#FFFFFF"
                                     
                                     MouseArea{
-                                        height : 38
+                                        height : 20
                                         width : virt_voltages_deg_rect.width-2
                                         anchors.fill: parent
                                         propagateComposedEvents: true
@@ -373,10 +372,9 @@ ApplicationWindow{
                                         anchors.left: parent.left
                                         anchors.top: parent.top
                                         anchors.leftMargin: 5
-                                        anchors.topMargin : 10 
+                                        anchors.topMargin : 0
                                         font.pointSize: 12
 
-                                        validator : DoubleValidator{bottom :  -1000 ; decimals : 2}
                                         selectByMouse : true
                                         selectedTextColor : '#FFFFFF'
                                         selectionColor : '#EC407A'
@@ -504,7 +502,7 @@ ApplicationWindow{
     RowLayout {
         id: settings_virt_gates
         spacing  :0
-        height: 50
+        height: 20
 
         anchors.right: parent.right
         anchors.left: parent.left
@@ -512,46 +510,45 @@ ApplicationWindow{
 
         Rectangle {
             id : step_size_containter
-            height: 50
+            height: 20
             width : 120
             color : "#F5F5F5"
 
             Text{
                 id : step_size_voltage
-                anchors.left: parent.left
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 20
-                anchors.bottomMargin: 15
                 text : 'Stepsize : '
-                font.pixelSize: 20
-                padding : 0
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 14
+                anchors.fill: parent
+                horizontalAlignment: Text.AlignRight
+                anchors.rightMargin: 10
             }
         }
         Rectangle {
             id : step_size_containter2
             Layout.fillWidth: true
-            height: 50
+            height: 20
             color : "#F5F5F5"
 
             Rectangle{
                 id : step_size_rect
-                height : 40
+                height : 20
                 width :250
-                anchors.top: step_size_containter2.top
-                anchors.topMargin: 5
+                anchors.top: parent.top
+                anchors.topMargin: 0
                 color : stepsize_step.focus ? "#8E24AA" : "#E0E0E0" 
 
                 Rectangle{
                     anchors.top: parent.top
-                    anchors.topMargin: 1
+                    anchors.topMargin: 0
                     anchors.left: parent.left
-                    anchors.leftMargin: 1
-                    height : 38
+                    anchors.leftMargin: 0
+                    height : 20
                     width : step_size_rect.width-2
                     color : "#FFFFFF"
 
                     MouseArea{
-                        height : 38
+                        height : 20
                         width : step_size_rect.width-2
                         anchors.fill: parent
                         propagateComposedEvents: true
@@ -575,10 +572,9 @@ ApplicationWindow{
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.leftMargin: 5
-                        anchors.topMargin : 10 
+                        anchors.topMargin : 0
                         font.pointSize: 12
 
-                        validator : DoubleValidator{bottom :  0 ; decimals : 2}
                         selectByMouse : true
                         selectedTextColor : '#FFFFFF'
                         selectionColor : '#EC407A'

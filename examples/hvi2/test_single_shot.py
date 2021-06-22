@@ -44,7 +44,7 @@ def create_pulse_lib(awgs):
         pulse.add_awgs(awg.name, awg)
 
         # define channels
-        for ch in range(1,5):
+        for ch in [1]:
             pulse.define_channel(f'{awg.name}_{ch}', awg.name, ch)
 
     pulse.finish_init()
@@ -58,8 +58,8 @@ def load_awg_image(awg):
     bitstream = os.path.join(get_fpga_image_path(awg.awg), 'awg_enhanced.k7z')
     check_error(awg.load_fpga_image(bitstream), f'loading dig bitstream: {bitstream}')
 
-awg_slots = [3,7]
-dig_slot = 6
+awg_slots = [9]
+dig_slot = 11
 dig_channels = [1,2,3,4]
 full_scale = 2.0
 
@@ -97,7 +97,7 @@ schedule = Hvi2ScheduleLoader(p, 'SingleShot', dig)
 ## create waveforms
 seg = p.mk_segment()
 for awg in awgs:
-    for ch in [1,2,3,4]:
+    for ch in [1]:
         channel = getattr(seg, f'{awg.name}_{ch}')
         channel.wait(t_wave)
         channel.add_block(t_pulse, t_pulse+pulse_duration, 800)
