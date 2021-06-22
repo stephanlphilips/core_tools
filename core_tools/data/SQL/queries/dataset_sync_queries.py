@@ -15,7 +15,7 @@ class sync_mgr_queries:
 			meaurments <list<long>> : list of uuid's who's table entries need a sync
 		'''
 		res = select_elements_in_table(sync_agent.conn_local, "global_measurement_overview",
-			('uuid', ), dict_cursor=False)
+			('uuid', ), where=("table_synchronized",False), dict_cursor=False)
 		
 		uuid_entries = list(sum(res, ()))
 		uuid_entries.sort()
@@ -72,7 +72,7 @@ class sync_mgr_queries:
 			meaurments <list<long>> : list of uuid's where the data needs to be updated of.
 		'''
 		res = select_elements_in_table(sync_agent.conn_local, "global_measurement_overview",
-			('uuid', ), dict_cursor=False)
+			('uuid', ), where=('data_synchronized',False), dict_cursor=False)
 
 		uuid_entries = list(sum(res, ()))
 		uuid_entries.sort()
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
 	i = 0
 	for uuid in e:
-		# print(i)
+		print(i)
 		# sync_mgr_queries.sync_raw_data(s,uuid)
 		sync_mgr_queries.sync_table(s, uuid)
 		i+= 1
