@@ -103,6 +103,12 @@ class keysight_rfgen(Instrument):
         enab = self._awg_lo_settings[lo_key][5]
         self.awg_dict[awg_name].config_lo(channel, lo, enab, freq, amp)
 
+    def change_input_channel(self, lo_key, input_channel):
+        old_settings = self._dig_lo_settings[lo_key][0]
+        new_settings = (old_settings[0], input_channel, old_settings[2], old_settings[3])
+        self._dig_lo_settings[lo_key] = [new_settings]
+        self.write_dig_settings(lo_key)
+
     def write_dig_settings(self, lo_key):
         freq = self._awg_lo_settings[lo_key][4]
         for (channel, hw_channel, ifreq, ifreq_band) in self._dig_lo_settings[lo_key]:

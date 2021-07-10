@@ -239,7 +239,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             # do not update when a user cdisplicks on it.
             if not param.gui_input_param.hasFocus():
                 if type(param.gui_input_param) == QtWidgets.QDoubleSpinBox:
-                    param.gui_input_param.setValue(param.param_parameter()/param.division)
+                    param.gui_input_param.setValue(param.param_parameter.cache()/param.division)
                 elif type(param.gui_input_param) == QtWidgets.QCheckBox:
                     param.gui_input_param.setChecked(param.param_parameter())
 

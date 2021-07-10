@@ -6,7 +6,8 @@ from core_tools.sweeps.sweep_utility import (
         pulselib_2_qcodes, check_OD_scan, sweep_info, get_measure_data, KILL_EXP)
 from core_tools.job_mgnt.job_meta import job_meta
 from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
-
+import json
+import qcodes as qc
 import numpy as np
 import time
 
@@ -37,6 +38,9 @@ class scan_generic(metaclass=job_meta):
                 self.set_vars.append(arg)
                 set_points.append(arg.param)
             elif isinstance(arg, sequencer):
+                # TODO: add sequence metadata
+                # metadata_json = json.dumps({'pulselib': arg.metadata}, cls=qc.utils.helpers.NumpyJSONEncoder)
+                # self.meas.dataset.metadata = json.loads(metadata_json)
                 if arg.shape != (1, ):
                     set_vars_pulse_lib = pulselib_2_qcodes(arg)
                     for var in set_vars_pulse_lib:

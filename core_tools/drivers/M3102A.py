@@ -469,6 +469,10 @@ class line_trace(MultiParameter):
                         shape += (n, )
                         setpoints += ((tuple(np.linspace(properties.t_measure/n, properties.t_measure, n)), ))
 
+                    # if shape == tuple():
+                    #     shape = (1,)
+                    #     setpoints = (0, )
+
                     self.shapes += (shape, )
                     self.setpoints += (setpoints, )
 
