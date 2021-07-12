@@ -7,6 +7,8 @@ import qcodes as qc
 import numpy as np
 from dataclasses import dataclass
 
+import logging
+
 @dataclass
 class param_data_obj:
     param_parameter : any
@@ -22,6 +24,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.rf_settings = list()
         self.station = qc.Station.default
         self.keysight_rf = keysight_rf
+        self.last_param_value = {}
         if gates_object:
             self.gates_object = gates_object
         else:
@@ -105,22 +108,22 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         unit = parameter.unit
         step_size = 0.5
         division = 1
-        
+
         name = name.replace('keysight_rfgen_','')
-        
+
         if 'freq' in parameter.name:
             division = 1e6
             step_size = 0.1
             unit = f'M{unit}'
 
         _translate = QtCore.QCoreApplication.translate
-        
+
         set_name = QtWidgets.QLabel(self.RFsettings)
         set_name.setObjectName(name)
         set_name.setMinimumSize(QtCore.QSize(100, 0))
         set_name.setText(_translate("MainWindow", name))
         layout.addWidget(set_name, i, 0, 1, 1)
-        
+
         if 'enable' in name:
             set_input = QtWidgets.QCheckBox(self.RFsettings)
             set_input.setObjectName(name + "_input")
@@ -130,15 +133,15 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             set_input = QtWidgets.QDoubleSpinBox(self.RFsettings)
             set_input.setObjectName(name + "_input")
             set_input.setMinimumSize(QtCore.QSize(100, 0))
-    
+
             # TODO collect boundaries out of the harware
             set_input.setRange(-1e9,1e9)
             set_input.valueChanged.connect(partial(self._set_set, parameter, set_input.value,division))
             set_input.setKeyboardTracking(False)
             set_input.setSingleStep(step_size)
-    
+
             layout.addWidget(set_input, i, 1, 1, 1)
-    
+
         set_unit = QtWidgets.QLabel(self.RFsettings)
         set_unit.setObjectName(name + "_unit")
         set_unit.setText(_translate("MainWindow", unit))
@@ -193,6 +196,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def _set_gate(self, gate, value):
         # TODO add support if out of range.
+        logging.info(f'set_gate {gate.name} = {value}')
         gate.set(value())
 
     def _set_set(self, setting, value, division):
@@ -200,12 +204,12 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         setting.set(value()*division)
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
         self.gates_object.hardware.sync_data()
-        
+
     def _set_bool(self, setting, value):
         setting.set(value())
         self.gates_object.hardware.RF_settings[setting.full_name] = value()
         self.gates_object.hardware.sync_data()
-        
+
     def _finish_gates_GUI(self):
 
         for items, layout_widget in [ (self.real_gates, self.layout_real), (self.virtual_gates, self.layout_virtual),
@@ -239,7 +243,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             # do not update when a user cdisplicks on it.
             if not param.gui_input_param.hasFocus():
                 if type(param.gui_input_param) == QtWidgets.QDoubleSpinBox:
-                    param.gui_input_param.setValue(param.param_parameter.cache()/param.division)
+                    last_value = self.last_param_value.get(param.param_parameter.name, None)
+                    new_value = param.param_parameter.cache()/param.division
+                    if new_value != last_value:
+                        logging.info(f'Update GUI {param.param_parameter.name} {last_value} -> {new_value}')
+                    param.gui_input_param.setValue(new_value)
                 elif type(param.gui_input_param) == QtWidgets.QCheckBox:
                     param.gui_input_param.setChecked(param.param_parameter())
 
@@ -263,14 +271,14 @@ if __name__ == "__main__":
     hw =  hardware()
     hw.RF_source_names = []
     hw.dac_gate_map = {
-        'B0': (0, 1), 'P1': (0, 2), 
+        'B0': (0, 1), 'P1': (0, 2),
         'B1': (0, 3), 'P2': (0, 4),
-        'B2': (0, 5), 'P3': (0, 6), 
-        'B3': (0, 7), 'P4': (0, 8), 
+        'B2': (0, 5), 'P3': (0, 6),
+        'B3': (0, 7), 'P4': (0, 8),
         'B4': (0, 9), 'P5': (0, 10),
         'B5': (0, 11),'P6': (0, 12),
         'B6': (0, 13), 'S6' : (0,14,),
-        'SD1_P': (1, 1), 'SD2_P': (1, 2), 
+        'SD1_P': (1, 1), 'SD2_P': (1, 2),
         'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
         'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
 
