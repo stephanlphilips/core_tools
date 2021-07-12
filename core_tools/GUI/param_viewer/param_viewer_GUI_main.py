@@ -196,7 +196,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def _set_gate(self, gate, value):
         # TODO add support if out of range.
-        logging.info(f'set_gate {gate.name} = {value}')
+        logging.info(f'set_gate {gate.name} = {value()}')
         gate.set(value())
 
     def _set_set(self, setting, value, division):
@@ -240,13 +240,14 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             return
 
         for param in params:
-            # do not update when a user cdisplicks on it.
+            # do not update when a user clicks on it.
             if not param.gui_input_param.hasFocus():
                 if type(param.gui_input_param) == QtWidgets.QDoubleSpinBox:
                     last_value = self.last_param_value.get(param.param_parameter.name, None)
-                    new_value = param.param_parameter.cache()/param.division
+                    new_value = param.param_parameter()/param.division
                     if new_value != last_value:
                         logging.info(f'Update GUI {param.param_parameter.name} {last_value} -> {new_value}')
+                        self.last_param_value[param.param_parameter.name] = new_value
                     param.gui_input_param.setValue(new_value)
                 elif type(param.gui_input_param) == QtWidgets.QCheckBox:
                     param.gui_input_param.setChecked(param.param_parameter())

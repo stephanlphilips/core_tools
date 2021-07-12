@@ -56,6 +56,7 @@ class gates(qc.Instrument):
             if voltage < min_voltage or voltage > max_voltage:
                 raise ValueError("Voltage boundaries violated, trying to set gate {} to {}mV. \nThe limit is set to {} to {} mV.\nThe limit can be changed by updating the hardware class".format(gate_name, voltage, min_voltage, max_voltage))
 
+        logging.info(f'set {gate_name} {voltage}')
         getattr(self.dac_sources[dac_location[0]], f'dac{int(dac_location[1])}')(voltage)
 
     def _get_voltage(self, gate_name):
@@ -92,6 +93,7 @@ class gates(qc.Instrument):
         i = 0
         for gate_name in red_virt_gates_obj.gates:
             if new_voltages[i] != current_voltages_formatted[i]:
+                logging.info(f'set {gate_name} {current_voltages_formatted[i]} -> {new_voltages[i]}')
                 self._set_voltage(gate_name,new_voltages[i])
             i+=1
 
