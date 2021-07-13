@@ -4,6 +4,7 @@ from core_tools.drivers.hardware.hardware import hardware as hw_parent
 import qcodes as qc
 import numpy as np
 import copy
+import logging
 
 class gates(qc.Instrument):
     """
