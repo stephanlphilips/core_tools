@@ -11,7 +11,7 @@ except:
 import core_tools.HVI.charge_stability_diagram as ct
 import time
 
-HVI_ID = "HVI_charge_stability_diagram.HVI"
+HVI_ID = "video_mode_4ch_5AWGs.HVI"
 
 def load_HVI(AWGs, channel_map, *args,**kwargs):
 	"""
@@ -31,14 +31,15 @@ def load_HVI(AWGs, channel_map, *args,**kwargs):
 
 			
 	HVI = keysightSD1.SD_HVI()
-	a = HVI.open(ct.__file__[:-11] + "HVI_charge_stability_diagram.HVI")
+	a = HVI.open(ct.__file__[:-11] + HVI_ID)
 
 	error1 = HVI.assignHardwareWithUserNameAndSlot("Module 0",0,2)
 	error2 = HVI.assignHardwareWithUserNameAndSlot("Module 1",0,3)
 	error3 = HVI.assignHardwareWithUserNameAndSlot("Module 2",0,4)
-	error4 = HVI.assignHardwareWithUserNameAndSlot("Module 3",0,5)
-	error5 = HVI.assignHardwareWithUserNameAndSlot("Module 4",0,6)
-	print(a, error1, error2, error3, error4, error5)
+	error4 = HVI.assignHardwareWithUserNameAndSlot("Module 3",0,6)
+	error5 = HVI.assignHardwareWithUserNameAndSlot("Module 4",0,5)
+	error6 = HVI.assignHardwareWithUserNameAndSlot("Module 5",0,9)
+	print(a, error1, error2, error3, error4, error5, error6)
 	HVI.compile()
 	HVI.load()
 

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- copy from the version used by Nico, Will and Floor in LD400 
 from .data_browser_GUI_window import Ui_dataviewer
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
@@ -164,6 +164,8 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
             dd = [s for s in dd if filter_str in s]
             if filter_str != '':
                 self.filtered = True
+            else:
+                self.filtered = False
             
         
         logging.info(f'DataViewer: found {len(dd)} files')
@@ -430,57 +432,71 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         if 'pc0' in meta.keys():
             self.pulse_plot = pg.PlotWidget()
             self.pulse_plot.addLegend()
-            legend_names = list()
+            pc_keys = [key for key in list(meta.keys()) if key.startswith('pc')]
+            gate_keys = set([key for pc in pc_keys for key in meta[pc].keys() if not key.startswith('_')])
             try:
                 baseband_freqs = meta['LOs']
             except:
                 pass
-            for (j, (name, pdict)) in enumerate(meta['pc0'].items()):
-                legend_name = name.replace('_baseband','').replace('_pulses','')
-                x = list()
-                y = list()
-                ch_type = list()
-                end_time = max([x['stop'] for y in meta['pc0'].values() for x in y.values()])
-                if 'baseband' in name:
-                    timepoints = set([x[key] for x in meta['pc0'][name].values() for key in ['start','stop']])
-                    timepoints.add(end_time)
-                    x_plot = list()
-                    y_plot = list()
-                    for tp in sorted(timepoints):
-                        point1 = 0
-                        point2 = 0
-                        for (seg_name,seg_dict) in meta['pc0'][name].items():
-                            if seg_dict['start'] < tp and seg_dict['stop'] > tp: # active segement
-                                # print(f'seg {seg_name} is active at tp {tp}, during pulse {name}')
-                                point1 += tp/(seg_dict['stop'] - seg_dict['start']) * ( seg_dict['v_stop'] - seg_dict['v_start'] ) + seg_dict['v_start']
-                                point2 += tp/(seg_dict['stop'] - seg_dict['start']) * ( seg_dict['v_stop'] - seg_dict['v_start'] ) + seg_dict['v_start']
-                            elif seg_dict['start'] == tp:
-                                point2 += seg_dict['v_start']
-                            elif seg_dict['stop'] == tp:
-                                point1 += seg_dict['v_stop']                         
-                        x_plot += [tp, tp]
-                        y_plot += [point1, point2]
-                
-                elif 'pulses' in name:
+            for (j, name) in enumerate(gate_keys):
+                t0 = 0
+                x_plot = list()
+                y_plot = list()
+                for pc in pc_keys:
+                    legend_name = name.replace('_baseband','').replace('_pulses','')
+                    x = list()
+                    y = list()
                     try:
-                        baseband = baseband_freqs[name.replace('_pulses','')]
+                        end_time = meta[pc]['_total_time']
+                        while isinstance(end_time, list):
+                            end_time = end_time[-1]
                     except:
-                        logging.warning('No baseband frequency found, assuming 0')
-                        baseband = 0
-                    
-                    for (seg_name,seg_dict) in meta['pc0'][name].items():
-                        x_ar = np.arange(seg_dict['start'],seg_dict['stop'])
-                        xx_ar = x_ar-seg_dict['start']
-                        f_rl = (seg_dict['frequency'] - baseband)/1e9
-                        y_ar = np.sin(2*np.pi*f_rl*xx_ar+seg_dict['start_phase'])*seg_dict['amplitude']
-                        x = x + list(x_ar) + [seg_dict['stop']]
-                        y = y + list(y_ar) + [0]
-                        x_plot = x
-                        y_plot = y
+                        end_time = max([x['stop'] for y in meta[pc].values() for x in y.values()])
+                    try:
+                        meta[pc][name]
+                    except:
+                        t0 += end_time
+                        continue
+
+                    if 'baseband' in name:
+                        timepoints = set([x[key] for x in meta[pc][name].values() for key in ['start','stop']])
+                        timepoints.add(end_time)
+                        for tp in sorted(timepoints):
+                            point1 = 0
+                            point2 = 0
+                            for (seg_name,seg_dict) in meta[pc][name].items():
+                                if seg_dict['start'] < tp and seg_dict['stop'] > tp: # active segement
+                                    # print(f'seg {seg_name} is active at tp {tp}, during pulse {name}')
+                                    point1 += tp/(seg_dict['stop'] - seg_dict['start']) * ( seg_dict['v_stop'] - seg_dict['v_start'] ) + seg_dict['v_start']
+                                    point2 += tp/(seg_dict['stop'] - seg_dict['start']) * ( seg_dict['v_stop'] - seg_dict['v_start'] ) + seg_dict['v_start']
+                                elif seg_dict['start'] == tp:
+                                    point2 += seg_dict['v_start']
+                                elif seg_dict['stop'] == tp:
+                                    point1 += seg_dict['v_stop']                         
+                            x_plot += [tp + t0, tp + t0]
+                            y_plot += [point1, point2]
+                   
+                    elif 'pulses' in name:
+                        try:
+                            baseband = baseband_freqs[name.replace('_pulses','')]
+                        except:
+                            logging.warning('No baseband frequency found, assuming 0')
+                            baseband = 0
+                        
+                        for (seg_name,seg_dict) in meta[pc][name].items():
+                            x_ar = np.arange(seg_dict['start'],seg_dict['stop'])
+                            xx_ar = x_ar-seg_dict['start']
+                            f_rl = (seg_dict['frequency'] - baseband)/1e9
+                            y_ar = np.sin(2*np.pi*f_rl*xx_ar+seg_dict['start_phase'])*seg_dict['amplitude']
+                            x = x + list(x_ar) + [seg_dict['stop']]
+                            y = y + list(y_ar) + [0]
+                            x_plot = x
+                            y_plot = y
+                    t0 += end_time
+
                 self.pulse_plot.setLabel('left', 'Voltage', 'mV')
                 self.pulse_plot.setLabel('bottom', 'Time', 'ns')
                 self.pulse_plot.plot(x_plot, y_plot, pen = self.color_list[j%len(self.color_list)], name = legend_name)
-
             self.tabWidget.addTab(self.pulse_plot,'AWG Pulses')
 
     def pptCallback(self):

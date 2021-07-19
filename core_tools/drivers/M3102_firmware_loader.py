@@ -10,9 +10,9 @@ def firmware_loader(dig, file, av_mode):
     """
     err = dig.SD_AIN.FPGAload(file)
     if av_mode == 'normal':
-        dig.set_aquisition_mode(MODES.NORMAL)
+        dig.set_acquisition_mode(MODES.NORMAL)
     elif av_mode == 'average':
-        dig.set_aquisition_mode(MODES.AVERAGE)
+        dig.set_acquisition_mode(MODES.AVERAGE)
     else:
         raise ValueError("Average mode must be normal or average")
 

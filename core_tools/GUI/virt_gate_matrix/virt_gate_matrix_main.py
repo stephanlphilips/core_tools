@@ -29,11 +29,13 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         for gate in pulse_lib.AWG_to_dac_ratio:
-            if gate not in pulse_lib.awg_markers:
+            if gate not in pulse_lib.marker_channels:
                 self.add_gate(gate)
         
 
         self.add_spacer()
+        
+        self.setWindowTitle('Virtual gate matrix')
 
         for virtual_gate_set in gates_object.hardware.virtual_gates:
             self._add_matrix(virtual_gate_set)
@@ -170,6 +172,9 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         gridLayout.addWidget(tableWidget, 0, 0, 1, 1)
         
         update_list = []
+        setattr(self, 'invmat_' + virtual_gate_set.name, np.linalg.inv(virtual_gate_set.virtual_gate_matrix))
+        temp_mat = getattr(self, 'invmat_' + virtual_gate_set.name)
+        
         for i in range(len(virtual_gate_set)):
             for j in range(len(virtual_gate_set)):
                 doubleSpinBox = QtWidgets.QDoubleSpinBox()
@@ -191,9 +196,9 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setMinimum(-5.0)
                 doubleSpinBox.setSingleStep(0.01)
                 doubleSpinBox.setDecimals(3)
-                doubleSpinBox.setValue(virtual_gate_set.virtual_gate_matrix[i,j])
+                doubleSpinBox.setValue(temp_mat[i,j])
                 doubleSpinBox.setObjectName("doubleSpinBox")
-                doubleSpinBox.valueChanged.connect(partial(self.linked_result, virtual_gate_set.virtual_gate_matrix, i, j, doubleSpinBox))
+                doubleSpinBox.valueChanged.connect(partial(self.linked_result, virtual_gate_set, i, j, doubleSpinBox))
                 update_list.append((i,j, doubleSpinBox))
                 tableWidget.setCellWidget(i, j, doubleSpinBox)
 
@@ -204,13 +209,17 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         self.timers.append(timer)
 
     def linked_result(self, matrix, i, j, spin_box):
-        matrix[i,j] = spin_box.value()
+        getattr(self, 'invmat_' + matrix.name)[i,j] = spin_box.value()
+        for i in range(len(matrix.virtual_gate_matrix)):
+            for j in range(len(matrix.virtual_gate_matrix)):
+                matrix.virtual_gate_matrix[i,j] = np.linalg.inv(getattr(self, 'invmat_' + matrix.name))[i,j]
         self.gates_object.hardware.sync_data()
 
     def update_v_gates(self, matrix, update_list):
-        for i,j, spin_box in update_list:
-            if not spin_box.hasFocus():
-                spin_box.setValue(matrix[i,j])
+        pass
+        # for i,j, spin_box in update_list:
+            # if not spin_box.hasFocus():
+                # spin_box.setValue(matrix[i,j])
 
 if __name__ == "__main__":
     import sys
