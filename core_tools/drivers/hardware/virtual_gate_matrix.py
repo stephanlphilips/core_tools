@@ -44,7 +44,7 @@ class virtual_gate_matrix():
             gates (list<str>) : name of the gates where to reduce to reduce the current matrix to.
             v_gates (list<str>) : list with the names of the virtual gates (optional)
         '''
-        v_gates = name_virtual_gates(v_gates, gates)
+        v_gates = self.get_v_gate_names(v_gates, gates)
         v_gate_matrix = np.eye(len(gates))
 
         for i in range(len(gates)):
@@ -53,6 +53,17 @@ class virtual_gate_matrix():
                     v_gate_matrix[i, j] = self[v_gates[i],gates[j]]
         
         return virtual_gate_matrix('dummy', gates, v_gates, v_gate_matrix)
+
+    def get_v_gate_names(self, v_gate_names, real_gates):
+        if v_gate_names is None:
+            v_gates = []
+            for rg in real_gates:
+                gate_index = self.gates.index(rg)
+                v_gates.append(self.v_gates[gate_index])
+        else:
+            v_gates = v_gate_names
+    
+        return v_gates
 
     def __getitem__(self, index):
         if isinstance(index, tuple):
