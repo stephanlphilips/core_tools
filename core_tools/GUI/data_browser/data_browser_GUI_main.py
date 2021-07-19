@@ -1,9 +1,13 @@
-# -*- coding: utf-8 -*- copy from the version used by Nico, Will and Floor in LD400 
+# -*- coding: utf-8 -*- copy from the version used by Nico, Will and Floor in LD400
 from .data_browser_GUI_window import Ui_dataviewer
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
+from typing import Set
 import pyqtgraph as pg
 import qcodes
+# qcodes legacy imports
+from qcodes.data.io import DiskIO
+from qcodes.data.data_set import DataSet
 import numpy as np
 import qdarkstyle
 import logging
@@ -16,36 +20,36 @@ import pickle
 
 class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, datadir=None, window_title='Data browser'):         
+    def __init__(self, datadir=None, window_title='Data browser'):
         # set graphical user interface
         instance_ready = True
         self.app = QtCore.QCoreApplication.instance()
         if self.app is None:
             instance_ready = False
             self.app = QtWidgets.QApplication([])
-        
+
         super(QtWidgets.QMainWindow, self).__init__()
         self.app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        self.setupUi(self)        
-        
+        self.setupUi(self)
+
         if datadir is None:
-            datadir = qcodes.DataSet.default_io.base_location
-        
+            datadir = DataSet.default_io.base_location
+
         # set-up tree view for data
         self._treemodel = QtGui.QStandardItemModel()
         self.data_view.setModel(self._treemodel)
         self.tabWidget.addTab(QtWidgets.QWidget(), 'metadata')
-        
+
         self.qplot = QtPlot(remote=False)
         self.plotwindow = self.qplot.win
         self.qplot.max_len = 10
-        
+
         self.horizontalLayout_4.addWidget(self.plotwindow)
 
         # Fix some initializations in the window
         self.splitter_2.setSizes([int(self.height()/2)]*2)
         self.splitter.setSizes([int(self.width() / 3), int(2 * self.width() / 3)])
-        
+
         # connect callbacks
         self.data_view.doubleClicked.connect(self.logCallback)
         self.actionReload_data.triggered.connect(self.updateLogs)
@@ -55,7 +59,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         self.send_ppt.clicked.connect(self.pptCallback)
         self.copy_im.clicked.connect(self.clipboardCallback)
         self.split_data.clicked.connect(self.split_dataset)
-        
+
         # initialize defaults
         self.extensions =['dat', 'hdf5']
         self.dataset = None
@@ -67,17 +71,17 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         self.filtered = False
         self.active_params = []
         self.pickle_path = datadir + os.path.sep + 'pickle_dv'
-        
+
         try:
             self.datafiles_list = pickle.load( open( self.pickle_path, "rb" ) )
             refresh_data = False
         except:
             refresh_data = True
             logging.warning("no pickle found, indexing all files once")
-        
+
         # add default directory
         self.addDirectory(datadir, full_index = refresh_data)
-               
+
         # Launch app
         self.show()
         if instance_ready == False:
@@ -86,10 +90,10 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.updateToday)
         self.timer.start(5000)
-                
+
     def closeEvent(self, event):
         self.timer.stop()
-        
+
     @property
     def current_dir(self):
         return self.datadirlist[self.datadirindex]
@@ -103,7 +107,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                 while (index.child(i, 0).data() is not None):
                     filename = index.child(i, 3).data()
                     loc =  os.path.dirname(filename)
-                    tempdata = qcodes.DataSet(loc)
+                    tempdata = DataSet(loc)
                     tempdata.read_metadata()
                     infotxt = self.getArrayStr(tempdata.metadata)
                     self._treemodel.setData(index.child(i, 1), infotxt)
@@ -115,9 +119,9 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         logging.info(f'Setting datadir with index: {newindex}')
         oldindex = self.datadirindex
         self.datadirindex = newindex
-        datadir = self.datadirlist[newindex]  
-        
-        self.io = qcodes.DiskIO(datadir)
+        datadir = self.datadirlist[newindex]
+
+        self.io = DiskIO(datadir)
         logging.info('DataViewer: data directory %s' % datadir)
         self.logfile.setText('Log files at %s' % datadir)
 
@@ -127,7 +131,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
             self.updateLogs()
         else:
             self.updateLogs(filter_str = '')
-    
+
     def selectDirectory(self):
         from qtpy.QtWidgets import QFileDialog
         d = QtWidgets.QFileDialog(caption='Select data directory')
@@ -135,7 +139,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         if d.exec():
             datadir = d.selectedFiles()[0]
             self.addDirectory(datadir)
-            
+
     def addDirectory(self,datadir, full_index = True):
         newindex = len(self.datadirlist)
         self.datadirlist.append(datadir)
@@ -145,19 +149,19 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         new_act.triggered.connect(partial(self.setDatadir,newindex))
         self.menuFolder.addAction(new_act)
         self.setDatadir(newindex, full_index = full_index)
-    
+
     def updateLogs(self, filter_str = None):
         ''' Update the list of measurements '''
         logging.info('updating logs')
-        
+
         self.data_view.setSortingEnabled(False) # Turn off sorting for efficiency
-        
+
         model = self._treemodel
-        
+
         if filter_str is None:
-            basepath = self.current_dir     
+            basepath = self.current_dir
             dd = self.findFiles(basepath)
-            self.datafiles_list = dd     
+            self.datafiles_list = dd
             self.filtered = False
         else:
             dd = self.datafiles_list
@@ -166,12 +170,12 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                 self.filtered = True
             else:
                 self.filtered = False
-            
-        
+
+
         logging.info(f'DataViewer: found {len(dd)} files')
 
         filedict = self.genDict(dd)
-        
+
         model.clear()
         model.setHorizontalHeaderLabels(['Log', 'Arrays', 'filename'])
 
@@ -182,13 +186,13 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         self.data_view.setColumnHidden(2, True)
         self.data_view.setSortingEnabled(True) # Turn on sorting for efficiency
         self.data_view.sortByColumn(0, 1)
-        
+
         logging.debug('DataViewer: updateLogs done')
 
     def logCallback(self, index):
         """ Function called when. a log entry is selected """
         logging.info('logCallback: index %s' % str(index))
-        
+
         oldtab_index = self.tabWidget.currentIndex()
         pp = index.parent()
         row = index.row()
@@ -196,9 +200,9 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         filename = pp.child(row, 2).data()
         if tag is None:
             return
-        
+
         logging.debug(f'DataViewer logCallback: tag {tag}, filename {filename}')
-        
+
         try:
             logging.debug('DataViewer: load tag %s' % tag)
             data = self.loadData(filename, tag)
@@ -238,13 +242,13 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                 self.boxes[key] = box
                 self.box_labels[key] = label
                 self.param_keys.append(key)
-        
-        for param in self.subpl_ind.keys():        
+
+        for param in self.subpl_ind.keys():
             if param in self.param_keys:
                 self.boxes[param].setChecked(True)
                 to_plot.append(param)
         self.data_select_lay.setLabelAlignment(QtCore.Qt.AlignLeft)
-        
+
         # If no old parameters can be plotted, defined first one
         if not to_plot:
             try:
@@ -253,17 +257,17 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                 self.boxes[def_key].setChecked(True)
             except:
                 logging.warning("No data available to plot")
-        
+
         # Update the parameter plots
         self.clearPlots()
         self.updatePlots(to_plot)
         if self.splitted:
             self.split_dataset()
-    
+
     def clearPlots(self):
         self.qplot.clear()
         self.subpl_ind = dict()
-        
+
     def clearLayout(self, layout):
         if layout is not None:
             while layout.count():
@@ -283,16 +287,16 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
             box = self.boxes[param]
             if box.isChecked():
                 to_plot.append(box.text())
-        self.updatePlots(to_plot)        
-    
+        self.updatePlots(to_plot)
+
     def updatePlots(self, param_names):
         all_plots = {**dict.fromkeys(self.active_params), **dict.fromkeys(param_names)}
         for param_name in all_plots.keys():
             param = getattr(self.dataset, param_name)
             if param_name not in param_names:
-                if param.shape == (1,):                
+                if param.shape == (1,):
                     self.removeValue(param_name)
-                elif len(param.shape) < 3:                
+                elif len(param.shape) < 3:
                     self.removePlot(param_name)
                 else:
                     self.removeValue(param_name)
@@ -308,7 +312,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         self.active_params.append(plot)
         logging.info(f'adding param {plot}')
         self.subpl_ind[plot] = len(self.subpl_ind)
-        self.qplot.add(getattr(self.dataset, plot), subplot = len(self.subpl_ind), 
+        self.qplot.add(getattr(self.dataset, plot), subplot = len(self.subpl_ind),
                        color = self.color_list[0])
 
     def removePlot(self,plot):
@@ -320,36 +324,36 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         subplot.clear()
         self.qplot.win.removeItem(subplot)
         subplot.deleteLater()
-        
+
         try:
             hist = self.qplot.traces[plot_index]['plot_object']['hist']
             self.qplot.win.removeItem(hist)
             hist.deleteLater()
         except: pass
-            
+
         # Own bookkeeping
         self.subpl_ind.pop(plot)
-        
+
         # Removing from qcodes qplot (does not have proper function for this)
         self.qplot.traces.pop(plot_index)
         self.qplot.subplots.remove(subplot)
         for (key, val) in self.subpl_ind.items():
             if val > plot_index:
                 self.subpl_ind[key] = val - 1
-            
+
     def addValue(self, plot, val = None):
         self.active_params.append(plot)
         if not val:
             val = getattr(self.dataset, plot).ndarray[0]
         self.box_labels[plot].setText(str(val))
-        
+
     def removeValue(self, plot):
         self.active_params.remove(plot)
         self.box_labels[plot].setText('')
-    
+
     def loadData(self, filename, tag):
         location = os.path.split(filename)[0]
-        data = qcodes.DataSet(location=location)
+        data = DataSet(location=location)
         try: data.read_metadata()
         except: pass
         io_manager = data.io
@@ -369,7 +373,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                         except ValueError:
                             logging.warning('error reading file ' + fn)
                 else:
-                    logging.info(f'Not reading file {fn}, data has {len(datashape)} dimensions')         
+                    logging.info(f'Not reading file {fn}, data has {len(datashape)} dimensions')
         return data
 
     def _create_meta_tree(self, meta_dict):
@@ -407,28 +411,28 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                     new_item(item, str(key), val)
         else:
             new_item(item, str(value))
-            
+
     def parse_gates(self, gates_obj):
         gate_dict = dict()
-        
+
         for (gate, val) in gates_obj['parameters'].items():
             if gate != 'IDN':
                 gate_dict[gate] = val['value']
-        
+
         return gate_dict
-    
+
     def updateMetaTabs(self):
         ''' Update metadata tree '''
         meta = self.dataset.metadata
         self.tabWidget.clear()
-        
+
         try:
             gate_tree = self.parse_gates(meta['station']['instruments']['gates'])
             self.tabWidget.addTab(self._create_meta_tree(gate_tree), 'gates')
-        except: pass        
+        except: pass
 
         self.tabWidget.addTab(self._create_meta_tree(meta), 'metadata')
-        
+
         if 'pc0' in meta.keys():
             self.pulse_plot = pg.PlotWidget()
             self.pulse_plot.addLegend()
@@ -472,17 +476,17 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                                 elif seg_dict['start'] == tp:
                                     point2 += seg_dict['v_start']
                                 elif seg_dict['stop'] == tp:
-                                    point1 += seg_dict['v_stop']                         
+                                    point1 += seg_dict['v_stop']
                             x_plot += [tp + t0, tp + t0]
                             y_plot += [point1, point2]
-                   
+
                     elif 'pulses' in name:
                         try:
                             baseband = baseband_freqs[name.replace('_pulses','')]
                         except:
                             logging.warning('No baseband frequency found, assuming 0')
                             baseband = 0
-                        
+
                         for (seg_name,seg_dict) in meta[pc][name].items():
                             x_ar = np.arange(seg_dict['start'],seg_dict['stop'])
                             xx_ar = x_ar-seg_dict['start']
@@ -533,19 +537,19 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
             infotxt = 'info about plot'
 
         return infotxt
-    
-    def split_dataset(self):  
+
+    def split_dataset(self):
         to_split = []
         for bp in self.subpl_ind.keys():
             plot_shape = getattr(self.dataset, bp).shape
             if len(plot_shape) == 2:
                 to_split.append(bp)
-        self.clearPlots()      
+        self.clearPlots()
         for (i,zname) in enumerate(to_split):
             tmp = getattr(self.dataset, zname)
             yname = tmp.set_arrays[0].array_id
             xname = tmp.set_arrays[1].array_id
-    
+
             try:
                 ii =  np.where(np.isnan(self.dataset.arrays[zname][:,-1])==True)[0][0]
             except:
@@ -560,10 +564,10 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                   ylabel=self.dataset.arrays[yname].label, xlabel=self.dataset.arrays[xname].label, zlabel=self.dataset.arrays[zname].label+'_even',
                   yunit = self.dataset.arrays[yname].unit, zunit =self.dataset.arrays[zname].unit, subplot = 2 * i + 2)
             self.splitted = True
-    
+
     def genDict(self, pathlist):
         filedict = {}
-        path_len = len(self.current_dir.split(os.path.sep))        
+        path_len = len(self.current_dir.split(os.path.sep))
         for item in pathlist:
             p = filedict
             items = item.split(os.path.sep)[path_len:]
@@ -573,13 +577,13 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                 else:
                     p = p.setdefault(x, {})
         return filedict
-    
+
     def findFiles(self, basepath):
         filelist = []
         filelist = glob.glob(basepath + '/**/*.dat', recursive=True)
         filelist.sort()
         return filelist
-    
+
     def walkTree(self, filedict, basetree):
         for (key, val) in filedict.items():
             if not isinstance(val, dict):
@@ -591,17 +595,17 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                 folder_item = QtGui.QStandardItem(key)
                 basetree.appendRow(folder_item)
                 self.walkTree(val, folder_item)
-                
+
     def updateToday(self):
         root_folders = os.listdir(self.current_dir)
-        
+
         non_date = [os.path.sep.join([self.current_dir, fol]) for fol in root_folders if os.path.isdir(os.path.sep.join([self.current_dir, fol])) and not fol[0].isdigit()]
         check_folders = [self.current_dir] + non_date
         if not self.filtered:
             for cf in check_folders:
                 root_folders = os.listdir(cf)
                 date_folders = sorted([fol for fol in root_folders if os.path.isdir(os.path.sep.join([cf, fol])) and fol[0].isdigit()], reverse = True)
-                
+
                 for df in date_folders:
                     update_dir = os.path.sep.join([cf, df])
                     # logging.info(f'Checking {update_dir} for new files')
@@ -630,11 +634,11 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                         if key not in new_keys:
                             child1 = QtGui.QStandardItem(key)
                             child2 = QtGui.QStandardItem('info about plot')
-                            child3 = QtGui.QStandardItem(val)    
+                            child3 = QtGui.QStandardItem(val)
                             today_row.insertRow(0, [child1, child2, child3])
                             new_keys.append(key)
                             self.data_view.sortByColumn(0, 1)
-                    
+
                     if df in '\t'.join(self.datafiles_list):
                         break # Don't check old folders
             pickle.dump(self.datafiles_list, open(self.pickle_path, "wb" ) )
