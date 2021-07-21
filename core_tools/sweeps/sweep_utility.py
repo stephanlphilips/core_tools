@@ -40,7 +40,7 @@ class PulseLibParameter(Parameter):
         current_val = self.setpoints[self.flat_index%len(self.setpoints)]
 
         self.flat_index += 1
-        if self.flat_index > np.prod(self.sequencer.shape):
+        if self.flat_index >= np.prod(self.sequencer.shape):
             self.flat_index = 0
 
         return current_val

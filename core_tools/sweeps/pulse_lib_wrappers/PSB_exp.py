@@ -55,7 +55,7 @@ def run_qubit_exp(exp_name, sequence):
     my_seq.starting_lambda = starting_lambda
     mc = measurement_converter(md, my_seq.n_rep)
 
-    dig_param = mc.all_results()
+    dig_param = mc.less_results()
     dig_param.setUpParam(mc, station.dig)
     my_seq.m_param = dig_param
 

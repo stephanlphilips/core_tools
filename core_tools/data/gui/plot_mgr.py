@@ -28,7 +28,7 @@ class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
                 self.ui_box_mgr.add_m_param_plot_mgr(layout.plot_data_mgr)
                 self.data_content_layout.addLayout(layout)
 
-        verticalSpacer = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.data_content_layout.addItem(verticalSpacer)
         
         # render plots

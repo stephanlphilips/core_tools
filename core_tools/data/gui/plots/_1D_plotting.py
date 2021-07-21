@@ -32,11 +32,11 @@ class _1D_plot:
         pg.setConfigOption('background', None)
         pg.setConfigOption('foreground', 'k')
 
-        self.widget = QtGui.QWidget()
-        self.layout = QtGui.QVBoxLayout()
+        self.widget = QtWidgets.QWidget()
+        self.layout = QtWidgets.QVBoxLayout()
         
         self.plot = pg.PlotWidget()
-        self.label = QtGui.QLabel()
+        self.label = QtWidgets.QLabel()
         self.label.setAlignment(QtCore.Qt.AlignRight)
 
         self.layout.addWidget(self.plot)
