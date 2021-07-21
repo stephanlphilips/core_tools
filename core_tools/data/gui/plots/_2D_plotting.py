@@ -1,4 +1,4 @@
-from core_tools.data.gui.plots.unit_management import format_value_and_unit, format_unit, return_unit_scaler
+from core_tools.data.gui.plots.unit_management import format_unit, return_unit_scaler
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from matplotlib.pyplot import get_cmap
@@ -26,8 +26,8 @@ class _2D_plot:
         pg.setConfigOption('background', None)
         pg.setConfigOption('foreground', 'k')
 
-        self.widget = QtGui.QWidget()
-        self.layout = QtGui.QVBoxLayout()
+        self.widget = QtWidgets.QWidget()
+        self.layout = QtWidgets.QVBoxLayout()
 
         self.plot = pg.PlotItem()
         self.plot.setLabel('bottom', self.ds.y.label, units = format_unit(self.ds.y.unit))
@@ -36,7 +36,7 @@ class _2D_plot:
         self.img_view = pg.ImageView(view=self.plot, imageItem=self.img)
         self.img_view.setColorMap(get_color_map())
 
-        self.label = QtGui.QLabel()
+        self.label = QtWidgets.QLabel()
         self.label.setAlignment(QtCore.Qt.AlignRight)
 
         self.layout.addWidget(self.img_view)
