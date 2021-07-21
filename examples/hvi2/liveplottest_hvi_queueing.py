@@ -1,3 +1,4 @@
+from pprint import pprint
 import time
 import logging
 from PyQt5 import QtCore
@@ -119,6 +120,15 @@ plotting._2D_gate2_name.setCurrentIndex(1)
 plotting._2D_t_meas.setValue(1)
 plotting._2D_V1_swing.setValue(100)
 plotting._2D_npt.setValue(80)
+
+for awg in awgs:
+    print(awg.name)
+    pprint(awg._memory_manager.mem_usage())
+    pprint(awg._memory_manager.allocation_state())
+
+for awg in awgs:
+    for ch in range(1, 5):
+        awg.awg_flush(ch)
 
 #updateTimer = UpdateTimer()
 #updateTimer.start(plotting)
