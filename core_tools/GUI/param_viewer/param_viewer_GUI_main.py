@@ -181,7 +181,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # TODO collect boundaries out of the harware
         voltage_input.setRange(-4000,4000.0)
-        voltage_input.valueChanged.connect(partial(self._set_gate, parameter, voltage_input.value))
+        voltage_input.valueChanged.connect(partial(self._set_gate, parameter, voltage_input.value, voltage_input))
         voltage_input.setKeyboardTracking(False)
         layout.addWidget(voltage_input, i, 1, 1, 1)
 
@@ -194,10 +194,16 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             self.virtual_gates.append(param_data_obj(parameter,  voltage_input, 1))
 
-    def _set_gate(self, gate, value):
+    def _set_gate(self, gate, value, voltage_input):
         # TODO add support if out of range.
-        logging.info(f'set_gate {gate.name} = {value()}')
-        gate.set(value())
+        last_value = self.last_param_value.get(gate.name, None)
+        last_rounded = voltage_input.valueFromText(voltage_input.textFromValue(last_value)) if last_value is not None else None
+        if value != last_rounded:
+            logging.info(f'GUI value changed: {gate.name} {last_value} ({last_rounded}) -> {value}')
+            logging.info(f'set_gate {gate.name} = {value()}')
+            gate.set(value())
+        else:
+            logging.info(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value}; no update of gate')
 
     def _set_set(self, setting, value, division):
         # TODO add support if out of range.
