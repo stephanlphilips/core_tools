@@ -10,6 +10,10 @@ import time
 import logging
 
 from pulse_lib.schedule.tektronix_schedule import TektronixSchedule
+try:
+    import pyspcm
+except:
+    pass
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
                            dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
@@ -235,6 +239,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
         self.seg_size = int((t_measure+acquisition_delay_ns) * self.n_points * self.sample_rate * 1e-9)
 
+        self.dig.trigger_or_mask(pyspcm.SPC_TMASK_EXT0)
         self.dig.setup_multi_recording(self.seg_size, n_triggers=1)
 
         n_out_ch = len(self.channel_names)
@@ -312,7 +317,7 @@ class _digitzer_scan_parameter(MultiParameter):
             ch_data = data[i].reshape(self.shape)
             if self.biasT_corr:
                 data_out[i][:len(ch_data[::2])] = ch_data[::2]
-                data_out[i][len(ch_data[1::2]):] = ch_data[1::2][::-1]
+                data_out[i][len(ch_data[::2]):] = ch_data[1::2][::-1]
             else:
                 data_out[i] = ch_data
 
@@ -321,6 +326,7 @@ class _digitzer_scan_parameter(MultiParameter):
         return tuple(data_out)
 
     def restart(self):
+        self.dig.trigger_or_mask(pyspcm.SPC_TMASK_EXT0)
         self.dig.setup_multi_recording(self.seg_size, n_triggers=1)
 
     def stop(self):
