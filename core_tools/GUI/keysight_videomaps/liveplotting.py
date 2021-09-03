@@ -525,11 +525,11 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def set_metadata(self):
         metadata = {}
-        if self.tab_id == 0 or self.tab_id == 1: # 1D
+        if self.tab_id == 0: # 1D
             metadata['measurement_type'] = '1D_sweep'
             for key in self.defaults_1D.keys():
                 metadata[key] = getattr(self,f'_1D__{key}')
-        elif self.tab_id == 2: # 2D
+        elif self.tab_id == 1: # 2D
             metadata['measurement_type'] = '2D_sweep'
             for key in self.defaults_2D.keys():
                 metadata['measurement_type'] = '2D_sweep'
@@ -544,12 +544,14 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         ppt the data
         """
-        if self.tab_id == 0 or self.tab_id == 1: # 1D
+        if self.tab_id == 0: # 1D
             figure_hand = self.current_plot._1D.plot_widgets[0].plot_widget.parent()
-        elif self.tab_id == 2: # 2D
+        elif self.tab_id == 1: # 2D
             figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
 
         try:
+            ds = self.save_data()
+            self.metadata['dataset_id'] = ds.exp_id
             addPPTslide(fig=figure_hand, notes=str(self.metadata), verbose=-1)
         except:
             print('could not add slide')
@@ -560,9 +562,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         save the data
         """
-        if self.tab_id == 0 or self.tab_id == 1: # 1D
+        if self.tab_id == 0: # 1D
             label = self._1D__gate_name
-        elif self.tab_id == 2: # 2D
+        elif self.tab_id == 1: # 2D
             label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
 
         is_ds_configured = False
@@ -574,7 +576,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             if is_ds_configured:
                 logging.info('Save')
                 job = do0D(self.vm_data_param, name=label)
-                job.run()
+                ds = job.run()
+                return ds
             else:
                 # use qcodes measurement
                 measure = Measure(self.vm_data_param)
