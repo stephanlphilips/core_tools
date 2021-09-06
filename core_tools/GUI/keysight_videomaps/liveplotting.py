@@ -552,6 +552,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         try:
             ds = self.save_data()
             self.metadata['dataset_id'] = ds.exp_id
+            self.metadata['dataset_uuid'] = ds.exp_uuid
             addPPTslide(fig=figure_hand, notes=str(self.metadata), verbose=-1)
         except:
             print('could not add slide')
