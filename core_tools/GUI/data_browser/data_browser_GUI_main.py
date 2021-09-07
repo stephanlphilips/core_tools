@@ -401,22 +401,22 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         if 'pc0' in meta.keys():
             self.pulse_plot = pg.PlotWidget()
             self.pulse_plot.addLegend()
-            legend_names = list()
+
             try:
                 baseband_freqs = meta['LOs']
             except:
                 pass
+            end_time = 0
+            for name, pdict in meta['pc0'].items():
+                if 'baseband' in name:
+                    end_time = max([end_time] + [pulse['stop'] for pulse in pdict.values()])
             for (j, (name, pdict)) in enumerate(meta['pc0'].items()):
                 legend_name = name.replace('_baseband','').replace('_pulses','')
-                x = list()
-                y = list()
-                ch_type = list()
-                end_time = max([x['stop'] for y in meta['pc0'].values() for x in y.values()])
+                x_plot = list()
+                y_plot = list()
                 if 'baseband' in name:
                     timepoints = set([x[key] for x in meta['pc0'][name].values() for key in ['start','stop']])
                     timepoints.add(end_time)
-                    x_plot = list()
-                    y_plot = list()
                     for tp in sorted(timepoints):
                         point1 = 0
                         point2 = 0
@@ -438,6 +438,8 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                         logging.warning('No baseband frequency found, assuming 0')
                         baseband = 0
 
+                    x = list()
+                    y = list()
                     for (seg_name,seg_dict) in meta['pc0'][name].items():
                         x_ar = np.arange(seg_dict['start'],seg_dict['stop'])
                         xx_ar = x_ar-seg_dict['start']
@@ -449,7 +451,9 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                         y_plot = y
                 self.pulse_plot.setLabel('left', 'Voltage', 'mV')
                 self.pulse_plot.setLabel('bottom', 'Time', 'ns')
-                self.pulse_plot.plot(x_plot, y_plot, pen = self.color_list[j], name = legend_name)
+                self.pulse_plot.plot(x_plot, y_plot,
+#                                     pen = self.color_list[j],
+                                     name = legend_name)
 
             self.tabWidget.addTab(self.pulse_plot,'AWG Pulses')
 
