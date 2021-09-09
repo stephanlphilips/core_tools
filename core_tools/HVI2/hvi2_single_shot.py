@@ -140,10 +140,7 @@ class Hvi2SingleShot():
                             los = self._module_config(awg_seq, 'active_los')
                             awg_seq.sys.clear_ticks()
                             if self._module_config(awg_seq, 'hvi_queue_control'):
-                                if n_waveforms > 1:
-                                    awg_seq.queueing.queue_waveforms_multiple()
-                                else:
-                                    awg_seq.queueing.queue_waveforms()
+                                awg_seq.queueing.queue_waveforms(n_waveforms)
                             awg_seq.log.write(1)
                             if len(los)>0:
                                 awg_seq.lo.reset_phase(los)
