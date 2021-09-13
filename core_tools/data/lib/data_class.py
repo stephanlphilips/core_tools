@@ -110,7 +110,7 @@ class setpoint_dataclass(dataclass_raw_parent):
     def __copy__(self):
         return setpoint_dataclass(self.id_info, self.npt, self.name, self.names, self.labels, self.units, self.shapes, self.nth_set)
 
-@dataclass 
+@dataclass
 class m_param_dataclass(dataclass_raw_parent):
     id_info : id
     name : str
@@ -144,8 +144,8 @@ class m_param_dataclass(dataclass_raw_parent):
         data_items += super().to_SQL_data_structure(self.uuid_dc, False, False, -1, self.dependencies)
         for i in range(len(self.setpoints_local)):
             setpt_list = self.setpoints_local[i]
-            for setpt in setpt_list:
-                data_items += setpt.to_SQL_data_structure(self.uuid_dc, False, True, i, setpt.dependencies)
+            for j,setpt in enumerate(setpt_list):
+                data_items += setpt.to_SQL_data_structure(self.uuid_dc, False, True, j, setpt.dependencies)
 
         for i in range(len(self.setpoints)):
             setpt = self.setpoints[i]
@@ -162,11 +162,11 @@ class m_param_dataclass(dataclass_raw_parent):
             setpoint_shape += [setpoint.npt]
 
         for setpoint in self.setpoints:
-            setpoint.generate_data_buffer(setpoint_shape)  
+            setpoint.generate_data_buffer(setpoint_shape)
 
         # for setpoint_local_list in self.setpoints_local:
         #     for setpoint_local in setpoint_local_list:
-        #         setpoint_local.generate_data_buffer()  
+        #         setpoint_local.generate_data_buffer()
 
         self.generate_data_buffer(setpoint_shape)
         self.__initialized = True
@@ -182,11 +182,11 @@ class m_param_dataclass(dataclass_raw_parent):
             if len(self.setpoints_local) > i:
                 for setpt_l in self.setpoints_local[i]:
                     dep.append(setpt_l.uuid_dc)
-                    
+
             dep_tot.append(dep)
 
         return dep_tot
-    
+
     def __repr__(self):
         description = "\n########################\nMeasurement dataset info\n########################\nid :: {} \nname :: {}\n\n".format(self.id_info, self.name)
         description += "names :\t{}\nlabels :\t{}\nunits :\t{}\nshapes :\t{}\n".format(self.names, self.labels, self.units, self.shapes)

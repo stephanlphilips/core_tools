@@ -78,7 +78,7 @@ class dataset_data_description():
 
             for j in range(len(raw_data)): #this is not pretty, but it works..
                 dataDescription = dataset_data_description('', raw_data[j], self.__raw_data_org)
-                
+
                 if self.ndim <= 2:
                     name = string.ascii_lowercase[23+i] + str(j+1)
                     self.__setattr__(name, dataDescription)
@@ -88,7 +88,7 @@ class dataset_data_description():
                             name = string.ascii_lowercase[23+i]
 
                     repr_attr_overview += [(name, dataDescription)]
-                    
+
                 if self.ndim > 2:
                     self.__setattr__(string.ascii_lowercase[8+i] + str(j+1), dataDescription)
                     if len(raw_data) == 1:
@@ -96,7 +96,7 @@ class dataset_data_description():
                         repr_attr_overview += [(string.ascii_lowercase[8+i], dataDescription)]
                     else:
                         repr_attr_overview += [(string.ascii_lowercase[8+i] + str(j+1), dataDescription)]
-                    
+
                 dataDescription.name = repr_attr_overview[-1][0]
 
             self.__repr_attr_overview += [repr_attr_overview]
@@ -113,6 +113,8 @@ class dataset_data_description():
     def __call__(self):
         if self.__raw_data.setpoint is True or self.__raw_data.setpoint_local is True:
             if self.__raw_data.data_buffer.data.ndim > 1: #over dimensioned
+                # NOTE: Assume the setpoint does not depend on the other dimensions!
+                #       This will fail when the parameter is swept in alternating direction.
                 idx = [0] * self.__raw_data.data_buffer.data.ndim
                 idx[self.__raw_data.nth_dim] = slice(None)
 
@@ -133,7 +135,7 @@ class dataset_data_description():
 
     def get_raw_content(self):
         return self.__repr_attr_overview
-    
+
     def average(self, dim):
         '''
         average the array across 1 dimension
@@ -226,7 +228,7 @@ class dataset_data_description():
             else:
                 dim = list(string.ascii_lowercase).index(dim) - 8
         return dim
-        
+
 class data_set_property_intializer():
     '''
     mockup of dataclass for development purposes-- dont use this class.
@@ -247,7 +249,7 @@ class data_set_property_intializer():
 
                 if j == 0:
                     setattr(self, 'm' + str(i+1), ds_descript)
-                
+
                 if j == 0 and n_sets==1: #consistent printing
                     repr_attr_overview += [('m' + str(i+1), ds_descript)]
                     ds_descript.name = 'm' + str(i+1)
