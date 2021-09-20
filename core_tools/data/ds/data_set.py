@@ -14,15 +14,16 @@ def load_by_id(exp_id):
     SQL_mgr = SQL_dataset_creator()
     return data_set(SQL_mgr.fetch_raw_dataset_by_Id(exp_id))
 
-def load_by_uuid(exp_uuid):
+def load_by_uuid(exp_uuid, copy2localdb=False):
     '''
     load a dataset by specifying its uuid (searches in local and remote db)
 
     args:
         exp_uuid (int) : uuid of the experiment you want to load
+        copy2localdb (bool): copy measurement to local database if only in remote
     '''
     SQL_mgr = SQL_dataset_creator()
-    return data_set(SQL_mgr.fetch_raw_dataset_by_UUID(exp_uuid))
+    return data_set(SQL_mgr.fetch_raw_dataset_by_UUID(exp_uuid, copy2localdb))
 
 def create_new_data_set(experiment_name, *m_params):
     '''
