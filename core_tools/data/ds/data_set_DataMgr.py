@@ -56,7 +56,7 @@ class data_descriptor: #autogenerate parameter info
 class dataset_data_description():
     unit = data_descriptor()
     label = data_descriptor()
-    name = data_descriptor()
+#    name = data_descriptor() ## overwritten by self.name in __init__
 
     def __init__(self, name, m_param_raw, m_params_raw_collection):
         '''
@@ -64,7 +64,8 @@ class dataset_data_description():
             m_param_raw (m_param_raw) : pointer to the raw parameter to add
             m_params_raw_collection (m_param_origanizer) : object containing a representation of all the data in the dataset
         '''
-        self.name = name
+        self.name = name # @@@ will be overwritten by data_set_core.data_set.__init_properties
+        self.param_name = m_param_raw.name
         self.__raw_data = m_param_raw
         self.__raw_data_org =  m_params_raw_collection
         self.__repr_attr_overview = []
@@ -79,6 +80,7 @@ class dataset_data_description():
             for j in range(len(raw_data)): #this is not pretty, but it works..
                 dataDescription = dataset_data_description('', raw_data[j], self.__raw_data_org)
 
+                # @@@ Fix x, y, z
                 if self.ndim <= 2:
                     name = string.ascii_lowercase[23+i] + str(j+1)
                     self.__setattr__(name, dataDescription)
@@ -97,7 +99,7 @@ class dataset_data_description():
                     else:
                         repr_attr_overview += [(string.ascii_lowercase[8+i] + str(j+1), dataDescription)]
 
-                dataDescription.name = repr_attr_overview[-1][0]
+                dataDescription.name = repr_attr_overview[-1][0] # @@@ overwrites name
 
             self.__repr_attr_overview += [repr_attr_overview]
 
@@ -107,13 +109,15 @@ class dataset_data_description():
                 name = string.ascii_lowercase[23+self.ndim]
         else:
             name  = string.ascii_lowercase[8+self.ndim-1]
+            if len(self.__raw_data.dependency) != 0:
+                name = string.ascii_lowercase[8+self.ndim]
 
         self.__setattr__(name, self)
 
     def __call__(self):
         if self.__raw_data.setpoint is True or self.__raw_data.setpoint_local is True:
             if self.__raw_data.data_buffer.data.ndim > 1: #over dimensioned
-                # NOTE: Assume the setpoint does not depend on the other dimensions!
+                # NOTE: Assumes the setpoint does not depend on the other dimensions!
                 #       This will fail when the parameter is swept in alternating direction.
                 idx = [0] * self.__raw_data.data_buffer.data.ndim
                 idx[self.__raw_data.nth_dim] = slice(None)
