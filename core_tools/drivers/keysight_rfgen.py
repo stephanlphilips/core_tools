@@ -2,7 +2,7 @@ from qcodes.instrument.base import Instrument
 from qcodes.utils.validators import Bool, Numbers
 from functools import partial
 import logging
-from projects.keysight_fpga.dig_iq import load_iq_image
+from keysight_fpga.sd1.dig_iq import load_iq_image
 
 class keysight_rfgen(Instrument):
     """
