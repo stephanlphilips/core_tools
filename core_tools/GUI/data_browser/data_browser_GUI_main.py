@@ -452,7 +452,7 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
                 self.pulse_plot.setLabel('left', 'Voltage', 'mV')
                 self.pulse_plot.setLabel('bottom', 'Time', 'ns')
                 self.pulse_plot.plot(x_plot, y_plot,
-#                                     pen = self.color_list[j],
+#                                     pen = self.color_list[j % len(self.color_list)],
                                      name = legend_name)
 
             self.tabWidget.addTab(self.pulse_plot,'AWG Pulses')

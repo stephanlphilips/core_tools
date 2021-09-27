@@ -1,14 +1,14 @@
-from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets, QtQml
+from PyQt5 import QtCore, QtQuick
 from core_tools.data.gui.qml.models import date_model, data_overview_model
 # import os, sys
 # import core_tools.data.gui.qml as qml_in
 
 from core_tools.data.SQL.connect import sample_info, SQL_conn_info_local, SQL_conn_info_remote
-from core_tools.data.SQL.queries.dataset_gui_queries import alter_dataset, query_for_samples, query_for_measurement_results
+from core_tools.data.SQL.queries.dataset_gui_queries import (
+        alter_dataset, query_for_samples, query_for_measurement_results)
 
-from core_tools.data.ds.data_set import load_by_uuid, load_by_id
+from core_tools.data.ds.data_set import load_by_uuid
 from core_tools.data.gui.plot_mgr import data_plotter
-
 from core_tools.data.gui.data_browser_models.result_table_data_class import m_result_overview
 
 def if_any_to_none(arg):
@@ -107,13 +107,13 @@ class signale_handler(QtQuick.QQuickView):
 
     @QtCore.pyqtSlot(int)
     def update_date_selection(self, idx):
-        date = self.date_model[idx]
+        date = self.date_model[idx] if self.date_model.rowCount() else None
         self.load_data_table(date)
 
     def load_data_table(self, date):
         data = query_for_measurement_results.get_results_for_date(date, **self.sample_info)
-        data = m_result_overview(data)
-        self.data_overview_model.reset_data(data)
+        model_data = m_result_overview(data)
+        self.data_overview_model.reset_data(model_data)
 
     def check_for_updates(self):
         update, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)

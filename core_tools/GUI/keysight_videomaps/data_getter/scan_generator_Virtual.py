@@ -5,9 +5,7 @@ Created on Fri Aug  9 16:50:02 2019
 @author: V2
 """
 from qcodes import MultiParameter
-import matplotlib.pyplot as plt
 import numpy as np
-import time
 
 class fake_digitizer(MultiParameter):
         """docstring for fake_digitizer"""
@@ -36,15 +34,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-
-
-
     vp = swing/2
-
-    # set up timing for the scan
-    # 2us needed to rearm digitizer
-    # 100ns HVI waiting time
-    step_eff = 2000 + 120 + t_step
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     voltages = np.zeros(n_pt)
@@ -53,11 +43,6 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         voltages[1::2] = np.linspace(-vp,vp,n_pt)[len(voltages[1::2]):][::-1]
     else:
         voltages = np.linspace(-vp,vp,n_pt)
-
-
-    # 100 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step /10
-    sample_rate = 1/(awg_t_step*1e-9)
 
     return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ), ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
 
@@ -83,29 +68,24 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
 
-    # set up timing for the scan
-    # 2us needed to rearm digitizer
-    # 100ns HVI waiting time
-    step_eff = 2000 + 120 + t_step
-
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
     vp2 = swing2/2
 
     voltages1 = np.linspace(-vp1,vp1,n_pt1)
     voltages2 = np.zeros(n_pt2)
+    voltages2_sp = np.linspace(-vp2,vp2,n_pt2)
     if biasT_corr == True:
-        voltages2[::2] = np.linspace(-vp2,vp2,n_pt2)[:len(voltages2[::2])]
-        voltages2[1::2] = np.linspace(-vp2,vp2,n_pt2)[len(voltages2[1::2]):][::-1]
+        voltages2[::2] = voltages2_sp[:len(voltages2[::2])]
+        voltages2[1::2] = voltages2_sp[len(voltages2[1::2]):][::-1]
     else:
-        voltages2 = np.linspace(-vp2,vp2,n_pt2)
+        voltages2 = voltages2_sp
 
-    # 100 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step /10
-    sample_rate = 1/(awg_t_step*1e-9)
-
-    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt1, n_pt2), (gate1, gate2),
-                                         (tuple(voltages1),tuple(np.sort(voltages2))), biasT_corr, 500e6)
+    # Note: setpoints are in qcodes order
+    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step,
+                                         (n_pt2, n_pt1), (gate2, gate1),
+                                         (tuple(voltages2_sp), (tuple(voltages1),)*n_pt2),
+                                         biasT_corr, 500e6)
 
 
 class dummy_digitzer_scan_parameter(MultiParameter):

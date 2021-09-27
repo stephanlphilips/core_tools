@@ -187,6 +187,8 @@ class harware_parent(qc.Instrument):
 
     def sync_data(self):
         for item in self.virtual_gates:
+            # invoke property to update normalized matrix
+            item.virtual_gate_matrix
             self.sync[item.name] = item
         self.sync['AWG2DAC'] = self._AWG_to_dac_conversion
         self.sync['RFsettings'] = self._RF_settings

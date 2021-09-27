@@ -568,7 +568,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def set_metadata(self):
         metadata = {}
-        if self.tab_id == 0:
+        if self.tab_id == 0: # 1D
             metadata['measurement_type'] = '1D_sweep'
             for key in self.defaults_1D.keys():
                 metadata[key] = getattr(self,f'_1D__{key}')
@@ -604,10 +604,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             channels = ','.join(self.current_param_getter._2D.channel_names)
             title = f'{inp_title} {gate_y} ({range_y:.0f} mV) vs. {gate_x} ({range_x:.0f} mV), m:{channels}'
         try:
-            data_id, data_uuid = self.save_data()
+            ds = self.save_data()
             notes = self.metadata.copy()
-            notes['exp_id'] = data_id
-            notes['exp_uuid'] = data_uuid
+            notes['exp_id'] = ds.exp_id
+            notes['exp_uuid'] = ds.exp_uuid
             addPPTslide(title = title, fig = figure_hand, notes=str(notes), verbose=-1)
         except:
             print('could not add slide')
@@ -618,7 +618,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         save the data
         """
-        if self.tab_id == 0:
+        if self.tab_id == 0: # 1D
             label = self._1D__gate_name
         elif self.tab_id == 1: # 2D
             label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
@@ -632,8 +632,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             if is_ds_configured:
                 logging.info('Save')
                 job = do0D(self.vm_data_param, name=label)
-                data = job.run()
-                return data.exp_id, data.exp_uuid
+                ds = job.run()
+                return ds
             else:
                 # use qcodes measurement
                 measure = Measure(self.vm_data_param)

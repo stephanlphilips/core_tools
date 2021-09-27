@@ -2,6 +2,7 @@ import core_tools.data.gui.ui_files.plotter_basic_autgen as plotter_basic_autgen
 from core_tools.data.gui.generate_mparam_ui_box import single_m_param_m_descriptor
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
+import logging
 
 from core_tools.data.gui.plots._1D_plotting import _1D_plot
 from core_tools.data.gui.plots._2D_plotting import _2D_plot
@@ -9,39 +10,42 @@ from core_tools.data.gui.plots._2D_plotting import _2D_plot
 
 class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
     def __init__(self, ds):
-        self.ds = ds
-        self.alive = True
-        self.app = QtCore.QCoreApplication.instance()
-        self.instance_ready = True
-        if self.app is None:
-            self.instance_ready = False
-            self.app = QtWidgets.QApplication([])
+        try:
+            self.ds = ds
+            self.alive = True
+            self.app = QtCore.QCoreApplication.instance()
+            self.instance_ready = True
+            if self.app is None:
+                self.instance_ready = False
+                self.app = QtWidgets.QApplication([])
 
-        super(QtWidgets.QMainWindow, self).__init__()
-        self.setupUi(self)
-        self.ui_box_mgr = ui_box_mgr(self.app, self.ds, self.data_plot_layout)
-        # add gui for dataset selection
-        for m_param_set in self.ds:
-            for m_param in m_param_set:
-                param =m_param[1]
-                layout = single_m_param_m_descriptor(param, self.scrollAreaWidgetContents_4)
-                self.ui_box_mgr.add_m_param_plot_mgr(layout.plot_data_mgr)
-                self.data_content_layout.addLayout(layout)
+            super(QtWidgets.QMainWindow, self).__init__()
+            self.setupUi(self)
+            self.ui_box_mgr = ui_box_mgr(self.app, self.ds, self.data_plot_layout)
+            # add gui for dataset selection
+            for m_param_set in self.ds:
+                for m_param in m_param_set:
+                    param =m_param[1]
+                    layout = single_m_param_m_descriptor(param, self.scrollAreaWidgetContents_4)
+                    self.ui_box_mgr.add_m_param_plot_mgr(layout.plot_data_mgr)
+                    self.data_content_layout.addLayout(layout)
 
-        verticalSpacer = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        self.data_content_layout.addItem(verticalSpacer)
-        
-        # render plots
-        self.ui_box_mgr.draw_plots()
+            verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+            self.data_content_layout.addItem(verticalSpacer)
 
-        self.show()
+            # render plots
+            self.ui_box_mgr.draw_plots()
 
-        if self.instance_ready == False:
-            self.app.exec()
+            self.show()
+
+            if self.instance_ready == False:
+                self.app.exec()
+        except:
+            logging.error(f'Data plotter', exc_info=True)
 
     def closeEvent(self, event):
         self.alive = False
-    
+
 class ui_box_mgr():
     def __init__(self, app, ds, plot_layout):
         '''
@@ -49,7 +53,7 @@ class ui_box_mgr():
 
         Args:
             app
-            plot_layout (tbd) : qt layout where the pyqt windows can be inserted in. 
+            plot_layout (tbd) : qt layout where the pyqt windows can be inserted in.
         '''
         self.plot_layout = plot_layout
         self.m_param_plot_mgr = []
@@ -67,7 +71,7 @@ class ui_box_mgr():
 
     def draw_plots(self):
         self.timer.stop()
-        
+
         # clear all
         plot_widgets = []
         for item in self.m_param_plot_mgr:
@@ -83,11 +87,11 @@ class ui_box_mgr():
                     else:
                         plot_widget.img_view.ui.histogram.show()
 
-        for i in reversed(range(self.plot_layout.count())): 
+        for i in reversed(range(self.plot_layout.count())):
             widgetToRemove = self.plot_layout.itemAt(i).widget()
             self.plot_layout.removeWidget(widgetToRemove)
             widgetToRemove.setParent(None)
-        
+
         self.plot_widgets = plot_widgets
         for plot_widget in self.plot_widgets:
             self.plot_layout.addWidget(plot_widget.widget)
@@ -103,7 +107,10 @@ class ui_box_mgr():
         self.ds.sync()
 
         for plot in self.plot_widgets:
-            plot.update()
+            try:
+                plot.update()
+            except:
+                logging.error(f'Plot update failed', exc_info=True)
 
 
 if __name__ == '__main__':

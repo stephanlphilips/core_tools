@@ -1,4 +1,4 @@
-from core_tools.data.gui.plots.unit_management import format_value_and_unit, format_unit, return_unit_scaler
+from core_tools.data.gui.plots.unit_management import format_unit, return_unit_scaler
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from matplotlib.pyplot import get_cmap
@@ -26,8 +26,8 @@ class _2D_plot:
         pg.setConfigOption('background', None)
         pg.setConfigOption('foreground', 'k')
 
-        self.widget = QtGui.QWidget()
-        self.layout = QtGui.QVBoxLayout()
+        self.widget = QtWidgets.QWidget()
+        self.layout = QtWidgets.QVBoxLayout()
         
         self.plot = pg.PlotItem()
         self.plot.setLabel('bottom', self.ds.y.label, units = format_unit(self.ds.y.unit))
@@ -35,7 +35,7 @@ class _2D_plot:
         self.img = pg.ImageItem()
         self.img_view = pg.ImageView(view=self.plot, imageItem=self.img)
         self.img_view.setColorMap(get_color_map())
-        self.label = QtGui.QLabel()
+        self.label = QtWidgets.QLabel()
         self.label.setAlignment(QtCore.Qt.AlignRight)
         # self.img_view.ui.histogram.hide()
         self.img_view.ui.roiBtn.hide()
@@ -74,8 +74,11 @@ class _2D_plot:
             data = self.ds()
             data_cp = np.empty(data.shape)
             data_cp[:,:] = np.nan
-            data_cp[slice(*x_limit), slice(*y_limit)]= data[slice(*x_limit), slice(*y_limit)]
+            x_slice = slice(x_limit[0], x_limit[1]+1)
+            y_slice = slice(y_limit[0], y_limit[1]+1)
+            data_cp[x_slice, y_slice] = data[x_slice, y_slice]
             data = data_cp
+
             # X and Y seems to be swapped for image items (+ Y inverted)
             x_scale = abs(x_limit_num[1] - x_limit_num[0])/(x_limit[1] - x_limit[0])
             y_scale = abs(y_limit_num[1] - y_limit_num[0])/(y_limit[1] - y_limit[0])
@@ -91,7 +94,11 @@ class _2D_plot:
             self.plot.invertY(False)
             self.img.setImage(data.T)
 
-            if x_scale != 0 and not np.isnan(x_scale) and x_scale != self.current_x_scale:
+            x_off_set -= 0.5
+            y_off_set -= 0.5
+
+            if (x_scale != 0 and not np.isnan(x_scale)
+                and (x_scale != self.current_x_scale or x_off_set != self.current_x_off_set)):
                 # update coordinates
                 off = x_off_set - self.current_x_off_set
                 scale = x_scale/self.current_x_scale
@@ -101,7 +108,8 @@ class _2D_plot:
                 self.img.scale(1, scale)
                 self.img.translate(0, off)
 
-            if y_scale != 0 and not np.isnan(y_scale) and y_scale != self.current_y_scale:
+            if (y_scale != 0 and not np.isnan(y_scale)
+                and (y_scale != self.current_y_scale or y_off_set != self.current_y_off_set)):
                 # update coordinates
                 off = y_off_set - self.current_y_off_set
                 scale = y_scale/self.current_y_scale

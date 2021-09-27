@@ -16,7 +16,7 @@ def load_virtual_gate_matrix_from_ds(ds_id, hardware_name):
     '''
     load_virtual_gate_matrix_from_snapshot(load_by_id(ds_id).snapshot, hardware_name)
 
-def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name):
+def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name, no_norm=True):
     '''
     load virtual gate matrix from a existing datasset.
 
@@ -29,11 +29,16 @@ def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name):
     print('Loading  virtual gates matrices from dataset:')
 
     for key, value in virtual_gates.items():
-        try:
-            matrix = value['virtual_gate_matrix_no_norm'].replace('\n', '').replace('[', '').replace(']', '')
-        except:
-            print('no old style matrix found, trying new style')
-            matrix = value['virtual_gate_matrix'].replace('\n', '').replace('[', '').replace(']', '')
+        if no_norm:
+            try:
+                matrix = value['virtual_gate_matrix_no_norm']
+            except:
+                print('no old style matrix found, trying new style')
+                matrix = value['virtual_gate_matrix']
+        else:
+            matrix = value['virtual_gate_matrix']
+
+        matrix = matrix.replace('\n', '').replace('[', '').replace(']', '')
         mat = np.loadtxt(StringIO(matrix), delimiter=',')
         mat = mat.reshape([int(np.sqrt(mat.size)), int(np.sqrt(mat.size))])
 

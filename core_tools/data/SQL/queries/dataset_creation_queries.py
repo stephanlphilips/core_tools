@@ -8,10 +8,10 @@ import psycopg2, json
 
 class sample_info_queries:
 	'''
-	small table that holds a overview of which samples have been measured on the current system. 
+	small table that holds a overview of which samples have been measured on the current system.
 	'''
 	table_name = 'sample_info_overview'
-	
+
 	@staticmethod
 	def generate_table(conn):
 		statement = "CREATE TABLE if not EXISTS {} (".format(sample_info_queries.table_name)
@@ -25,14 +25,15 @@ class sample_info_queries:
 	@staticmethod
 	def add_sample(conn):
 		sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
-		var_names = ('sample_info_hash', 'sample', 'set_up', 'project')
-		var_values = (set_up+project+sample, sample, set_up, project)
-		insert_row_in_table(conn, sample_info_queries.table_name, var_names, var_values,
-			custom_statement='ON CONFLICT DO NOTHING')
+		if sample is not None and set_up is not None and project is not None:
+			var_names = ('sample_info_hash', 'sample', 'set_up', 'project')
+			var_values = (set_up+project+sample, sample, set_up, project)
+			insert_row_in_table(conn, sample_info_queries.table_name, var_names, var_values,
+				custom_statement='ON CONFLICT DO NOTHING')
 
 class measurement_overview_queries:
 	'''
-	large-ish table that holds all the inforamtion of what measurements are done. 
+	large-ish table that holds all the inforamtion of what measurements are done.
 
 	The raw data is saved in other tables (-> data_table_queries)
 	'''
@@ -43,22 +44,22 @@ class measurement_overview_queries:
 		statement = "CREATE TABLE if not EXISTS {} (".format(measurement_overview_queries.table_name)
 		statement += "id SERIAL,"
 		statement += "uuid BIGINT NOT NULL unique,"
-		
+
 		statement += "exp_name text NOT NULL,"
 		statement += "set_up text NOT NULL,"
 		statement += "project text NOT NULL,"
 		statement += "sample text NOT NULL,"
 		statement += "creasted_by text NOT NULL,"
-		
+
 		statement += "start_time TIMESTAMP, "
 		statement += "stop_time TIMESTAMP, "
-		
+
 		statement += "exp_data_location text,"
 		statement += "snapshot BYTEA, "
 		statement += "metadata BYTEA,"
 		statement += "keywords JSONB, "
 		statement += "starred BOOL DEFAULT False, "
-		
+
 		statement += "completed BOOL DEFAULT False, "
 		statement += "data_size int,"
 		statement += "data_cleared BOOL DEFAULT False, "
@@ -66,11 +67,11 @@ class measurement_overview_queries:
 		statement += "data_synchronized BOOL DEFAULT False,"
 		statement += "table_synchronized BOOL DEFAULT False,"
 		statement += "sync_location text); "
-		
+
 		statement += "CREATE INDEX IF NOT EXISTS uuid_indexed ON {} USING BTREE (uuid) ;".format(measurement_overview_queries.table_name)
 		statement += "CREATE INDEX IF NOT EXISTS starred_indexed ON {} USING BTREE (starred) ;".format(measurement_overview_queries.table_name)
 		statement += "CREATE INDEX IF NOT EXISTS date_day_index ON {} USING BTREE (project, set_up, sample) ;".format(measurement_overview_queries.table_name)
-		
+
 		statement += "CREATE INDEX IF NOT EXISTS data_synced_index ON {} USING BTREE (data_synchronized);".format(measurement_overview_queries.table_name)
 		statement += "CREATE INDEX IF NOT EXISTS table_synced_index ON {} USING BTREE (table_synchronized);".format(measurement_overview_queries.table_name)
 
@@ -91,7 +92,7 @@ class measurement_overview_queries:
 		var_names = ('uuid', 'set_up', 'project', 'sample', 'creasted_by', 'exp_name')
 		var_values = (uuid, str(sample_info.set_up),  str(sample_info.project),
 			str(sample_info.sample) , SQL_conn_info_local.user, exp_name)
-		
+
 		returning = ('id', 'uuid')
 		query_outcome = insert_row_in_table(conn, measurement_overview_queries.table_name, var_names, var_values, returning)
 
@@ -130,7 +131,7 @@ class measurement_overview_queries:
 
 	@staticmethod
 	def is_completed(conn, uuid):
-		completed =  execute_query(conn, 
+		completed =  execute_query(conn,
 			"SELECT completed FROM {} where uuid = {};".format(measurement_overview_queries.table_name, uuid))
 		return completed[0][0]
 
@@ -160,7 +161,7 @@ class data_table_queries:
 		statement += "synchronized BOOL DEFAULT False,"
 		statement += "sync_location text);"
 		execute_statement(conn, statement)
-		
+
 	@staticmethod
 	def insert_measurement_spec_in_meas_table(conn, table_name, data_item):
 		'''
@@ -171,16 +172,16 @@ class data_table_queries:
 			data_item (m_param_raw) : raw format of the measurement parameter
 		'''
 		var_names = ("param_id", "nth_set", "nth_dim", "param_id_m_param",
-			"setpoint", "setpoint_local", "name_gobal", "name", 
-			"label", "unit", "depencies", "shape", 
+			"setpoint", "setpoint_local", "name_gobal", "name",
+			"label", "unit", "depencies", "shape",
 			"write_cursor", "total_size", "oid")
 
-		var_values = (data_item.param_id, data_item.nth_set, data_item.nth_dim, 
-			data_item.param_id_m_param, data_item.setpoint, data_item.setpoint_local, 
-			data_item.name_gobal, data_item.name, data_item.label, 
+		var_values = (data_item.param_id, data_item.nth_set, data_item.nth_dim,
+			data_item.param_id_m_param, data_item.setpoint, data_item.setpoint_local,
+			data_item.name_gobal, data_item.name, data_item.label,
 			data_item.unit, psycopg2.extras.Json(data_item.dependency), psycopg2.extras.Json(data_item.shape),
 			0, data_item.size, data_item.oid)
-		
+
 		insert_row_in_table(conn, table_name, var_names, var_values)
 
 	@staticmethod

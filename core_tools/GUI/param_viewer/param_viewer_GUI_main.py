@@ -199,11 +199,10 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         last_value = self.last_param_value.get(gate.name, None)
         last_rounded = voltage_input.valueFromText(voltage_input.textFromValue(last_value)) if last_value is not None else None
         if value() != last_rounded:
-            logging.info(f'GUI value changed: {gate.name} {last_value} ({last_rounded}) -> {value()}')
-            logging.info(f'set_gate {gate.name} = {value()}')
+            logging.info(f'GUI value changed: set gate {gate.name} {last_value} ({last_rounded}) -> {value()}')
             gate.set(value())
         else:
-            logging.info(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value()}; no update of gate')
+            logging.debug(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value()}; no update of gate')
 
     def _set_set(self, setting, value, division):
         # TODO add support if out of range.
@@ -254,7 +253,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                     if new_value != last_value:
                         logging.info(f'Update GUI {param.param_parameter.name} {last_value} -> {new_value}')
                         self.last_param_value[param.param_parameter.name] = new_value
-                    param.gui_input_param.setValue(new_value)
+                        param.gui_input_param.setValue(new_value)
                 elif type(param.gui_input_param) == QtWidgets.QCheckBox:
                     param.gui_input_param.setChecked(param.param_parameter())
 
