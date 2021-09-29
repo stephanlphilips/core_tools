@@ -32,11 +32,11 @@ class m_result_item():
 
     @property
     def date(self):
-        return self.start_date.strftime("%d/%m/%Y %H:%M:%S")
+        return self.start_time.strftime("%d/%m/%Y %H:%M:%S")
 
     @property
     def time(self):
-        return self.start_date.strftime("%H:%M:%S")
+        return self.start_time.strftime("%H:%M:%S")
 
     def set_sort_idx(self, i):
         self.__search_key_idx = i
@@ -57,7 +57,7 @@ class m_result_overview():
     def __init__(self, query_input_data):
         self.data = []
         for data in query_input_data:
-            self.data.append(m_result_item(asdict(data)))
+            self.data.append(m_result_item(**asdict(data)))
 
         self.sort(3, True)
 
