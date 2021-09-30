@@ -14,11 +14,11 @@ class SQL_database_init:
         self.SQL_conn_info_remote = SQL_conn_info_remote
         self.sample_info = sample_info
 
-        if self.conn_local is None:     
-            self.conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_info_local.user, 
+        if self.conn_local is None:
+            self.conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_info_local.user,
                 password=SQL_conn_info_local.passwd, host=SQL_conn_info_local.host, port=SQL_conn_info_local.port)
         if self.conn_remote is None:
-            self.conn_remote = psycopg2.connect(dbname=SQL_conn_info_remote.dbname, user=SQL_conn_info_remote.user, 
+            self.conn_remote = psycopg2.connect(dbname=SQL_conn_info_remote.dbname, user=SQL_conn_info_remote.user,
                 password=SQL_conn_info_remote.passwd, host=SQL_conn_info_remote.host, port=SQL_conn_info_remote.port)
 
         self.last_commit = time.time()
@@ -34,7 +34,7 @@ class SQL_database_init:
         if self.SQL_conn_info_remote.host != 'localhost':
             return True
         return False
-       
+
 
 class SQL_database_manager(SQL_database_init):
     __instance = None
@@ -42,13 +42,16 @@ class SQL_database_manager(SQL_database_init):
     def __new__(cls):
         if SQL_database_manager.__instance is None:
             SQL_database_manager.__instance = object.__new__(cls)
-            SQL_database_init._connect(SQL_database_manager.__instance)
-            
-            sample_info_queries.generate_table(SQL_database_manager.__instance.conn_local)
-            sample_info_queries.add_sample(SQL_database_manager.__instance.conn_local)
-            
-            measurement_overview_queries.generate_table(SQL_database_manager.__instance.conn_local)
-            SQL_database_manager.__instance.conn_local.commit()
+            db_mgr = SQL_database_manager.__instance
+            SQL_database_init._connect(db_mgr)
+
+            conn_local = db_mgr.conn_local
+            if not db_mgr.SQL_conn_info_local.readonly:
+                sample_info_queries.generate_table(conn_local)
+                sample_info_queries.add_sample(conn_local)
+
+                measurement_overview_queries.generate_table(conn_local)
+                conn_local.commit()
         return SQL_database_manager.__instance
 
 
@@ -60,8 +63,9 @@ class SQL_sync_manager(SQL_database_init):
         if SQL_sync_manager.__instance is None:
             SQL_sync_manager.__instance = object.__new__(cls)
             SQL_database_init._connect(SQL_sync_manager.__instance)
-            
-            if SQL_sync_manager.__instance.remote_conn_active != True or SQL_sync_manager.__instance.remote_conn_active != True:
+
+            if not (SQL_sync_manager.__instance.remote_conn_active
+                    and SQL_sync_manager.__instance.remote_conn_active):
                 raise ValueError('In order to start the sync manager, a local and remote connection need to be provided.')
 
             sample_info_queries.generate_table(SQL_sync_manager.__instance.conn_local)
@@ -71,10 +75,10 @@ class SQL_sync_manager(SQL_database_init):
             measurement_overview_queries.generate_table(SQL_sync_manager.__instance.conn_remote)
             SQL_sync_manager.__instance.conn_local.commit()
             SQL_sync_manager.__instance.conn_remote.commit()
-        
+
         return SQL_sync_manager.__instance
 
-    def run(self):       
+    def run(self):
         while self.do_sync == True:
             uuid_update_list = sync_mgr_queries.get_sync_items_raw_data(self)
 
@@ -88,14 +92,14 @@ class SQL_sync_manager(SQL_database_init):
                 print(f'not files to update')
 
             uuid_update_list = sync_mgr_queries.get_sync_items_meas_table(self)
-    
+
             for i in range(0,len(uuid_update_list)):
                 uuid = uuid_update_list[i]
                 print(f'updating table entry {i} of {len(uuid_update_list)}')
                 sync_mgr_queries.sync_table(self, uuid)
             if len(uuid_update_list) == 0:
                 print(f'not entries to update')
-            
+
             time.sleep(2)
 
 if __name__ == '__main__':
