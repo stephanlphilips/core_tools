@@ -33,6 +33,7 @@ def ds2xarray(ct_ds):
         for m_param in m_param_set:
             param = m_param[1]
             dims = []
+            if param.ndim <= 2:
             if param.ndim > 0:
                 coord = param.x
                 dims.append(coord.param_name)
@@ -41,6 +42,19 @@ def ds2xarray(ct_ds):
                 coord = param.y
                 dims.append(coord.param_name)
                 _add_coord(ds, coord)
+            else:
+                if param.ndim > 0:
+                    coord = param.i
+                    dims.append(coord.param_name)
+                    _add_coord(ds, coord)
+                if param.ndim > 1:
+                    coord = param.j
+                    dims.append(coord.param_name)
+                    _add_coord(ds, coord)
+                if param.ndim > 2:
+                    coord = param.k
+                    dims.append(coord.param_name)
+                    _add_coord(ds, coord)
             _add_data_var(ds, param, dims)
 
     return ds
