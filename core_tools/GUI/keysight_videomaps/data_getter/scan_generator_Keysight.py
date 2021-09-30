@@ -212,7 +212,8 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     my_seq.upload([0])
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),
-                                    (tuple(np.sort(voltages2)),tuple(voltages1)), biasT_corr, dig_samplerate,
+                                    (tuple(voltages2_sp), (tuple(voltages1),)*n_pt2),
+                                    biasT_corr, dig_samplerate,
                                      channels=channels, Vmax=dig_vmax, iq_mode=iq_mode, channel_map=channel_map)
 
 

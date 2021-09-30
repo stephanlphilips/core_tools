@@ -44,7 +44,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     else:
         voltages = np.linspace(-vp,vp,n_pt)
 
-    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ), ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
+    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ),
+                                         ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer,
