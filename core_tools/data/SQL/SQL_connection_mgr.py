@@ -42,13 +42,16 @@ class SQL_database_manager(SQL_database_init):
     def __new__(cls):
         if SQL_database_manager.__instance is None:
             SQL_database_manager.__instance = object.__new__(cls)
-            SQL_database_init._connect(SQL_database_manager.__instance)
+            db_mgr = SQL_database_manager.__instance
+            SQL_database_init._connect(db_mgr)
             
-            sample_info_queries.generate_table(SQL_database_manager.__instance.conn_local)
-            sample_info_queries.add_sample(SQL_database_manager.__instance.conn_local)
+            conn_local = db_mgr.conn_local
+            if not db_mgr.SQL_conn_info_local.readonly:
+                sample_info_queries.generate_table(conn_local)
+                sample_info_queries.add_sample(conn_local)
             
-            measurement_overview_queries.generate_table(SQL_database_manager.__instance.conn_local)
-            SQL_database_manager.__instance.conn_local.commit()
+                measurement_overview_queries.generate_table(conn_local)
+                conn_local.commit()
         return SQL_database_manager.__instance
 
 
@@ -61,7 +64,8 @@ class SQL_sync_manager(SQL_database_init):
             SQL_sync_manager.__instance = object.__new__(cls)
             SQL_database_init._connect(SQL_sync_manager.__instance)
             
-            if SQL_sync_manager.__instance.remote_conn_active != True or SQL_sync_manager.__instance.remote_conn_active != True:
+            if not (SQL_sync_manager.__instance.remote_conn_active
+                    and SQL_sync_manager.__instance.remote_conn_active):
                 raise ValueError('In order to start the sync manager, a local and remote connection need to be provided.')
 
             sample_info_queries.generate_table(SQL_sync_manager.__instance.conn_local)

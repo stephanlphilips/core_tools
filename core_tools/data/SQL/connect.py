@@ -58,13 +58,15 @@ class SQL_conn_info_local:
 	user = conn_info_descriptor()
 	passwd = conn_info_descriptor()
 	dbname = conn_info_descriptor()
+    readonly = conn_info_descriptor()
 
-	def __init__(self, host, port, user, passwd, dbname):
+    def __init__(self, host, port, user, passwd, dbname, readonly=False):
 		self.host = host
 		self.port = port
 		self.user = user
 		self.passwd = passwd
 		self.dbname = dbname
+        self.readonly = readonly
 
 class SQL_conn_info_remote:
 	host = conn_info_descriptor()
@@ -72,16 +74,18 @@ class SQL_conn_info_remote:
 	user = conn_info_descriptor()
 	passwd = conn_info_descriptor()
 	dbname = conn_info_descriptor()
+    readonly = conn_info_descriptor()
 
-	def __init__(self, host, port, user, passwd, dbname):
+    def __init__(self, host, port, user, passwd, dbname, readonly=False):
 		self.host = host
 		self.port = port
 		self.user = user
 		self.passwd = passwd
 		self.dbname = dbname
+        self.readonly = readonly
 
 
-def set_up_local_storage(user, passwd, dbname, project, set_up, sample):
+def set_up_local_storage(user, passwd, dbname, project, set_up, sample, readonly=False):
 	'''
 	Set up the specification for the datastorage needed to store/retrieve measurements.
 	
@@ -94,10 +98,10 @@ def set_up_local_storage(user, passwd, dbname, project, set_up, sample):
 		set_up (str) : set up at which the data has been measured
 		sample (str) : sample name 
 	'''
-	SQL_conn_info_local('localhost', 5432, user, passwd, dbname)
+    SQL_conn_info_local('localhost', 5432, user, passwd, dbname, readonly)
 	sample_info(project, set_up, sample)
 
-def set_up_remote_storage(host, port, user, passwd, dbname, project, set_up, sample):
+def set_up_remote_storage(host, port, user, passwd, dbname, project, set_up, sample, readonly=False):
 	'''
 	Set up the specification for the datastorage needed to store/retrieve measurements.
 	
@@ -112,13 +116,14 @@ def set_up_remote_storage(host, port, user, passwd, dbname, project, set_up, sam
 		set_up (str) : set up at which the data has been measured
 		sample (str) : sample name 
 	'''
-	SQL_conn_info_remote(host, port, user, passwd, dbname)
+    SQL_conn_info_remote(host, port, user, passwd, dbname, readonly)
 	sample_info(project, set_up, sample)
 
 def set_up_local_and_remote_storage(host, port, 
 									user_local, passwd_local, dbname_local,
 									user_remote, passwd_remote, dbname_remote,
-									project, set_up, sample):
+                                    project, set_up, sample,
+                                    local_readonly=False, remote_readonly=False):
 	'''
 	Set up the specification for the datastorage needed to store/retrieve measurements.
 	
@@ -138,6 +143,6 @@ def set_up_local_and_remote_storage(host, port,
 		set_up (str) : set up at which the data has been measured
 		sample (str) : sample name 
 	'''
-	SQL_conn_info_local('localhost', 5432, user_local, passwd_local, dbname_local)
-	SQL_conn_info_remote(host, port, user_remote, passwd_remote, dbname_remote)
+    SQL_conn_info_local('localhost', 5432, user_local, passwd_local, dbname_local, local_readonly)
+    SQL_conn_info_remote(host, port, user_remote, passwd_remote, dbname_remote, remote_readonly)
 	sample_info(project, set_up, sample)
