@@ -23,12 +23,14 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     Args:
         gate (str) : gate/gates that you want to sweep.
-        swing (double) : swing to apply on the AWG gates.
+        swing (double) : swing to apply on the AWG gates. [mV]
         n_pt (int) : number of points to measure (current firmware limits to 1000)
-        t_step (double) : time in ns to measure per point.
+        t_step (double) : time in ns to measure per point. [ns]
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
-        digitizer_measure : digitizer object
+        digitizer : digitizer object
+        channels : digitizer channels to read
+        dig_samplerate : digitizer sample rate [Sa/s]
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to specify selection per channel, e.g. {1:'abs', 2:'angle'}.
@@ -190,10 +192,10 @@ class _digitzer_scan_parameter(MultiParameter):
     """
     def __init__(self, digitizer, my_seq, pulse_lib, t_measure, acquisition_delay_ns,
                  shape, names, setpoint, biasT_corr, sample_rate,
-                 channels = [1,2,3,4], Vmax=2.0, iq_mode=None, channel_map=None):
+                 channels = [1,2,3,4], Vmax=2.0, iq_mode=None):
         """
         args:
-            digitizer (SD_DIG) : digizer driver:
+            digitizer (M4i) : Spectrum M4i digitizer driver:
             my_seq (sequencer) : sequence of the 1D scan
             pulse_lib (pulselib): pulse library object
             t_measure (int) : time to measure per step
@@ -223,6 +225,7 @@ class _digitzer_scan_parameter(MultiParameter):
         self.channels = [ch-1 for ch in channels]
         self.biasT_corr = biasT_corr
         self.shape = shape
+        self.n_ch = len(channels)
         self.Vmax = Vmax
         self._init_channels(channels, channel_map, iq_mode)
 
@@ -232,13 +235,15 @@ class _digitzer_scan_parameter(MultiParameter):
         digitizer.sample_rate(sample_rate)
         self.sample_rate = digitizer.sample_rate()
 
-        if len(self.channels) not in [1,2,4]:
+        if self.n_ch not in [1,2,4]:
             raise Exception('Number of enabled channels on M4i must be 1, 2 or 4.')
         digitizer.enable_channels(sum([2**ch for ch in self.channels]))
         for ch in self.channels:
             digitizer.set(f'range_channel_{ch}', Vmax*1000)
 
-        self.seg_size = int((t_measure+acquisition_delay_ns) * self.n_points * self.sample_rate * 1e-9)
+        # note: force float calculation to avoid intermediate int overflow.
+        self.seg_size = int(float(t_measure+acquisition_delay_ns)
+                            * self.n_points * self.sample_rate * 1e-9)
 
         self.dig.trigger_or_mask(pyspcm.SPC_TMASK_EXT0)
         self.dig.setup_multi_recording(self.seg_size, n_triggers=1)
@@ -252,8 +257,10 @@ class _digitzer_scan_parameter(MultiParameter):
                         shapes=tuple([shape]*n_out_ch),
                         labels=self.labels,
                         units=self.units,
-                        setpoints = tuple([setpoint]*n_out_ch), setpoint_names=tuple([names]*n_out_ch),
-                        setpoint_labels=tuple([names]*n_out_ch), setpoint_units=(("mV",)*len(names),)*n_out_ch,
+                        setpoints = tuple([setpoint]*n_out_ch), 
+                        setpoint_names=tuple([names]*n_out_ch),
+                        setpoint_labels=tuple([names]*n_out_ch), 
+                        setpoint_units=(("mV",)*len(names),)*n_out_ch,
                         docstring='Scan parameter for digitizer')
 
     def _init_channels(self, channels, channel_map, iq_mode):
@@ -279,7 +286,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def get_raw(self):
         start = time.perf_counter()
-        # logging.info(f'Play')
+        # logging.info('Play')
         # play sequence
         self.my_seq.play(release=False)
 
