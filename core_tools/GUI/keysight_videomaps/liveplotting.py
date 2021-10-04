@@ -594,6 +594,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 class vm_data_param(MultiParameter):
     def __init__(self, param, plot, metadata):
         param = param
+        names = param.names
         shapes = param.shapes
         labels = param.labels
         units = param.units
@@ -602,9 +603,11 @@ class vm_data_param(MultiParameter):
         setpoint_labels = param.setpoint_labels
         setpoint_units = param.setpoint_units
         self.plot = plot
-        super().__init__(name='vm_data_parameter',instrument=None,names=param.names, labels=labels, units=units,
-             shapes=shapes, setpoints=setpoints, setpoint_names = setpoint_names,setpoint_labels=setpoint_labels,
-             setpoint_units = setpoint_units, metadata=metadata)
+        super().__init__(name='vm_data_parameter', instrument=None,
+             names=names, labels=labels, units=units,
+             shapes=shapes, setpoints=setpoints, setpoint_names=setpoint_names,
+             setpoint_labels=setpoint_labels, setpoint_units=setpoint_units, 
+             metadata=metadata)
 
     def get_raw(self):
         current_data = self.plot.buffer_data

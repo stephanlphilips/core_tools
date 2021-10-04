@@ -264,8 +264,10 @@ class _2D_live_plot(live_plot):
 
             self.top_layout.addWidget(plot_2D, 0, i, 1, 1)
 
-            img.translate(-self.parameter_getter.setpoints[0][1][-1], -self.parameter_getter.setpoints[0][0][-1])
-            img.scale(1/self.shape[0]*self.parameter_getter.setpoints[0][1][-1]*2, 1/self.shape[1]*self.parameter_getter.setpoints[0][0][-1]*2)
+            range1 = self.parameter_getter.setpoints[0][1][0][-1]
+            range0 = self.parameter_getter.setpoints[0][0][-1]
+            img.translate(-range1, -range0)
+            img.scale(1/self.shape[0]*range1*2, 1/self.shape[1]*range0*2)
 
             plot_data = plot_widget_data(plot_2D, [img])
             self.plot_widgets.append(plot_data)
