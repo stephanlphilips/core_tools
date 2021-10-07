@@ -46,6 +46,7 @@ class scan_generic(metaclass=job_meta):
                 else:
                     # Sequence without looping parameters. Only upload, no setpoints
                     sequence_to_wrap = arg
+                self.meas.add_snapshot('sequence', arg.metadata)
             elif arg is None:
                 continue
             else:
@@ -79,8 +80,8 @@ class scan_generic(metaclass=job_meta):
         -- optionally also resets the paramters
         -- wrapped by the job_meta class (allows for progress bar to appear)
         '''
-        with self.meas as ds:
-            self._loop(self.set_vars, self.m_instr, tuple(), ds)
+        with self.meas as m:
+            self._loop(self.set_vars, self.m_instr, tuple(), m)
 
         if self.reset_param:
             for param in self.set_vars:

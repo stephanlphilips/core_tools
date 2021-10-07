@@ -28,6 +28,7 @@ from core_tools.data.ds.data_set import create_new_data_set
 import qcodes as qc
 import numpy as np
 import copy
+import logging
 
 class Measurement:
     '''
@@ -38,6 +39,7 @@ class Measurement:
         self.m_param = dict()
         self.dataset = None
         self.name = name
+        self.snapshot = dict()
 
     def register_set_parameter(self, parameter, n_points):
         '''
@@ -62,6 +64,7 @@ class Measurement:
                 list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
         self.setpoints[setpoint_parameter_spec.id_info] = setpoint_parameter_spec
+        self._add_param_snapshot(parameter)
 
     def register_get_parameter(self, parameter, *setpoints):
         '''
@@ -114,6 +117,16 @@ class Measurement:
             m_param_parameter_spec.setpoints.append(copy.copy(self.setpoints[id(setpoint)]))
 
         self.m_param[m_param_parameter_spec.id_info] = m_param_parameter_spec
+        self._add_param_snapshot(parameter)
+
+    def _add_param_snapshot(self, param):
+        try:
+            self.snapshot[param.name] = param.snapshot()
+        except:
+            logging.error(f'Parameter snapshot failed', exc_info=True)
+
+    def add_snapshot(self, name, snapshot):
+        self.snapshot[name] = snapshot
 
     def add_result(self, *args):
         '''
@@ -133,7 +146,7 @@ class Measurement:
 
     def __enter__(self):
         # generate dataset
-        self.dataset = create_new_data_set(self.name, *self.m_param.values())
+        self.dataset = create_new_data_set(self.name, self.snapshot, *self.m_param.values())
 
         return self
 
