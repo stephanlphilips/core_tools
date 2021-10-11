@@ -192,7 +192,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     seg.add_HVI_variable("number_of_points", int(n_pt1*n_pt2))
     seg.add_HVI_variable("averaging", True)
 
-    print(f'step_eff: {step_eff}')
+#    print(f'step_eff: {step_eff}')
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
