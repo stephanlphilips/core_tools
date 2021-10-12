@@ -14,7 +14,7 @@ from core_tools.drivers.M3102A import SD_DIG, MODES
 
 from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
-from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Keysight import construct_2D_scan_fast
+from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Keysight import construct_1D_scan_fast
 from pulse_lib.base_pulse import pulselib
 from pulse_lib.virtual_channel_constructors import virtual_gates_constructor
 
@@ -77,7 +77,7 @@ dig_channels = [1,2,3,4]
 full_scale = 2.0
 
 dig_mode = 1
-t_measure = 180 #20
+t_measure = 380 #20
 lo_f = 0e6
 acquisition_delay_ns = 0 #160
 
@@ -102,16 +102,18 @@ for ch in dig_channels:
 
 
 ## create 2D scan
-gate1, swing1, n_pt1 = 'vP1', 500, 8
-gate2, swing2, n_pt2 = 'vP2', 500, 15
+gate1, swing1, n_pt1 = 'vP1', 500, 15
 biasT_corr=True
 
-dig_param = construct_2D_scan_fast(
-        gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_measure, biasT_corr, p,
+dig_param = construct_1D_scan_fast(
+        gate1, swing1, n_pt1, t_measure, biasT_corr, p,
         dig, dig_channels, 500e6,
         acquisition_delay_ns=acquisition_delay_ns,
         dig_vmax=full_scale,
-        pulse_channels={'vP3':200},
+        pulse_channels={
+                'vP3':200,
+                'vP2':-100,
+                },
         line_margin=1,
         )
 

@@ -16,7 +16,7 @@ import logging
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
                            dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
-                           enabled_markers=[], channel_map=None):
+                           enabled_markers=[], channel_map=None, pulse_channels={}, line_margin=0):
     """
     1D fast scan object for V2.
 
@@ -41,34 +41,62 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
             E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
             The default channel_map is:
                 {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+        pulse_channels (Dict[str, float]):
+            Channels to pulse during scan with pulse voltage in mV.
+            E.g. {'vP1': 10.0, 'vB2': -29.1}
+        line_margin (int): number of points to add to sweep 1 to mask transition effects due to voltage step.
+            The points are added to begin and end for symmetry (bias-T).
 
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-
+    logging.info(f'Construct 1D: {gate}')
 
     vp = swing/2
+    line_margin = int(line_margin)
+    add_line_delay = biasT_corr and len(pulse_channels) > 0
 
     # set up timing for the scan
     step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
 
-    logging.info(f'Construct 1D: {gate}')
+    min_step_eff = 200 if not add_line_delay else 350
+    if step_eff < min_step_eff:
+        msg = f'Measurement time too short. Minimum is {t_step + min_step_eff-step_eff}'
+        logging.error(msg)
+        raise Exception(msg)
+
+    n_ptx = n_pt + 2*line_margin
+    vpx = vp * (n_ptx-1)/(n_pt-1)
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     voltages_sp = np.linspace(-vp,vp,n_pt)
+    voltages_x = np.linspace(-vpx,vpx,n_ptx)
     if biasT_corr:
-        m = (n_pt+1)//2
-        voltages = np.zeros(n_pt)
-        voltages[::2] = voltages_sp[:m]
-        voltages[1::2] = voltages_sp[m:][::-1]
+        m = (n_ptx+1)//2
+        voltages = np.zeros(n_ptx)
+        voltages[::2] = voltages_x[:m]
+        voltages[1::2] = voltages_x[m:][::-1]
     else:
-        voltages = voltages_sp
+        voltages = voltages_x
 
     seg  = pulse_lib.mk_segment()
     g1 = seg[gate]
-    for  voltage in voltages:
+    pulse_gates = []
+    for ch,v in pulse_channels.items():
+        pulse_gates.append((seg[ch], v))
+
+    for voltage in voltages:
         g1.add_block(0, step_eff, voltage)
-        g1.reset_time()
+
+        for gp,v in pulse_gates:
+            gp.add_block(0, step_eff, v)
+            # compensation for pulse gates
+            if biasT_corr:
+                gp.add_block(step_eff, 2*step_eff, -v)
+        seg.reset_time()
+
+    start_delay = line_margin * step_eff * (4 if add_line_delay else 1)
+    line_delay = step_eff
 
     end_time = seg.total_time[0]
     for marker in enabled_markers:
@@ -85,7 +113,10 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     seg.add_HVI_variable("t_measure", int(t_step))
     seg.add_HVI_variable("digitizer", digitizer)
-    seg.add_HVI_variable("number_of_points", int(n_pt))
+    seg.add_HVI_variable("number_of_points", int(n_pt) if not add_line_delay else 1)
+    seg.add_HVI_variable("number_of_lines", 1 if not add_line_delay else n_pt)
+    seg.add_HVI_variable("start_delay", int(start_delay))
+    seg.add_HVI_variable("line_delay", int(line_delay) if add_line_delay else 500)
     seg.add_HVI_variable("averaging", True)
 
     # generate the sequence and upload it.
@@ -105,7 +136,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
                            digitizer, channels, dig_samplerate, dig_vmax=2.0, iq_mode=None,
-                           acquisition_delay_ns=None, enabled_markers=[], channel_map=None):
+                           acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
+                           pulse_channels={}, line_margin=0):
     """
     1D fast scan object for V2.
 
@@ -133,6 +165,12 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
             E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
             The default channel_map is:
                 {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+        pulse_channels (Dict[str, float]):
+            Channels to pulse during scan with pulse voltage in mV.
+            E.g. {'vP1': 10.0, 'vB2': -29.1}
+        line_margin (int): number of points to add to sweep 1 to mask transition effects due to voltage step.
+            The points are added to begin and end for symmetry (bias-T).
+
     Returns:
         Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
@@ -146,12 +184,17 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         logging.error(msg)
         raise Exception(msg)
 
+    line_margin = int(line_margin)
+
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
     vp2 = swing2/2
 
-    voltages1 = np.linspace(-vp1,vp1,n_pt1)
+    voltages1_sp = np.linspace(-vp1,vp1,n_pt1)
     voltages2_sp = np.linspace(-vp2,vp2,n_pt2)
+
+    n_ptx = n_pt1 + 2*line_margin
+    vpx = vp1 * (n_ptx-1)/(n_pt1-1)
 
     if biasT_corr:
         m = (n_pt2+1)//2
@@ -162,16 +205,43 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         voltages2 = voltages2_sp
 
     seg  = pulse_lib.mk_segment()
+
     g1 = seg[gate1]
     g2 = seg[gate2]
+    pulse_gates = []
+    for ch,v in pulse_channels.items():
+        pulse_gates.append((seg[ch], v))
 
+    # prebias: add half line with +vp2
+    prebias_pts = (n_ptx)//2
+    t_prebias = prebias_pts * step_eff
+    # correct voltage to ensure average == 0.0 (No DC correction pulse needed)
+    g2.add_block(0, -1, -(prebias_pts * vp2)/(n_ptx*n_pt2 + prebias_pts))
 
-    for i in range(n_pt2):
-        v2 = voltages2[i]
+    g2.add_block(0, t_prebias, vp2)
+    seg.reset_time()
 
-        g1.add_ramp_ss(0, step_eff*n_pt1, -vp1, vp1)
-        g2.add_block(0, step_eff*n_pt1, v2)
+    for v2 in voltages2:
+
+        g1.add_ramp_ss(0, step_eff*n_ptx, -vpx, vpx)
+        g2.add_block(0, step_eff*n_ptx, v2)
+        for g,v in pulse_gates:
+            g.add_block(0, step_eff*n_ptx, v)
         seg.reset_time()
+
+        if len(pulse_gates) > 0 and biasT_corr:
+            # add compensation pulses of pulse_gates
+            # sweep g1 onces more; best effect on bias-T
+            # keep g2 on 0
+            g1.add_ramp_ss(0, step_eff*n_ptx, -vpx, vpx)
+            for g,v in pulse_gates:
+                g.add_block(0, step_eff*n_ptx, -v)
+            seg.reset_time()
+
+    start_delay = t_prebias + line_margin * step_eff
+    line_delay = 2 * line_margin * step_eff
+    if len(pulse_gates) > 0 and biasT_corr:
+        line_delay += n_ptx*step_eff
 
     end_time = seg.total_time[0]
     for marker in enabled_markers:
@@ -181,18 +251,26 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     # 20 time points per step to make sure that everything looks good (this is more than needed).
     awg_t_step = step_eff / 20
-    # prescaler is limited to 255 when hvi_queueing_control is enabled. Limit other cases as well
-    if awg_t_step > 5 * 255:
-        awg_t_step = 5 * 255
+    # prescaler is limited to 255 when hvi_queueing_control is enabled.
+    # Limit all cases to 800 kSa/s
+    if awg_t_step > 5 * 250:
+        awg_t_step = 5 * 250
 
     sample_rate = 1/(awg_t_step*1e-9)
 
     seg.add_HVI_variable("t_measure", int(t_step))
     seg.add_HVI_variable("digitizer", digitizer)
-    seg.add_HVI_variable("number_of_points", int(n_pt1*n_pt2))
+    seg.add_HVI_variable("start_delay", int(start_delay))
+    if line_delay > 0:
+        seg.add_HVI_variable("number_of_points", int(n_pt1))
+        seg.add_HVI_variable("number_of_lines", int(n_pt2))
+        seg.add_HVI_variable("line_delay", int(line_delay))
+    else:
+        seg.add_HVI_variable("number_of_points", int(n_pt1*n_pt2))
+        seg.add_HVI_variable("number_of_lines", int(1))
+        # Wait minimum time to satisfy HVI schedule
+        seg.add_HVI_variable("line_delay", 500)
     seg.add_HVI_variable("averaging", True)
-
-#    print(f'step_eff: {step_eff}')
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
@@ -206,7 +284,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     my_seq.upload([0])
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),
-                                    (tuple(voltages2_sp), (tuple(voltages1),)*n_pt2),
+                                    (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
                                     biasT_corr, dig_samplerate,
                                      channels=channels, Vmax=dig_vmax, iq_mode=iq_mode, channel_map=channel_map)
 
