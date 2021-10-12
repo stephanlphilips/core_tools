@@ -19,8 +19,6 @@ from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
 
 from pulse_lib.base_pulse import pulselib
 
-from PyQt5.QtCore import QTimer
-
 #start_all_logging()
 #logger.get_file_handler().setLevel(logging.DEBUG)
 
@@ -67,33 +65,9 @@ def init_pulselib(awgs):
     pulse.finish_init()
     return pulse
 
-class UpdateTimer(QtCore.QObject):
-
-    def start(self, plotting):
-        self.count = 0
-        self.timer = QTimer(plotting)
-        self.timer.timeout.connect(self.change_plot)
-        self.timer.start(9000)
-        plotting.destroyed.connect(self.stop_timer)
-
-    def stop_timer(self):
-        logging.info('Stop timer')
-        self.timer.stop()
-
-    def change_plot(self):
-        self.count += 1
-        logging.info(f'start #{self.count}')
-        v = (plotting._2D_V1_swing.value() + 1)
-        if v > 1100:
-            v = 100
-
-        plotting._2D_V1_swing.setValue(v)
-        start = time.monotonic()
-        plotting.update_plot_settings_2D()
-        logging.info(f'restart duration {time.monotonic()- start:5.2f} s')
 
 
-dig = SD_DIG("dig", 1, 6)
+dig = SD_DIG("dig", 1, 5)
 awg_slots = [3,7]
 awgs = []
 for i,slot in enumerate(awg_slots):
@@ -103,7 +77,6 @@ for i,slot in enumerate(awg_slots):
 
 
 station = qcodes.Station()
-station_name = 'Test'
 
 for awg in awgs:
     station.add_component(awg)
@@ -128,21 +101,7 @@ plotting = liveplotting(pulse, dig, "Keysight", cust_defaults={'gen':{'enabled_m
 plotting.move(222,0)
 plotting.resize(1618,590)
 plotting._2D_gate2_name.setCurrentIndex(1)
-plotting._2D_t_meas.setValue(1)
+plotting._2D_t_meas.setValue(10)
 plotting._2D_V1_swing.setValue(100)
 plotting._2D_npt.setValue(80)
 
-#updateTimer = UpdateTimer()
-#updateTimer.start(plotting)
-#plotting._2D_start_stop()
-
-#%%
-
-# station.close_all_registered_instruments()
-
-#from V2_software.LivePlotting.data_getter.scan_generator_Virtual import fake_digitizer
-#
-#dig = fake_digitizer("fake_digitizer")
-#pulse = return_pulse_lib_quad_dot(None)
-#
-#V2_liveplotting(pulse, dig)
