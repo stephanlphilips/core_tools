@@ -101,7 +101,7 @@ class awg2dac_ratios_mgr():
 
 class rf_source():
     def __init__(self, parameter):
-        self.source_param = paramter
+        self.source_param = parameter
 
     @property
     def power(self):
@@ -112,8 +112,8 @@ class rf_source_mgr():
         self.rf_source_names = []
 
     def add(self, parameter):
-        self.rf_source_names += [paramter.name]
-        setattr(self, name, rf_source(parameter)) 
+        self.rf_source_names += [parameter.name]
+        setattr(self, parameter.name, rf_source(parameter)) 
 
 class hardware(qc.Instrument):
     instanciated = False
@@ -123,6 +123,10 @@ class hardware(qc.Instrument):
     awg2dac_ratios = awg2dac_ratios_mgr()
 
     def __init__(self, name=None):
+        """ Collection of hardware related settings
+
+        The `hardware` is effectively a singleton class, so only one instance created in each session.
+        """
         if hardware.instanciated == False: # this should happen in the station
             super().__init__('hardware')
         hardware.instanciated = True
