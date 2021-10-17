@@ -132,6 +132,8 @@ ApplicationWindow{
                                         hoverEnabled: true
 
                                         onWheel: {
+                                            //console.log('onWheel', real_gate_model.allow_mouse_wheel_updates() )
+                                            if (real_gate_model.allow_mouse_wheel_updates() ) {
                                             if (wheel.angleDelta.y < 0 ){
                                                 var v = Number.fromLocaleString(Qt.locale(), real_voltage_values.text)
                                                 real_voltage_values.text = parseFloat(v-Number.fromLocaleString(Qt.locale(), stepsize_step.text)).toFixed(2)
@@ -140,6 +142,7 @@ ApplicationWindow{
                                                 real_voltage_values.text = parseFloat(v+Number.fromLocaleString(Qt.locale(), stepsize_step.text)).toFixed(2)
                                             }
                                             real_gate_model.set_voltage(gate, real_voltage_values.text)
+                                            }
                                         }
                                     }
 
@@ -364,6 +367,7 @@ ApplicationWindow{
                                         hoverEnabled: true
 
                                         onWheel: {
+                                            if (virtual_gate_model.allow_mouse_wheel_updates() ) {
                                             if (wheel.angleDelta.y < 0 ){
                                                 var v = Number.fromLocaleString(Qt.locale(), virtual_voltage_values.text)
                                                 virtual_voltage_values.text = parseFloat(v-Number.fromLocaleString(Qt.locale(), stepsize_step.text)).toFixed(2)
@@ -372,6 +376,7 @@ ApplicationWindow{
                                                 virtual_voltage_values.text = parseFloat(v+Number.fromLocaleString(Qt.locale(), stepsize_step.text)).toFixed(2)
                                             }
                                             virtual_gate_model.set_voltage(gate, virtual_voltage_values.text)
+                                            }
                                         }
                                     }
 
