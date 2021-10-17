@@ -5,6 +5,7 @@ from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
 import qcodes as qc
 import numpy as np
 import json
+from typing import List, Optional
 
 class boundaries_mgr():
     def __init__(self):
@@ -26,7 +27,7 @@ class virtual_gates_mgr():
     def __init__(self):
         self.virtual_gate_names = []
 
-    def add(self, name, gates, virtual_gates=None):
+    def add(self, name, gates : List[str], virtual_gates : Optional[List[str]] = None):
         if name not in self.virtual_gate_names:
             self.virtual_gate_names += [name]
 
@@ -122,13 +123,13 @@ class hardware(qc.Instrument):
     virtual_gates = virtual_gates_mgr()
     awg2dac_ratios = awg2dac_ratios_mgr()
 
-    def __init__(self, name=None):
+    def __init__(self, name : str ='hardware'):
         """ Collection of hardware related settings
 
         The `hardware` is effectively a singleton class, so only one instance created in each session.
         """
         if hardware.instanciated == False: # this should happen in the station
-            super().__init__('hardware')
+            super().__init__(name)
         hardware.instanciated = True
     
     @property
