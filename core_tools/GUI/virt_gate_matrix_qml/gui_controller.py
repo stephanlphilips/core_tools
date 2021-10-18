@@ -5,9 +5,15 @@ from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets, QtQml
 
 import core_tools.GUI.virt_gate_matrix_qml  as qml_in
 import os, sys
+from typing import Union
+import logging
 
 class virt_gate_matrix_GUI:
-    def __init__(self):
+    def __init__(self, virtual_gate_name : Union[str, int] = 0):
+        """
+        Args:
+            virtual_gate_name: Name or index of virtual gate to display
+        """
         super().__init__()
         # self.app =  QtGui.QGuiApplication(sys.argv)
         self.app = QtCore.QCoreApplication.instance()
@@ -22,19 +28,37 @@ class virt_gate_matrix_GUI:
         self.attenuation_model = attenuation_model(hw.awg2dac_ratios)
         self.engine.rootContext().setContextProperty("attenuation_model", self.attenuation_model)
         
-        if len(hw.virtual_gates) > 0:
-            self.row_header_model = table_header_model(hw.virtual_gates[0].gates)
-            self.column_header_model = table_header_model(hw.virtual_gates[0].v_gates)
-            self.vg_matrix_model = vg_matrix_model(hw.virtual_gates[0])
+        if isinstance(virtual_gate_name, int):
+            self.virtual_gate_index = virtual_gate_name
+        else:
+            self.virtual_gate_index = (hw.virtual_gates.virtual_gate_names).index(virtual_gate_name)
 
-            self.engine.rootContext().setContextProperty('row_header_model', self.row_header_model)
-            self.engine.rootContext().setContextProperty('column_header_model', self.column_header_model)
-            self.engine.rootContext().setContextProperty('vg_matrix_model', self.vg_matrix_model)
+        if len(hw.virtual_gates) > self.virtual_gate_index:
+            hw = hardware()
+            vg = hw.virtual_gates[self.virtual_gate_index]
+            logging.info(f'creating objects for index {self.virtual_gate_index}')
+            self.vg_matrix_model = vg_matrix_model(vg)
+            self.vg_matrix_model._manipulate_callback = self.set_table_headers
+
+            self.gates_header_model = table_header_model(vg.gates)
+            self.vgates_header_model = table_header_model(vg.v_gates)
+
+            root_context=self.engine.rootContext()
+            root_context.setContextProperty('virt_gate_matrix_GUI', self)
+            root_context.setContextProperty('vg_matrix_model', self.vg_matrix_model)
+            root_context.setContextProperty('row_header_model', self.gates_header_model)
+            root_context.setContextProperty('column_header_model', self.vgates_header_model)
+        else:
+            print('virtual gate name {virtual_gate_name} could not be found')
+
         # grab directory from the import!
-
         filename = os.path.join(qml_in.__file__[:-12], "virt_gate_matrix_gui.qml")
+        logging.info(f'loading qml from {filename}')
         self.engine.load(QtCore.QUrl.fromLocalFile(filename))
         self.win = self.engine.rootObjects()[0]
+
+        self._mat_inv_switch = self.engine.rootObjects()[0].findChild(QtCore.QObject, "mat_inv_switch")
+        self.set_table_headers()
 
         timer = QtCore.QTimer()
         timer.timeout.connect(lambda: None)
@@ -45,14 +69,18 @@ class virt_gate_matrix_GUI:
             print('exec')
         
 
-    def update_data(self):
-        self.singal_hander.update_data()
+    def set_table_headers(self):
+        root_context=self.engine.rootContext()
+        checked = self._mat_inv_switch.property('checked')
+        logging.info(f'set_table_headers: mat_inv {checked}')
 
-    def set_data(self):
-        '''just update all...'''
-        self.singal_hander.set_data()
-
-
+        if checked:
+            root_context.setContextProperty('row_header_model', self.gates_header_model)
+            root_context.setContextProperty('column_header_model', self.vgates_header_model)
+        else:
+            root_context.setContextProperty('row_header_model', self.vgates_header_model)
+            root_context.setContextProperty('column_header_model', self.gates_header_model)
+        
 if __name__ == "__main__":
     import numpy as np
 
