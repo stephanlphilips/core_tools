@@ -123,6 +123,8 @@ class vg_matrix_model(QtCore.QAbstractTableModel):
         self.__data = data
         self._data = self.__data
 
+        self._manipulate_callback = None
+
     def data(self, index, role):
         if role == vg_matrix_model.vg_matrix_data:
             val = self._data[index.row(), index.column()]
@@ -149,7 +151,7 @@ class vg_matrix_model(QtCore.QAbstractTableModel):
     @QtCore.pyqtSlot('int','int', 'QString')
     def update_vg_matrix(self, row, coll, value):
         value = float(value)
-        print('updating to value', value)
+        print(f'vg_matrix_model: updating {row}, {coll} to value {value}')
         self._data[row, coll] = value
 
     @QtCore.pyqtSlot('int', 'int')
@@ -162,6 +164,9 @@ class vg_matrix_model(QtCore.QAbstractTableModel):
             self._data = self._data.inv
 
         self.setData(None, 0, QtCore.Qt.EditRole)
+
+        if self._manipulate_callback is not None:
+            self._manipulate_callback()
 
     def rowCount(self, index):
         return len(self._data.matrix)

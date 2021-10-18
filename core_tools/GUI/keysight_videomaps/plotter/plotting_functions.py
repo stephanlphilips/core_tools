@@ -5,9 +5,11 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 import pyqtgraph as pg
 import numpy as np
+from scipy import ndimage
 import time
 import logging
 from matplotlib import cm
+from .colors import polar_to_rgb, compress_range
 
 # Get the colormap
 colormap = cm.get_cmap("viridis")  # cm.get_cmap("CMRmap")
@@ -37,21 +39,21 @@ class live_plot_abs():
 
         # add here data in the self.plot_widgets object (using the data class plot_widget_data)
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractmethod
     def run():
         '''
         run methods to fetch data. This method will be run in a seperate thread to get data from the digitizer.
         '''
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractmethod
     def update_plot():
         '''
         update the plot with that data that is in the buffer
         '''
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class live_plot(live_plot_abs, QThread):
@@ -59,12 +61,10 @@ class live_plot(live_plot_abs, QThread):
     plt_finished = True
     update_buffers = False
 
-    _averaging = 1
-    _differentiate = False
-
     # list of plot_widget_data (1 per plot)
     plot_widgets = []
-    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, differentiate, indexrange, n_col, prog_bar = None):
+    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, gradient,
+                 n_col, prog_bar = None):
         '''
         init the class
 
@@ -74,17 +74,18 @@ class live_plot(live_plot_abs, QThread):
         parameter_getter (QCoDeS multiparamter) : qCoDeS multiparamter that is used to get the data.
         averaging (int) : number of times the plot needs to be averaged.
         differentiate (bool) : differentiate plot - true/false
+        n_col (int): max number of plots on a row
         '''
         super(QThread, self).__init__()
         super(live_plot_abs, self).__init__()
         # general variables needed for the plotting
-        self.n_col = n_col
         self.app = app
         self.n_plots = len(parameter_getter.names)
         self.top_frame = top_frame
         self.top_layout = top_layout
+        self.n_col = n_col
         self.prog_bar = prog_bar
-        self.index_range = indexrange
+
         # getter for the scan.
         self.parameter_getter = parameter_getter
         self.shape = parameter_getter.shapes[0] #assume all the shapes are the same.
@@ -92,8 +93,8 @@ class live_plot(live_plot_abs, QThread):
 
         # plot properties
         self._averaging = averaging
-        self._differentiate = differentiate
-        
+        self._gradient = gradient
+
         self.set_busy(True)
 
         # generate the buffers needed for the plotting and construct the plots.
@@ -118,13 +119,13 @@ class live_plot(live_plot_abs, QThread):
         self.update_buffers = True
 
     @property
-    def differentiate(self):
-        return self._differentiate
+    def gradient(self):
+        return self._gradient
 
-    @differentiate.setter
-    def differentiate(self, value):
-        self._differentiate = value
-        self.update_buffers = True
+    @gradient.setter
+    def gradient(self, value):
+        self._gradient = value
+        self.refresh()
 
     def generate_buffers(self):
         # buffer_data
@@ -142,6 +143,7 @@ class live_plot(live_plot_abs, QThread):
         logging.info('running start function in plotting_func')
         self.active = True
         self.plt_finished = False
+        self.timer.setSingleShot(False)
         # refresh rate of images in milliseconds
         self.timer.start(20)
 
@@ -150,11 +152,15 @@ class live_plot(live_plot_abs, QThread):
 
     def stop(self):
         self.active = False
-        self.timer.stop()
 
         while self.plt_finished != True:
             time.sleep(0.01) #5ms interval to make sure gil releases.
+        self.timer.stop()
 
+    def refresh(self):
+        if not self.active:
+            self.timer.setSingleShot(True)
+            self.timer.start(1)
 
     def remove(self):
         self.timer.stop()
@@ -186,26 +192,17 @@ class _1D_live_plot(live_plot):
     """1D live plot fuction"""
 
     def init_plot(self):
-        self.min_max = []
-        self.lt = time.time()
         n_col = self.n_col
         for i in range(self.n_plots):
             plot_1D = pg.PlotWidget()
             plot_1D.showGrid(x=True, y=True)
             plot_1D.setLabel('left', self.parameter_getter.labels[i], self.parameter_getter.units[i])
             plot_1D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][0], self.parameter_getter.setpoint_units[i][0])
-            
-            ii = i % n_col
-            jj = int(i / n_col)
-            
-            self.top_layout.addWidget(plot_1D, jj, ii, 1, 1)
 
-            min_max = QtWidgets.QLabel(plot_1D)
-            min_max.setText(f"fr: {0:4.0f} ms")
-            min_max.setStyleSheet("QLabel { background-color : white; color : black; }")
-            min_max.setGeometry(50, 2, 150, 14)
-            self.min_max.append(min_max)
-            
+            icol = i % n_col
+            irow = i // n_col
+            self.top_layout.addWidget(plot_1D, irow, icol, 1, 1)
+
             my_range = self.parameter_getter.setpoints[0][0][-1]
             self.x_data = np.linspace(-my_range, my_range, self.plot_data[i].size)
 
@@ -222,12 +219,8 @@ class _1D_live_plot(live_plot):
         if not self.plot_data_valid:
             return
         self.set_busy(False)
-        ct = time.time()
-        fr = 1000*(ct - self.lt) # finalize FR implementation
-        self.lt = ct
         for i in range(len(self.plot_widgets)):
-            self.plot_widgets[i].plot_items[0].setData(self.x_data[self.index_range[0]:self.index_range[1]],self.plot_data[i][self.index_range[0]:self.index_range[1]])
-            self.min_max[i].setText(f"fr:{fr:4.0f} ms")
+            self.plot_widgets[i].plot_items[0].setData(self.x_data,self.plot_data[i])
 
     def run(self):
         # fetch data here -- later ported through in update plot. Running update plot from here causes c++ to delethe the curves object for some wierd reason..
@@ -237,7 +230,7 @@ class _1D_live_plot(live_plot):
 
                 for i in range(self.n_plots):
                     y = input_data[i]
-                    if self.differentiate == True:
+                    if self.gradient == True:
                         y = np.gradient(y)
 
                     self.buffer_data[i] = np.roll(self.buffer_data[i],-1,0)
@@ -263,6 +256,8 @@ class _1D_live_plot(live_plot):
 class _2D_live_plot(live_plot):
     """function that has as sole pupose generating live plots of a line trace (or mupliple if needed)"""
 
+    _enhanced_contrast = False
+
     def init_plot(self):
         n_col = self.n_col
         self.prog_per = 0
@@ -274,46 +269,77 @@ class _2D_live_plot(live_plot):
             plot_2D.addItem(img)
             plot_2D.setLabel('left', self.parameter_getter.setpoint_labels[i][0], self.parameter_getter.setpoint_units[i][0])
             plot_2D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][1], self.parameter_getter.setpoint_units[i][1])
-            
+
             title = QtWidgets.QLabel(plot_2D)
-            title.setText(self.parameter_getter.channel_names[i])
+            title.setText(self.parameter_getter.names[i])
             title.setStyleSheet("QLabel { background-color : white; color : black; }")
-            title.setGeometry(50, 2, 50, 14)
+            title.setGeometry(54, 2, 50, 14)
 
             min_max = QtWidgets.QLabel(plot_2D)
-            min_max.setText(f"min:{0:4.0f} mV max:{0:4.0f} mV    ")
+            min_max.setText(f"min:{0:4.0f} max:{0:4.0f} mV    ")
             min_max.setStyleSheet("QLabel { background-color : white; color : black; }")
-            min_max.setGeometry(50, 2, 50, 14)
+            min_max.setGeometry(100, 2, 150, 14)
             self.min_max.append(min_max)
-            
-            ii = i % n_col
-            jj = int(i / n_col)
-            
-            self.top_layout.addWidget(plot_2D, jj, ii, 1, 1)
-            
-            # TODO implement axis fix for range 
-            img.translate(-self.parameter_getter.setpoints[0][1][-1], -self.parameter_getter.setpoints[0][0][-1])
-            img.scale(1/self.shape[0]*self.parameter_getter.setpoints[0][1][-1]*2, 1/self.shape[1]*self.parameter_getter.setpoints[0][0][-1]*2)
+
+            icol = i % n_col
+            irow = i // n_col
+            self.top_layout.addWidget(plot_2D, irow, icol, 1, 1)
+
+            range1 = self.parameter_getter.setpoints[0][1][0][-1]
+            range0 = self.parameter_getter.setpoints[0][0][-1]
+            img.translate(-range1, -range0)
+            img.scale(1/self.shape[0]*range1*2, 1/self.shape[1]*range0*2)
 
             plot_data = plot_widget_data(plot_2D, [img])
             self.plot_widgets.append(plot_data)
 
-    def update_plot(self):
-        if not self.plot_data_valid:
-            return
-        self.set_busy(False)
-        act_chs = [ch-1 for ch in self.parameter_getter.channels]
-        for i in range(len(self.plot_widgets)):
-            # print('upd')
-            data_map = self.plot_data[i][self.index_range[0][0]:self.index_range[0][1], self.index_range[1][0]:self.index_range[1][1]]
-            self.plot_widgets[i].plot_items[0].setImage(data_map)
-            
-            self.prog_bar.setValue(self.prog_per)
+    @property
+    def enhanced_contrast(self):
+        return self._enhanced_contrast
 
-            mn, mx = np.min(data_map), np.max(data_map)
-            self.min_max[i].setText(f"min:{mn:4.0f} mV max:{mx:4.0f} mV  ")
-            if self.active == False:
-                break
+    @enhanced_contrast.setter
+    def enhanced_contrast(self, value):
+        self._enhanced_contrast = value
+        self.refresh()
+
+    def update_plot(self):
+        try:
+            if not self.plot_data_valid:
+                return
+            self.set_busy(False)
+            for i in range(len(self.plot_widgets)):
+                plot_data = self.plot_data[i]
+                if self.gradient == 'Off':
+                    if self.enhanced_contrast:
+                        plot_data = compress_range(plot_data, upper=99.5, lower=0.5)
+                    mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])
+                    self.min_max[i].setText(f"min:{mn:4.0f} max:{mx:4.0f} mV  ")
+                elif self.gradient == 'Magnitude':
+                    dx = ndimage.sobel(plot_data, axis=0, mode='nearest')
+                    dy = ndimage.sobel(plot_data, axis=1, mode='nearest')
+                    plot_data = np.hypot(dx, dy)
+                    if self.enhanced_contrast:
+                        plot_data = compress_range(plot_data, upper=99.8, lower=25)
+                    mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])
+                    self.min_max[i].setText(f"min:{mn:4.0f} max:{mx:4.0f} a.u.    ")
+                elif self.gradient == 'Mag & angle':
+                    dx = ndimage.sobel(plot_data, axis=0, mode='nearest')
+                    dy = ndimage.sobel(plot_data, axis=1, mode='nearest')
+                    mag = np.hypot(dx, dy)
+                    angle = np.arctan2(dy, dx)
+                    if self.enhanced_contrast:
+                        mag = compress_range(mag, upper=99.8, lower=25, subtract_low=True)
+                    plot_data = polar_to_rgb(mag, angle)
+                    self.min_max[i].setText('           ')
+                else:
+                    logging.warning(f'Unknown gradient setting {self.gradient}')
+
+                self.plot_widgets[i].plot_items[0].setImage(plot_data)
+                self.prog_bar.setValue(self.prog_per)
+        except Exception as e:
+            logging.error(f'Exception plotting: {e}', exc_info=True)
+            # slow down to reduce error burst
+            time.sleep(0.5)
 
 
     def run(self):
@@ -324,10 +350,6 @@ class _2D_live_plot(live_plot):
                 for i in range(self.n_plots):
                     xy = input_data[i][:, :].T
 
-                    if self.differentiate == True:
-                        grad = np.gradient(xy)
-                        xy = np.sqrt(grad[0]**2 + grad[1]**2)
-
                     self.buffer_data[i] = np.roll(self.buffer_data[i],-1,0)
                     if self.update_buffers == True:
                         # kind of hacky place, but it works well. TODO write as try expect clause.
@@ -336,6 +358,7 @@ class _2D_live_plot(live_plot):
                         xy=np.zeros(self.plot_data[0].shape)
 
                     self.buffer_data[i][-1] = xy
+
                     self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
 
                 prog_ar = [mp[0][0] != 0 for mp in self.buffer_data[0]]

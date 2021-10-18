@@ -139,13 +139,14 @@ class Hvi2SingleShot():
                         for awg_seq in awg_seqs:
                             los = self._module_config(awg_seq, 'active_los')
                             awg_seq.sys.clear_ticks()
-                            if self._module_config(awg_seq, 'hvi_queue_control'):
-                                awg_seq.queueing.queue_waveforms(n_waveforms)
                             awg_seq.log.write(1)
+                            # phase reset of AWG and Dig must be at the same clock tick.
                             if len(los)>0:
                                 awg_seq.lo.reset_phase(los)
                             else:
                                 awg_seq.wait(10)
+                            if self._module_config(awg_seq, 'hvi_queue_control'):
+                                awg_seq.queueing.queue_waveforms(n_waveforms)
                             awg_seq.start()
                             awg_seq.wait(1000)
 
@@ -156,6 +157,7 @@ class Hvi2SingleShot():
 
                             dig_seq.sys.clear_ticks()
                             dig_seq.log.write(1)
+                            # phase reset of AWG and Dig must be at the same clock tick.
                             if len(iq_ch) > 0:
                                 dig_seq.ds.control(phase_reset=iq_ch)
                             else:

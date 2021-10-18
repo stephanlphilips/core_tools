@@ -8,10 +8,11 @@ class gate_model(QtCore.QAbstractListModel):
     gate  = QtCore.Qt.UserRole + 1
     voltage = QtCore.Qt.UserRole + 2
 
-    def __init__(self, gates_obj, gates, parent=None):
+    def __init__(self, gates_obj, gates, parent=None, allow_mouse_wheel_updates : bool = True):
         super().__init__(parent)
         self._data = gates_obj
         self.gates = gates
+        self._allow_mouse_wheel_updates = allow_mouse_wheel_updates
 
         self.current_vals = list()
         self.virtual_gate_updates = list()
@@ -68,6 +69,10 @@ class gate_model(QtCore.QAbstractListModel):
 
         if to_update == True:
             self.setData(0, 0, QtCore.Qt.EditRole)
+
+    @QtCore.pyqtSlot(result=bool)
+    def allow_mouse_wheel_updates(self) -> bool:
+        return self._allow_mouse_wheel_updates
 
     @QtCore.pyqtSlot('QString','QString')
     def set_voltage(self, name, voltage):

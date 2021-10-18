@@ -42,7 +42,7 @@ class conn_info_descriptor:
                 val =  getattr(SQL_conn_info_local, self.name)
 
             if val is None:
-                raise ConnectionError('Nor a localcal server/remote server, please check the set up section of the dataset documentation.')
+                raise ConnectionError('Nor a local server/remote server, please check the set up section of the dataset documentation.')
 
             return val
 
@@ -68,6 +68,9 @@ class SQL_conn_info_local:
         self.dbname = dbname
         self.readonly = readonly
 
+    def __repr__(self):
+        return f'{self.__class__}: host {self.host}, port {self.port}, user {self.user}, passwd *, dbname {self.dbname}, readonly {self.readonly}'
+
 class SQL_conn_info_remote:
     host = conn_info_descriptor()
     port = conn_info_descriptor()
@@ -84,6 +87,8 @@ class SQL_conn_info_remote:
         self.dbname = dbname
         self.readonly = readonly
 
+    def __repr__(self):
+        return f'{self.__class__}: host {self.host}, port {self.port}, user {self.user}, passwd *, dbname {self.dbname}, readonly {self.readonly}'
 
 def set_up_local_storage(user, passwd, dbname, project, set_up, sample, readonly=False):
     '''

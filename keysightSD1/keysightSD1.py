@@ -41,7 +41,11 @@ def to_numpy_uint32(data):
 
 class SD_Object :
     if sys.platform not in  ['linux', 'darwin']:
-        __core_dll = cdll.LoadLibrary("SD1core" if os.name == 'nt' else "libSD1core.so")
+        try:
+            __core_dll = cdll.LoadLibrary("SD1core" if os.name == 'nt' else "libSD1core.so")
+        except:
+            print('could not load SD1core dll')
+            __core_dll = None
 
     def __init__(self) :
         self.__handle = 0;

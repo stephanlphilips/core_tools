@@ -25,6 +25,9 @@ from PyQt5.QtCore import QTimer
 #start_all_logging()
 #logger.get_file_handler().setLevel(logging.DEBUG)
 
+from sds_test_database import setup
+setup()
+
 try:
     oldLoader.close_all()
 except: pass

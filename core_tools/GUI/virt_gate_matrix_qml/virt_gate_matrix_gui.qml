@@ -598,7 +598,7 @@ ApplicationWindow{
                             anchors.bottom: parent.bottom
                             anchors.leftMargin: 20
                             anchors.bottomMargin: 15
-                            text : 'Steptize virtual gate matrix : '
+                            text : 'Stepsize virtual gate matrix : '
                             font.pixelSize: 20
                             padding : 0
                         }
@@ -644,7 +644,7 @@ ApplicationWindow{
                         Layout.preferredWidth: 250
                         checked: false
                         onToggled: vg_matrix_model.manipulate_matrix(mat_inv.checked, false)
-
+                        objectName: "mat_inv_switch"
                     }
                 }
             }
