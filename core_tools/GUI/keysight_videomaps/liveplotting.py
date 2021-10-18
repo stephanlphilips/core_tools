@@ -454,30 +454,35 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         '''
         update settings of the plot -- e.g. switch gate, things that require a re-upload of the data.
         '''
-        logging.info('1D update triggered')
-        if self.current_plot._1D is not None:
-            self.current_plot._1D.stop()
-            self.current_plot._1D.remove()
-            self.current_plot._1D = None
-            self.current_param_getter._1D.stop()
-            self.current_param_getter._1D = None
+        try:
+            if self.current_plot._1D is not None:
+                self.current_plot._1D.stop()
+                self.current_plot._1D.remove()
+                self.current_plot._1D = None
+                self.current_param_getter._1D.stop()
+                self.current_param_getter._1D = None
 
-        self.start_1D.setText("Start")
-        self._1D_start_stop()
+            self.start_1D.setText("Start")
+            self._1D_start_stop()
+        except:
+            logging.error('Update plot failed', exc_info=True)
 
     def update_plot_settings_2D(self):
         '''
         update settings of the plot -- e.g. switch gate, things that require a re-upload of the data. ~
         '''
-        if self.current_plot._2D is not None:
-            self.current_plot._2D.stop()
-            self.current_plot._2D.remove()
-            self.current_plot._2D = None
-            self.current_param_getter._2D.stop()
-            self.current_param_getter._2D = None
+        try:
+            if self.current_plot._2D is not None:
+                self.current_plot._2D.stop()
+                self.current_plot._2D.remove()
+                self.current_plot._2D = None
+                self.current_param_getter._2D.stop()
+                self.current_param_getter._2D = None
 
-        self.start_2D.setText("Start")
-        self._2D_start_stop()
+            self.start_2D.setText("Start")
+            self._2D_start_stop()
+        except:
+            logging.error('Update plot failed', exc_info=True)
 
     def tab_changed(self):
         if self.current_plot._1D is not None:
