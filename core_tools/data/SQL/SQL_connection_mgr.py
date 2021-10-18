@@ -43,8 +43,12 @@ class SQL_database_manager(SQL_database_init):
         if SQL_database_manager.__instance is None:
             SQL_database_manager.__instance = object.__new__(cls)
             db_mgr = SQL_database_manager.__instance
-            SQL_database_init._connect(db_mgr)
-            
+            try:
+                SQL_database_init._connect(db_mgr)
+            except Exception:
+                # could not connect, for example wrong password, reset class instance
+                SQL_database_manager.__instance = None
+
             conn_local = db_mgr.conn_local
             if not db_mgr.SQL_conn_info_local.readonly:
                 sample_info_queries.generate_table(conn_local)
