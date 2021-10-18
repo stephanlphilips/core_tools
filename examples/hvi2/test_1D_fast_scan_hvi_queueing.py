@@ -110,7 +110,7 @@ dig_param = construct_1D_scan_fast(
         dig, dig_channels, 500e6,
         acquisition_delay_ns=acquisition_delay_ns,
         dig_vmax=full_scale,
-        pulse_channels={
+        pulse_gates={
                 'vP3':200,
                 'vP2':-100,
                 },

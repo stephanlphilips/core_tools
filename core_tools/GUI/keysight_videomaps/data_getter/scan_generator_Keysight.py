@@ -8,7 +8,6 @@ from qcodes import MultiParameter
 from core_tools.drivers.M3102A import DATA_MODE
 from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
 from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
-import matplotlib.pyplot as plt
 import numpy as np
 import time
 import logging
@@ -16,18 +15,20 @@ import logging
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
                            dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
-                           enabled_markers=[], channel_map=None, pulse_channels={}, line_margin=0):
+                           enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
-    1D fast scan object for V2.
+    1D fast scan parameter constructor.
 
     Args:
         gate (str) : gate/gates that you want to sweep.
-        swing (double) : swing to apply on the AWG gates.
+        swing (double) : swing to apply on the AWG gates. [mV]
         n_pt (int) : number of points to measure (current firmware limits to 1000)
-        t_step (double) : time in ns to measure per point.
+        t_step (double) : time in ns to measure per point. [ns]
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
-        digitizer_measure : digitizer object
+        digitizer : digitizer object
+        channels : digitizer channels to read
+        dig_samplerate : digitizer sample rate [Sa/s]
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to specify selection per channel, e.g. {1:'abs', 2:'angle'}.
@@ -41,20 +42,20 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
             E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
             The default channel_map is:
                 {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
-        pulse_channels (Dict[str, float]):
-            Channels to pulse during scan with pulse voltage in mV.
+        pulse_gates (Dict[str, float]):
+            Gates to pulse during scan with pulse voltage in mV.
             E.g. {'vP1': 10.0, 'vB2': -29.1}
         line_margin (int): number of points to add to sweep 1 to mask transition effects due to voltage step.
             The points are added to begin and end for symmetry (bias-T).
 
     Returns:
-        Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
+        Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
     logging.info(f'Construct 1D: {gate}')
 
     vp = swing/2
     line_margin = int(line_margin)
-    add_line_delay = biasT_corr and len(pulse_channels) > 0
+    add_line_delay = biasT_corr and len(pulse_gates) > 0
 
     # set up timing for the scan
     step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
@@ -79,24 +80,24 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     else:
         voltages = voltages_x
 
+    start_delay = line_margin * step_eff * (4 if add_line_delay else 1)
+    line_delay = step_eff
+
     seg  = pulse_lib.mk_segment()
     g1 = seg[gate]
-    pulse_gates = []
-    for ch,v in pulse_channels.items():
-        pulse_gates.append((seg[ch], v))
+    pulse_channels = []
+    for ch,v in pulse_gates.items():
+        pulse_channels.append((seg[ch], v))
 
     for voltage in voltages:
         g1.add_block(0, step_eff, voltage)
 
-        for gp,v in pulse_gates:
+        for gp,v in pulse_channels:
             gp.add_block(0, step_eff, v)
             # compensation for pulse gates
             if biasT_corr:
                 gp.add_block(step_eff, 2*step_eff, -v)
         seg.reset_time()
-
-    start_delay = line_margin * step_eff * (4 if add_line_delay else 1)
-    line_delay = step_eff
 
     end_time = seg.total_time[0]
     for marker in enabled_markers:
@@ -112,7 +113,6 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     sample_rate = 1/(awg_t_step*1e-9)
 
     seg.add_HVI_variable("t_measure", int(t_step))
-    seg.add_HVI_variable("digitizer", digitizer)
     seg.add_HVI_variable("number_of_points", int(n_pt) if not add_line_delay else 1)
     seg.add_HVI_variable("number_of_lines", 1 if not add_line_delay else n_pt)
     seg.add_HVI_variable("start_delay", int(start_delay))
@@ -127,19 +127,21 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     my_seq.sample_rate = sample_rate
 
     logging.info(f'Upload')
-    my_seq.upload([0])
+    my_seq.upload()
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt, ), (gate, ), (tuple(voltages_sp), ),
-                                    biasT_corr, dig_samplerate, channels = channels, Vmax=dig_vmax, iq_mode=iq_mode,
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
+    								(n_pt, ), (gate, ), (tuple(voltages_sp), ),
+                                    biasT_corr, dig_samplerate, channels = channels,
+                                    Vmax=dig_vmax, iq_mode=iq_mode,
                                     channel_map=channel_map)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
                            digitizer, channels, dig_samplerate, dig_vmax=2.0, iq_mode=None,
                            acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
-                           pulse_channels={}, line_margin=0):
+                           pulse_gates={}, line_margin=0):
     """
-    1D fast scan object for V2.
+    2D fast scan parameter constructor.
 
     Args:
         gates1 (str) : gate that you want to sweep on x axis.
@@ -165,14 +167,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
             E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
             The default channel_map is:
                 {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
-        pulse_channels (Dict[str, float]):
-            Channels to pulse during scan with pulse voltage in mV.
+        pulse_gates (Dict[str, float]):
+            Gates to pulse during scan with pulse voltage in mV.
             E.g. {'vP1': 10.0, 'vB2': -29.1}
         line_margin (int): number of points to add to sweep 1 to mask transition effects due to voltage step.
             The points are added to begin and end for symmetry (bias-T).
 
     Returns:
-        Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
+        Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
     logging.info(f'Construct 2D: {gate1} {gate2}')
 
@@ -185,6 +187,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         raise Exception(msg)
 
     line_margin = int(line_margin)
+    add_pulse_gate_correction = biasT_corr and len(pulse_gates) > 0
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
@@ -204,19 +207,26 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     else:
         voltages2 = voltages2_sp
 
+    # prebias: add half line with +vp2
+    prebias_pts = (n_ptx)//2
+    t_prebias = prebias_pts * step_eff
+
+    start_delay = t_prebias + line_margin * step_eff
+    line_delay = 2 * line_margin * step_eff
+    if add_pulse_gate_correction:
+        line_delay += n_ptx*step_eff
+
     seg  = pulse_lib.mk_segment()
 
     g1 = seg[gate1]
     g2 = seg[gate2]
-    pulse_gates = []
-    for ch,v in pulse_channels.items():
-        pulse_gates.append((seg[ch], v))
+    pulse_channels = []
+    for ch,v in pulse_gates.items():
+        pulse_channels.append((seg[ch], v))
 
-    # prebias: add half line with +vp2
-    prebias_pts = (n_ptx)//2
-    t_prebias = prebias_pts * step_eff
-    # correct voltage to ensure average == 0.0 (No DC correction pulse needed)
-    g2.add_block(0, -1, -(prebias_pts * vp2)/(n_ptx*n_pt2 + prebias_pts))
+    # correct voltage to ensure average == 0.0 (No DC correction pulse needed at end)
+    total_duration = prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
+    g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
 
     g2.add_block(0, t_prebias, vp2)
     seg.reset_time()
@@ -225,23 +235,18 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
         g1.add_ramp_ss(0, step_eff*n_ptx, -vpx, vpx)
         g2.add_block(0, step_eff*n_ptx, v2)
-        for g,v in pulse_gates:
+        for g,v in pulse_channels:
             g.add_block(0, step_eff*n_ptx, v)
         seg.reset_time()
 
-        if len(pulse_gates) > 0 and biasT_corr:
-            # add compensation pulses of pulse_gates
+        if add_pulse_gate_correction:
+            # add compensation pulses of pulse_channels
             # sweep g1 onces more; best effect on bias-T
             # keep g2 on 0
             g1.add_ramp_ss(0, step_eff*n_ptx, -vpx, vpx)
-            for g,v in pulse_gates:
+            for g,v in pulse_channels:
                 g.add_block(0, step_eff*n_ptx, -v)
             seg.reset_time()
-
-    start_delay = t_prebias + line_margin * step_eff
-    line_delay = 2 * line_margin * step_eff
-    if len(pulse_gates) > 0 and biasT_corr:
-        line_delay += n_ptx*step_eff
 
     end_time = seg.total_time[0]
     for marker in enabled_markers:
@@ -259,7 +264,6 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     sample_rate = 1/(awg_t_step*1e-9)
 
     seg.add_HVI_variable("t_measure", int(t_step))
-    seg.add_HVI_variable("digitizer", digitizer)
     seg.add_HVI_variable("start_delay", int(start_delay))
     if line_delay > 0:
         seg.add_HVI_variable("number_of_points", int(n_pt1))
@@ -281,12 +285,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     my_seq.sample_rate = sample_rate
 
     logging.info(f'Seq upload')
-    my_seq.upload([0])
+    my_seq.upload()
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, (n_pt2, n_pt1), (gate2, gate1),
+    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
+                                    (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
                                     biasT_corr, dig_samplerate,
-                                     channels=channels, Vmax=dig_vmax, iq_mode=iq_mode, channel_map=channel_map)
+                                    channels=channels, Vmax=dig_vmax,
+                                    iq_mode=iq_mode, channel_map=channel_map)
 
 
 class _digitzer_scan_parameter(MultiParameter):
@@ -380,11 +386,10 @@ class _digitzer_scan_parameter(MultiParameter):
         logging.info(f'Play')
         start = time.perf_counter()
         # play sequence
-        self.my_seq.play([0], release = False)
+        self.my_seq.play(release = False)
         start2 = time.perf_counter()
         self.pulse_lib.uploader.wait_until_AWG_idle()
         logging.info(f'AWG idle after {(time.perf_counter()-start)*1000:3.1f} ms, ({(time.perf_counter()-start2)*1000:3.1f} ms)')
-
 
         # get the data
         raw = self.dig.measure()

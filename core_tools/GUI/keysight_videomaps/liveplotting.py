@@ -65,7 +65,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            't_meas': float,
                            'biasT_corr': bool,
                            'average': int,
-                           'diff': bool}
+                           'gradient': str} # 'Off', 'Magnitude', or 'Mag & angle'
                         gen = {'ch1': bool,
                            'ch2': bool,
                            'ch3': bool,
@@ -73,6 +73,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'sample_rate': float, # (currently only 100 or 500 allowed)
                            'dig_vmax: float, # allowed: 4.0, 2.0, 1.0, 0.5, 0.25, 0.125
                            'enabled_markers': list[str],
+                           'n_columns': int,
+                           'line_margin': int,
+                           'bias_T_RC': float,
                            'acquisition_delay_ns': float, # Time in ns between AWG output change and digitizer acquisition start.
                            }
             iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
@@ -127,6 +130,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.start_2D.clicked.connect(self._2D_start_stop)
         self._1D_update_plot.clicked.connect(self.update_plot_settings_1D)
         self._2D_update_plot.clicked.connect(self.update_plot_settings_2D)
+        self._flip_axes.clicked.connect(self.do_flip_axes)
         self.tabWidget.currentChanged.connect(self.tab_changed)
 
         self.init_defaults(pulse_lib.channels, cust_defaults)
@@ -153,10 +157,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             if channel_map is not None:
                 logging.warning('iq_mode is ignored when channel_map is also specified')
             elif isinstance(iq_mode, str):
-                self.channel_map = {f'ch{i}':(i, iq_mode2numpy(iq_mode)) for i in range(1,5)}
+                self.channel_map = {f'ch{i}':(i, iq_mode2numpy[iq_mode]) for i in range(1,5)}
             else:
                 for ch, mode in iq_mode.items():
-                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy(mode))
+                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
 
         # add to GUI
         self.channel_check_boxes = {}
@@ -194,11 +198,18 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         Args:
             gates (list<str>) : names of the gates that are available in the AWG.
         '''
+
         for i in sorted(gates, key=str.lower):
             self._1D_gate_name.addItem(str(i))
             self._2D_gate1_name.addItem(str(i))
             self._2D_gate2_name.addItem(str(i))
 
+        for dim in ['1D', '2D']:
+            for i in [1,2,3]:
+                cb_offset = getattr(self, f'_{dim}_offset{i}_name')
+                cb_offset.addItem('<None>')
+                for gate in sorted(gates, key=str.lower):
+                    cb_offset.addItem(gate)
 
         # 1D defaults
         self.defaults_1D = {'gate_name': self._1D_gate_name.currentText(),
@@ -218,11 +229,14 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            't_meas': 5,
                            'biasT_corr': True,
                            'average': 1,
-                           'diff': False}
+                           'gradient': 'Off'}
 
         self.defaults_gen = {'sample_rate': 100,
                            'dig_vmax': 2.0,
                            'acquisition_delay_ns': 500,
+                           'n_columns': 4,
+                           'line_margin': 1,
+                           'bias_T_RC': 100,
                            'enabled_markers': []}
 
         # General defaults
@@ -260,7 +274,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._1D_diff.stateChanged.connect(self.update_plot_properties_1D)
 
         self._2D_average.valueChanged.connect(self.update_plot_properties_2D)
-        self._2D_diff.stateChanged.connect(self.update_plot_properties_2D)
+        self._2D_gradient.currentTextChanged.connect(self.update_plot_properties_2D)
+        self._2D_enh_contrast.stateChanged.connect(self.update_plot_properties_2D)
 
         self._channels = self.get_activated_channels()
 
@@ -283,7 +298,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self._1D_diff.setChecked(differentiate)
 
     def set_2D_settings(self, gate1=None, vswing1=None, gate2=None, vswing2=None, npt=None, t_meas=None,
-                        biasT_corr=None, averaging=None, differentiate=None):
+                        biasT_corr=None, averaging=None, gradient=None):
         if gate1 is not None:
             self._2D_gate1_name.setCurrentText(gate1)
         if vswing1 is not None:
@@ -300,8 +315,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self._2D_biasT_corr.setChecked(biasT_corr)
         if averaging is not None:
             self._2D_average.setValue(averaging)
-        if differentiate is not None:
-            self._2D_diff.setChecked(differentiate)
+        if gradient is not None:
+            self._2D_gradient.setCurrentText(gradient)
 
     def set_digitizer_settings(self, sample_rate=None, channels=None, dig_vmax=None):
         if sample_rate is not None:
@@ -322,23 +337,30 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def update_plot_properties_1D(self):
         '''
-        update properties in the liveplot without reloading the sequences (e.g. averaging/differntation of data)
+        update properties in the liveplot without reloading the sequences (e.g. averaging/differentation of data)
         '''
-        self.averaging = self._1D_average.value()
-        self.differentiate = self._1D_diff.isChecked()
         if self.current_plot._1D  is not None:
-            self.current_plot._1D.averaging = self.averaging
-            self.current_plot._1D.differentiate = self.differentiate
+            self.current_plot._1D.averaging = self._1D_average.value()
+            self.current_plot._1D.differentiate = self._1D_diff.isChecked()
 
     def update_plot_properties_2D(self):
         '''
-        update properties in the liveplot without reloading the sequences (e.g. averaging/differntation of data)
+        update properties in the liveplot without reloading the sequences (e.g. averaging/gradient of data)
         '''
-        self.averaging = self._2D_average.value()
-        self.differentiate = self._2D_diff.isChecked()
         if self.current_plot._2D  is not None:
-            self.current_plot._2D.averaging = self.averaging
-            self.current_plot._2D.differentiate = self.differentiate
+            self.current_plot._2D.averaging = self._2D_average.value()
+            self.current_plot._2D.gradient = self._2D_gradient.currentText()
+            self.current_plot._2D.enhanced_contrast = self._2D_enh_contrast.isChecked()
+
+    def get_offsets(self, dimension='1D'):
+        offsets = {}
+        for i in range(1,4):
+            gate = getattr(self, f'_{dimension}_offset{i}_name').currentText()
+            voltage = getattr(self, f'_{dimension}_offset{i}_voltage').value()
+            if gate != '<None>' and voltage != 0.0:
+                offsets[gate] = voltage
+
+        return offsets
 
     def get_plot_settings(self):
         '''
@@ -371,14 +393,42 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             if cb.isChecked():
                 self._gen__enabled_markers.append(marker)
 
+        self._2D__offsets = self.get_offsets('2D')
+        self._1D__offsets = self.get_offsets('1D')
+        self._gen__line_margin = self._gen_line_margin.value()
+        self._gen__n_columns = self._gen_n_columns.value()
+        biasTrc = self._gen_bias_T_RC.value() * 1000 # microseconds
+
+        if self._2D__biasT_corr:
+            # total time of a line divided by 2, because prepulse distributes error
+            t_bias_charging_2D = (self._2D__npt + 2*self._gen__line_margin) * self._2D__t_meas * 0.5
+        else:
+            t_bias_charging_2D = (self._2D__npt + 2*self._gen__line_margin) * self._2D__t_meas * self._2D__npt
+
+        biasTerror2D = t_bias_charging_2D/biasTrc
+        # max error is on y-value / gate2 voltage
+        self._2D_biasTwarning.setText(f'max bias T error: {biasTerror2D:3.1%}, {biasTerror2D*self._2D__V2_swing:3.1f} mV')
+        style = 'QLabel {color : red; }' if biasTerror2D > 0.05 else ''
+        self._2D_biasTwarning.setStyleSheet(style)
+
+        if self._1D__biasT_corr:
+            t_bias_charging_1D = self._1D__t_meas
+        else:
+            # total time of a line divided by 4, because ramp consists of '2 triangles'.
+            t_bias_charging_1D = (self._1D__npt + 2*self._gen__line_margin) * self._1D__t_meas * 0.25
+
+        biasTerror1D = t_bias_charging_1D/biasTrc
+        self._1D_biasTwarning.setText(f'max bias T error: {biasTerror1D:3.1%}, {biasTerror1D*self._1D__V_swing:3.1f} mV')
+        style = 'QLabel {color : red; }' if biasTerror1D > 0.05 else ''
+        self._1D_biasTwarning.setStyleSheet(style)
 
     def _1D_start_stop(self):
         '''
-        define behevior when pressing start/stop
+        Starts/stops the data acquisition and plotting.
         '''
         if self.start_1D.text() == "Start":
             if self.current_plot._1D is None:
-                logging.info('Starting 1D upload')
+                logging.info('Creating 1D scan')
                 try:
                     self.get_plot_settings()
                     self.start_1D.setEnabled(False)
@@ -387,10 +437,13 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
                             dig_vmax=self._gen__dig_vmax, acquisition_delay_ns=self._gen__acquisition_delay_ns,
                             enabled_markers=self._gen__enabled_markers,
-                            channel_map=self._active_channel_map)
+                            channel_map=self._active_channel_map,
+                            pulse_gates=self._1D__offsets,
+                            line_margin=self._gen__line_margin)
                     self.current_plot._1D = _1D_live_plot(
                             self.app, self._1D_plotter_frame, self._1D_plotter_layout, self.current_param_getter._1D,
-                            self._1D_average.value(), self._1D_diff.isChecked())
+                            self._1D_average.value(), self._1D_diff.isChecked(),
+                            self._gen__n_columns)
                     self.start_1D.setEnabled(True)
                     self.set_metadata()
                     logging.info('Finished init currentplot and current_param')
@@ -409,26 +462,33 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def _2D_start_stop(self):
         '''
-        define behevior when pressing start/stop
+        Starts/stops the data acquisition and plotting.
         '''
         if self.start_2D.text() == "Start":
             logging.info('Starting 2D')
             if self.current_plot._2D is None:
-                logging.info('Current plot is None')
+                logging.info('Creating 2D scan')
                 self.get_plot_settings()
                 self.start_2D.setEnabled(False)
                 try:
                     self.current_param_getter._2D = self.construct_2D_scan_fast(
                             self._2D__gate1_name, self._2D__V1_swing, int(self._2D__npt),
-                                    self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
-                                    self._2D__t_meas*1000, self._2D__biasT_corr,
+                            self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
+                            self._2D__t_meas*1000, self._2D__biasT_corr,
                             self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
-                            dig_vmax=self._gen__dig_vmax, acquisition_delay_ns=self._gen__acquisition_delay_ns,
-                            enabled_markers=self._gen__enabled_markers, channel_map=self._active_channel_map)
+                            dig_vmax=self._gen__dig_vmax,
+                            acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                            enabled_markers=self._gen__enabled_markers,
+                            channel_map=self._active_channel_map,
+                            pulse_gates=self._2D__offsets,
+                            line_margin=self._gen__line_margin,
+                            )
                     logging.info('Finished Param, now plot')
                     self.current_plot._2D = _2D_live_plot(
                             self, self._2D_plotter_frame, self._2D_plotter_layout, self.current_param_getter._2D,
-                            self._2D_average.value(), self._2D_diff.isChecked(), self._2D_av_progress)
+                            self._2D_average.value(), self._2D_gradient.currentText(), self._gen__n_columns,
+                            self._2D_av_progress)
+                    self.current_plot._2D.enhanced_contrast = self._2D_enh_contrast.isChecked()
                     self.start_2D.setEnabled(True)
                     self.set_metadata()
                     logging.info('Finished init currentplot and current_param')
@@ -478,6 +538,18 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.start_2D.setText("Start")
         self._2D_start_stop()
+
+    def do_flip_axes(self):
+        old_x_axis = self._2D_gate1_name.currentText()
+        old_y_axis = self._2D_gate2_name.currentText()
+        old_x_swing = self._2D_V1_swing.value()
+        old_y_swing = self._2D_V2_swing.value()
+        self._2D_gate1_name.setCurrentText(old_y_axis)
+        self._2D_gate2_name.setCurrentText(old_x_axis)
+        self._2D_V1_swing.setValue(old_y_swing)
+        self._2D_V2_swing.setValue(old_x_swing)
+        if self.start_2D.text() == "Stop":
+            self.update_plot_settings_2D()
 
     def tab_changed(self):
         if self.current_plot._1D is not None:
@@ -606,7 +678,7 @@ class vm_data_param(MultiParameter):
         super().__init__(name='vm_data_parameter', instrument=None,
              names=names, labels=labels, units=units,
              shapes=shapes, setpoints=setpoints, setpoint_names=setpoint_names,
-             setpoint_labels=setpoint_labels, setpoint_units=setpoint_units, 
+             setpoint_labels=setpoint_labels, setpoint_units=setpoint_units,
              metadata=metadata)
 
     def get_raw(self):
