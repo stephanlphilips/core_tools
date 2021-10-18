@@ -153,13 +153,13 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.show()
         if instance_ready == False:
             self.app.exec()
-            
+
     def turn_off(self):
         if self.is_running == '1D':
             self._1D_start_stop()
         elif self.is_running == '2D':
             self._2D_start_stop()
-            
+
     def _init_channels(self, channel_map, iq_mode):
         self.channel_map = (
                 channel_map if channel_map is not None
@@ -287,16 +287,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._1D_average.valueChanged.connect(self.update_plot_properties_1D)
         self._1D_diff.stateChanged.connect(self.update_plot_properties_1D)
-        self._1D_x_range_min.valueChanged.connect(self.update_plot_properties_1D)
-        self._1D_x_range_max.valueChanged.connect(self.update_plot_properties_1D)
-        
+
         self._2D_average.valueChanged.connect(self.update_plot_properties_2D)
         self._2D_gradient.currentTextChanged.connect(self.update_plot_properties_2D)
         self._2D_enh_contrast.stateChanged.connect(self.update_plot_properties_2D)
-        self._2D_x_range_min.valueChanged.connect(self.update_plot_properties_2D)
-        self._2D_x_range_max.valueChanged.connect(self.update_plot_properties_2D)
-        self._2D_y_range_min.valueChanged.connect(self.update_plot_properties_2D)
-        self._2D_y_range_max.valueChanged.connect(self.update_plot_properties_2D)
 
         self._channels = self.get_activated_channels()
 
@@ -365,7 +359,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._1D.differentiate = self._1D_diff.isChecked()
             self.current_plot._1D.index_range = (self._1D_x_range_min.value(), int(self._1D__npt) + self._1D_x_range_max.value())
         self.set_metadata()
-            
+
     def update_plot_properties_2D(self):
         '''
         update properties in the liveplot without reloading the sequences (e.g. averaging/gradient of data)
@@ -465,8 +459,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             channel_map=self._active_channel_map,
                             pulse_gates=self._1D__offsets,
                             line_margin=self._gen__line_margin)
-                    # should become a proptery
-                    indexrange = (self._1D_x_range_min.value(), int(self._1D__npt) + self._1D_x_range_max.value())
                     self.current_plot._1D = _1D_live_plot(
                             self.app, self._1D_plotter_frame, self._1D_plotter_layout, self.current_param_getter._1D,
                             self._1D_average.value(), self._1D_diff.isChecked(),
@@ -511,7 +503,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             line_margin=self._gen__line_margin,
                             )
                     logging.info('Finished Param, now plot')
-                    indexrange = ((self._2D_x_range_min.value(), int(self._2D__npt) + self._2D_x_range_max.value()), (self._2D_y_range_min.value(), int(self._2D__npt) + self._2D_y_range_max.value()))
                     self.current_plot._2D = _2D_live_plot(
                             self, self._2D_plotter_frame, self._2D_plotter_layout, self.current_param_getter._2D,
                             self._2D_average.value(), self._2D_gradient.currentText(), self._gen__n_columns,
@@ -653,16 +644,16 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             inp_title = ''
         if self.tab_id == 0: # 1D
             figure_hand = self.current_plot._1D.plot_widgets[0].plot_widget.parent()
-            gate_x = self.current_param_getter._1D.setpoint_names[0][0]
-            range_x = self.current_param_getter._1D.setpoints[0][0][-1]*2
+            gate_x = self._1D__gate_name
+            range_x = self._1D__V_swing
             channels = ','.join(self.current_param_getter._1D.channel_names)
-            title = f'{gate_x} ({range_x:.0f} mV), m:{channels}' 
+            title = f'{gate_x} ({range_x:.0f} mV), m:{channels}'
         elif self.tab_id == 1: # 2D
             figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
-            gate_y = self.current_param_getter._2D.setpoint_full_names[0][0]
-            gate_x = self.current_param_getter._2D.setpoint_full_names[0][1]
-            range_y = self.current_param_getter._2D.setpoints[0][0][-1]*2
-            range_x = self.current_param_getter._2D.setpoints[0][1][-1]*2
+            gate_y = self._2D__gate2_name
+            gate_x = self._2D__gate1_name
+            range_y = self._2D__V2_swing
+            range_x = self._2D__V1_swing
             channels = ','.join(self.current_param_getter._2D.channel_names)
             title = f'{inp_title} {gate_y} ({range_y:.0f} mV) vs. {gate_x} ({range_x:.0f} mV), m:{channels}'
         try:
