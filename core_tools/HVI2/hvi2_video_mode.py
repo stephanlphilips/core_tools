@@ -84,13 +84,13 @@ class Hvi2VideoMode():
         for dig_seq in dig_seqs:
             ds_ch = self._module_config(dig_seq, 'ds_ch')
             if len(ds_ch) > 0:
-                # NOTE: loop costs PXI registers. Better wait fixed time.
+                # NOTE: wait loop costs PXI triggers. Better wait fixed time.
                 dig_seq.wait(600)
-    #            self._wait_state_clear(dig_seq, running=ds_ch)
+                # self._wait_state_clear(dig_seq, running=ds_ch)
 
                 dig_seq.ds.control(push=ds_ch)
                 dig_seq.wait(600)
-    #            self._wait_state_clear(dig_seq, pushing=ds_ch)
+                # self._wait_state_clear(dig_seq, pushing=ds_ch)
 
     def sequence(self, sequencer, hardware):
         self.hardware = hardware
@@ -191,30 +191,37 @@ class Hvi2VideoMode():
             if self._configuration[awg.name]['hvi_queue_control']:
                 awg.write_queue_mem()
 
+        # use default values for backwards compatibility with old scripts
+        start_delay = int(hvi_params.get('start_delay', 0))
+        n_points = hvi_params['number_of_points']
+        n_lines = hvi_params.get('number_of_lines', 1)
+        t_measure = int(hvi_params['t_measure'])
+        line_delay = int(hvi_params.get('line_delay', 400))
+
         hvi_exec.set_register(self.r_nrep, n_repetitions)
-        hvi_exec.set_register(self.r_npoints, hvi_params['number_of_points'])
-        hvi_exec.set_register(self.r_nlines, hvi_params['number_of_lines'])
+        hvi_exec.set_register(self.r_npoints, n_points)
+        hvi_exec.set_register(self.r_nlines, n_lines)
 
         hvi_exec.set_register(self.r_wave_duration, int(waveform_duration) // 10)
 
         # subtract the time needed for the repeat loop
         t_point_loop = 170
-        t_wait = int(hvi_params['t_measure']) + self.acquisition_gap - t_point_loop
+        t_wait = t_measure + self.acquisition_gap - t_point_loop
         if t_wait < 10:
             raise Exception(f'Minimum t_measure is {10+t_point_loop-self.acquisition_gap} ns')
         hvi_exec.set_register(self.r_point_wait, t_wait//10)
 
         t_dig_delay = 300
         t_till_trigger = 250 # delta with awg.trigger()
-        t_start_wait = int(hvi_params['start_delay']) + t_dig_delay - t_till_trigger + self._acquisition_delay
+        t_start_wait = start_delay + t_dig_delay - t_till_trigger + self._acquisition_delay
         if t_start_wait < 10:
-            raise Exception(f'Start delay too short ({hvi_params["start_delay"]} ns)')
+            raise Exception(f'Start delay too short ({start_delay} ns)')
         hvi_exec.set_register(self.r_start_wait, t_start_wait//10)
 
         t_line_loop = 300
-        t_line_wait = int(hvi_params['line_delay']) - t_line_loop
+        t_line_wait = line_delay - t_line_loop
         if t_line_wait < 10:
-            raise Exception(f'Line delay too short ({hvi_params["line_delay"]} ns)')
+            raise Exception(f'Line delay too short ({line_delay} ns)')
         hvi_exec.set_register(self.r_line_wait, t_line_wait//10)
 
         hvi_exec.start()
