@@ -112,6 +112,9 @@ class live_plot(live_plot_abs, QThread):
 
     @averaging.setter
     def averaging(self, value):
+        if value == self._averaging:
+            return
+
         self._averaging = value
         if self._averaging < 1:
             self._averaging = 1
