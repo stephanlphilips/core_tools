@@ -10,7 +10,7 @@ class _2D_plot:
     def __init__(self, ds_descr, logmode=dict()):
         '''
         plot 2D plot
-        
+
         Args:
             ds_descr (dataset_data_description) : description of the data
             logmode (dict) : logmode for the z axis -- not supported atm...
@@ -22,13 +22,13 @@ class _2D_plot:
         '''
         self.ds = ds_descr
         self.logmode = {'x':False, 'y':False, 'z':False}
-        
+
         pg.setConfigOption('background', None)
         pg.setConfigOption('foreground', 'k')
 
         self.widget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()
-        
+
         self.plot = pg.PlotItem()
         self.plot.setLabel('bottom', self.ds.y.label, units = format_unit(self.ds.y.unit))
         self.plot.setLabel('left', self.ds.x.label, units = format_unit(self.ds.x.unit))
@@ -37,13 +37,12 @@ class _2D_plot:
         self.img_view.setColorMap(get_color_map())
         self.label = QtWidgets.QLabel()
         self.label.setAlignment(QtCore.Qt.AlignRight)
-        # self.img_view.ui.histogram.hide()
         self.img_view.ui.roiBtn.hide()
         self.img_view.ui.menuBtn.hide()
         self.layout.addWidget(self.img_view)
         self.layout.addWidget(self.label)
         self.widget.setLayout(self.layout)
-        
+
         self.current_x_scale = 1
         self.current_y_scale = 1
         self.current_x_off_set = 0
@@ -70,7 +69,7 @@ class _2D_plot:
             y_args = np.argwhere(np.isfinite(y)).T[0]
             y_limit = [np.min(y_args), np.max(y_args)]
             y_limit_num = (y[y_limit[0]], y[y_limit[1]])
-            
+
             data = self.ds()
             data_cp = np.empty(data.shape)
             data_cp[:,:] = np.nan
@@ -120,7 +119,7 @@ class _2D_plot:
                 self.img.translate(off, 0)
 
             self.plot.setLogMode(**{'x': self.logmode['x'], 'y': self.logmode['y']})
-            
+
         except:
             pass
 
@@ -155,18 +154,18 @@ class _2D_plot:
             y_val = mousePoint.y()
             if self.logmode['y'] == True:
                 y_val = 10**y_val
-            
+
             self.label.setText("x={}, y={}".format(
-                si_format(x_val, 3) + format_unit(self.ds.x.unit), 
+                si_format(x_val, 3) + format_unit(self.ds.x.unit),
                 si_format(y_val, 3) + format_unit(self.ds.y.unit)))
 
 def get_color_map():
     numofLines = 5
     cMapType = 'viridis'
-    colorMap = get_cmap(cMapType) # get_cmap is matplotlib object     
+    colorMap = get_cmap(cMapType) # get_cmap is matplotlib object
 
-    colorList = np.linspace(0, 1, numofLines) 
-    lineColors = colorMap(colorList) 
+    colorList = np.linspace(0, 1, numofLines)
+    lineColors = colorMap(colorList)
 
     lineColors = lineColors * 255
     lineColors = lineColors.astype(int)
@@ -186,7 +185,7 @@ if __name__ == '__main__':
 
     ds = ds.m1
     plot = _2D_plot(ds)
-    
+
     win = QtGui.QMainWindow()
     win.setCentralWidget(plot.widget)
     win.show()
