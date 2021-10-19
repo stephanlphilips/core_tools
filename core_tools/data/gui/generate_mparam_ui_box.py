@@ -73,7 +73,7 @@ class slider_mgr:
         self.data_var = param
         self.slider = QtWidgets.QSlider(geom_parent)
         self.slider.setOrientation(QtCore.Qt.Horizontal)
-        self.name =name_shorthand + " slider"
+        self.name = name_shorthand + " slider"
 
         self.label_slider = QtWidgets.QLabel(geom_parent)
         self.label_slider.setText(name_shorthand + " slider")
