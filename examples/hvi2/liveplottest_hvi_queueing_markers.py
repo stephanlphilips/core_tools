@@ -16,8 +16,10 @@ from core_tools.drivers.M3102A import SD_DIG, MODES
 from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
 
-
 from pulse_lib.base_pulse import pulselib
+
+import sds_test_database
+
 
 #start_all_logging()
 #logger.get_file_handler().setLevel(logging.DEBUG)
@@ -65,22 +67,19 @@ def init_pulselib(awgs):
     pulse.finish_init()
     return pulse
 
+sds_test_database.setup()
 
+station = qcodes.Station()
 
-dig = SD_DIG("dig", 1, 5)
 awg_slots = [3,7]
 awgs = []
 for i,slot in enumerate(awg_slots):
     awg = M3202A_fpga(f"AWG{i}", 1, slot)
     awg.set_hvi_queue_control(True)
     awgs.append(awg)
-
-
-station = qcodes.Station()
-
-for awg in awgs:
     station.add_component(awg)
 
+dig = SD_DIG("dig", 1, 5)
 station.add_component(dig)
 
 dig_mode = MODES.AVERAGE
