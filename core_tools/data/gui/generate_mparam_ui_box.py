@@ -111,6 +111,8 @@ class data_mgr_4_plot():
         self.properties_selector = []
         self.parent = None
         self.enable = True
+        self.show_plot = True
+        self.show_histogram = False
 
     def add_properties(self, my_property):
         if len(self.properties_selector_raw) >= 2:
@@ -190,14 +192,27 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         _translate = QtCore.QCoreApplication.translate
         self.m_param_1_title.setText(_translate("MainWindow", "{} ({})".format(m_param.name, m_param.label )))
 
-
         self.local_parent = QtWidgets.QGridLayout()
         self.local_parent.setObjectName(m_name + "single_meas_grid")
-
 
         self.generate_header(m_name)
         self.plot_data_mgr = data_mgr_4_plot(m_param)
         
+        if self.m_param.ndim == 2:
+            self.cb = QtWidgets.QCheckBox(self.geom_parent)
+            self.cb.setText("Show histogram")
+            self.cb.setObjectName(m_name + "cb")
+            self.cb.clicked.connect(partial(self.cb_callback, self.cb, 'show_histogram'))
+        else:
+            self.cb = None
+
+        self.sp = QtWidgets.QCheckBox(self.geom_parent)
+        self.sp.setText("")
+        self.sp.setObjectName(m_name + "sp")
+        self.sp.setMaximumSize(QtCore.QSize(16, 16777215))
+        self.sp.setChecked(True)
+        self.sp.clicked.connect(partial(self.cb_callback, self.sp, 'show_plot'))
+
         m_param_params = self.m_param.get_raw_content()
         self.sliders = []
         for i in range(len(m_param_params)):
@@ -212,10 +227,20 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
 
         self.plot_data_mgr.set_children()
         
-        self.addWidget(self.m_param_1_title)
+        self.title_layout = QtWidgets.QHBoxLayout()
+        self.title_layout.addWidget(self.sp)
+        self.title_layout.addWidget(self.m_param_1_title)
+        if self.cb is not None:
+            self.title_layout.addWidget(self.cb)
+        self.addLayout(self.title_layout)
+
         self.addLayout(self.local_parent)
         for i in self.sliders:
             self.addLayout(i)
+
+    def cb_callback(self, checkbox, prop):
+        setattr(self.plot_data_mgr, prop, checkbox.isChecked())
+        self.plot_data_mgr.update()
 
     def generate_header(self, m_name):
         header_slc = QtWidgets.QLabel(self.geom_parent)
