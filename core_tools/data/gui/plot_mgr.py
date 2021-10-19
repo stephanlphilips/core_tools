@@ -77,12 +77,12 @@ class ui_box_mgr():
         plot_widgets = []
         for item in self.m_param_plot_mgr:
             if item.show_plot:
-            if item.n_dim == 1 and item.enable == True:
-                plot_widget = _1D_plot([item.ds], {'x':item.x_log, 'y':item.y_log})
-                plot_widgets.append(plot_widget)
-            if item.n_dim == 2 and item.enable == True:
-                plot_widget = _2D_plot(item.ds, {'z':item.z_log})
-                plot_widgets.append(plot_widget)
+                if item.n_dim == 1 and item.enable == True:
+                    plot_widget = _1D_plot([item.ds], {'x':item.x_log, 'y':item.y_log})
+                    plot_widgets.append(plot_widget)
+                if item.n_dim == 2 and item.enable == True:
+                    plot_widget = _2D_plot(item.ds, {'z':item.z_log})
+                    plot_widgets.append(plot_widget)
                     if not item.show_histogram:
                         plot_widget.img_view.ui.histogram.hide()
                     else:
