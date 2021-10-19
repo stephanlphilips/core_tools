@@ -40,13 +40,13 @@ class n_th_dimension_prop(object):
         self._slc.clicked.connect(partial(self.slc_conn, 'slc'))
         self._avg.clicked.connect(partial(self.update, 'avg'))
         self._log.clicked.connect(partial(self.update, 'log'))
-        
+
         self.slider.connect_slider(self.update)
         self.parent = None
     @property
     def slider_val(self):
         return int(self.slider.slider.value())
-    
+
     def slc_conn(self, *args):
         self.slider.set_visibilty(self.slc)
         self.update(args[0])
@@ -60,7 +60,7 @@ class n_th_dimension_prop(object):
                 self.avg = False
 
         if self.parent is not None:
-            self.parent.update() 
+            self.parent.update()
 
     def count(self):
         if self.avg == True or self.slc ==True:
@@ -93,7 +93,7 @@ class slider_mgr:
 
     def connect_slider(self, conn):
         self.label_slider_content.setText(format_value_and_unit(self.data_var().flat[0], self.data_var.unit))
-        
+
         def slider_change(idx):
             self.label_slider_content.setText(format_value_and_unit(self.data_var().flat[idx], self.data_var.unit))
             conn(idx)
@@ -111,8 +111,8 @@ class data_mgr_4_plot():
         self.properties_selector = []
         self.parent = None
         self.enable = True
-        self.cb = False
-        self.sp = True
+        self.show_plot = True
+        self.show_histogram = False
 
     def add_properties(self, my_property):
         if len(self.properties_selector_raw) >= 2:
@@ -130,7 +130,7 @@ class data_mgr_4_plot():
 
         self.properties_selector = []
         self.ds = self.ds_raw
-        
+
         for prop in properties:
             if prop.avg == True:
                 self.ds = self.ds.average(prop.name)
@@ -153,7 +153,7 @@ class data_mgr_4_plot():
     @property
     def x_log(self):
         return self.__check_log(0)
-    
+
     @property
     def y_log(self):
         return self.__check_log(1)
@@ -170,7 +170,7 @@ class data_mgr_4_plot():
     @property
     def n_dim(self):
         return self.ds.ndim
-    
+
     def __add__(self, other):
         if isinstance(other, n_th_dimension_prop):
             self.add_properties(other)
@@ -186,31 +186,33 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
 
         m_name = m_param.name
         self.setObjectName(m_name + "m_param_box")
-        
+
         self.m_param_1_title = QtWidgets.QLabel(self.geom_parent)
         self.m_param_1_title.setObjectName(m_name + "m_param_1_name")
         _translate = QtCore.QCoreApplication.translate
         self.m_param_1_title.setText(_translate("MainWindow", "{} ({})".format(m_param.name, m_param.label )))
-        
+
         self.local_parent = QtWidgets.QGridLayout()
         self.local_parent.setObjectName(m_name + "single_meas_grid")
 
         self.generate_header(m_name)
         self.plot_data_mgr = data_mgr_4_plot(m_param)
-        
+
         if self.m_param.ndim == 2:
             self.cb = QtWidgets.QCheckBox(self.geom_parent)
             self.cb.setText("Show histogram")
             self.cb.setObjectName(m_name + "cb")
-            self.cb.clicked.connect(partial(self.cb_callback, 'cb'))
-            self.addWidget(self.cb)
+            self.cb.clicked.connect(partial(self.cb_callback, self.cb, 'show_histogram'))
+        else:
+            self.cb = None
 
         self.sp = QtWidgets.QCheckBox(self.geom_parent)
-        self.sp.setText("Show plot")
+        self.sp.setText("")
         self.sp.setObjectName(m_name + "sp")
+        self.sp.setMaximumSize(QtCore.QSize(16, 16777215))
         self.sp.setChecked(True)
-        self.sp.clicked.connect(partial(self.cb_callback, 'sp'))
-        
+        self.sp.clicked.connect(partial(self.cb_callback, self.sp, 'show_plot'))
+
         m_param_params = self.m_param.get_raw_content()
         self.sliders = []
         for i in range(len(m_param_params)):
@@ -224,19 +226,22 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         self.sliders += [slider]
 
         self.plot_data_mgr.set_children()
-        
-        self.addWidget(self.m_param_1_title)
-        self.addWidget(self.sp)
-        
+
+        self.title_layout = QtWidgets.QHBoxLayout()
+        self.title_layout.addWidget(self.sp)
+        self.title_layout.addWidget(self.m_param_1_title)
+        if self.cb is not None:
+            self.title_layout.addWidget(self.cb)
+        self.addLayout(self.title_layout)
+
         self.addLayout(self.local_parent)
         for i in self.sliders:
             self.addLayout(i)
 
-    def cb_callback(self, prop):
-        checkbox = getattr(self, prop)
+    def cb_callback(self, checkbox, prop):
         setattr(self.plot_data_mgr, prop, checkbox.isChecked())
         self.plot_data_mgr.update()
-                    
+
     def generate_header(self, m_name):
         header_slc = QtWidgets.QLabel(self.geom_parent)
         header_slc.setMaximumSize(QtCore.QSize(40, 16777215))
@@ -271,7 +276,7 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         self.local_parent.addWidget(header_avg, 0, 4, 1, 1)
         self.local_parent.addWidget(header_slc, 0, 5, 1, 1)
         self.local_parent.addWidget(header_log, 0, 6, 1, 1)
-        
+
         _translate = QtCore.QCoreApplication.translate
         header_slc.setText(_translate("MainWindow", "SLC"))
         header_log.setText(_translate("MainWindow", "log"))
@@ -309,7 +314,7 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         name.setText(_translate("MainWindow", "{} ({})".format(param.label, param.unit )))
 
         self.local_parent.addWidget(letter, level, 0, 1, 1)
-        self.local_parent.addWidget(name, level, 2, 1, 1) 
+        self.local_parent.addWidget(name, level, 2, 1, 1)
         self.local_parent.addWidget(avg, level, 4, 1, 1)
         self.local_parent.addWidget(slc, level, 5, 1, 1)
         self.local_parent.addWidget(log, level, 6, 1, 1)
@@ -368,7 +373,7 @@ if __name__ == '__main__':
     import sys
     import datetime
     set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    
+
 
     ds = load_by_id(45782)
 
@@ -377,7 +382,7 @@ if __name__ == '__main__':
             super().__init__()
             self.centralwidget = QtWidgets.QWidget(MainWindow)
             self.gridLayout_2 = QtWidgets.QGridLayout(self.centralwidget)
-        
+
             self.gridLayout_2.setObjectName("gridLayout_2")
             self.scrollArea = QtWidgets.QScrollArea(self.centralwidget)
             sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
