@@ -131,6 +131,7 @@ class hardware(qc.Instrument):
         if hardware.instanciated == False: # this should happen in the station
             super().__init__(name)
         hardware.instanciated = True
+        self._name = name
     
     @property
     def dac_gate_map(self):
@@ -157,7 +158,8 @@ class hardware(qc.Instrument):
 
         return {'awg2dac_ratios': self.awg2dac_ratios._ratios,
                  'dac_gate_map': self.dac_gate_map,
-                 'virtual_gates': vg_snap                     }
+                 'virtual_gates': vg_snap,
+                 'name': self._name }
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
