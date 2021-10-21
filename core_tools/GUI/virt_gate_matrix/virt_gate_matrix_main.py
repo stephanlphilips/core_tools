@@ -51,7 +51,13 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
 
-        for gate in hardware.AWG_to_dac_conversion:
+        if hasattr(hardware, 'AWG_to_dac_conversion'):
+            # old harware class
+            gates = hardware.AWG_to_dac_conversion.keys() 
+        else:
+            # new hardware class
+            gates = hardware.awg2dac_ratios.keys()
+        for gate in gates:
             if gate not in pulse_lib.marker_channels:
                 self.add_gate(gate)
 

@@ -88,6 +88,7 @@ class digitizer_param(MultiParameter):
         self.average_repetitions = average_repetitions
         self.n_seg = ifNone(self.n_rep, 1) * ifNone(self.n_trigger, 1)
         self.start_func = start_func
+        self.sw_trigger = sw_trigger
 
         if sample_rate is not None:
             self._digitizer.sample_rate(sample_rate)
@@ -243,6 +244,8 @@ class digitizer_param(MultiParameter):
     def get_raw(self):
         if self.start_func:
             self.start_func()
+        elif self.sw_trigger:
+            self.digitizer.start_triggered()
 
         m4i_seg_size = self.digitizer.segment_size()
         memsize = self.digitizer.data_memory_size()

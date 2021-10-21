@@ -1,4 +1,4 @@
-from core_tools.data.gui.plots.unit_management import format_value_and_unit, format_unit, return_unit_scaler
+from core_tools.data.gui.plots.unit_management import format_unit, return_unit_scaler
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from matplotlib.pyplot import get_cmap
@@ -10,7 +10,7 @@ class _2D_plot:
     def __init__(self, ds_descr, logmode=dict()):
         '''
         plot 2D plot
-        
+
         Args:
             ds_descr (dataset_data_description) : description of the data
             logmode (dict) : logmode for the z axis -- not supported atm...
@@ -22,27 +22,29 @@ class _2D_plot:
         '''
         self.ds = ds_descr
         self.logmode = {'x':False, 'y':False, 'z':False}
-        
+
         pg.setConfigOption('background', None)
         pg.setConfigOption('foreground', 'k')
 
-        self.widget = QtGui.QWidget()
-        self.layout = QtGui.QVBoxLayout()
-        
+        self.widget = QtWidgets.QWidget()
+        self.layout = QtWidgets.QVBoxLayout()
+
         self.plot = pg.PlotItem()
         self.plot.setLabel('bottom', self.ds.y.label, units = format_unit(self.ds.y.unit))
         self.plot.setLabel('left', self.ds.x.label, units = format_unit(self.ds.x.unit))
         self.img = pg.ImageItem()
         self.img_view = pg.ImageView(view=self.plot, imageItem=self.img)
         self.img_view.setColorMap(get_color_map())
+        self.img_view.ui.roiBtn.hide()
+        self.img_view.ui.menuBtn.hide()
 
-        self.label = QtGui.QLabel()
+        self.label = QtWidgets.QLabel()
         self.label.setAlignment(QtCore.Qt.AlignRight)
 
         self.layout.addWidget(self.img_view)
         self.layout.addWidget(self.label)
         self.widget.setLayout(self.layout)
-        
+
         self.current_x_scale = 1
         self.current_y_scale = 1
         self.current_x_off_set = 0
@@ -69,12 +71,15 @@ class _2D_plot:
             y_args = np.argwhere(np.isfinite(y)).T[0]
             y_limit = [np.min(y_args), np.max(y_args)]
             y_limit_num = (y[y_limit[0]], y[y_limit[1]])
-            
+
             data = self.ds()
             data_cp = np.empty(data.shape)
             data_cp[:,:] = np.nan
-            data_cp[slice(*x_limit), slice(*y_limit)]= data[slice(*x_limit), slice(*y_limit)]
+            x_slice = slice(x_limit[0], x_limit[1]+1)
+            y_slice = slice(y_limit[0], y_limit[1]+1)
+            data_cp[x_slice, y_slice] = data[x_slice, y_slice]
             data = data_cp
+
             # X and Y seems to be swapped for image items (+ Y inverted)
             x_scale = abs(x_limit_num[1] - x_limit_num[0])/(x_limit[1] - x_limit[0])
             y_scale = abs(y_limit_num[1] - y_limit_num[0])/(y_limit[1] - y_limit[0])
@@ -90,7 +95,11 @@ class _2D_plot:
             self.plot.invertY(False)
             self.img.setImage(data.T)
 
-            if x_scale != 0 and not np.isnan(x_scale) and x_scale != self.current_x_scale:
+            x_off_set -= 0.5
+            y_off_set -= 0.5
+
+            if (x_scale != 0 and not np.isnan(x_scale)
+                and (x_scale != self.current_x_scale or x_off_set != self.current_x_off_set)):
                 # update coordinates
                 off = x_off_set - self.current_x_off_set
                 scale = x_scale/self.current_x_scale
@@ -100,7 +109,8 @@ class _2D_plot:
                 self.img.scale(1, scale)
                 self.img.translate(0, off)
 
-            if y_scale != 0 and not np.isnan(y_scale) and y_scale != self.current_y_scale:
+            if (y_scale != 0 and not np.isnan(y_scale)
+                and (y_scale != self.current_y_scale or y_off_set != self.current_y_off_set)):
                 # update coordinates
                 off = y_off_set - self.current_y_off_set
                 scale = y_scale/self.current_y_scale
@@ -145,18 +155,18 @@ class _2D_plot:
             y_val = mousePoint.y()
             if self.logmode['y'] == True:
                 y_val = 10**y_val
-            
+
             self.label.setText("x={}, y={}".format(
-                si_format(x_val, 3) + format_unit(self.ds.x.unit), 
+                si_format(x_val, 3) + format_unit(self.ds.x.unit),
                 si_format(y_val, 3) + format_unit(self.ds.y.unit)))
 
 def get_color_map():
     numofLines = 5
     cMapType = 'viridis'
-    colorMap = get_cmap(cMapType) # get_cmap is matplotlib object     
+    colorMap = get_cmap(cMapType) # get_cmap is matplotlib object
 
-    colorList = np.linspace(0, 1, numofLines) 
-    lineColors = colorMap(colorList) 
+    colorList = np.linspace(0, 1, numofLines)
+    lineColors = colorMap(colorList)
 
     lineColors = lineColors * 255
     lineColors = lineColors.astype(int)
@@ -176,7 +186,7 @@ if __name__ == '__main__':
 
     ds = ds.m1
     plot = _2D_plot(ds)
-    
+
     win = QtGui.QMainWindow()
     win.setCentralWidget(plot.widget)
     win.show()

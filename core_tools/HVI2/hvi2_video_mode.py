@@ -15,8 +15,8 @@ class Hvi2VideoMode():
             configuration (Dict[str,Any]):
                 'n_waveforms' (int): number of waveforms per channel (only applies when hvi_queue_control=True)
                 'acquisition_delay_ns' (int):
-                Time in ns between AWG output change and digitizer acquisition start.
-                This also increases the gap between acquisitions.
+                    Time in ns between AWG output change and digitizer acquisition start.
+                    This also increases the gap between acquisitions.
                 'digitizer_name':
                     'all_ch' (List[int]): all channels
                     'raw_ch' (List[int]): channels in raw mode
@@ -84,20 +84,23 @@ class Hvi2VideoMode():
         for dig_seq in dig_seqs:
             ds_ch = self._module_config(dig_seq, 'ds_ch')
             if len(ds_ch) > 0:
-                # NOTE: loop costs PXI registers. Better wait fixed time.
+                # NOTE: wait loop costs PXI triggers. Better wait fixed time.
                 dig_seq.wait(600)
-    #            self._wait_state_clear(dig_seq, running=ds_ch)
+                # self._wait_state_clear(dig_seq, running=ds_ch)
 
                 dig_seq.ds.control(push=ds_ch)
                 dig_seq.wait(600)
-    #            self._wait_state_clear(dig_seq, pushing=ds_ch)
+                # self._wait_state_clear(dig_seq, pushing=ds_ch)
 
     def sequence(self, sequencer, hardware):
         self.hardware = hardware
         self.r_nrep = sequencer.add_sync_register('n_rep')
         self.r_wave_duration = sequencer.add_module_register('wave_duration', module_type='awg')
-        self.r_dig_wait = sequencer.add_module_register('dig_wait', module_type='digitizer')
+        self.r_start_wait = sequencer.add_module_register('start_wait', module_type='digitizer')
+        self.r_line_wait = sequencer.add_module_register('line_wait', module_type='digitizer')
+        self.r_point_wait = sequencer.add_module_register('point_wait', module_type='digitizer')
         self.r_npoints = sequencer.add_module_register('n_points', module_type='digitizer')
+        self.r_nlines = sequencer.add_module_register('n_lines', module_type='digitizer')
         sequencer.add_module_register('channel_state', module_type='digitizer')
         for awg in hardware.awgs:
             if self._configuration[awg.name]['hvi_queue_control']:
@@ -132,12 +135,14 @@ class Hvi2VideoMode():
                 with sync.SyncedModules():
                     for awg_seq in awg_seqs:
                         awg_seq.log.write(2)
-                        awg_seq.trigger()
                         los = self._module_config(awg_seq, 'active_los')
+                        # phase reset of AWG and Dig must be at the same clock tick.
                         if len(los)>0:
                             awg_seq.lo.reset_phase(los)
                         else:
                             awg_seq.wait(10)
+                        awg_seq.wait(100)
+                        awg_seq.trigger()
                         if self._module_config(awg_seq, 'trigger_out'):
                             awg_seq.marker.start()
                             awg_seq.marker.trigger()
@@ -152,24 +157,27 @@ class Hvi2VideoMode():
                         iq_ch = self._module_config(dig_seq, 'iq_ch')
                         ds_ch = self._module_config(dig_seq, 'ds_ch')
                         raw_ch = self._module_config(dig_seq, 'raw_ch')
+                        # phase reset of AWG and Dig must be at the same clock tick.
                         if len(iq_ch) > 0:
                             dig_seq.ds.control(phase_reset=iq_ch)
                         else:
                             dig_seq.wait(10)
 
-                        dig_seq.wait(290 - 130 + self._acquisition_delay)
+                        dig_seq.wait(dig_seq['start_wait'])
 
-                        with dig_seq.Repeat(dig_seq['n_points']):
-                            if len(raw_ch) > 0:
-                                dig_seq.trigger()
-                            else:
-                                dig_seq.wait(10)
-                            dig_seq.wait(30)
-                            if len(ds_ch) > 0:
-                                dig_seq.ds.control(start=ds_ch)
-                            else:
-                                dig_seq.wait(10)
-                            dig_seq.wait(dig_seq['dig_wait'])
+                        with dig_seq.Repeat(dig_seq['n_lines']):
+                            with dig_seq.Repeat(dig_seq['n_points']):
+                                if len(raw_ch) > 0:
+                                    dig_seq.trigger()
+                                else:
+                                    dig_seq.wait(10)
+                                dig_seq.wait(30)
+                                if len(ds_ch) > 0:
+                                    dig_seq.ds.control(start=ds_ch)
+                                else:
+                                    dig_seq.wait(10)
+                                dig_seq.wait(dig_seq['point_wait'])
+                            dig_seq.wait(dig_seq['line_wait'])
 
             with sync.SyncedModules():
                 self._push_data(dig_seqs)
@@ -179,22 +187,42 @@ class Hvi2VideoMode():
 
     def start(self, hvi_exec, waveform_duration, n_repetitions, hvi_params):
 
-#        logging.warning(f'{self._acquisition_delay} {self._acquisition_gap} {self.acquisition_gap}')
-
         for awg in self.hardware.awgs:
             if self._configuration[awg.name]['hvi_queue_control']:
                 awg.write_queue_mem()
 
+        # use default values for backwards compatibility with old scripts
+        start_delay = int(hvi_params.get('start_delay', 0))
+        n_points = hvi_params['number_of_points']
+        n_lines = hvi_params.get('number_of_lines', 1)
+        t_measure = int(hvi_params['t_measure'])
+        line_delay = int(hvi_params.get('line_delay', 400))
+
         hvi_exec.set_register(self.r_nrep, n_repetitions)
-        hvi_exec.set_register(self.r_npoints, hvi_params['number_of_points'])
+        hvi_exec.set_register(self.r_npoints, n_points)
+        hvi_exec.set_register(self.r_nlines, n_lines)
 
         hvi_exec.set_register(self.r_wave_duration, int(waveform_duration) // 10)
 
         # subtract the time needed for the repeat loop
-        t_wait = int(hvi_params['t_measure']) + self.acquisition_gap - 170
+        t_point_loop = 170
+        t_wait = t_measure + self.acquisition_gap - t_point_loop
         if t_wait < 10:
-            raise Exception(f'Minimum t_measure is {180-self.acquisition_gap} ns')
-        hvi_exec.set_register(self.r_dig_wait, t_wait//10)
+            raise Exception(f'Minimum t_measure is {10+t_point_loop-self.acquisition_gap} ns')
+        hvi_exec.set_register(self.r_point_wait, t_wait//10)
+
+        t_dig_delay = 300
+        t_till_trigger = 250 # delta with awg.trigger()
+        t_start_wait = start_delay + t_dig_delay - t_till_trigger + self._acquisition_delay
+        if t_start_wait < 10:
+            raise Exception(f'Start delay too short ({start_delay} ns)')
+        hvi_exec.set_register(self.r_start_wait, t_start_wait//10)
+
+        t_line_loop = 300
+        t_line_wait = line_delay - t_line_loop
+        if t_line_wait < 10:
+            raise Exception(f'Line delay too short ({line_delay} ns)')
+        hvi_exec.set_register(self.r_line_wait, t_line_wait//10)
 
         hvi_exec.start()
 

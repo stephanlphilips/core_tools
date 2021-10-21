@@ -80,7 +80,7 @@ class data_set:
             for j in range(n_sets):
                 ds_descript = dataset_data_description('', data_set_content.get(m_id[i],  j), data_set_content)
 
-                name = 'm' + str(i+1) + string.ascii_lowercase[j]
+                name = 'm' + str(i+1) + string.ascii_letters[j]
                 setattr(self, name, ds_descript)
 
                 if j == 0:

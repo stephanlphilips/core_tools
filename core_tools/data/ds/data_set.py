@@ -14,32 +14,34 @@ def load_by_id(exp_id):
     SQL_mgr = SQL_dataset_creator()
     return data_set(SQL_mgr.fetch_raw_dataset_by_Id(exp_id))
 
-def load_by_uuid(exp_uuid):
+def load_by_uuid(exp_uuid, copy2localdb=False):
     '''
     load a dataset by specifying its uuid (searches in local and remote db)
 
     args:
         exp_uuid (int) : uuid of the experiment you want to load
+        copy2localdb (bool): copy measurement to local database if only in remote
     '''
     SQL_mgr = SQL_dataset_creator()
-    return data_set(SQL_mgr.fetch_raw_dataset_by_UUID(exp_uuid))
+    return data_set(SQL_mgr.fetch_raw_dataset_by_UUID(exp_uuid, copy2localdb))
 
-def create_new_data_set(experiment_name, *m_params):
+def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
     '''
     generates a dataclass for a given set of measurement parameters
 
     Args:
+        experiment_name (str) : name of experiment
+        measurement_snapshot (dict[str,Any]) : snapshot of measurement parameters
         *m_params (m_param_dataset) : datasets of the measurement parameters
     '''
     ds = data_set_raw(exp_name=experiment_name)
 
     if qc.Station.default is not None:
-        snapshot = qc.Station.default.snapshot()
-        snapshot_json = json.dumps({'station': snapshot}, cls=qc.utils.helpers.NumpyJSONEncoder)
-        ds.snapshot = json.loads(snapshot_json)
+        station_snapshot = qc.Station.default.snapshot()
+        snapshot = {'station': station_snapshot}
     else:
         logging.error('No station configured')
-        snapshot_json = ''
+        snapshot = {'station': None}
 
     # intialize the buffers for the measurement
     for m_param in m_params:
@@ -50,7 +52,8 @@ def create_new_data_set(experiment_name, *m_params):
     SQL_mgr = SQL_dataset_creator()
     SQL_mgr.register_measurement(ds)
 
-    ds.snapshot = json.dumps(snapshot_json)
+    snapshot['measurement'] = measurement_snapshot
+    ds.snapshot = json.dumps(snapshot, cls=qc.utils.helpers.NumpyJSONEncoder)
 
     return data_set(ds)
 

@@ -10,10 +10,17 @@ import qcodes as qc
 os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
 
 class param_viewer:
-    def __init__(self, gates=None):
+    def __init__(self, gates=None, allow_mouse_wheel_updates : bool = True):
+        """ Parameter viewer for gates
+
+        Args:
+            gates: Gate instrument to use. If None, use qcodes.Station.default.gates
+            allow_mouse_wheel_updates: If True, then allow changing parameter values using mouse scrolling
+        """
         super().__init__()
         self.app = QtCore.QCoreApplication.instance()
         self.instance_ready = True
+
         if self.app is None:
             self.instance_ready = False
             self.app = QtWidgets.QApplication([])
@@ -26,15 +33,17 @@ class param_viewer:
             else:
                 raise ValueError('No gates Instrument found in the station, pleasse add manually.')
 
-        self.real_gate_model = gate_model(gates, list(gates.hardware.dac_gate_map.keys()))
+        self.real_gate_model = gate_model(gates, list(gates.hardware.dac_gate_map.keys()), allow_mouse_wheel_updates = allow_mouse_wheel_updates)
         self.engine.rootContext().setContextProperty("real_gate_model", self.real_gate_model)
 
         v_gates = list()
         for i in gates.v_gates.values():
             v_gates += i
 
-        self.virtual_gate_model = gate_model(gates, v_gates)
+        self.virtual_gate_model = gate_model(gates, v_gates, allow_mouse_wheel_updates = allow_mouse_wheel_updates)
         self.engine.rootContext().setContextProperty("virtual_gate_model", self.virtual_gate_model)
+
+        self.engine.rootContext().setContextProperty("param_viewer", self)
 
 
         filename = os.path.join(qml_in.__file__[:-12], "param_viewer.qml")

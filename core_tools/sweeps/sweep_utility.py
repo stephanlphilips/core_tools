@@ -12,7 +12,7 @@ def get_measure_data(m_instr):
     Args:
         m_instr (list<qc.Parameter>) : list with parameters to be measured
     Returns
-        my_data (list<qc.Parameter>), np.ndarray/str/float/int>) 
+        my_data (list<qc.Parameter>), np.ndarray/str/float/int>)
     '''
     my_data = []
     for instr in m_instr:
@@ -55,7 +55,8 @@ class PulseLibParameter(Parameter):
 
             index = np.unravel_index(self.flat_index, self.sequencer.shape)
             self.sequencer.play(index, release=True)
-            self.sequencer.m_param.setIndex(tuple(index))
+            if hasattr(self.sequencer, 'm_param'):
+                self.sequencer.m_param.setIndex(tuple(index))
             if MODE == SLOW:
                 self.sequencer.uploader.wait_until_AWG_idle()
             if MODE==FAST and self.flat_index < np.prod(self.sequencer.shape) - 1:
@@ -72,14 +73,17 @@ def pulselib_2_qcodes(awg_sequence):
         set_param (list<PulseLibParameter>) : set paramters for the pulselib to be used in the sweep
     '''
     set_param = list()
+    if awg_sequence.shape == (1,):
+        return set_param
     for i in range(len(awg_sequence.shape)):
-        param = PulseLibParameter(name = awg_sequence.labels[i].replace(" ", "_"), label=awg_sequence.labels[i], unit= awg_sequence.units[i])
+        param = PulseLibParameter(name=awg_sequence.labels[i].replace(" ", "_"),
+                                  label=awg_sequence.labels[i],
+                                  unit=awg_sequence.units[i])
         param.add_setpoints(awg_sequence.setpoints[i], awg_sequence, False)
         set_param.append(sweep_info(param, n_points = len(awg_sequence.setpoints[i])))
 
     set_param[0].param.lowest_level=True
     return set_param[::-1]
-
 
 @dataclass
 class sweep_info():
@@ -111,10 +115,12 @@ def check_OD_scan(sequence, minstr):
 
     def wrap_getter(get_raw_function):
         def meas(*args, **kwargs):
-            sequence.starting_lambda(sequence)
+            if hasattr(sequence, 'starting_lambda'):
+                sequence.starting_lambda(sequence)
             sequence.upload((0, ))
             sequence.play((0, ))
-            sequence.m_param.setIndex((0, ))
+            if hasattr(sequence, 'm_param'):
+                sequence.m_param.setIndex((0, ))
 
             data = get_raw_function(*args, **kwargs)
 

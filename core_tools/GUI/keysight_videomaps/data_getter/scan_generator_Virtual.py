@@ -1,13 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Aug  9 16:50:02 2019
-
-@author: V2
-"""
-from qcodes import MultiParameter
-import matplotlib.pyplot as plt
-import numpy as np
 import time
+import numpy as np
+from qcodes import MultiParameter
 
 class fake_digitizer(MultiParameter):
         """docstring for fake_digitizer"""
@@ -19,10 +12,12 @@ class fake_digitizer(MultiParameter):
         def get_raw(self):
             return 0
 
-def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels, dig_samplerate,
-                           channel_map=None):
+
+def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
+                           dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
+                           enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
-    1D fast scan object for V2.
+    1D fast scan parameter constructor.
 
     Args:
         gate (str) : gate/gates that you want to sweep.
@@ -32,19 +27,29 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
+        iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+                complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
+                all channels. A dict can be used to specify selection per channel, e.g. {1:'abs', 2:'angle'}.
+                Note: channel_map is a more generic replacement for iq_mode.
+        acquisition_delay_ns (float):
+                Time in ns between AWG output change and digitizer acquisition start.
+                This also increases the gap between acquisitions.
+        enable_markers (List[str]): marker channels to enable during scan
+        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
+            defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
+            E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+            The default channel_map is:
+                {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+        pulse_gates (Dict[str, float]):
+            Gates to pulse during scan with pulse voltage in mV.
+            E.g. {'vP1': 10.0, 'vB2': -29.1}
+        line_margin (int): number of points to add to sweep 1 to mask transition effects due to voltage step.
+            The points are added to begin and end for symmetry (bias-T).
 
     Returns:
-        Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
+        Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-
-
-
     vp = swing/2
-
-    # set up timing for the scan
-    # 2us needed to rearm digitizer
-    # 100ns HVI waiting time
-    step_eff = 2000 + 120 + t_step
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     voltages = np.zeros(n_pt)
@@ -54,18 +59,16 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     else:
         voltages = np.linspace(-vp,vp,n_pt)
 
-
-    # 100 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step /10
-    sample_rate = 1/(awg_t_step*1e-9)
-
-    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ), ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
+    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ),
+                                         ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
 
 
-def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib, digitizer,
-                           channels, dig_samplerate, channel_map=None):
+def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
+                           digitizer, channels, dig_samplerate, dig_vmax=2.0, iq_mode=None,
+                           acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
+                           pulse_gates={}, line_margin=0):
     """
-    1D fast scan object for V2.
+    2D fast scan parameter constructor.
 
     Args:
         gates1 (str) : gate that you want to sweep on x axis.
@@ -78,15 +81,28 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer_measure : digitizer object
+        iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+                complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
+                all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
+                Note: channel_map is a more generic replacement for iq_mode.
+        acquisition_delay_ns (float):
+                Time in ns between AWG output change and digitizer acquisition start.
+                This also increases the gap between acquisitions.
+        enable_markers (List[str]): marker channels to enable during scan
+        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
+            defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
+            E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+            The default channel_map is:
+                {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+        pulse_gates (Dict[str, float]):
+            Gates to pulse during scan with pulse voltage in mV.
+            E.g. {'vP1': 10.0, 'vB2': -29.1}
+        line_margin (int): number of points to add to sweep 1 to mask transition effects due to voltage step.
+            The points are added to begin and end for symmetry (bias-T).
 
     Returns:
-        Paramter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
+        Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-
-    # set up timing for the scan
-    # 2us needed to rearm digitizer
-    # 100ns HVI waiting time
-    step_eff = 2000 + 120 + t_step
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     vp1 = swing1/2
@@ -94,18 +110,18 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     voltages1 = np.linspace(-vp1,vp1,n_pt1)
     voltages2 = np.zeros(n_pt2)
+    voltages2_sp = np.linspace(-vp2,vp2,n_pt2)
     if biasT_corr == True:
-        voltages2[::2] = np.linspace(-vp2,vp2,n_pt2)[:len(voltages2[::2])]
-        voltages2[1::2] = np.linspace(-vp2,vp2,n_pt2)[len(voltages2[1::2]):][::-1]
+        voltages2[::2] = voltages2_sp[:len(voltages2[::2])]
+        voltages2[1::2] = voltages2_sp[len(voltages2[1::2]):][::-1]
     else:
-        voltages2 = np.linspace(-vp2,vp2,n_pt2)
+        voltages2 = voltages2_sp
 
-    # 100 time points per step to make sure that everything looks good (this is more than needed).
-    awg_t_step = t_step /10
-    sample_rate = 1/(awg_t_step*1e-9)
-
-    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt1, n_pt2), (gate1, gate2),
-                                         (tuple(voltages1),tuple(np.sort(voltages2))), biasT_corr, 500e6)
+    # Note: setpoints are in qcodes order
+    return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step,
+                                         (n_pt2, n_pt1), (gate2, gate1),
+                                         (tuple(voltages2_sp), (tuple(voltages1),)*n_pt2),
+                                         biasT_corr, 500e6)
 
 
 class dummy_digitzer_scan_parameter(MultiParameter):
@@ -166,13 +182,19 @@ class dummy_digitzer_scan_parameter(MultiParameter):
             else:
                 data_out[i] = data[i]
 
-        # time.sleep(0.02)
-        # print(data_out)
+        time.sleep(0.05)
 
         return tuple(data_out)
 
+    def stop(self):
+        pass
+
+    def restart(self):
+        pass
+
     def __del__(self):
         pass
+
 
 if __name__ == '__main__':
     dig = fake_digitizer("test")

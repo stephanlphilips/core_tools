@@ -26,7 +26,7 @@ In case you are running along with a server set up, it is recommended to have 'm
 
 In python you can run the following code to set up the database:
 ```python
-from core_tools.data.SQL.connector import set_up_local_storage
+from core_tools.data.SQL.connect import set_up_local_storage
 set_up_local_storage("myusername", "mypasswd", "mydbname",
 	"project_name", "set_up_name", "sample_name")
 ```
