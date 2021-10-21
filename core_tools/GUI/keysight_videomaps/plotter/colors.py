@@ -12,7 +12,7 @@ def polar_to_rgb(r, phi, colors='dark'):
     if max_r != 0.0:
         a = (r/np.max(r))
     else:
-        a = 0.0
+        a = r
     a[a<0] = 0.0
     if colors == 'light':
         h = (phi / (2*np.pi) + 0.5) % 1
