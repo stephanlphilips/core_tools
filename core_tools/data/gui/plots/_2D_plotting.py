@@ -35,10 +35,11 @@ class _2D_plot:
         self.img = pg.ImageItem()
         self.img_view = pg.ImageView(view=self.plot, imageItem=self.img)
         self.img_view.setColorMap(get_color_map())
-        self.label = QtWidgets.QLabel()
-        self.label.setAlignment(QtCore.Qt.AlignRight)
         self.img_view.ui.roiBtn.hide()
         self.img_view.ui.menuBtn.hide()
+
+        self.label = QtWidgets.QLabel()
+        self.label.setAlignment(QtCore.Qt.AlignRight)
         self.layout.addWidget(self.img_view)
         self.layout.addWidget(self.label)
         self.widget.setLayout(self.layout)

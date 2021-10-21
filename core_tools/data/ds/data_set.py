@@ -58,13 +58,16 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
     return data_set(ds)
 
 if __name__ == '__main__':
-    from core_tools.data.SQL.connect import set_up_local_storage
+    from core_tools.data.SQL.connect import set_up_local_storage,set_up_remote_storage
 
-    set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
+    set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
 
-    ds= (load_by_id(92))
-    print(ds.snapshot)
-    print(ds.metadata)
+    ds= (load_by_id(23000))
+    print(ds.snapshot['station']['instruments']['gates']['parameters'].keys())
+
+    for key in ds.snapshot['station']['instruments']['gates']['parameters'].keys():
+        print(key, ds.snapshot['station']['instruments']['gates']['parameters'][key]['value'])
+    # print(ds.metadata)
     # print(ds.m1.z())
     # print(ds.m1.x())
     # print(ds.m1.y())
