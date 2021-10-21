@@ -333,8 +333,6 @@ class _digitzer_scan_parameter(MultiParameter):
                             * (self.n_points + self.n_lines * self.line_delay_pts)
                             * self.sample_rate * 1e-9)
 
-        print(self.seg_size, (self.n_points + self.n_lines * self.line_delay_pts))
-
         self.dig.trigger_or_mask(pyspcm.SPC_TMASK_EXT0)
         self.dig.setup_multi_recording(self.seg_size, n_triggers=1)
 
