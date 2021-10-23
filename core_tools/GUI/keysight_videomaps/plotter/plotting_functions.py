@@ -222,8 +222,13 @@ class _1D_live_plot(live_plot):
         if not self.plot_data_valid:
             return
         self.set_busy(False)
-        for i in range(len(self.plot_widgets)):
-            self.plot_widgets[i].plot_items[0].setData(self.x_data,self.plot_data[i])
+        try:
+            for i in range(len(self.plot_widgets)):
+                self.plot_widgets[i].plot_items[0].setData(self.x_data,self.plot_data[i])
+        except:
+            logging.error(f'Plotting failed', exc_info=True)
+            # slow down to reduce error burst
+            time.sleep(0.5)
 
     def run(self):
         # fetch data here -- later ported through in update plot. Running update plot from here causes c++ to delethe the curves object for some wierd reason..
@@ -311,12 +316,14 @@ class _2D_live_plot(live_plot):
                 return
             self.set_busy(False)
             for i in range(len(self.plot_widgets)):
+                img_item = self.plot_widgets[i].plot_items[0]
                 plot_data = self.plot_data[i]
                 if self.gradient == 'Off':
                     if self.enhanced_contrast:
                         plot_data = compress_range(plot_data, upper=99.5, lower=0.5)
                     mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])
                     self.min_max[i].setText(f"min:{mn:4.0f} max:{mx:4.0f} mV  ")
+                    img_item.setLookupTable(lut)
                 elif self.gradient == 'Magnitude':
                     dx = ndimage.sobel(plot_data, axis=0, mode='nearest')
                     dy = ndimage.sobel(plot_data, axis=1, mode='nearest')
@@ -325,6 +332,7 @@ class _2D_live_plot(live_plot):
                         plot_data = compress_range(plot_data, upper=99.8, lower=25)
                     mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])
                     self.min_max[i].setText(f"min:{mn:4.0f} max:{mx:4.0f} a.u.    ")
+                    img_item.setLookupTable(lut)
                 elif self.gradient == 'Mag & angle':
                     dx = ndimage.sobel(plot_data, axis=0, mode='nearest')
                     dy = ndimage.sobel(plot_data, axis=1, mode='nearest')
@@ -334,6 +342,7 @@ class _2D_live_plot(live_plot):
                         mag = compress_range(mag, upper=99.8, lower=25, subtract_low=True)
                     plot_data = polar_to_rgb(mag, angle)
                     self.min_max[i].setText('           ')
+                    img_item.setLookupTable(None)
                 else:
                     logging.warning(f'Unknown gradient setting {self.gradient}')
 
