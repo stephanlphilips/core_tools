@@ -34,14 +34,14 @@ def ds2xarray(ct_ds):
             param = m_param[1]
             dims = []
             if param.ndim <= 2:
-            if param.ndim > 0:
-                coord = param.x
-                dims.append(coord.param_name)
-                _add_coord(ds, coord)
-            if param.ndim > 1:
-                coord = param.y
-                dims.append(coord.param_name)
-                _add_coord(ds, coord)
+                if param.ndim > 0:
+                    coord = param.x
+                    dims.append(coord.param_name)
+                    _add_coord(ds, coord)
+                if param.ndim > 1:
+                    coord = param.y
+                    dims.append(coord.param_name)
+                    _add_coord(ds, coord)
             else:
                 if param.ndim > 0:
                     coord = param.i
