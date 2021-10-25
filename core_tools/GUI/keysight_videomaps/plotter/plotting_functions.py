@@ -346,7 +346,7 @@ class _2D_live_plot(live_plot):
                 else:
                     logging.warning(f'Unknown gradient setting {self.gradient}')
 
-                self.plot_widgets[i].plot_items[0].setImage(plot_data)
+                img_item.setImage(plot_data)
                 self.prog_bar.setValue(self.prog_per)
         except Exception as e:
             logging.error(f'Exception plotting: {e}', exc_info=True)
