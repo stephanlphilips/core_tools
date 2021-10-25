@@ -202,10 +202,11 @@ class dummy_digitzer_scan_parameter(MultiParameter):
 if __name__ == '__main__':
     dig = fake_digitizer("test")
 
-    param = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
+    param = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, biasT_corr = True,
+                               pulse_lib = None, digitizer= dig, channels=None, dig_samplerate = None)
     data = param.get()
     print(data)
 
-    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
+    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig, channels=None, dig_samplerate = None)
     data_1D = param_1D.get()
     print(data_1D)
