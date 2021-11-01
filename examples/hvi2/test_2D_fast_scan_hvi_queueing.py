@@ -10,10 +10,9 @@ from keysight_fpga.sd1.fpga_utils import \
 from keysight_fpga.sd1.dig_iq import load_iq_image
 
 from keysight_fpga.qcodes.M3202A_fpga import M3202A_fpga
-from core_tools.drivers.M3102A import SD_DIG, MODES
+from core_tools.drivers.M3102A import SD_DIG
 
 from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
-from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
 from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Keysight import construct_2D_scan_fast
 from pulse_lib.base_pulse import pulselib
 from pulse_lib.virtual_channel_constructors import virtual_gates_constructor
@@ -103,7 +102,7 @@ for ch in dig_channels:
 
 ## create 2D scan
 gate1, swing1, n_pt1 = 'vP1', 500, 8
-gate2, swing2, n_pt2 = 'vP2', 500, 15
+gate2, swing2, n_pt2 = 'vP2', 500, 11
 biasT_corr=True
 
 dig_param = construct_2D_scan_fast(

@@ -21,12 +21,14 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     Args:
         gate (str) : gate/gates that you want to sweep.
-        swing (double) : swing to apply on the AWG gates.
+        swing (double) : swing to apply on the AWG gates. [mV]
         n_pt (int) : number of points to measure (current firmware limits to 1000)
-        t_step (double) : time in ns to measure per point.
+        t_step (double) : time in ns to measure per point. [ns]
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
-        digitizer_measure : digitizer object
+        digitizer : digitizer object
+        channels : digitizer channels to read
+        dig_samplerate : digitizer sample rate [Sa/s]
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to specify selection per channel, e.g. {1:'abs', 2:'angle'}.
@@ -53,7 +55,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
     voltages_sp = np.linspace(-vp,vp,n_pt)
-    if biasT_corr == True:
+    if biasT_corr:
         m = (n_pt+1)//2
         voltages = np.zeros(n_pt)
         voltages[::2] = voltages_sp[:m]
@@ -112,7 +114,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     voltages1 = np.linspace(-vp1,vp1,n_pt1)
     voltages2_sp = np.linspace(-vp2,vp2,n_pt2)
-    if biasT_corr == True:
+    if biasT_corr:
         m = (n_pt2+1)//2
         voltages2 = np.zeros(n_pt2)
         voltages2[::2] = voltages2_sp[:m]

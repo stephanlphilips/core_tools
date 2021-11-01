@@ -58,6 +58,10 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     vp = swing/2
     line_margin = int(line_margin)
+    if biasT_corr and line_margin > 0:
+        print('Line margin is ignored with biasT_corr on')
+        line_margin = 0
+
     add_line_delay = biasT_corr and len(pulse_gates) > 0
 
     if not acquisition_delay_ns:
@@ -84,9 +88,14 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     else:
         voltages = voltages_x
 
-    start_delay = line_margin * step_eff * (4 if add_line_delay else 1)
-    line_delay_pts = line_margin * 2
+    start_delay = line_margin * step_eff
+    line_delay_pts = 1
     n_lines = n_pt if add_line_delay else 1
+
+    if not biasT_corr:
+        prebias_pts = (n_ptx)//2
+        t_prebias = prebias_pts * step_eff
+        start_delay += t_prebias
 
     seg  = pulse_lib.mk_segment()
     g1 = seg[gate]
@@ -95,6 +104,13 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         pulse_channels.append((seg[ch], v))
 
     seg.add_HVI_marker('dig_trigger_1', acquisition_delay_ns + start_delay)
+    if not biasT_corr:
+        # pre-pulse to condition bias-T
+        g1.add_ramp_ss(0, t_prebias, 0, vpx)
+        for gp,v in pulse_channels:
+            gp.add_block(0, t_prebias, -v)
+        seg.reset_time()
+
     for voltage in voltages:
         g1.add_block(0, step_eff, voltage)
 
@@ -103,6 +119,13 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
             # compensation for pulse gates
             if biasT_corr:
                 gp.add_block(step_eff, 2*step_eff, -v)
+        seg.reset_time()
+
+    if not biasT_corr:
+        # post-pulse to discharge bias-T
+        g1.add_ramp_ss(0, t_prebias, -vpx, 0)
+        for gp,v in pulse_channels:
+            gp.add_block(0, t_prebias, -v)
         seg.reset_time()
 
     end_time = seg.total_time[0]
@@ -170,7 +193,6 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     """
     logging.info(f'Construct 2D: {gate1} {gate2}')
 
-
     # set up timing for the scan
     if not acquisition_delay_ns:
         acquisition_delay_ns = 500
@@ -202,7 +224,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     else:
         voltages2 = voltages2_sp
 
-    start_delay = t_prebias + line_margin * step_eff
+    start_delay = line_margin * step_eff
     if biasT_corr:
         # prebias: add half line with +vp2
         prebias_pts = (n_ptx)//2
@@ -212,9 +234,9 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     line_delay_pts = 2 * line_margin
     if add_pulse_gate_correction:
         line_delay_pts += n_ptx
-    n_lines = n_pt2
 
     seg  = pulse_lib.mk_segment()
+
     seg.add_HVI_marker('dig_trigger_1', acquisition_delay_ns + start_delay)
 
     g1 = seg[gate1]
@@ -224,7 +246,10 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         pulse_channels.append((seg[ch], v))
 
     if biasT_corr:
+        # pulse on fast gate to pre-charge bias-T
+        g1.add_block(0, t_prebias, vpx*0.35)
         # correct voltage to ensure average == 0.0 (No DC correction pulse needed at end)
+        # Note that voltage on g2 ends center of sweep, i.e. (close to) 0.0 V
         total_duration = prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
         g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
         g2.add_block(0, t_prebias, vp2)
@@ -249,6 +274,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
                 g.add_block(0, step_eff*n_ptx, -v)
             seg.reset_time()
 
+    if biasT_corr:
+        # pulses to discharge bias-T
+        # Note: g2 is already 0.0 V
+        g1.add_block(0, t_prebias, -vpx*0.35)
+        for g,v in pulse_channels:
+            g.add_block(0, t_prebias, +v)
+        seg.reset_time()
+
     end_time = seg.total_time[0]
     for marker in enabled_markers:
         marker_ch = seg[marker]
@@ -267,6 +300,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     logging.info(f'Seq upload')
     my_seq.upload()
 
+    n_lines = n_pt2
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, acquisition_delay_ns, n_lines, line_delay_pts,
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),

@@ -103,7 +103,7 @@ for ch in dig_channels:
 
 ## create 2D scan
 gate1, swing1, n_pt1 = 'vP1', 500, 15
-biasT_corr=True
+biasT_corr=False
 
 dig_param = construct_1D_scan_fast(
         gate1, swing1, n_pt1, t_measure, biasT_corr, p,
