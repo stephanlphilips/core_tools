@@ -25,7 +25,7 @@ class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
             # add gui for dataset selection
             for m_param_set in self.ds:
                 for m_param in m_param_set:
-                    param =m_param[1]
+                    param = m_param[1]
                     layout = single_m_param_m_descriptor(param, self.scrollAreaWidgetContents_4)
                     self.ui_box_mgr.add_m_param_plot_mgr(layout.plot_data_mgr)
                     self.data_content_layout.addLayout(layout)
@@ -99,7 +99,6 @@ class ui_box_mgr():
         # update plot every 300 ms for a smooth plotting experience
 
         self.plot_layout.parentWidget().setUpdatesEnabled(True)
-
         self.timer.timeout.connect(self.update_plots)
         self.timer.start(300)
 
