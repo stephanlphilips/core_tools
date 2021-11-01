@@ -55,6 +55,10 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     vp = swing/2
     line_margin = int(line_margin)
+    if biasT_corr and line_margin > 0:
+        print('Line margin is ignored with biasT_corr on')
+        line_margin = 0
+
     add_line_delay = biasT_corr and len(pulse_gates) > 0
 
     # set up timing for the scan
@@ -80,14 +84,27 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     else:
         voltages = voltages_x
 
-    start_delay = line_margin * step_eff * (4 if add_line_delay else 1)
-    line_delay = step_eff
+    start_delay = line_margin * step_eff
+    line_delay_pts = 1
+    n_lines = n_pt if add_line_delay else 1
+
+    if not biasT_corr:
+        prebias_pts = (n_ptx)//2
+        t_prebias = prebias_pts * step_eff
+        start_delay += t_prebias
 
     seg  = pulse_lib.mk_segment()
     g1 = seg[gate]
     pulse_channels = []
     for ch,v in pulse_gates.items():
         pulse_channels.append((seg[ch], v))
+
+    if not biasT_corr:
+        # pre-pulse to condition bias-T
+        g1.add_ramp_ss(0, t_prebias, 0, vpx)
+        for gp,v in pulse_channels:
+            gp.add_block(0, t_prebias, -v)
+        seg.reset_time()
 
     for voltage in voltages:
         g1.add_block(0, step_eff, voltage)
@@ -97,6 +114,13 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
             # compensation for pulse gates
             if biasT_corr:
                 gp.add_block(step_eff, 2*step_eff, -v)
+        seg.reset_time()
+
+    if not biasT_corr:
+        # post-pulse to discharge bias-T
+        g1.add_ramp_ss(0, t_prebias, -vpx, 0)
+        for gp,v in pulse_channels:
+            gp.add_block(0, t_prebias, -v)
         seg.reset_time()
 
     end_time = seg.total_time[0]
@@ -114,9 +138,9 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     seg.add_HVI_variable("t_measure", int(t_step))
     seg.add_HVI_variable("number_of_points", int(n_pt) if not add_line_delay else 1)
-    seg.add_HVI_variable("number_of_lines", 1 if not add_line_delay else n_pt)
+    seg.add_HVI_variable("number_of_lines", n_lines)
     seg.add_HVI_variable("start_delay", int(start_delay))
-    seg.add_HVI_variable("line_delay", int(line_delay) if add_line_delay else 500)
+    seg.add_HVI_variable("line_delay", int(line_delay_pts*step_eff) if add_line_delay else 500)
     seg.add_HVI_variable("averaging", True)
 
     # generate the sequence and upload it.
@@ -130,7 +154,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
-    								(n_pt, ), (gate, ), (tuple(voltages_sp), ),
+                                    (n_pt, ), (gate, ), (tuple(voltages_sp), ),
                                     biasT_corr, dig_samplerate, channels = channels,
                                     Vmax=dig_vmax, iq_mode=iq_mode,
                                     channel_map=channel_map)
@@ -214,9 +238,9 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         t_prebias = prebias_pts * step_eff
         start_delay += t_prebias
 
-    line_delay = 2 * line_margin * step_eff
+    line_delay_pts = 2 * line_margin
     if add_pulse_gate_correction:
-        line_delay += n_ptx*step_eff
+        line_delay_pts += n_ptx
 
     seg  = pulse_lib.mk_segment()
 
@@ -227,7 +251,10 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         pulse_channels.append((seg[ch], v))
 
     if biasT_corr:
+        # pulse on fast gate to pre-charge bias-T
+        g1.add_block(0, t_prebias, vpx*0.35)
         # correct voltage to ensure average == 0.0 (No DC correction pulse needed at end)
+        # Note that voltage on g2 ends center of sweep, i.e. (close to) 0.0 V
         total_duration = prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
         g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
         g2.add_block(0, t_prebias, vp2)
@@ -252,6 +279,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
                 g.add_block(0, step_eff*n_ptx, -v)
             seg.reset_time()
 
+    if biasT_corr:
+        # pulses to discharge bias-T
+        # Note: g2 is already 0.0 V
+        g1.add_block(0, t_prebias, -vpx*0.35)
+        for g,v in pulse_channels:
+            g.add_block(0, t_prebias, +v)
+        seg.reset_time()
+
     end_time = seg.total_time[0]
     for marker in enabled_markers:
         marker_ch = seg[marker]
@@ -269,10 +304,10 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     seg.add_HVI_variable("t_measure", int(t_step))
     seg.add_HVI_variable("start_delay", int(start_delay))
-    if line_delay > 0:
+    if line_delay_pts > 0:
         seg.add_HVI_variable("number_of_points", int(n_pt1))
         seg.add_HVI_variable("number_of_lines", int(n_pt2))
-        seg.add_HVI_variable("line_delay", int(line_delay))
+        seg.add_HVI_variable("line_delay", int(line_delay_pts*step_eff))
     else:
         seg.add_HVI_variable("number_of_points", int(n_pt1*n_pt2))
         seg.add_HVI_variable("number_of_lines", int(1))
@@ -390,7 +425,7 @@ class _digitzer_scan_parameter(MultiParameter):
         logging.info(f'Play')
         start = time.perf_counter()
         # play sequence
-        self.my_seq.play(release = False)
+        self.my_seq.play(release=False)
         start2 = time.perf_counter()
         self.pulse_lib.uploader.wait_until_AWG_idle()
         logging.info(f'AWG idle after {(time.perf_counter()-start)*1000:3.1f} ms, ({(time.perf_counter()-start2)*1000:3.1f} ms)')
