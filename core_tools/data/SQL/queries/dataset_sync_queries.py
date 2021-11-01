@@ -1,8 +1,6 @@
 from core_tools.data.SQL.SQL_common_commands import execute_statement, execute_query
 from core_tools.data.SQL.SQL_common_commands import select_elements_in_table, insert_row_in_table, update_table
 from core_tools.data.SQL.queries.dataset_creation_queries import data_table_queries
-from core_tools.data.SQL.SQL_utility import text, generate_uuid, N_to_n
-from core_tools.data.SQL.connect import SQL_conn_info_local, sample_info
 
 import psycopg2, json
 import numpy as np
