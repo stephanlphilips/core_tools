@@ -1,5 +1,6 @@
 import logging
-from core_tools.data.ds.data_set_core import data_set_raw, data_set
+from core_tools.data.ds.data_set_core import  data_set
+from core_tools.data.ds.data_set_raw import data_set_raw
 from core_tools.data.SQL.SQL_dataset_creator import SQL_dataset_creator
 import json
 import qcodes as qc
