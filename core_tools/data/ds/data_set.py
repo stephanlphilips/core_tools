@@ -49,11 +49,16 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
         ds.measurement_parameters += [m_param]
         ds.measurement_parameters_raw += m_param.to_SQL_data_structure()
 
+    snapshot['measurement'] = measurement_snapshot
+
+    # encode and decode to convert all numpy arrays and complex numbers to jsonable lists and dictionaries
+    snapshot_json = json.dumps(snapshot, cls=qc.utils.helpers.NumpyJSONEncoder)
+    snapshot = json.loads(snapshot_json)
+
+    ds.snapshot = snapshot
+
     SQL_mgr = SQL_dataset_creator()
     SQL_mgr.register_measurement(ds)
-
-    snapshot['measurement'] = measurement_snapshot
-    ds.snapshot = json.dumps(snapshot, cls=qc.utils.helpers.NumpyJSONEncoder)
 
     return data_set(ds)
 
