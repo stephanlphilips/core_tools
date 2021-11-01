@@ -49,22 +49,30 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
         ds.measurement_parameters += [m_param]
         ds.measurement_parameters_raw += m_param.to_SQL_data_structure()
 
+    snapshot['measurement'] = measurement_snapshot
+
+    # encode and decode to convert all numpy arrays and complex numbers to jsonable lists and dictionaries
+    snapshot_json = json.dumps(snapshot, cls=qc.utils.helpers.NumpyJSONEncoder)
+    snapshot = json.loads(snapshot_json)
+
+    ds.snapshot = snapshot
+
     SQL_mgr = SQL_dataset_creator()
     SQL_mgr.register_measurement(ds)
-
-    snapshot['measurement'] = measurement_snapshot
-    ds.snapshot = json.dumps(snapshot, cls=qc.utils.helpers.NumpyJSONEncoder)
 
     return data_set(ds)
 
 if __name__ == '__main__':
-    from core_tools.data.SQL.connect import set_up_local_storage
+    from core_tools.data.SQL.connect import set_up_local_storage,set_up_remote_storage
 
-    set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
+    set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
 
-    ds= (load_by_id(92))
-    print(ds.snapshot)
-    print(ds.metadata)
+    ds= (load_by_id(23000))
+    print(ds.snapshot['station']['instruments']['gates']['parameters'].keys())
+
+    for key in ds.snapshot['station']['instruments']['gates']['parameters'].keys():
+        print(key, ds.snapshot['station']['instruments']['gates']['parameters'][key]['value'])
+    # print(ds.metadata)
     # print(ds.m1.z())
     # print(ds.m1.x())
     # print(ds.m1.y())

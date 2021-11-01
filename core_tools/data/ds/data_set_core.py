@@ -1,10 +1,8 @@
-from core_tools.data.ds.data_set_raw import data_set_raw
 from core_tools.data.ds.data_set_DataMgr import m_param_origanizer, dataset_data_description
 from core_tools.data.SQL.SQL_dataset_creator import SQL_dataset_creator
 
 import datetime
 import string
-import json
 import time
 
 class data_set_desciptor(object):
@@ -12,38 +10,33 @@ class data_set_desciptor(object):
         self.var = variable
         self.is_time = is_time
         self.is_JSON = is_JSON
-    def __get__(self, obj, objtype):
-        if self.is_time:
-            return datetime.datetime.fromtimestamp(getattr(getattr(obj,"_data_set__data_set_raw"), self.var))
-        if self.is_JSON:
-            if getattr(getattr(obj,"_data_set__data_set_raw"), self.var) is None:
-                return None
-            else:
-                return json.loads(getattr(getattr(obj,"_data_set__data_set_raw"), self.var))
 
-        return getattr(getattr(obj,"_data_set__data_set_raw"), self.var)
+    def __get__(self, obj, objtype):
+        value = getattr(getattr(obj,"_data_set__data_set_raw"), self.var)
+        if self.is_time:
+            return datetime.datetime.fromtimestamp(value)
+
+        return value
 
 class data_set:
     completed = data_set_desciptor('completed')
-    
+
     dbname = data_set_desciptor('dbname')
     table_name = data_set_desciptor('SQL_table_name')
     name = data_set_desciptor('exp_name')
-    
+
     exp_id = data_set_desciptor('exp_id')
     exp_uuid = data_set_desciptor('exp_uuid')
     exp_name = data_set_desciptor('exp_name')
-    
+
     project = data_set_desciptor('project')
     set_up = data_set_desciptor('set_up')
     sample_name = data_set_desciptor('sample')
-    
-    metadata_raw = data_set_desciptor('metadata')
-    snapshot_raw = data_set_desciptor('snapshot')
-    metadata = data_set_desciptor('metadata', is_JSON=True)
-    snapshot = data_set_desciptor('snapshot', is_JSON=True)
+
+    metadata = data_set_desciptor('metadata')
+    snapshot = data_set_desciptor('snapshot')
     keywords = data_set_desciptor('keywords')
-    
+
     run_timestamp = data_set_desciptor('UNIX_start_time', is_time=True)
     run_timestamp_raw = data_set_desciptor('UNIX_start_time')
     completed_timestamp = data_set_desciptor('UNIX_stop_time', is_time=True)
@@ -62,7 +55,7 @@ class data_set:
     def __getitem__(self, i):
         if isinstance(i, str):
             return self(i)
-        
+
         return self.__repr_attr_overview[i]
 
     def __init_properties(self, data_set_content):
@@ -70,7 +63,7 @@ class data_set:
         populates the dataset with the measured parameter in the raw dataset
 
         Args:
-            data_set_content (m_param_origanizer) : m_param_raw raw objects in their mamagement object 
+            data_set_content (m_param_origanizer) : m_param_raw raw objects in their mamagement object
         '''
         m_id = data_set_content.get_m_param_id()
 
@@ -85,7 +78,7 @@ class data_set:
 
                 if j == 0:
                     setattr(self, 'm' + str(i+1), ds_descript)
-                
+
                 if j == 0 and n_sets==1: #consistent printing
                     repr_attr_overview += [('m' + str(i+1), ds_descript)]
                     ds_descript.name = 'm' + str(i+1)
@@ -103,7 +96,7 @@ class data_set:
             for var_meas in minstr:
                 if var_meas[1].label == label_variable:
                     return var_meas[1]
-        
+
         raise ValueError(f'Unable to find \'{label_variable}\' in ds with id :{self.exp_id}')
 
     def add_result(self, input_data):
@@ -144,13 +137,13 @@ class data_set:
         Args:
             force (bool) : enforce the update
         '''
-        current_time = time.time() 
+        current_time = time.time()
         if current_time - self.last_commit > 0.2 or force==True:
             self.last_commit=current_time
 
             self.__data_set_raw.sync_buffers()
             SQL_ds_creator = SQL_dataset_creator()
-            SQL_ds_creator.update_write_cursors(self.__data_set_raw)   
+            SQL_ds_creator.update_write_cursors(self.__data_set_raw)
 
     def __repr__(self):
         output_print = "DataSet :: {}\n\nid = {}\nuuid = {}\n\n".format(self.name, self.exp_id, self.exp_uuid)

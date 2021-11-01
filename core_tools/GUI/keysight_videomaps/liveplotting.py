@@ -426,7 +426,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         biasTerror2D = t_bias_charging_2D/biasTrc
         # max error is on y-value / gate2 voltage
-        self._2D_biasTwarning.setText(f'max bias T error: {biasTerror2D:3.1%}, {biasTerror2D*self._2D__V2_swing:3.1f} mV')
+        self._2D_biasTwarning.setText(f'max bias T error: {biasTerror2D:3.1%}, {biasTerror2D*self._2D__V2_swing/2:3.1f} mV')
         style = 'QLabel {color : red; }' if biasTerror2D > 0.05 else ''
         self._2D_biasTwarning.setStyleSheet(style)
 
@@ -437,7 +437,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             t_bias_charging_1D = (self._1D__npt + 2*self._gen__line_margin) * self._1D__t_meas * 0.25
 
         biasTerror1D = t_bias_charging_1D/biasTrc
-        self._1D_biasTwarning.setText(f'max bias T error: {biasTerror1D:3.1%}, {biasTerror1D*self._1D__V_swing:3.1f} mV')
+        self._1D_biasTwarning.setText(f'max bias T error: {biasTerror1D:3.1%}, {biasTerror1D*self._1D__V_swing/2:3.1f} mV')
         style = 'QLabel {color : red; }' if biasTerror1D > 0.05 else ''
         self._1D_biasTwarning.setStyleSheet(style)
 

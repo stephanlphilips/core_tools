@@ -52,15 +52,17 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     vp = swing/2
 
     # set up sweep voltages (get the right order, to compenstate for the biasT).
-    voltages = np.zeros(n_pt)
+    voltages_sp = np.linspace(-vp,vp,n_pt)
     if biasT_corr == True:
-        voltages[::2] = np.linspace(-vp,vp,n_pt)[:len(voltages[::2])]
-        voltages[1::2] = np.linspace(-vp,vp,n_pt)[len(voltages[1::2]):][::-1]
+        m = (n_pt+1)//2
+        voltages = np.zeros(n_pt)
+        voltages[::2] = voltages_sp[:m]
+        voltages[1::2] = voltages_sp[m:][::-1]
     else:
-        voltages = np.linspace(-vp,vp,n_pt)
+        voltages = voltages_sp
 
     return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ),
-                                         ( tuple(np.sort(voltages)), ), biasT_corr, 500e6)
+                                         ( tuple(voltages_sp), ), biasT_corr, 500e6)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
@@ -109,11 +111,12 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     vp2 = swing2/2
 
     voltages1 = np.linspace(-vp1,vp1,n_pt1)
-    voltages2 = np.zeros(n_pt2)
     voltages2_sp = np.linspace(-vp2,vp2,n_pt2)
     if biasT_corr == True:
-        voltages2[::2] = voltages2_sp[:len(voltages2[::2])]
-        voltages2[1::2] = voltages2_sp[len(voltages2[1::2]):][::-1]
+        m = (n_pt2+1)//2
+        voltages2 = np.zeros(n_pt2)
+        voltages2[::2] = voltages2_sp[:m]
+        voltages2[1::2] = voltages2_sp[m:][::-1]
     else:
         voltages2 = voltages2_sp
 
@@ -199,10 +202,11 @@ class dummy_digitzer_scan_parameter(MultiParameter):
 if __name__ == '__main__':
     dig = fake_digitizer("test")
 
-    param = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, dig)
+    param = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, biasT_corr = True,
+                               pulse_lib = None, digitizer= dig, channels=None, dig_samplerate = None)
     data = param.get()
     print(data)
 
-    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig)
+    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, dig, channels=None, dig_samplerate = None)
     data_1D = param_1D.get()
     print(data_1D)

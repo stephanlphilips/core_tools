@@ -71,6 +71,7 @@ class ui_box_mgr():
 
     def draw_plots(self):
         self.timer.stop()
+        self.plot_layout.parentWidget().setUpdatesEnabled(False)
 
         # clear all
         plot_widgets = []
@@ -95,7 +96,9 @@ class ui_box_mgr():
         self.plot_widgets = plot_widgets
         for plot_widget in self.plot_widgets:
             self.plot_layout.addWidget(plot_widget.widget)
-        # update plot every 300 ms for a smooth plottin experience
+        # update plot every 300 ms for a smooth plotting experience
+
+        self.plot_layout.parentWidget().setUpdatesEnabled(True)
 
         self.timer.timeout.connect(self.update_plots)
         self.timer.start(300)
