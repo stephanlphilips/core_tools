@@ -202,11 +202,13 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     else:
         voltages2 = voltages2_sp
 
-    # prebias: add half line with +vp2
-    prebias_pts = (n_ptx)//2
-    t_prebias = prebias_pts * step_eff
-
     start_delay = t_prebias + line_margin * step_eff
+    if biasT_corr:
+        # prebias: add half line with +vp2
+        prebias_pts = (n_ptx)//2
+        t_prebias = prebias_pts * step_eff
+        start_delay += t_prebias
+
     line_delay_pts = 2 * line_margin
     if add_pulse_gate_correction:
         line_delay_pts += n_ptx
@@ -221,12 +223,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     for ch,v in pulse_gates.items():
         pulse_channels.append((seg[ch], v))
 
-    # correct voltage to ensure average == 0.0 (No DC correction pulse needed at end)
-    total_duration = prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
-    g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
-
-    g2.add_block(0, t_prebias, vp2)
-    seg.reset_time()
+    if biasT_corr:
+        # correct voltage to ensure average == 0.0 (No DC correction pulse needed at end)
+        total_duration = prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
+        g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
+        g2.add_block(0, t_prebias, vp2)
+        for g,v in pulse_channels:
+            g.add_block(0, t_prebias, -v)
+        seg.reset_time()
 
     for v2 in voltages2:
 
