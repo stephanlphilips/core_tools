@@ -202,6 +202,7 @@ if 2 in dig_channel_modes.values() or 3 in dig_channel_modes.values():
                 phase = np.angle(dig_data[c], deg=True)
                 jitter = (phase - np.average(phase))/360/lo_f[ch] * 1e12
                 pt.plot(t, jitter, label=f'ch{ch}')
+                pt.ylabel('[ps]')
                 pt.title('Jitter')
 
             pt.figure(7)

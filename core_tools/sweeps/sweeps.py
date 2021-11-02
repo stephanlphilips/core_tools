@@ -2,7 +2,8 @@ from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
 from core_tools.data.measurement import Measurement
 from pulse_lib.sequencer import sequencer
 
-from core_tools.sweeps.sweep_utility import pulselib_2_qcodes, sweep_info, get_measure_data, KILL_EXP
+from core_tools.sweeps.sweep_utility import (
+        pulselib_2_qcodes, check_OD_scan, sweep_info, get_measure_data, KILL_EXP)
 from core_tools.job_mgnt.job_meta import job_meta
 from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 
@@ -19,7 +20,7 @@ class scan_generic(metaclass=job_meta):
 
         Args:
             args (*list) :  provide here the sweep info and meaurment parameters
-            reset_param (bool) : reset the setpoint parametes to their original value after the meaurement 
+            reset_param (bool) : reset the setpoint parametes to their original value after the meaurement
         '''
         self.name = name
         self.meas = Measurement(self.name)
@@ -29,25 +30,35 @@ class scan_generic(metaclass=job_meta):
         self.reset_param = reset_param
 
         set_points = []
+        sequence_to_wrap = None
         for arg in args:
             if isinstance(arg, sweep_info):
                 self.meas.register_set_parameter(arg.param, arg.n_points)
                 self.set_vars.append(arg)
                 set_points.append(arg.param)
             elif isinstance(arg, sequencer):
-                set_vars_pulse_lib = pulselib_2_qcodes(arg)
-                for var in set_vars_pulse_lib:
-                    self.meas.register_set_parameter(var.param, var.n_points)
-                    self.set_vars.append(var)
-                    set_points.append(var.param)
+                if arg.shape != (1, ):
+                    set_vars_pulse_lib = pulselib_2_qcodes(arg)
+                    for var in set_vars_pulse_lib:
+                        self.meas.register_set_parameter(var.param, var.n_points)
+                        self.set_vars.append(var)
+                        set_points.append(var.param)
+                else:
+                    # Sequence without looping parameters. Only upload, no setpoints
+                    sequence_to_wrap = arg
             elif arg is None:
                 continue
             else:
-                self.m_instr.append(arg)
-        
+                m_instr = arg
+                if sequence_to_wrap:
+                    # Yuk!
+                    m_instr = check_OD_scan(sequence_to_wrap, m_instr)[1]
+                    sequence_to_wrap = None
+                self.m_instr.append(m_instr)
+
         for instr in self.m_instr:
             self.meas.register_get_parameter(instr, *set_points)
-                
+
         self.n_tot = 1
 
         if name == '':
@@ -60,7 +71,7 @@ class scan_generic(metaclass=job_meta):
             self.n_tot *= swp_info.n_points
 
         self.meas.name = self.name
-        
+
     def run(self):
         '''
         run function
@@ -70,7 +81,7 @@ class scan_generic(metaclass=job_meta):
         '''
         with self.meas as ds:
             self._loop(self.set_vars, self.m_instr, tuple(), ds)
-        
+
         if self.reset_param:
             for param in self.set_vars:
                 try:
@@ -123,7 +134,7 @@ def do1D(param, start, stop, n_points, delay, *m_instr, name='', reset_param=Fal
         stop (float) : stop value of the sweep
         delay (float) : time to wait after the set of the parameter
         m_instr (*list) :  list of parameters to measure
-        reset_param (bool) : reset the setpoint parametes to their original value after the meaurement 
+        reset_param (bool) : reset the setpoint parametes to their original value after the meaurement
     '''
     m_param = sweep_info(param, start, stop, n_points, delay)
     return scan_generic(m_param, *m_instr,name=name, reset_param=reset_param)
@@ -143,7 +154,7 @@ def do2D(param_1, start_1, stop_1, n_points_1, delay_1,
         stop_2 (float) : stop value of the sweep
         delay_2 (float) : time to wait after the set of the parameter
         m_instr (*list) :  list of parameters to measure
-        reset_param (bool) : reset the setpoint parametes to their original value after the meaurement 
+        reset_param (bool) : reset the setpoint parametes to their original value after the meaurement
     '''
     m_param_1 = sweep_info(param_1, start_1, stop_1, n_points_1, delay_1)
     m_param_2 = sweep_info(param_2, start_2, stop_2, n_points_2, delay_2)
@@ -167,7 +178,7 @@ if __name__ == '__main__':
 
     station = qc.station.Station()
     station.add_component(MockParabola(name='MockParabola'))
-    
+
     class MyCounter(qc.Parameter):
         def __init__(self, name):
             # only name is required
@@ -186,7 +197,7 @@ if __name__ == '__main__':
 
     class dummy_multi_parameter_2dawg(qc.MultiParameter):
         def __init__(self, name, label=None, unit=None):
-            
+
             super().__init__(name=name,
                              instrument=None,
                              names=("test12","test1234"),

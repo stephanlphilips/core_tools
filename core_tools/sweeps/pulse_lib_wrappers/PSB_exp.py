@@ -18,7 +18,7 @@ def add_schedule_to_lambda(schedule):
         seq.set_hw_schedule(schedule)
     return new_lamdba
 
-def run_qubit_exp(exp_name, sequence):
+def run_qubit_exp(exp_name, sequence, mode = 'normal'):
     '''
     Args:
         exp_name (str) : name of the experiment
@@ -55,7 +55,11 @@ def run_qubit_exp(exp_name, sequence):
     my_seq.starting_lambda = starting_lambda
     mc = measurement_converter(md, my_seq.n_rep)
 
-    dig_param = mc.less_results()
+    if mode == 'normal':
+        dig_param = mc.less_results()
+    else:
+        dig_param = mc.state_tomography_results()
+
     dig_param.setUpParam(mc, station.dig)
     my_seq.m_param = dig_param
 

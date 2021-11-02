@@ -54,9 +54,9 @@ class _2D_plot_single:
 			ax.set_yscale('log')
 
 		if self.data.x_data is None:
-			c = ax.pcolormesh(self.data.z_data, **settings)
+			c = ax.pcolormesh(self.data.z_data, **settings, rasterized=True)
 		else:
-			c = ax.pcolormesh(self.data.x_data, self.data.y_data, self.data.z_data, **settings)
+			c = ax.pcolormesh(self.data.x_data, self.data.y_data, self.data.z_data, **settings, rasterized=True)
 		
 		if self.data.settings.cbar == True:
 			cbar = figure.colorbar(c, ax=ax)

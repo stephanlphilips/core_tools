@@ -32,6 +32,7 @@ class Hvi2SingleShot():
                     'ds_ch' (List[int]): channels in downsampler mode
                     'iq_ch' (List[int]): channels in IQ mode
                     'trigger_ch' (Optional[List[List[int]]]): channels to trigger on trigger i.
+                    'sequencer' (bool): if True enables quantum sequencer features.
                 `awg_name`:
                     'active_los' (List[Tuple[int,int]]): pairs of (channel, LO).
                     'switch_los' (bool): whether to switch LOs on/off
@@ -39,6 +40,7 @@ class Hvi2SingleShot():
                                   if None, then all los are switched on/off.
                     'hvi_queue_control' (bool): if True enables waveform queueing by hvi script.
                     'trigger_out' (bool): if True enables markers via Trigger Out channel.
+                    'sequencer' (bool): if True enables quantum sequencer features.
         '''
         self._configuration = configuration.copy()
 
@@ -84,6 +86,7 @@ class Hvi2SingleShot():
     def sequence(self, sequencer, hardware):
         self.hardware = hardware
         n_triggers = self._configuration['n_triggers']
+        n_waveforms = self._configuration['n_waveforms']
         self.use_systicks = hasattr(self.hardware.awgs[0], 'get_sys_ticks')
 
         self.r_start = sequencer.add_sync_register('start')
@@ -134,20 +137,38 @@ class Hvi2SingleShot():
 
                     with sync.SyncedModules():
                         for awg_seq in awg_seqs:
+                            los = self._module_config(awg_seq, 'active_los')
                             awg_seq.sys.clear_ticks()
                             if self._module_config(awg_seq, 'hvi_queue_control'):
-                                awg_seq.queueing.queue_waveforms()
+                                if n_waveforms > 1:
+                                    awg_seq.queueing.queue_waveforms_multiple()
+                                else:
+                                    awg_seq.queueing.queue_waveforms()
                             awg_seq.log.write(1)
+                            if len(los)>0:
+                                awg_seq.lo.reset_phase(los)
+                            else:
+                                awg_seq.wait(10)
                             awg_seq.start()
                             awg_seq.wait(1000)
 
                         for dig_seq in dig_seqs:
                             all_ch = self._module_config(dig_seq, 'all_ch')
                             ds_ch = self._module_config(dig_seq, 'ds_ch')
+                            iq_ch = self._module_config(dig_seq, 'iq_ch')
 
                             dig_seq.sys.clear_ticks()
                             dig_seq.log.write(1)
-                            dig_seq.qs.clear()
+                            if len(iq_ch) > 0:
+                                dig_seq.ds.control(phase_reset=iq_ch)
+                            else:
+                                dig_seq.wait(10)
+
+
+                            if self._module_config(dig_seq, 'sequencer'):
+                                dig_seq.qs.clear()
+                            else:
+                                dig_seq.wait(10)
                             dig_seq.start(all_ch)
 
                             if len(ds_ch) > 0:
@@ -159,15 +180,18 @@ class Hvi2SingleShot():
                             for awg_seq in awg_seqs:
                                 los = self._module_config(awg_seq, 'active_los')
                                 awg_seq.log.write(2)
-                                if len(los)>0:
-                                    awg_seq.lo.reset_phase(los)
-                                else:
-                                    awg_seq.wait(10)
+#                                if len(los)>0:
+#                                    awg_seq.lo.reset_phase(los)
+#                                else:
+                                awg_seq.wait(10)
 
-                                awg_seq.qs.reset_phase()
-                                awg_seq.qs.start()
-                                # total time since start loop: 50 ns (with QS)
-                                awg_seq.qs.trigger()
+                                if self._module_config(awg_seq, 'sequencer'):
+                                    awg_seq.qs.reset_phase()
+                                    awg_seq.qs.start()
+                                    # total time since start loop: 50 ns (with QS)
+                                    awg_seq.qs.trigger()
+                                else:
+                                    awg_seq.wait(30)
                                 awg_seq.trigger()
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.start()
@@ -188,7 +212,12 @@ class Hvi2SingleShot():
                                 awg_seq.wait(awg_seq['wave_duration'])
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.stop()
-                                awg_seq.qs.stop()
+                                else:
+                                    awg_seq.wait(10)
+                                if self._module_config(awg_seq, 'sequencer'):
+                                    awg_seq.qs.stop()
+                                else:
+                                    awg_seq.wait(10)
 
                             for dig_seq in dig_seqs:
                                 iq_ch = self._module_config(dig_seq, 'iq_ch')
@@ -196,15 +225,18 @@ class Hvi2SingleShot():
                                 raw_ch = self._module_config(dig_seq, 'raw_ch')
 
                                 dig_seq.log.write(2)
-                                if len(iq_ch) > 0:
-                                    dig_seq.ds.control(phase_reset=iq_ch)
-                                else:
-                                    dig_seq.wait(10)
+#                                if len(iq_ch) > 0:
+#                                    dig_seq.ds.control(phase_reset=iq_ch)
+#                                else:
+                                dig_seq.wait(10)
 
-                                dig_seq.qs.stop()
-                                dig_seq.qs.start()
-                                # total time since start loop: 30 ns
-                                dig_seq.qs.trigger()
+                                if self._module_config(dig_seq, 'sequencer'):
+                                    dig_seq.qs.stop()
+                                    dig_seq.qs.start()
+                                    # total time since start loop: 30 ns
+                                    dig_seq.qs.trigger()
+                                else:
+                                    dig_seq.wait(30)
 
                                 for i in range(n_triggers):
                                     dig_seq.wait(dig_seq[f'dig_wait_{i+1}'])
@@ -225,7 +257,8 @@ class Hvi2SingleShot():
                         self._push_data(dig_seqs)
                         for seq in all_seqs:
                             seq.stop()
-                            seq.qs.stop()
+                            if self._module_config(seq, 'sequencer'):
+                                seq.qs.stop()
                             seq.sys.clear_ticks()
                             # this delay saves 1 PXI trigger
                             seq.wait(100)
@@ -325,8 +358,15 @@ class Hvi2SingleShot():
                 tot_wait_awg = 0
 
             # add 250 ns for AWG and digitizer to get ready for next trigger.
+            awg_wait = waveform_duration + 250 + self._acquisition_delay
+            if 'sequence_period' in hvi_params:
+                loop_duration = 600
+                period_wait = hvi_params['sequence_period'] - loop_duration
+                if period_wait < awg_wait:
+                    logging.error(f'Specified "sequence_period" is too short. Minimum: {awg_wait + loop_duration}')
+                awg_wait = max(period_wait, awg_wait)
             self._set_wait_time(hvi_exec, self.r_wave_duration.registers[awg.name],
-                                waveform_duration + 250 - tot_wait_awg + self._acquisition_delay)
+                                awg_wait - tot_wait_awg)
 
         hvi_exec.write_register(self.r_stop, 0)
         hvi_exec.write_register(self.r_start, 1)
