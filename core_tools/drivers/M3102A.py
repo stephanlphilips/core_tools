@@ -85,12 +85,14 @@ class line_trace(MultiParameter):
     """
     class that defines the parameter for the measured data.
     """
-    def __init__(self, name, instrument, inst_name , raw=False):
+    def __init__(self, name, instrument, inst_name, raw=False, **kwargs):
         self.my_instrument = instrument
-        super().__init__(name=inst_name,
+        super().__init__(name=name,
+                         instrument=instrument,
                          names = (name +'_ch1', name +'_ch2'),
                          shapes=((1,),(1,)),
-                         docstring='Averaged traces from digitizer')
+                         docstring='Averaged traces from digitizer',
+                         **kwargs)
         self.cached_properties = dict()
 
     @property

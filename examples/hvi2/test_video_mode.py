@@ -115,7 +115,7 @@ def scan2D_keysight(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, pulse_li
 
 
 awg_slots = [7,3]
-dig_slot = 6
+dig_slot = 5
 dig_channels = [1,2,3,4]
 full_scale = 2.0
 

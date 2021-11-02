@@ -73,6 +73,8 @@ def pulselib_2_qcodes(awg_sequence):
         set_param (list<PulseLibParameter>) : set paramters for the pulselib to be used in the sweep
     '''
     set_param = list()
+    if awg_sequence.shape == (1,):
+        return set_param
     for i in range(len(awg_sequence.shape)):
         param = PulseLibParameter(name=awg_sequence.labels[i].replace(" ", "_"),
                                   label=awg_sequence.labels[i],

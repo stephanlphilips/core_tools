@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import datetime
 
 @dataclass
@@ -6,22 +6,15 @@ class m_result_item():
     my_id : int
     uuid : int
     name : str
-    _date : datetime
+    start_time : datetime
     project :str
     set_up : str
     sample : str
     starred : str
     _keywords : list = None
-    _location : bool = 0
 
-    __attr_order = ["my_id","uuid","name","date","project","set_up","sample","starred","keywords","location"]
+    __attr_order = ["my_id","uuid","name","date","project","set_up","sample","starred","keywords"]
     __search_key_idx = 3
-
-    @property
-    def location(self):
-        if self._location == '0':
-            return 'remote'
-        return 'local'
 
     @property
     def keywords(self):
@@ -32,19 +25,19 @@ class m_result_item():
                     kw += str(i) + ", "
         if len(kw) == 0:
             return kw
-        
+
         if len(kw) > 80:
             kw = kw[:80] + ' ....'
         return kw[:-2]
-    
+
     @property
     def date(self):
-        return self._date.strftime("%d/%m/%Y %H:%M:%S")
+        return self.start_time.strftime("%d/%m/%Y %H:%M:%S")
 
     @property
     def time(self):
-        return self._date.strftime("%H:%M:%S")
-    
+        return self.start_time.strftime("%H:%M:%S")
+
     def set_sort_idx(self, i):
         self.__search_key_idx = i
 
@@ -64,7 +57,7 @@ class m_result_overview():
     def __init__(self, query_input_data):
         self.data = []
         for data in query_input_data:
-            self.data.append(m_result_item(*data))
+            self.data.append(m_result_item(**asdict(data)))
 
         self.sort(3, True)
 
