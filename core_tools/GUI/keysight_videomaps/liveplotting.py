@@ -29,7 +29,12 @@ class param_getter:
 
 
 class ScanGeneratorBase:
-    """ Abstract case class for backends to implement """
+    """ Abstract base class for backends to implement
+    
+    The methods construct_1D_scan_fast and construct_2D_scan_fast are called by the GUI to define and upload the required waveforms.
+    Both methods should return a MultiParameter that acquires the data.
+    
+    """
 
     @abc.abstractmethod
     def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
