@@ -1,5 +1,6 @@
 import qdarkstyle
 import numpy as np
+import abc
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
 from core_tools.sweeps.sweeps import do0D
@@ -25,6 +26,94 @@ class plot_content:
 class param_getter:
     _1D: object()
     _2D: object()
+
+
+class ScanGeneratorBase:
+    """ Abstract case class for backends to implement """
+
+    @abc.abstractmethod
+    def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
+                               dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
+                               enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
+        """
+        1D fast scan parameter constructor.
+
+        Args:
+            gate (str) : gate/gates that you want to sweep.
+            swing (double) : swing to apply on the AWG gates. [mV]
+            n_pt (int) : number of points to measure (current firmware limits to 1000)
+            t_step (double) : time in ns to measure per point. [ns]
+            biasT_corr (bool) : correct for biasT by taking data in different order.
+            pulse_lib : pulse library object, needed to make the sweep.
+            digitizer : digitizer object
+            channels : digitizer channels to read
+            dig_samplerate : digitizer sample rate [Sa/s]
+            iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+                    complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
+                    all channels. A dict can be used to specify selection per channel, e.g. {1:'abs', 2:'angle'}.
+                    Note: channel_map is a more generic replacement for iq_mode.
+            acquisition_delay_ns (float):
+                    Time in ns between AWG output change and digitizer acquisition start.
+                    This also increases the gap between acquisitions.
+            enable_markers (List[str]): marker channels to enable during scan
+            channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
+                defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
+                E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+                The default channel_map is:
+                    {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+            pulse_gates (Dict[str, float]):
+                Gates to pulse during scan with pulse voltage in mV.
+                E.g. {'vP1': 10.0, 'vB2': -29.1}
+            line_margin (int): number of points to add to sweep 1 to mask transition effects due to voltage step.
+                The points are added to begin and end for symmetry (bias-T).
+
+    Returns:
+            Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
+    """
+    pass
+
+    def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
+                               digitizer, channels, dig_samplerate, dig_vmax=2.0, iq_mode=None,
+                               acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
+                               pulse_gates={}, line_margin=0):
+        """
+        2D fast scan parameter constructor.
+
+        Args:
+            gates1 (str) : gate that you want to sweep on x axis.
+            swing1 (double) : swing to apply on the AWG gates.
+            n_pt1 (int) : number of points to measure (current firmware limits to 1000)
+            gate2 (str) : gate that you want to sweep on y axis.
+            swing2 (double) : swing to apply on the AWG gates.
+            n_pt2 (int) : number of points to measure (current firmware limits to 1000)
+            t_step (double) : time in ns to measure per point.
+            biasT_corr (bool) : correct for biasT by taking data in different order.
+            pulse_lib : pulse library object, needed to make the sweep.
+            digitizer_measure : digitizer object
+            iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+                    complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
+                    all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
+                    Note: channel_map is a more generic replacement for iq_mode.
+            acquisition_delay_ns (float):
+                    Time in ns between AWG output change and digitizer acquisition start.
+                    This also increases the gap between acquisitions.
+            enable_markers (List[str]): marker channels to enable during scan
+            channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
+                defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
+                E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+                The default channel_map is:
+                    {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+            pulse_gates (Dict[str, float]):
+                Gates to pulse during scan with pulse voltage in mV.
+                E.g. {'vP1': 10.0, 'vB2': -29.1}
+            line_margin (int): number of points to add to sweep 1 to mask transition effects due to voltage step.
+                The points are added to begin and end for symmetry (bias-T).
+
+        Returns:
+            Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
+        """
+        pass
+
 
 class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     """
@@ -102,6 +191,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Tektronix
             self.construct_1D_scan_fast = scan_generator_Tektronix.construct_1D_scan_fast
             self.construct_2D_scan_fast = scan_generator_Tektronix.construct_2D_scan_fast
+        elif isinstance(scan_type, ScanGeneratorBase):
+            self.construct_1D_scan_fast = scan_type.construct_1D_scan_fast
+            self.construct_2D_scan_fast = scan_type.construct_2D_scan_fast     
         else:
             raise ValueError("Unsupported agrument for scan type.")
         self.current_plot = plot_content(None, None)
@@ -697,6 +789,7 @@ if __name__ == '__main__':
         def __init__(self, arg):
             super(test, self).__init__()
             self.channels = arg
+            self.marker_channels=[]
 
     # from V2_software.LivePlotting.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
 
