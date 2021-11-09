@@ -33,6 +33,12 @@ class variable_descriptor:
     def value(self, value):
         return self.__set__(variable_mgr(),value)
 
+    def __repr__(self):
+        return f'{self.__class__}: {self.name}: {self.value} [{self.unit}]'
+
+    def __str__(self):
+        return f'{self.name}: {self.value} [{self.unit}]'
+
 class variable_mgr():
     __instance = None
     conn_local = None
@@ -51,6 +57,19 @@ class variable_mgr():
             self.data = dict()
             self.vars = dict()
             self.__load_variables()
+
+    def __repr__(self):
+        c=self.__class__
+        name = c.__module__ + '.' + c.__name__
+        return f'<{name} at {id(self):x}>: {self.number_of_categories} categories, {self.number_of_variables} variables'
+
+    @property
+    def number_of_variables(self) -> int:
+        return sum( len(item) for item in self.data.values() )
+
+    @property
+    def number_of_categories(self) -> int:
+        return len(self.data)
 
     def __load_variables(self):
         var_sql_queries.init_table(self.conn_local)
@@ -80,7 +99,7 @@ class variable_mgr():
                 if self.__GUI is not None:
                     self.__GUI.set_data()
         else:
-            print('trying to add variable that is already there')
+            print(f'trying to add variable {name} that is already there')
 
     def remove_variable(self, variable_name):
         obj = super().__getattribute__(variable_name)
