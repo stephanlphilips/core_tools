@@ -789,7 +789,6 @@ if __name__ == '__main__':
         def __init__(self, arg):
             super(test, self).__init__()
             self.channels = arg
-            self.marker_channels=[]
 
     # from V2_software.LivePlotting.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
 
