@@ -451,7 +451,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             self._gen__n_columns)
                     self.start_1D.setEnabled(True)
                     self.set_metadata()
-                    self.attach_mouse_click_callback(self.current_plot._1D )
+                    self._attach_mouse_click_callback(self.current_plot._1D )
                     logging.info('Finished init currentplot and current_param')
                 except Exception as e:
                     logging.error(e, exc_info=True)
@@ -470,12 +470,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     def _signalPlotWindowMouseClicked(self, event, plot_index, live_plot_object):
         self.signalPlotWindowMouseClicked.emit(event, plot_index, live_plot_object)
         
-    def attach_mouse_click_callback(self, plot_handle ):
+    def _attach_mouse_click_callback(self, plot_handle):
         for plot_index, pd in enumerate(plot_handle.plot_widgets):
             pw = pd.plot_widget
-            img=pd.plot_items[0]
-            print(f'attach_mouse_click_callback: plot {plot_handle} widget {plot_index}')
-                       
+            logging.info(f'_attach_mouse_click_callback: plot {plot_handle} widget {plot_index}')
             pw.scene().sigMouseClicked.connect(partial(self._signalPlotWindowMouseClicked, plot_index=plot_index, live_plot_object = plot_handle))
         
     def _2D_start_stop(self):
@@ -509,7 +507,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.current_plot._2D.enhanced_contrast = self._2D_enh_contrast.isChecked()
                     self.start_2D.setEnabled(True)
                     self.set_metadata()                    
-                    self.attach_mouse_click_callback(self.current_plot._2D )                    
+                    self._attach_mouse_click_callback(self.current_plot._2D )                    
                     logging.info('Finished init currentplot and current_param')
                 except Exception as e:
                     logging.error(e, exc_info=True)
