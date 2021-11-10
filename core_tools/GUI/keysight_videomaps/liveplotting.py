@@ -1,5 +1,6 @@
 import qdarkstyle
 import numpy as np
+from functools import partial
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
 from core_tools.sweeps.sweeps import do0D
@@ -13,6 +14,7 @@ from qcodes import MultiParameter
 from qcodes.measure import Measure
 from core_tools.utility.powerpoint import addPPTslide
 import logging
+from qtpy.QtCore import Signal, Slot
 
 #TODO: Fix the measurement codes, to transpose the data properly (instead of fixing it in the plot)
 
@@ -38,6 +40,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     @property
     def tab_id(self):
         return self.tabWidget.currentIndex()
+
+    # signal emitted on a mouse click in one of the plotting windows. signature: event, index if plot, handle to live_plot object
+    signalPlotWindowMouseClicked = Signal(object, int, object)
 
     def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
                  iq_mode=None, channel_map=None):
@@ -446,6 +451,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             self._gen__n_columns)
                     self.start_1D.setEnabled(True)
                     self.set_metadata()
+                    self.attach_mouse_click_callback(self.current_plot._1D )
                     logging.info('Finished init currentplot and current_param')
                 except Exception as e:
                     logging.error(e, exc_info=True)
@@ -460,6 +466,18 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._1D.stop()
             self.start_1D.setText("Start")
 
+    @Slot(object, int, object)
+    def _signalPlotWindowMouseClicked(self, event, plot_index, live_plot_object):
+        self.signalPlotWindowMouseClicked.emit(event, plot_index, live_plot_object)
+        
+    def attach_mouse_click_callback(self, plot_handle ):
+        for plot_index, pd in enumerate(plot_handle.plot_widgets):
+            pw = pd.plot_widget
+            img=pd.plot_items[0]
+            print(f'attach_mouse_click_callback: plot {plot_handle} widget {plot_index}')
+                       
+            pw.scene().sigMouseClicked.connect(partial(self._signalPlotWindowMouseClicked, plot_index=plot_index, live_plot_object = plot_handle))
+        
     def _2D_start_stop(self):
         '''
         Starts/stops the data acquisition and plotting.
@@ -490,7 +508,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             self._2D_av_progress)
                     self.current_plot._2D.enhanced_contrast = self._2D_enh_contrast.isChecked()
                     self.start_2D.setEnabled(True)
-                    self.set_metadata()
+                    self.set_metadata()                    
+                    self.attach_mouse_click_callback(self.current_plot._2D )                    
                     logging.info('Finished init currentplot and current_param')
                 except Exception as e:
                     logging.error(e, exc_info=True)
