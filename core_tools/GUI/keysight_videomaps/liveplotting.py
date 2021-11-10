@@ -41,7 +41,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     def tab_id(self):
         return self.tabWidget.currentIndex()
 
-    # signal emitted on a mouse click in one of the plotting windows. signature: event, index if plot, handle to live_plot object
+    # signal emitted on a mouse click in one of the plotting windows. signature: event, index of plot, handle to live_plot object
     signalPlotWindowMouseClicked = Signal(object, int, object)
 
     def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
