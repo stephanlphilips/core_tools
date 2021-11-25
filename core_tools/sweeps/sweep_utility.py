@@ -40,7 +40,7 @@ class PulseLibParameter(Parameter):
         current_val = self.setpoints[self.flat_index%len(self.setpoints)]
 
         self.flat_index += 1
-        if self.flat_index > np.prod(self.sequencer.shape):
+        if self.flat_index >= np.prod(self.sequencer.shape):
             self.flat_index = 0
 
         return current_val
@@ -61,6 +61,20 @@ class PulseLibParameter(Parameter):
                 self.sequencer.uploader.wait_until_AWG_idle()
             if MODE==FAST and self.flat_index < np.prod(self.sequencer.shape) - 1:
                 self.sequencer.upload(np.unravel_index(self.flat_index+1, self.sequencer.shape))
+
+class SequenceStartAction:
+    def __init__(self, sequence):
+        self._sequence = sequence
+
+    def __call__(self):
+        sequence = self._sequence
+        if hasattr(sequence, 'starting_lambda'):
+            sequence.starting_lambda(sequence)
+        sequence.upload((0, ))
+        sequence.play((0, ))
+        if hasattr(sequence, 'm_param'):
+            sequence.m_param.setIndex((0, ))
+
 
 def pulselib_2_qcodes(awg_sequence):
     '''
@@ -107,26 +121,4 @@ class sweep_info():
 
 
 def check_OD_scan(sequence, minstr):
-    '''
-    function that checks if the awg sequence is 0D or not. In case of 0D if will wrap the sequence around the minstr its get function.
-    '''
-    if sequence.shape != (1,):
-        return sequence, minstr
-
-    def wrap_getter(get_raw_function):
-        def meas(*args, **kwargs):
-            if hasattr(sequence, 'starting_lambda'):
-                sequence.starting_lambda(sequence)
-            sequence.upload((0, ))
-            sequence.play((0, ))
-            if hasattr(sequence, 'm_param'):
-                sequence.m_param.setIndex((0, ))
-
-            data = get_raw_function(*args, **kwargs)
-
-            return data
-        return meas
-
-    minstr.get = wrap_getter(minstr.get)
-
-    return None, minstr
+    raise Exception('This function was broken beyond repair. Do not use it. [SdS]')
