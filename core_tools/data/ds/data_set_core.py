@@ -154,7 +154,7 @@ class data_set:
                 output_print += j[1].__repr__()
                 output_print += "\n"
 
-        output_print += "set_up : {}\n".format(self.project)
-        output_print += "project : {}\n".format(self.set_up)
+        output_print += "set_up : {}\n".format(self.set_up)
+        output_print += "project : {}\n".format(self.project)
         output_print += "sample_name : {}\n".format(self.sample_name)
         return output_print

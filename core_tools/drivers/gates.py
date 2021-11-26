@@ -78,7 +78,7 @@ class gates(qc.Instrument):
         '''
         names = list(self.gv.keys())
         current_voltages = list(self.gv.values())
-        
+
         names_in_vg_matrix = list(set(names).intersection(virt_gate_obj.gates))
         red_virt_gates_obj = virt_gate_obj.reduce(names_in_vg_matrix)
         current_voltages_formatted = np.zeros([len(red_virt_gates_obj)])
@@ -104,7 +104,6 @@ class gates(qc.Instrument):
         Args:
             name : name of the real gate (that corresponds the certain virtual gate)
         '''
-
         names = list(self.gv.keys())
         current_voltages = list(self.gv.values())
 
@@ -168,14 +167,14 @@ if __name__ == '__main__':
 
     hw.dac_gate_map = {
         # dacs for creating the quantum dots -- syntax, "gate name": (dac module number, dac index)
-        'B0': (0, 1), 'P1': (0, 2), 
+        'B0': (0, 1), 'P1': (0, 2),
         'B1': (0, 3), 'P2': (0, 4),
-        'B2': (0, 5), 'P3': (0, 6), 
-        'B3': (0, 7), 'P4': (0, 8), 
+        'B2': (0, 5), 'P3': (0, 6),
+        'B3': (0, 7), 'P4': (0, 8),
         'B4': (0, 9), 'P5': (0, 10),
         'B5': (0, 11),'P6': (0, 12),
         'B6': (0, 13), 'S6' : (0,14,),
-        'SD1_P': (1, 1), 'SD2_P': (1, 2), 
+        'SD1_P': (1, 1), 'SD2_P': (1, 2),
         'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
         'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
 

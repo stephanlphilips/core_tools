@@ -1,10 +1,11 @@
+import logging
 from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
 from core_tools.data.measurement import Measurement
 from pulse_lib.sequencer import sequencer
 
 from core_tools.sweeps.sweep_utility import (
         SequenceStartAction,
-        pulselib_2_qcodes, sweep_info, get_measure_data, 
+        pulselib_2_qcodes, sweep_info, get_measure_data,
         KILL_EXP
         )
 from core_tools.job_mgnt.job_meta import job_meta
@@ -79,15 +80,24 @@ class scan_generic(metaclass=job_meta):
         -- optionally also resets the paramters
         -- wrapped by the job_meta class (allows for progress bar to appear)
         '''
-        with self.meas as ds:
-            self._loop(self.set_vars, tuple(), ds)
+        try:
+            with self.meas as ds:
+                self._loop(self.set_vars, tuple(), ds)
 
-        if self.reset_param:
-            for param in self.set_vars:
-                try:
-                    param.reset_param()
-                except:
-                    pass
+        except KILL_EXP:
+            logging.warning('Measurement aborted')
+        except KeyboardInterrupt:
+            logging.warning('Measurement interrupted')
+        except:
+            logging.error('Exception in measurement', exc_info=True)
+
+        finally:
+            if self.reset_param:
+                for param in self.set_vars:
+                    try:
+                        param.reset_param()
+                    except:
+                        logging.error(f'Failed to reset parameter {param}')
 
         return self.meas.dataset
 
