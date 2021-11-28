@@ -25,22 +25,20 @@ def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name, no_norm=Fals
         hardware_name (str) : name of hardware in the snapshot present in the dataset
     '''
     virtual_gates = snapshot['station']['instruments'][hardware_name]['virtual_gates']
-    
+
     print('Loading  virtual gates matrices from dataset:')
 
     for key, value in virtual_gates.items():
         if no_norm:
             try:
-                matrix = value['virtual_gate_matrix_no_norm'].replace('\n', '').replace('[', '').replace(']', '')
+                matrix = value['virtual_gate_matrix_no_norm']
             except:
                 print('no old style matrix found, trying new style')
                 matrix = value['virtual_gate_matrix']
         else:
             matrix = value['virtual_gate_matrix']
-        
-        matrix.replace('\n', '').replace('[', '').replace(']', '')
-        mat = np.loadtxt(StringIO(matrix), delimiter=',')
-        mat = mat.reshape([int(np.sqrt(mat.size)), int(np.sqrt(mat.size))])
+
+        mat = np.array(eval(matrix))
 
         vg = virtual_gate_matrix(key, value['real_gate_names'], value['virtual_gate_names'], mat)
         vg.save()
@@ -92,21 +90,21 @@ if __name__ == '__main__':
     hw =  hardware()
     # hw.RF_source_names = []
     hw.dac_gate_map = {
-        'B0': (0, 1), 'P1': (0, 2), 
+        'B0': (0, 1), 'P1': (0, 2),
         'B1': (0, 3), 'P2': (0, 4),
-        'B2': (0, 5), 'P3': (0, 6), 
-        'B3': (0, 7), 'P4': (0, 8), 
+        'B2': (0, 5), 'P3': (0, 6),
+        'B3': (0, 7), 'P4': (0, 8),
         'B4': (0, 9), 'P5': (0, 10),
         'B5': (0, 11),'P6': (0, 12),
         'B6': (0, 13), 'S6' : (0,14,),
-        'SD1_P': (1, 1), 'SD2_P': (1, 2), 
+        'SD1_P': (1, 1), 'SD2_P': (1, 2),
         'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
         'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
 
     hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
     hw.awg2dac_ratios.add(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P'])
     hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P'])
-    
+
     my_gates = gates("gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
     station=qc.Station(my_gates, hw)
     from core_tools.sweeps.sweeps import do1D
@@ -118,5 +116,5 @@ if __name__ == '__main__':
     station.add_component(instr)
 
     # do1D(station.gates.B0, 0, 20, 50, 0.1, instr.measure).run()
-    
+
     # load_AWG_to_dac_conversion_from_ds(18, 'hardware')
