@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- copy from the version used by Nico, Will and Floor in LD400 
 
 # Form implementation generated from reading ui file 'data_browser_v2.ui'
 #

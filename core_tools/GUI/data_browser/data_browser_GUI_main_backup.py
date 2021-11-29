@@ -308,26 +308,8 @@ class data_viewer(QtWidgets.QMainWindow, Ui_dataviewer):
         self.active_params.append(plot)
         logging.info(f'adding param {plot}')
         self.subpl_ind[plot] = len(self.subpl_ind)
-        # self.qplot.add(getattr(self.dataset, plot), subplot = len(self.subpl_ind), 
-        #                 color = self.color_list[0])        
-        set_arr = getattr(self.dataset, plot).set_arrays
-        d_arr = self.dataset.arrays[plot]
-        
-        if len( set_arr ) == 1:
-            self.qplot.add(set_arr[0].ndarray, d_arr, subplot = len(self.subpl_ind), 
-                           xlabel = set_arr[0].label, xunit = set_arr[0].unit,
-                           ylabel = d_arr.label, yunit = d_arr.unit, 
-                            color = self.color_list[0])            
-        elif len( set_arr ) == 2: 
-            self.qplot.add(set_arr[1].ndarray, set_arr[0].ndarray, d_arr.ndarray, subplot = len(self.subpl_ind), 
-                           xlabel = set_arr[1].label, xunit = set_arr[1].unit,
-                           ylabel = set_arr[0].label, yunit = set_arr[0].unit,
-                           zlabel = d_arr.label, zunit = d_arr.unit,
-                            color = self.color_list[0])              
-        else:
-            self.qplot.add(getattr(self.dataset, plot), subplot = len(self.subpl_ind), 
-                            color = self.color_list[0])
-        
+        self.qplot.add(getattr(self.dataset, plot), subplot = len(self.subpl_ind), 
+                       color = self.color_list[0])
 
     def removePlot(self,plot):
         self.active_params.remove(plot)

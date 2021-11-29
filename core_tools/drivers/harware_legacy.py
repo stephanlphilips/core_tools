@@ -40,7 +40,7 @@ class virtual_gate:
         cap = np.asarray(self._virtual_gate_matrix)
 
         for i in range(cap.shape[0]):
-            cap[i, :] = cap_no_norm[i]/np.sum(cap_no_norm[i, :])
+            cap[i, :] = cap_no_norm[i]  #cap[i, :] = cap_no_norm[i]/np.sum(cap_no_norm[i, :]) # not normalize
 
         return self._virtual_gate_matrix
 
@@ -170,7 +170,7 @@ class harware_parent(qc.Instrument):
             for (param,val) in zip(qc_params,self.RF_settings.values()):
                 param(val)
         else:
-            self.RF_settings = self.gen_RF_settings(sources = sources)
+            self.RF_settings = RF_generated
     
     def gen_RF_settings(self, sources):
         RF_settings = dict()
@@ -182,7 +182,7 @@ class harware_parent(qc.Instrument):
                 qc_param = getattr(src,param)
                 RF_settings[f'{name}_{param}'] = qc_param()
                 qc_params.append(qc_param)
-        return RF_settings,qc_params
+        return RF_settings ,qc_params
 
     def sync_data(self):
         for item in self.virtual_gates:

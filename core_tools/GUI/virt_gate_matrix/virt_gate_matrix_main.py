@@ -9,7 +9,7 @@ import numpy as np
 def inv_cap_to_cap_mat(inv_cap):
     '''
     convert the normalized inverted capacitance matrix to the capacitance matrix.
-    
+
     Args:
         inv_cap (np.ndarray) : matrix representing the inverse of the capacitance of the dots.
     '''
@@ -20,7 +20,7 @@ def inv_cap_to_cap_mat(inv_cap):
 def cap_to_inv_cap_mat(cap):
     '''
     convert capacitance matrix to the normalized inverted capacitance matrix.
-    
+
     Args:
         inv_cap (np.ndarray) : matrix representing the inverse of the capacitance of the dots (normalized).
     '''
@@ -37,10 +37,10 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         instance_ready = True
 
         self.pulse_lib = pulse_lib
-        # assign attenuation table to the hardware object
-        self.gates_object.hardware.AWG_to_dac_conversion = pulse_lib.AWG_to_dac_ratio
-        # reassigning since python pointers do not really work in python :( (<3<3<3 c++)
-        pulse_lib.AWG_to_dac_ratio = self.gates_object.hardware.AWG_to_dac_conversion
+        # Use attenuation table from the hardware object
+        # hardware object is now data owner. Where needed changes should be reloaded to pulse_lib
+        hardware = self.gates_object.hardware
+        self.pulse_lib.load_hardware(hardware)
 
         # set graphical user interface
         self.app = QtCore.QCoreApplication.instance()
@@ -51,14 +51,13 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
 
-        for gate in pulse_lib.AWG_to_dac_ratio:
-            if gate not in pulse_lib.awg_markers:
+        for gate in hardware.AWG_to_dac_conversion:
+            if gate not in pulse_lib.marker_channels:
                 self.add_gate(gate)
-
 
         self.add_spacer()
 
-        for virtual_gate_set in gates_object.hardware.virtual_gates:
+        for virtual_gate_set in hardware.virtual_gates:
             self._add_matrix(virtual_gate_set)
 
         self.show()
@@ -85,13 +84,17 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         gate.setText(_translate("MainWindow", gate_name))
         self.gates.append(gate)
 
+        v_ratio_value = self.gates_object.hardware.AWG_to_dac_conversion[gate_name]
+
         v_ratio = QtWidgets.QDoubleSpinBox(self.scrollAreaWidgetContents)
         v_ratio.setObjectName("v_ratio")
         v_ratio.setDecimals(3)
         v_ratio.setMaximum(1.0)
         v_ratio.setSingleStep(0.01)
         v_ratio.setMinimumSize(QtCore.QSize(0, 26))
-        v_ratio.setValue(self.pulse_lib.AWG_to_dac_ratio[gate_name])
+
+        v_ratio.setValue(v_ratio_value)
+
         v_ratio.valueChanged.connect(partial(self.update_v_ratio, gate_name))
         self.verticalLayout_4.addWidget(v_ratio)
 
@@ -100,7 +103,8 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         db_ratio.setMaximum(0.0)
         db_ratio.setMinimum(-100.0)
         db_ratio.setMinimumSize(QtCore.QSize(0, 26))
-        db_ratio.setValue(20*np.log10(self.pulse_lib.AWG_to_dac_ratio[gate_name]))
+
+        db_ratio.setValue(20*np.log10(v_ratio_value))
         db_ratio.valueChanged.connect(partial(self.update_db_ratio, gate_name))
         self.verticalLayout_3.addWidget(db_ratio)
 
@@ -117,8 +121,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         v_ratio, db_ratio = self.AWG_attentuation_local_data[gate_name]
         v_ratio_value = 10**(db_ratio.value()/20)
         v_ratio.setValue(v_ratio_value)
-        self.pulse_lib.AWG_to_dac_ratio[gate_name] = v_ratio_value
-        self.gates_object.hardware.sync_data()
+        self.update_awg_attenuation(gate_name, v_ratio_value)
 
     def update_v_ratio(self, gate_name):
         '''
@@ -131,8 +134,14 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         v_ratio, db_ratio = self.AWG_attentuation_local_data[gate_name]
         db_ratio_value = 20*np.log10(v_ratio.value())
         db_ratio.setValue(db_ratio_value)
-        self.pulse_lib.AWG_to_dac_ratio[gate_name] = v_ratio.value()
-        self.gates_object.hardware.sync_data()
+
+        self.update_awg_attenuation(gate_name, v_ratio.value())
+
+    def update_awg_attenuation(self, gate_name, v_ratio):
+        hardware = self.gates_object.hardware
+        hardware.AWG_to_dac_conversion[gate_name] = v_ratio
+        hardware.sync_data()
+        self.pulse_lib.load_hardware(hardware)
 
     def add_spacer(self):
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
@@ -228,7 +237,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         self.timers.append(timer)
 
 
-    def linked_result(self, matrix, i, j, spin_box):     
+    def linked_result(self, matrix, i, j, spin_box):
         matrix_no_view = np.asarray(matrix)
         inv_cap = cap_to_inv_cap_mat(matrix)
         inv_cap[i,j] = spin_box.value()

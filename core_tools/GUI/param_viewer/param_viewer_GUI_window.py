@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- copy from the version used by Nico, Will and Floor in LD400 
 
 # Form implementation generated from reading ui file 'param_viewer_GUI_window.ui'
 #
@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 756, 495))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 756, 470))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout_6 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_6.setObjectName("gridLayout_6")
@@ -85,6 +85,13 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addLayout(self.gridLayout_2, 0, 0, 1, 1)
         self.tab_menu.addTab(self.settings, "")
         self.gridLayout.addWidget(self.tab_menu, 0, 0, 1, 1)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setSpacing(0)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.lock = QtWidgets.QCheckBox(self.centralwidget)
+        self.lock.setObjectName("lock")
+        self.horizontalLayout_2.addWidget(self.lock)
+        self.gridLayout.addLayout(self.horizontalLayout_2, 1, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
@@ -107,4 +114,5 @@ class Ui_MainWindow(object):
         self.label.setText(_translate("MainWindow", "Voltage step"))
         self.label_2.setText(_translate("MainWindow", "mV"))
         self.tab_menu.setTabText(self.tab_menu.indexOf(self.settings), _translate("MainWindow", "Settings"))
+        self.lock.setText(_translate("MainWindow", "Lock parameter viewer"))
 
