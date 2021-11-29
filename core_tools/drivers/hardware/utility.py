@@ -38,9 +38,7 @@ def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name, no_norm=True
         else:
             matrix = value['virtual_gate_matrix']
 
-        matrix = matrix.replace('\n', '').replace('[', '').replace(']', '')
-        mat = np.loadtxt(StringIO(matrix), delimiter=',')
-        mat = mat.reshape([int(np.sqrt(mat.size)), int(np.sqrt(mat.size))])
+        mat = np.array(eval(matrix))
 
         vg = virtual_gate_matrix(key, value['real_gate_names'], value['virtual_gate_names'], mat)
         vg.save()

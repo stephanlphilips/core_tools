@@ -1,4 +1,3 @@
-from typing import List
 from core_tools.GUI.virt_gate_matrix.virt_gate_matrix_window import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
@@ -42,6 +41,13 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         # hardware object is now data owner. Where needed changes should be reloaded to pulse_lib
         hardware = self.gates_object.hardware
         self.pulse_lib.load_hardware(hardware)
+        self._old_harware_class = not hasattr(hardware, 'awg2dac_ratios')
+        if self._old_harware_class:
+            # old harware class
+            self._awg_attenuation = hardware.AWG_to_dac_conversion
+        else:
+            # new hardware class
+            self._awg_attenuation = hardware.awg2dac_ratios
 
         # set graphical user interface
         self.app = QtCore.QCoreApplication.instance()
@@ -52,12 +58,8 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
 
-        if hasattr(hardware, 'AWG_to_dac_conversion'):
-            # old harware class
-            gates = hardware.AWG_to_dac_conversion.keys() 
-        else:
-            # new hardware class
-            gates = hardware.awg2dac_ratios.keys()
+        gates = self._awg_attenuation.keys()
+
         for gate in gates:
             if gate not in pulse_lib.marker_channels:
                 self.add_gate(gate)
@@ -91,7 +93,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         gate.setText(_translate("MainWindow", gate_name))
         self.gates.append(gate)
 
-        v_ratio_value = self.gates_object.hardware.AWG_to_dac_conversion[gate_name]
+        v_ratio_value = self._awg_attenuation[gate_name]
 
         v_ratio = QtWidgets.QDoubleSpinBox(self.scrollAreaWidgetContents)
         v_ratio.setObjectName("v_ratio")
@@ -145,12 +147,10 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_awg_attenuation(gate_name, v_ratio.value())
 
     def update_awg_attenuation(self, gate_name, v_ratio):
+        self._awg_attenuation[gate_name] = v_ratio
         hardware = self.gates_object.hardware
-        hardware.AWG_to_dac_conversion[gate_name] = v_ratio
-        try:
+        if self._old_harware_class:
             hardware.sync_data()
-        except:
-            pass
         self.pulse_lib.load_hardware(hardware)
 
     def add_spacer(self):
@@ -241,8 +241,6 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.valueChanged.connect(partial(self.linked_result, virtual_gate_set.virtual_gate_matrix_no_norm, i, j, doubleSpinBox))
                 update_list.append((i,j, doubleSpinBox))
                 tableWidget.setCellWidget(i, j, doubleSpinBox)
-                if i==0 and j==0:
-                    self.temp =doubleSpinBox
         # make a timer to refresh the data in the plot when the matrix is changed externally.
         timer = QtCore.QTimer()
         timer.timeout.connect(partial(self.update_v_gates, virtual_gate_set.virtual_gate_matrix_no_norm, update_list))
@@ -256,10 +254,8 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         inv_cap[i,j] = spin_box.value()
         cap_mat = inv_cap_to_cap_mat(inv_cap)
         matrix_no_view[:, :] = cap_mat
-        try:
+        if self._old_harware_class:
             self.gates_object.hardware.sync_data()
-        except:
-            pass
 
     def update_v_gates(self, matrix, update_list):
         """ Update the virtual gate matrix elements
@@ -277,7 +273,6 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 if __name__ == "__main__":
-    import qcodes as qc
 
     from pulse_templates.demo_pulse_lib.virtual_awg import get_demo_lib
     from hardware_example import hardware6dot

@@ -11,7 +11,7 @@ class gates(qc.Instrument):
     gates class, generate qcodes parameters for the real gates and the virtual gates
     It also manages the virtual gate matrix.
     """
-    def __init__(self, name ,hardware, dac_sources):
+    def __init__(self, name, hardware, dac_sources):
         '''
         gates object
         args:
@@ -95,7 +95,7 @@ class gates(qc.Instrument):
         for gate_name in red_virt_gates_obj.gates:
             if new_voltages[i] != current_voltages_formatted[i]:
                 logging.info(f'set {gate_name} {current_voltages_formatted[i]} -> {new_voltages[i]}')
-                self._set_voltage(gate_name,new_voltages[i])
+                self.set(gate_name, new_voltages[i])
             i+=1
 
     def _get_voltage_virt(self, gate_name, virt_gate_obj):
@@ -150,6 +150,14 @@ class gates(qc.Instrument):
 
         for i in range(len(names)):
             self._set_voltage(names[i], voltages[i])
+
+    def snapshot_base(self, update=False, params_to_skip_update=None):
+        # update virtual gates cached values by getting them.
+        for vgate_names in self.v_gates.values():
+            for vgate_name in vgate_names:
+                self.get(vgate_name)
+
+        return super().snapshot_base(update, params_to_skip_update)
 
 
 if __name__ == '__main__':
