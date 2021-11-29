@@ -44,11 +44,12 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         # add RF parameters
-        for src_name in self.gates_object.hardware.RF_source_names:
-            inst = getattr(station, src_name)
-            for RFpar in self.gates_object.hardware.RF_params:
-                param = getattr(inst, RFpar)
-                self._add_RFset(param)
+        if hasattr(self.gates_object.hardware, 'RF_source_names'):
+            for src_name in self.gates_object.hardware.RF_source_names:
+                inst = getattr(station, src_name)
+                for RFpar in self.gates_object.hardware.RF_params:
+                    param = getattr(inst, RFpar)
+                    self._add_RFset(param)
 
         # add real gates
         for gate_name in self.gates_object.hardware.dac_gate_map.keys():
@@ -252,14 +253,14 @@ if __name__ == "__main__":
     hw =  hardware()
     hw.RF_source_names = []
     hw.dac_gate_map = {
-        'B0': (0, 1), 'P1': (0, 2), 
+        'B0': (0, 1), 'P1': (0, 2),
         'B1': (0, 3), 'P2': (0, 4),
-        'B2': (0, 5), 'P3': (0, 6), 
-        'B3': (0, 7), 'P4': (0, 8), 
+        'B2': (0, 5), 'P3': (0, 6),
+        'B3': (0, 7), 'P4': (0, 8),
         'B4': (0, 9), 'P5': (0, 10),
         'B5': (0, 11),'P6': (0, 12),
         'B6': (0, 13), 'S6' : (0,14,),
-        'SD1_P': (1, 1), 'SD2_P': (1, 2), 
+        'SD1_P': (1, 1), 'SD2_P': (1, 2),
         'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
         'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
 

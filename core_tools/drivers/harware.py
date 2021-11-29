@@ -197,17 +197,17 @@ class harware_parent(qc.Instrument):
                   params_to_skip_update: Sequence[str]=None):
         vg_snap = {}
         for vg in self.virtual_gates:
-            vg_mat = np.reshape(np.frombuffer(vg.virtual_gate_matrix, dtype=float),np.shape(vg.virtual_gate_matrix))
             vg_meta = {}
             vg_meta['real_gate_names'] = vg.real_gate_names
             vg_meta['virtual_gate_names'] = vg.virtual_gate_names
             vg_meta['virtual_gate_matrix'] = json.dumps(np.asarray(vg.virtual_gate_matrix).tolist())
             vg_meta['virtual_gate_matrix_no_norm'] = json.dumps(np.asarray(vg.virtual_gate_matrix_no_norm).tolist())
             vg_snap[vg.name] = vg_meta
-        self.snap = {'AWG_to_DAC': self.AWG_to_dac_conversion,
-                 'dac_gate_map': self.dac_gate_map,
-                 'virtual_gates': vg_snap
-                 }
+        self.snap = {
+                'AWG_to_DAC': self.AWG_to_dac_conversion,
+                'dac_gate_map': self.dac_gate_map,
+                'virtual_gates': vg_snap
+                }
         return self.snap
 
 if __name__ == '__main__':

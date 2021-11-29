@@ -7,7 +7,7 @@ import numpy as np
 def lamda_do_nothing(matrix):
     return matrix
 
-class virtual_gate_matrix(): 
+class virtual_gate_matrix():
     def __init__(self, name, gates, v_gates, data,
             forward_conv_lamda = lamda_do_nothing, backward_conv_lamda = lamda_do_nothing):
         self.name = name
@@ -18,6 +18,22 @@ class virtual_gate_matrix():
         self.forward_conv_lamda = forward_conv_lamda
         self.backward_conv_lamda = backward_conv_lamda
         self.last_update = time.time()
+
+    @property
+    def real_gate_names(self):
+        return self.gates
+
+    @property
+    def virtual_gate_names(self):
+        return self.v_gates
+
+    @property
+    def virtual_gate_matrix_no_norm(self):
+        return self
+
+    @virtual_gate_matrix_no_norm.setter
+    def virtual_gate_matrix_no_norm(self, matrix):
+        self.matrix(matrix)
 
     @property
     def matrix(self):
@@ -35,7 +51,7 @@ class virtual_gate_matrix():
         l_inv_f = combine_lamdas(self.forward_conv_lamda, lamda_invert)
         l_inv_b = combine_lamdas(self.backward_conv_lamda, lamda_invert)
         return virtual_gate_matrix(self.name, self.gates, self.v_gates, self._matrix, l_inv_f, l_inv_b)
-    
+
     def reduce(self, gates, v_gates = None):
         '''
         reduce size of the virtual gate matrix
@@ -51,7 +67,7 @@ class virtual_gate_matrix():
             for j in range(len(gates)):
                 if gates[i] in self.gates:
                     v_gate_matrix[i, j] = self[v_gates[i],gates[j]]
-        
+
         return virtual_gate_matrix('dummy', gates, v_gates, v_gate_matrix)
 
     def get_v_gate_names(self, v_gate_names, real_gates):
@@ -62,7 +78,7 @@ class virtual_gate_matrix():
                 v_gates.append(self.v_gates[gate_index])
         else:
             v_gates = v_gate_names
-    
+
         return v_gates
 
     def __getitem__(self, index):
@@ -70,14 +86,18 @@ class virtual_gate_matrix():
             idx_1, idx_2 = index
             idx_1 = self.__evaluate_index(idx_1, self.v_gates)
             idx_2 = self.__evaluate_index(idx_2, self.gates)
-            
+
             return self.matrix[idx_1,idx_2]
+        elif isinstance(index, int):
+            idx = index
+            idx = self.__evaluate_index(idx, self.v_gates)
+            return self.matrix[idx,:]
         else:
-            raise ValueError("wrong input foramt provided ['virtual_gate','gate'] expected).".format(v_gate))
-        
+            raise ValueError("wrong input foramt provided ['virtual_gate','gate'] expected).")
+
     def __setitem__(self, index, value):
         self.last_update = time.time()
-        
+
         if isinstance(index, tuple):
             idx_1, idx_2 = index
             idx_1 = self.__evaluate_index(idx_1, self.v_gates)
@@ -88,20 +108,20 @@ class virtual_gate_matrix():
             self._matrix[:,:] = self.backward_conv_lamda(m)
             self.save()
         else:
-            raise ValueError("wrong input foramt provided ['virtual_gate','gate'] expected).".format(v_gate))
+            raise ValueError("wrong input foramt provided ['virtual_gate','gate'] expected).")
 
     def __evaluate_index(self, idx, options):
         if isinstance(idx, int) >= len(options):
             raise ValueError("gate out of range ({}),  size of virtual matrix {}x{}".format(idx, len(options), len(options)))
-         
+
         if isinstance(idx, str):
-            if idx not in options: 
+            if idx not in options:
                 raise ValueError("{} gate does not exist in virtual gate matrix".format(idx))
             else:
                 idx = options.index(idx)
-        
+
         return idx
-    
+
     def save(self):
         if self.name != 'dummy':
             save(self)
@@ -146,7 +166,7 @@ def combine_lamdas(l1, l2):
 def load_virtual_gate(name, real_gates, virtual_gates=None):
     conn = SQL_database_manager().conn_local
     virtual_gate_queries.generate_table(conn)
-        
+
     virtual_gates = name_virtual_gates(virtual_gates, real_gates)
 
     if virtual_gate_queries.check_var_in_table_exist(conn, name):
@@ -183,16 +203,16 @@ def save(vg_matrix):
         for i in range(len(real_gate_db)):
             for j in range(len(real_gate_db)):
                 dummy_v_gates['v' + real_gate_db[i], real_gate_db[j]] = matrix_db[i,j]
-        
+
         for i in range(len(vg_matrix.gates)):
             for j in range(len(vg_matrix.gates)):
                 dummy_v_gates['v' + vg_matrix.gates[i], vg_matrix.gates[j]] = vg_matrix._matrix[i,j]
 
-        virtual_gate_queries.set_virtual_gate_matrix(conn, vg_matrix.name, 
+        virtual_gate_queries.set_virtual_gate_matrix(conn, vg_matrix.name,
             dummy_v_gates.gates, dummy_v_gates.v_gates, dummy_v_gates._matrix)
 
     else:
-        virtual_gate_queries.set_virtual_gate_matrix(conn, vg_matrix.name, 
+        virtual_gate_queries.set_virtual_gate_matrix(conn, vg_matrix.name,
             vg_matrix.gates, vg_matrix.v_gates, vg_matrix._matrix)
 
 def name_virtual_gates(v_gate_names, real_gates):
