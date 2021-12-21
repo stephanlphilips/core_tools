@@ -51,6 +51,25 @@ class _1D_plot_single:
 
 		self.data += [_1D_raw_plot_data(x,y, xerr, yerr, settings)]
 
+	def add_bardata(self, x,y, width=1, xerr = None, yerr = None, label = None, w=None, c=None, alpha=None, settings = None):
+		if settings == None:
+			settings = copy.copy(self.settings)
+		else:
+			settings = copy.copy(settings)
+		if label is not None:
+			settings.label = label
+		if w is not None:
+			if 'l' not in w:
+				settings.linestyle  = ''
+			if 'p' in w:
+				settings.marker = 'o'
+		if c is not None:
+			settings.color = c
+		if alpha is not None:
+			settings.alpha = alpha
+
+		self.data += [_1D_raw_plot_data(x,y, xerr, yerr, settings)]
+
 	def _render(self, ax, layout_settings, index, scaler = 1, figure=None):
 		ax.locator_params(axis='x', nbins=layout_settings.xbins)
 		ax.locator_params(axis='y', nbins=layout_settings.ybins)
@@ -74,7 +93,7 @@ class _1D_plot_single:
 		for i in range(len(self.data)):
 			data = self.data[i]
 			if data.x_error == None and data.y_error == None:
-				ax.plot(data.x_data, data.y_data, **data.settings.plot_settings_to_dict(i, scaler))
+				ax.plot(data.x_data, data.y_data, **data.settings.plot_settings_to_dict(i, scaler), rasterized=True)
 			else:
 				pass
 				# ax.errorbar(a, c, yerr = b/10,ecolor='g',linewidth=1.2,elinewidth=0.7)
