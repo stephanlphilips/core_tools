@@ -3,6 +3,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from si_prefix import si_format
 import pyqtgraph as pg
 import numpy as np
+
 graph_color = list()
 graph_color += [{"pen":(0,114,189), 'symbolBrush':(0,114,189), 'symbolPen':'w', "symbol":'p', "symbolSize":12}]
 graph_color += [{"pen":(217,83,25), 'symbolBrush':(217,83,25), 'symbolPen':'w', "symbol":'h', "symbolSize":12}]
@@ -20,23 +21,22 @@ class _1D_plot:
     def __init__(self, ds_list, logmode):
         '''
         plot 1D plot
-        
+
         Args:
             ds_descr (list<dataset_data_description>) : list descriptions of the data to be plotted in the same plot
             logmode dict(<str, bool>) : plot axis in a logaritmic scale (e.g. {'x':True, 'y':False})
         '''
-
         self.ds_list = ds_list
         self.logmode = logmode
 
         pg.setConfigOption('background', None)
         pg.setConfigOption('foreground', 'k')
 
-        self.widget = QtGui.QWidget()
-        self.layout = QtGui.QVBoxLayout()
-        
+        self.widget = QtWidgets.QWidget()
+        self.layout = QtWidgets.QVBoxLayout()
+
         self.plot = pg.PlotWidget()
-        self.label = QtGui.QLabel()
+        self.label = QtWidgets.QLabel()
         self.label.setAlignment(QtCore.Qt.AlignRight)
 
         self.layout.addWidget(self.plot)
@@ -44,12 +44,12 @@ class _1D_plot:
         self.widget.setLayout(self.layout)
 
         self.curves = []
-        
+
         self.plot.addLegend()
 
         for i in range(len(self.ds_list)):
             ds = self.ds_list[i]
-            curve = self.plot.plot(*self.get_x_and_y(ds), **graph_color[i], name=ds.label)
+            curve = self.plot.plot(*self.get_x_and_y(ds), **graph_color[i], name=ds.label, connect='finite')
             self.curves.append(curve)
         self.plot.setLabel('left', self.ds_list[0].y.label, units=format_unit(self.ds_list[0].y.unit))
         self.plot.setLabel('bottom', self.ds_list[0].x.label, units=format_unit(self.ds_list[0].x.unit))
@@ -63,7 +63,7 @@ class _1D_plot:
         for i in range(len(self.curves)):
             curve = self.curves[i]
             ds = self.ds_list[i]
-            curve.setData(*self.get_x_and_y(ds))
+            curve.setData(*self.get_x_and_y(ds), connect='finite')
 
     @property
     def name(self):
@@ -74,13 +74,7 @@ class _1D_plot:
         return name[:-1]
 
     def get_x_and_y(self, ds):
-        NaN_indexes = np.where(np.isnan(ds.y()))[0]
-        idx_stop = ds.y().size
-
-        if NaN_indexes.size > 0:
-            idx_stop = NaN_indexes[0]
-
-        return ds.x()[0: idx_stop]*return_unit_scaler(ds.x.unit), ds.y()[0: idx_stop]*return_unit_scaler(ds.y.unit)
+        return ds.x()*return_unit_scaler(ds.x.unit), ds.y()*return_unit_scaler(ds.y.unit)
 
     def mouseMoved(self, evt):
         vb = self.plot.getPlotItem().vb
@@ -97,7 +91,7 @@ class _1D_plot:
                 y_val = 10**y_val
 
             self.label.setText("x={}, y={}".format(
-                si_format(x_val, 3) + format_unit(self.ds_list[0].x.unit), 
+                si_format(x_val, 3) + format_unit(self.ds_list[0].x.unit),
                 si_format(y_val, 3) + format_unit(self.ds_list[0].y.unit)))
 
 
@@ -113,12 +107,12 @@ if __name__ == '__main__':
     ds = load_by_id(307)
 
     app = QtGui.QApplication([])
-    
+
     logmode = {'x':True, 'y':False}
     # 2d dataset
 
     plot = _1D_plot([ds.m1a, ds.m1b], logmode)
-    
+
     win = QtGui.QMainWindow()
     win.setCentralWidget(plot.widget)
     win.show()

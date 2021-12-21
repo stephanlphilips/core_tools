@@ -16,7 +16,7 @@ class plotter_1D(_data_plotter):
 
 class _1D_plot_single:
 	def __init__(self, graph_settings):
-		self.settings = graph_settings #default settings
+		self.settings = copy.copy(graph_settings) #default settings
 		self.data     = []
 		self.x_lim    = None
 		self.y_lim    = None

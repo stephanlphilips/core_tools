@@ -1,9 +1,13 @@
+import logging
 from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
 from core_tools.data.measurement import Measurement
 from pulse_lib.sequencer import sequencer
 
 from core_tools.sweeps.sweep_utility import (
-        pulselib_2_qcodes, check_OD_scan, sweep_info, get_measure_data, KILL_EXP)
+        SequenceStartAction,
+        pulselib_2_qcodes, sweep_info, get_measure_data,
+        KILL_EXP
+        )
 from core_tools.job_mgnt.job_meta import job_meta
 from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 
@@ -26,11 +30,11 @@ class scan_generic(metaclass=job_meta):
         self.meas = Measurement(self.name)
 
         self.set_vars = []
+        self.actions = []
         self.m_instr = []
         self.reset_param = reset_param
 
         set_points = []
-        sequence_to_wrap = None
         for arg in args:
             if isinstance(arg, sweep_info):
                 self.meas.register_set_parameter(arg.param, arg.n_points)
@@ -45,15 +49,12 @@ class scan_generic(metaclass=job_meta):
                         set_points.append(var.param)
                 else:
                     # Sequence without looping parameters. Only upload, no setpoints
-                    sequence_to_wrap = arg
+                    self.actions.append(SequenceStartAction(arg))
+                self.meas.add_snapshot('sequence', arg.metadata)
             elif arg is None:
                 continue
             else:
                 m_instr = arg
-                if sequence_to_wrap:
-                    # Yuk!
-                    m_instr = check_OD_scan(sequence_to_wrap, m_instr)[1]
-                    sequence_to_wrap = None
                 self.m_instr.append(m_instr)
 
         for instr in self.m_instr:
@@ -79,15 +80,24 @@ class scan_generic(metaclass=job_meta):
         -- optionally also resets the paramters
         -- wrapped by the job_meta class (allows for progress bar to appear)
         '''
-        with self.meas as ds:
-            self._loop(self.set_vars, self.m_instr, tuple(), ds)
+        try:
+            with self.meas as ds:
+                self._loop(self.set_vars, tuple(), ds)
 
-        if self.reset_param:
-            for param in self.set_vars:
-                try:
-                    param.reset_param()
-                except:
-                    pass
+        except KILL_EXP:
+            logging.warning('Measurement aborted')
+        except KeyboardInterrupt:
+            logging.warning('Measurement interrupted')
+        except:
+            logging.error('Exception in measurement', exc_info=True)
+
+        finally:
+            if self.reset_param:
+                for param in self.set_vars:
+                    try:
+                        param.reset_param()
+                    except:
+                        logging.error(f'Failed to reset parameter {param}')
 
         return self.meas.dataset
 
@@ -99,10 +109,12 @@ class scan_generic(metaclass=job_meta):
         job = ExperimentJob(priority, self)
         queue.put(job)
 
-    def _loop(self, set_param, m_instr, to_save, dataset):
+    def _loop(self, set_param, to_save, dataset):
         if len(set_param) == 0:
             if self.KILL == False:
-                dataset.add_result(*to_save, *get_measure_data(m_instr))
+                for action in self.actions:
+                    action()
+                dataset.add_result(*to_save, *get_measure_data(self.m_instr))
                 self.n += 1
             else:
                 raise KILL_EXP
@@ -112,7 +124,7 @@ class scan_generic(metaclass=job_meta):
                 if not isinstance(param_info.param, ElapsedTimeParameter):
                     param_info.param(value)
                 time.sleep(param_info.delay)
-                self._loop(set_param[1:], m_instr, to_save + ((param_info.param, param_info.param()),), dataset)
+                self._loop(set_param[1:], to_save + ((param_info.param, param_info.param()),), dataset)
 
 
 def do0D(*m_instr, name=''):
