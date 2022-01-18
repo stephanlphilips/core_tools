@@ -9,33 +9,33 @@ class _data_plotter:
 			#inverting indexes since matplotlib uses unverted indexes..
 			return self.local_data[idx[::-1]]
 
-	def render(self, scaler = 1):
+	def render(self, scaler = 1, dpi = 150):
 		self.__set_nature_settings(scaler)
 		layout = self.plot_layout
-		fig = plt.figure(figsize=(layout.size[0]*0.0393*scaler, layout.size[1]*0.0393*scaler))
+		fig = plt.figure(figsize=(layout.size[0]*0.0393*scaler, layout.size[1]*0.0393*scaler), dpi=dpi)
 		if layout.n_plots_y == 1 and layout.n_plots_x == 1:
 			gs  = fig.add_gridspec(layout.n_plots_y,layout.n_plots_x)
-			ax = [[gs.subplots()]]
+			self.ax = [[gs.subplots()]]
 		elif layout.n_plots_y == 1:
 			gs  = fig.add_gridspec(layout.n_plots_y,layout.n_plots_x, hspace=layout.hspace, wspace=layout.wspace)
-			ax = [gs.subplots(sharex=layout.sharex, sharey=layout.sharey)]
+			self.ax = [gs.subplots(sharex=layout.sharex, sharey=layout.sharey)]
 		elif layout.n_plots_x == 1:
 			gs  = fig.add_gridspec(layout.n_plots_y,layout.n_plots_x, hspace=layout.hspace, wspace=layout.wspace)
-			ax = [ [i] for i in gs.subplots(sharex=layout.sharex, sharey=layout.sharey)]
+			self.ax = [ [i] for i in gs.subplots(sharex=layout.sharex, sharey=layout.sharey)]
 		else:
 			gs  = fig.add_gridspec(layout.n_plots_y,layout.n_plots_x, hspace=layout.hspace, wspace=layout.wspace)
-			ax = gs.subplots(sharex=layout.sharex, sharey=layout.sharey)
+			self.ax = gs.subplots(sharex=layout.sharex, sharey=layout.sharey)
 
 		for i in range(self.local_data.shape[0]):
 			for j in range(self.local_data.shape[1]):
-				self[j,i]._render(ax[i][j], layout, (i,j) ,scaler, figure= fig)
+				self[j,i]._render(self.ax[i][j], layout, (i,j) ,scaler, figure= fig)
 
 	def plot(self):
 		self.render(1)
 		plt.show()
 
 	def save(self, location):
-		self.render()
+		self.render(dpi=500)
 		plt.tight_layout()
 		plt.savefig(location,transparent=True, format="svg")
 
