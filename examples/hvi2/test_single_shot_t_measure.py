@@ -114,6 +114,8 @@ sequencer = p.mk_sequence([seg])
 sequencer.set_hw_schedule(schedule, averaging=True)
 sequencer.n_rep = n_rep
 
+
+
 for ch in dig_channels:
     dig.set_lo(ch, lo_f, 0, input_channel=ch)
 

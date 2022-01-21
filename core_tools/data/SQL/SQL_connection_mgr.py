@@ -45,7 +45,8 @@ class SQL_database_manager(SQL_database_init):
             db_mgr = SQL_database_manager.__instance
             try:
                 SQL_database_init._connect(db_mgr)
-            except Exception:
+            except Exception as ex:
+                print(ex)
                 # could not connect, for example wrong password, reset class instance
                 SQL_database_manager.__instance = None
 
