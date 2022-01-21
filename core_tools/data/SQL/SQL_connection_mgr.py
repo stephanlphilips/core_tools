@@ -3,6 +3,7 @@ from core_tools.data.SQL.queries.dataset_creation_queries import sample_info_que
 from core_tools.data.SQL.queries.dataset_sync_queries import sync_mgr_queries
 import psycopg2
 import time
+import logging
 
 class SQL_database_init:
     conn_local = None
@@ -45,10 +46,11 @@ class SQL_database_manager(SQL_database_init):
             db_mgr = SQL_database_manager.__instance
             try:
                 SQL_database_init._connect(db_mgr)
-            except Exception as ex:
-                print(ex)
+            except Exception:
+                logging.error('Failed to connect to database', exc_info=True)
                 # could not connect, for example wrong password, reset class instance
                 SQL_database_manager.__instance = None
+                raise
 
             conn_local = db_mgr.conn_local
             if not db_mgr.SQL_conn_info_local.readonly:

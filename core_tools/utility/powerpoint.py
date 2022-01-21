@@ -1,28 +1,13 @@
-import sys
-import os
 import numpy as np
 import pprint
 import matplotlib
-import logging
 import qcodes
 import warnings
-import functools
-import pickle
-import inspect
 import tempfile
-from itertools import chain
-import scipy.ndimage as ndimage
-from functools import wraps
-import datetime
-import subprocess
-import time
-import importlib
-import platform
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 
 # explicit import
-from qcodes.plots.qcmatplotlib import MatPlot
 try:
     from qcodes.plots.pyqtgraph import QtPlot
 except:
@@ -32,7 +17,6 @@ except:
 
 try:
     import qtpy.QtGui as QtGui
-    import qtpy.QtCore as QtCore
     import qtpy.QtWidgets as QtWidgets
 except:
     pass
@@ -53,6 +37,12 @@ def _convert_rgb_color_to_integer(rgb_color):
     blue = rgb_color[2] << 16
     return int(red + green + blue)
 
+def _convert_integer_to_rgb_color(value):
+    red = value & 0xFF
+    green = (value >> 8) & 0xFF
+    blue = (value >> 16) & 0xFF
+    return (red, green, blue)
+
 def set_ppt_slide_background(slide, color, verbose=0):
     """ Sets the background color of PPT slide.
 
@@ -64,7 +54,7 @@ def set_ppt_slide_background(slide, color, verbose=0):
     ppt_color = _convert_rgb_color_to_integer(color)
     if verbose > 1:
         print('Setting PPT slide background color:')
-        print(' - Current color: {0}'.format(_covert_integer_to_rgb_color(fore_color.RGB)))
+        print(' - Current color: {0}'.format(_convert_integer_to_rgb_color(fore_color.RGB)))
         print(' - Setting to {0} -> {1}'.format(color, ppt_color))
 
     slide.FollowMasterBackground = 0
@@ -157,7 +147,7 @@ try:
 
         Arguments:
             title (str): title added to slide
-            fig (matplotlib.figure.Figure or qcodes.plots.pyqtgraph.QtPlot or integer): 
+            fig (matplotlib.figure.Figure or qcodes.plots.pyqtgraph.QtPlot or integer):
                 figure added to slide
             subtitle (str): text added to slide as subtitle
             maintext (str): text in textbox added to slide
@@ -177,7 +167,7 @@ try:
             >>> title = 'An example title'
             >>> fig = plt.figure(10)
             >>> txt = 'Some comments on the figure'
-            >>> notes = 'some additional information' 
+            >>> notes = 'some additional information'
             >>> addPPTslide(title,fig, subtitle = txt,notes = notes)
         """
         Application = win32com.client.Dispatch("PowerPoint.Application")
@@ -191,7 +181,7 @@ try:
             print('Could not open active Powerpoint presentation, opening blank presentation.')
             try:
                 ppt = Application.Presentations.Add()
-            except Exception as ex:
+            except Exception:
                 warnings.warn('Could not make connection to Powerpoint presentation.')
                 return None, None
 
@@ -429,7 +419,7 @@ def reshape_metadata(dataset, printformat='dict', add_scanjob=True, add_gates=Tr
     '''Reshape the metadata of a DataSet
 
     Arguments:
-        dataset (DataSet or qcodes.Station): a dataset of which the metadata 
+        dataset (DataSet or qcodes.Station): a dataset of which the metadata
                                              will be reshaped.
         printformat (str): can be 'dict' or 'txt','fancy' (text format)
         add_scanjob (bool): If True, then add the scanjob at the beginning of the notes

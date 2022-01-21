@@ -640,31 +640,34 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         ppt the data
         """
-        if type(inp_title) is not str:
-            inp_title = ''
-        if self.tab_id == 0: # 1D
-            figure_hand = self.current_plot._1D.plot_widgets[0].plot_widget.parent()
-            gate_x = self._1D__gate_name
-            range_x = self._1D__V_swing
-            channels = ','.join(self.current_param_getter._1D.channel_names)
-            title = f'{gate_x} ({range_x:.0f} mV), m:{channels}'
-        elif self.tab_id == 1: # 2D
-            figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
-            gate_y = self._2D__gate2_name
-            gate_x = self._2D__gate1_name
-            range_y = self._2D__V2_swing
-            range_x = self._2D__V1_swing
-            channels = ','.join(self.current_param_getter._2D.channel_names)
-            title = f'{inp_title} {gate_y} ({range_y:.0f} mV) vs. {gate_x} ({range_x:.0f} mV), m:{channels}'
         try:
-            ds = self.save_data()
-            notes = self.metadata.copy()
-            notes['exp_id'] = ds.exp_id
-            notes['exp_uuid'] = ds.exp_uuid
-            addPPTslide(title = title, fig = figure_hand, notes=str(notes), verbose=-1)
+            if type(inp_title) is not str:
+                inp_title = ''
+            if self.tab_id == 0: # 1D
+                figure_hand = self.current_plot._1D.plot_widgets[0].plot_widget.parent()
+                gate_x = self._1D__gate_name
+                range_x = self._1D__V_swing
+                channels = ','.join(self.current_param_getter._1D.channel_names)
+                title = f'{gate_x} ({range_x:.0f} mV), m:{channels}'
+            elif self.tab_id == 1: # 2D
+                figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
+                gate_y = self._2D__gate2_name
+                gate_x = self._2D__gate1_name
+                range_y = self._2D__V2_swing
+                range_x = self._2D__V1_swing
+                channels = ','.join(self.current_param_getter._2D.channel_names)
+                title = f'{inp_title} {gate_y} ({range_y:.0f} mV) vs. {gate_x} ({range_x:.0f} mV), m:{channels}'
+            try:
+                ds = self.save_data()
+                notes = self.metadata.copy()
+                notes['exp_id'] = ds.exp_id
+                notes['exp_uuid'] = ds.exp_uuid
+                addPPTslide(title = title, fig = figure_hand, notes=str(notes), verbose=-1)
+            except:
+                logging.error('could not add slide', exc_info=True)
+                pass
         except:
-            print('could not add slide')
-            pass
+            logging.error('Failed to create slide', exc_info=True)
 
 
     def save_data(self):
@@ -675,6 +678,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             label = self._1D__gate_name
         elif self.tab_id == 1: # 2D
             label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
+
+        self.vm_data_param.update_metadata()
+        self.metadata['average'] = self.vm_data_param.plot.average_scans
 
         is_ds_configured = False
         try:
@@ -716,6 +722,9 @@ class vm_data_param(MultiParameter):
              shapes=shapes, setpoints=setpoints, setpoint_names=setpoint_names,
              setpoint_labels=setpoint_labels, setpoint_units=setpoint_units,
              metadata=metadata)
+
+    def update_metadata(self):
+        self.load_metadata({'average':self.plot.average_scans})
 
     def get_raw(self):
         current_data = self.plot.buffer_data
