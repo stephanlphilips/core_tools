@@ -22,8 +22,8 @@ class virtual_gate:
         '''
         self.name = name
         self.real_gate_names = real_gate_names
-        self._virtual_gate_matrix = np.eye(len(real_gate_names)).data
-        self.virtual_gate_matrix_no_norm = np.eye(len(real_gate_names)).data
+        self._virtual_gate_matrix = np.eye(len(real_gate_names))
+        self.virtual_gate_matrix_no_norm = np.eye(len(real_gate_names))
         if virtual_gate_names !=  None:
             self.virtual_gate_names = virtual_gate_names
         else:
@@ -43,6 +43,18 @@ class virtual_gate:
             cap[i, :] = cap_no_norm[i]/np.sum(cap_no_norm[i, :])
 
         return self._virtual_gate_matrix
+
+    @property
+    def matrix(self):
+        return self.virtual_gate_matrix_no_norm
+
+    @property
+    def gates(self):
+        return self.real_gate_names
+
+    @property
+    def v_gates(self):
+        return self.virtual_gate_names
 
     def __len__(self):
         '''
@@ -66,6 +78,40 @@ class virtual_gate:
         new_state["_virtual_gate_matrix"] = np.asarray(new_state["_virtual_gate_matrix"]).data
         new_state["virtual_gate_matrix_no_norm"] = np.asarray(new_state["virtual_gate_matrix_no_norm"]).data
         self.__dict__.update(new_state)
+
+    def reduce(self, gates, v_gates = None):
+        '''
+        reduce size of the virtual gate matrix
+
+        Args:
+            gates (list<str>) : name of the gates where to reduce to reduce the current matrix to.
+            v_gates (list<str>) : list with the names of the virtual gates (optional)
+        '''
+        v_gates = self.get_v_gate_names(v_gates, gates)
+        v_gate_matrix = np.eye(len(gates))
+
+        for i in range(len(gates)):
+            for j in range(len(gates)):
+                if gates[i] in self.gates:
+                    vi = self.virtual_gate_names.index(v_gates[i])
+                    rj = self.real_gate_names.index(gates[j])
+                    v_gate_matrix[i, j] = self.matrix[vi,rj]
+
+        result = virtual_gate('dummy', gates, v_gates)
+        result.virtual_gate_matrix_no_norm = v_gate_matrix
+        return result
+
+    def get_v_gate_names(self, v_gate_names, real_gates):
+        if v_gate_names is None:
+            v_gates = []
+            for rg in real_gates:
+                gate_index = self.gates.index(rg)
+                v_gates.append(self.v_gates[gate_index])
+        else:
+            v_gates = v_gate_names
+
+        return v_gates
+
 
 class virtual_gates_mgr(list):
     def __init__(self, sync_engine, *args):

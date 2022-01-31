@@ -4,6 +4,7 @@ from core_tools.drivers.hardware.hardware import hardware as hw_parent
 import qcodes as qc
 import numpy as np
 import copy
+import logging
 
 class gates(qc.Instrument):
     """
@@ -20,8 +21,9 @@ class gates(qc.Instrument):
         '''
         super(gates, self).__init__(name)
 
-        if not isinstance(hardware, type(hw_parent())):
-            raise ValueError('Please use the updated hardware class (see https://core-tools.readthedocs.io/ for more info).')
+        if not isinstance(hardware, hw_parent):
+            logging.warning('Detected old hardware class')
+#            raise ValueError('Please use the updated hardware class (see https://core-tools.readthedocs.io/ for more info).')
 
         self.hardware = hardware
         self.dac_sources = dac_sources
@@ -113,7 +115,7 @@ class gates(qc.Instrument):
             current_voltages_formatted[i] = current_voltages[names.index(red_virt_gates_obj.gates[i])]
 
         voltage_key = red_virt_gates_obj.v_gates.index(gate_name)
-        virtual_voltages =  np.matmul(red_virt_gates_obj.matrix,current_voltages_formatted)
+        virtual_voltages =  np.matmul(red_virt_gates_obj.matrix, current_voltages_formatted)
 
         return virtual_voltages[voltage_key]
 

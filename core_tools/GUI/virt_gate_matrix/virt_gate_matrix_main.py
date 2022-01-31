@@ -2,6 +2,7 @@ from core_tools.GUI.virt_gate_matrix.virt_gate_matrix_window import Ui_MainWindo
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
 
+import logging
 import numpy as np
 
 
@@ -39,7 +40,6 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         # Use attenuation table from the hardware object
         # hardware object is now data owner. Where needed changes should be reloaded to pulse_lib
         hardware = self.gates_object.hardware
-        self.pulse_lib.load_hardware(hardware)
         self._old_harware_class = not hasattr(hardware, 'awg2dac_ratios')
         if self._old_harware_class:
             # old harware class
@@ -47,6 +47,8 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             # new hardware class
             self._awg_attenuation = hardware.awg2dac_ratios
+        # write attenuation to pulselib
+        self.pulse_lib.set_channel_attenuations(self._awg_attenuation)
 
         # set graphical user interface
         self.app = QtCore.QCoreApplication.instance()
@@ -150,7 +152,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         hardware = self.gates_object.hardware
         if self._old_harware_class:
             hardware.sync_data()
-        self.pulse_lib.load_hardware(hardware)
+        self.pulse_lib.set_channel_attenuations(self._awg_attenuation)
 
     def add_spacer(self):
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
@@ -190,7 +192,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         sizePolicy.setHeightForWidth(tableWidget.sizePolicy().hasHeightForWidth())
         tableWidget.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setPointSize(12)
+        font.setPointSize(11)
         tableWidget.setFont(font)
         tableWidget.setColumnCount(len(virtual_gate_set))
         tableWidget.setObjectName("virtgates")
@@ -223,7 +225,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setFont(font)
                 doubleSpinBox.setSizePolicy(sizePolicy)
                 doubleSpinBox.setMinimumSize(QtCore.QSize(30, 0))
-                doubleSpinBox.setMaximumSize(QtCore.QSize(100, 50))
+                doubleSpinBox.setMaximumSize(QtCore.QSize(150, 50))
                 doubleSpinBox.setWrapping(False)
                 doubleSpinBox.setFrame(False)
                 doubleSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
@@ -247,13 +249,16 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def linked_result(self, matrix, i, j, spin_box):
-        matrix_no_view = matrix
-        inv_cap = cap_to_inv_cap_mat(matrix)
-        inv_cap[i,j] = spin_box.value()
-        cap_mat = inv_cap_to_cap_mat(inv_cap)
-        matrix_no_view[:, :] = cap_mat
-        if self._old_harware_class:
-            self.gates_object.hardware.sync_data()
+        try:
+            matrix_no_view = matrix
+            inv_cap = cap_to_inv_cap_mat(matrix)
+            inv_cap[i,j] = spin_box.value()
+            cap_mat = inv_cap_to_cap_mat(inv_cap)
+            matrix_no_view[:, :] = cap_mat
+            if self._old_harware_class:
+                self.gates_object.hardware.sync_data()
+        except:
+            logging.error(f'Failed to set matrix[{i},{j}]', exc_info=True)
 
     def update_v_gates(self, matrix, update_list):
         """ Update the virtual gate matrix elements

@@ -114,7 +114,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             instance_ready = False
             self.app = QtWidgets.QApplication([])
 
-        self.app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+#        self.app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
 
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
@@ -628,14 +628,16 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         try:
             ds = self.save_data()
-            self.metadata['dataset_id'] = ds.exp_id
-            self.metadata['dataset_uuid'] = ds.exp_uuid
-            self.metadata['average'] = self.vm_data_param.plot.average_scans
+            notes = self.metadata.copy()
+            if hasattr(ds, 'exp_id'):
+                notes['dataset_id'] = ds.exp_id
+                notes['dataset_uuid'] = ds.exp_uuid
+            else:
+                notes['location'] = ds.location
 
-            addPPTslide(fig=figure_hand, notes=str(self.metadata), verbose=-1)
+            addPPTslide(fig=figure_hand, notes=str(notes), verbose=-1)
         except:
-            print('could not add slide')
-            pass
+            logging.error(f'Error adding slide', exc_info=True)
 
 
     def save_data(self):
@@ -648,6 +650,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
 
         self.vm_data_param.update_metadata()
+        self.metadata['average'] = self.vm_data_param.plot.average_scans
 
         is_ds_configured = False
         try:
@@ -669,6 +672,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                                             'label': label})
                 data = measure.run(quiet=True)
                 data.finalize()
+                return data
         except:
             logging.error(f'Error during save data', exc_info=True)
 
