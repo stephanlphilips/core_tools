@@ -180,13 +180,16 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def _set_gate(self, gate, value, voltage_input):
         # TODO add support if out of range.
-        last_value = self.last_param_value.get(gate.name, None)
-        last_rounded = voltage_input.valueFromText(voltage_input.textFromValue(last_value)) if last_value is not None else None
-        if value() != last_rounded:
-            logging.info(f'GUI value changed: set gate {gate.name} {last_value} ({last_rounded}) -> {value()}')
-            gate.set(value())
-        else:
-            logging.debug(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value()}; no update of gate')
+        try:
+            last_value = self.last_param_value.get(gate.name, None)
+            last_rounded = voltage_input.valueFromText(voltage_input.textFromValue(last_value)) if last_value is not None else None
+            if value() != last_rounded:
+                logging.info(f'GUI value changed: set gate {gate.name} {last_value} ({last_rounded}) -> {value()}')
+                gate.set(value())
+            else:
+                logging.debug(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value()}; no update of gate')
+        except:
+            logging.error(f'Failed to set gate {gate} to {value()}', exc_info=True)
 
     def _set_set(self, setting, value, division):
         # TODO add support if out of range.
