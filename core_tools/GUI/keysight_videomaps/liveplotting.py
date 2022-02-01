@@ -630,6 +630,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             ds = self.save_data()
             self.metadata['dataset_id'] = ds.exp_id
             self.metadata['dataset_uuid'] = ds.exp_uuid
+            self.metadata['average'] = self.vm_data_param.plot.average_scans
+
             addPPTslide(fig=figure_hand, notes=str(self.metadata), verbose=-1)
         except:
             print('could not add slide')
@@ -644,6 +646,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             label = self._1D__gate_name
         elif self.tab_id == 1: # 2D
             label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
+
+        self.vm_data_param.update_metadata()
 
         is_ds_configured = False
         try:
@@ -685,6 +689,10 @@ class vm_data_param(MultiParameter):
              shapes=shapes, setpoints=setpoints, setpoint_names=setpoint_names,
              setpoint_labels=setpoint_labels, setpoint_units=setpoint_units,
              metadata=metadata)
+
+    def update_metadata(self):
+        self.load_metadata({'average':self.plot.average_scans})
+
 
     def get_raw(self):
         current_data = self.plot.buffer_data
