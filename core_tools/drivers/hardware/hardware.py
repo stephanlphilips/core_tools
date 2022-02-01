@@ -8,30 +8,37 @@ import json
 from typing import List, Optional
 
 class boundaries_mgr():
-    def __init__(self):
+    def __init__(self, dac_gate_map):
+        self._dac_gate_map = dac_gate_map
         self.key_vals = dict()
 
     def __getitem__(self, gate):
-        if gate in hardware().dac_gate_map.keys():
+        all_gates = self._dac_gate_map.keys()
+        if gate in all_gates:
             return self.key_vals[gate]
         else:
-            raise ValueError('Gate {} is not defined (gates present are : {})'.format(gate, hardware().dac_gate_map.keys()))
+            raise ValueError(f'Gate {gate} is not defined')
 
     def __setitem__(self, gate, value):
-        if gate in hardware().dac_gate_map.keys():
+        all_gates = self._dac_gate_map.keys()
+        if gate in all_gates:
             self.key_vals[gate] = value
         else:
-            raise ValueError('Gate {} is not defined (gates present are : {})'.format(gate, hardware().dac_gate_map.keys()))
+            raise ValueError(f'Gate {gate} is not defined')
 
 class virtual_gates_mgr():
     def __init__(self):
         self.virtual_gate_names = []
 
-    def add(self, name, gates : List[str], virtual_gates : Optional[List[str]] = None):
+    def add(self, name, gates : List[str], virtual_gates : Optional[List[str]] = None,
+            matrix = None):
         if name not in self.virtual_gate_names:
             self.virtual_gate_names += [name]
 
-        setattr(self, name, load_virtual_gate(name , gates, virtual_gates))
+        virtual_gate_set = load_virtual_gate(name, gates, virtual_gates)
+        if matrix is not None and np.all(virtual_gate_set.matrix == np.eye(len(virtual_gate_set))):
+            virtual_gate_set.matrix = matrix
+        setattr(self, name, virtual_gate_set)
 
     def __len__(self):
         return len(self.virtual_gate_names)
@@ -117,28 +124,26 @@ class rf_source_mgr():
         setattr(self, parameter.name, rf_source(parameter))
 
 class hardware(qc.Instrument):
-    instanciated = False
-    _dac_gate_map = dict()
-    _boundaries = boundaries_mgr()
-    virtual_gates = virtual_gates_mgr()
-    awg2dac_ratios = awg2dac_ratios_mgr()
 
-    def __init__(self, name : str ='hardware'):
+    def __init__(self, name : str = 'hardware'):
         """ Collection of hardware related settings
 
-        The `hardware` is effectively a singleton class, so only one instance created in each session.
+        The `hardware` is effectively a singleton class. This is enforced by qcodes.
         """
-        if hardware.instanciated == False: # this should happen in the station
-            super().__init__(name)
-        hardware.instanciated = True
+        super().__init__(name)
+        self._dac_gate_map = dict()
+        self._boundaries = boundaries_mgr(self._dac_gate_map)
+        self._virtual_gates = virtual_gates_mgr()
+        self._awg2dac_ratios = awg2dac_ratios_mgr()
 
     @property
     def dac_gate_map(self):
-        return hardware._dac_gate_map
+        return self._dac_gate_map
 
     @dac_gate_map.setter
     def dac_gate_map(self, val):
-        hardware._dac_gate_map = val
+        self._dac_gate_map.clear()
+        self._dac_gate_map.update(val)
 
     @property
     def boundaries(self):
@@ -148,6 +153,14 @@ class hardware(qc.Instrument):
     def boundaries(self, boundary_dict):
         for key, value in boundary_dict.items():
             self._boundaries[key] = value
+
+    @property
+    def virtual_gates(self):
+        return self._virtual_gates
+
+    @property
+    def awg2dac_ratios(self):
+        return self._awg2dac_ratios
 
     def snapshot_base(self, update=False, params_to_skip_update =None):
         vg_snap = {}

@@ -41,6 +41,7 @@ class virtual_gate_matrix():
 
     @matrix.setter
     def matrix(self, matrix):
+        matrix = np.asarray(matrix)
         if self._matrix.shape != matrix.shape:
             raise ValueError('input shape of matrix does not match the one in the virtual gate matrix')
         self._matrix[:,:] = self.backward_conv_lamda(matrix)
