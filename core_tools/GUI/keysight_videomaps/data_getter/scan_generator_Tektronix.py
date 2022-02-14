@@ -17,7 +17,7 @@ except:
 
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
-                           dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
+                           dig_samplerate, dig_vmax=None, iq_mode=None, acquisition_delay_ns=None,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
     1D fast scan parameter constructor.
@@ -54,6 +54,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
+    if dig_vmax is not None:
+        print(f'Parameter dig_vmax is deprecated.')
     logging.info(f'Construct 1D: {gate}')
 
     vp = swing/2
@@ -152,7 +154,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels, dig_samplerate, dig_vmax=2.0, iq_mode=None,
+                           digitizer, channels, dig_samplerate, dig_vmax=None, iq_mode=None,
                            acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
@@ -191,6 +193,8 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
+    if dig_vmax is not None:
+        print(f'Parameter dig_vmax is deprecated.')
     logging.info(f'Construct 2D: {gate1} {gate2}')
 
     # set up timing for the scan
@@ -305,7 +309,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
                                     biasT_corr, dig_samplerate,
-                                    channels=channels, Vmax=dig_vmax, iq_mode=iq_mode, channel_map=channel_map)
+                                    channels=channels, iq_mode=iq_mode, channel_map=channel_map)
 
 
 class _digitzer_scan_parameter(MultiParameter):
@@ -315,7 +319,7 @@ class _digitzer_scan_parameter(MultiParameter):
     def __init__(self, digitizer, my_seq, pulse_lib, t_measure, acquisition_delay_ns,
                  n_lines, line_delay_pts,
                  shape, names, setpoint, biasT_corr, sample_rate,
-                 channels = [1,2,3,4], Vmax=2.0, iq_mode=None, channel_map=None):
+                 channels = [1,2,3,4], iq_mode=None, channel_map=None):
         """
         args:
             digitizer (M4i) : Spectrum M4i digitizer driver:
@@ -349,7 +353,6 @@ class _digitzer_scan_parameter(MultiParameter):
         self.biasT_corr = biasT_corr
         self.shape = shape
         self.n_ch = len(channels)
-        self.Vmax = Vmax
         self.n_lines = n_lines
         self.line_delay_pts = line_delay_pts
         self._init_channels(channels, channel_map, iq_mode)
@@ -363,8 +366,6 @@ class _digitzer_scan_parameter(MultiParameter):
         if self.n_ch not in [1,2,4]:
             raise Exception('Number of enabled channels on M4i must be 1, 2 or 4.')
         digitizer.enable_channels(sum([2**ch for ch in self.channels]))
-        for ch in self.channels:
-            digitizer.set(f'range_channel_{ch}', Vmax*1000)
 
         # note: force float calculation to avoid intermediate int overflow.
         self.seg_size = int(float(t_measure+acquisition_delay_ns)

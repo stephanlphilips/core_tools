@@ -71,7 +71,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'ch3': bool,
                            'ch4': bool,
                            'sample_rate': float, # (currently only 100 or 500 allowed)
-                           'dig_vmax: float, # allowed: 4.0, 2.0, 1.0, 0.5, 0.25, 0.125
                            'enabled_markers': list[str],
                            'n_columns': int,
                            'line_margin': int,
@@ -232,12 +231,17 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'gradient': 'Off'}
 
         self.defaults_gen = {'sample_rate': 100,
-                           'dig_vmax': 2.0,
                            'acquisition_delay_ns': 500,
                            'n_columns': 4,
                            'line_margin': 1,
                            'bias_T_RC': 100,
                            'enabled_markers': []}
+
+        try:
+            val = cust_defaults['gen']['dig_vmax']
+            print(f"setting 'gen':{{ 'dig_vmax': {val} }} is deprecated.")
+        except:
+            pass
 
         # General defaults
 
@@ -333,7 +337,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self._channels = self.get_activated_channels()
         if dig_vmax is not None:
-            self._gen_dig_vmax.setCurrentText(str(dig_vmax))
+            print(f'Parameter dig_vmax is deprecated. Digitizer input should be configured directly on instrument.')
 
     def update_plot_properties_1D(self):
         '''
@@ -386,7 +390,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 name:settings for name, settings in self.channel_map.items()
                 if self.channel_check_boxes[name].isChecked()
                 }
-        self._gen__dig_vmax = float(self._gen_dig_vmax.currentText())
         self._gen__acquisition_delay_ns = self._gen_acquisition_delay_ns.value()
         self._gen__enabled_markers = []
         for marker, cb in self.marker_check_boxes.items():
@@ -435,7 +438,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.current_param_getter._1D = self.construct_1D_scan_fast(
                             self._1D__gate_name, self._1D__V_swing, self._1D__npt, self._1D__t_meas*1000,
                             self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
-                            dig_vmax=self._gen__dig_vmax, acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                            acquisition_delay_ns=self._gen__acquisition_delay_ns,
                             enabled_markers=self._gen__enabled_markers,
                             channel_map=self._active_channel_map,
                             pulse_gates=self._1D__offsets,
@@ -476,7 +479,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
                             self._2D__t_meas*1000, self._2D__biasT_corr,
                             self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
-                            dig_vmax=self._gen__dig_vmax,
                             acquisition_delay_ns=self._gen__acquisition_delay_ns,
                             enabled_markers=self._gen__enabled_markers,
                             channel_map=self._active_channel_map,
