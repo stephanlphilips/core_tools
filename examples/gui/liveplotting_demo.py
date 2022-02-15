@@ -1,7 +1,3 @@
-import time
-import logging
-from PyQt5 import QtCore
-import numpy as np
 import qcodes
 
 from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
