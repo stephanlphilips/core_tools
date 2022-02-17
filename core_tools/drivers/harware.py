@@ -5,13 +5,13 @@ import shelve
 from typing import Sequence
 import json
 
+from .hardware.virtual_gate_matrix_data import VirtualGateMatrixData
+from .hardware.virtual_gate_matrix import VirtualGateMatrix
 
+
+# NOTE: class used for loading from and saving to shelve. Do not change name or attributes.
 @dataclass
-class virtual_gate:
-    name:str
-    real_gate_names: list
-    virtual_gate_names: list
-    virtual_gate_matrix: np.ndarray
+class virtual_gate(VirtualGateMatrixData):
 
     def __init__(self, name, real_gate_names, virtual_gate_names=None):
         '''
@@ -22,124 +22,87 @@ class virtual_gate:
         '''
         self.name = name
         self.real_gate_names = real_gate_names
-        self._virtual_gate_matrix = np.eye(len(real_gate_names))
-        self.virtual_gate_matrix_no_norm = np.eye(len(real_gate_names))
+        self.r2v_matrix_no_norm = np.eye(len(real_gate_names))
         if virtual_gate_names !=  None:
             self.virtual_gate_names = virtual_gate_names
         else:
             self.virtual_gate_names = []
             for name in real_gate_names:
                 self.virtual_gate_names.append("v" + name)
-
-        if len(self.real_gate_names) != len(self.virtual_gate_names):
-            raise ValueError("number of real gates and virtual gates is not equal, please fix the input.")
-
-    @property
-    def virtual_gate_matrix(self):
-        cap_no_norm = np.asarray(self.virtual_gate_matrix_no_norm)
-        cap = np.asarray(self._virtual_gate_matrix)
-
-        for i in range(cap.shape[0]):
-            cap[i, :] = cap_no_norm[i]/np.sum(cap_no_norm[i, :])
-
-        return self._virtual_gate_matrix
-
-    @property
-    def matrix(self):
-        return self.virtual_gate_matrix_no_norm
-
-    @property
-    def gates(self):
-        return self.real_gate_names
-
-    @property
-    def v_gates(self):
-        return self.virtual_gate_names
-
-    def __len__(self):
-        '''
-        get number of gate in the object.
-        '''
-        return len(self.real_gate_names)
+        self.sync_engine = None
 
     def __getstate__(self):
-        '''
-        overwrite state methods so object becomes pickable.
-        '''
-        state = self.__dict__.copy()
-        state["_virtual_gate_matrix"] = np.asarray(self._virtual_gate_matrix)
-        state["virtual_gate_matrix_no_norm"] = np.asarray(self.virtual_gate_matrix_no_norm)
-        return state
+        return {
+            'name': self.name,
+            'real_gate_name_names': self.real_gate_names,
+            'virtual_gate_names': self.virtual_gate_names,
+            'r2v_matrix_no_norm': self.r2v_matrix_no_norm,
+                }
 
     def __setstate__(self, new_state):
         '''
         overwrite state methods so object becomes pickable.
         '''
-        new_state["_virtual_gate_matrix"] = np.asarray(new_state["_virtual_gate_matrix"]).data
-        new_state["virtual_gate_matrix_no_norm"] = np.asarray(new_state["virtual_gate_matrix_no_norm"]).data
+        if "r2v_matrix_no_norm" not in new_state:
+            # retrieving old version
+            new_state["r2v_matrix_no_norm"] = np.asarray(new_state["virtual_gate_matrix_no_norm"])
+        if "real_gate_names" not in new_state:
+            new_state["real_gate_names"] = new_state["real_gate_name_names"]
         self.__dict__.update(new_state)
-
-    def reduce(self, gates, v_gates = None):
-        '''
-        reduce size of the virtual gate matrix
-
-        Args:
-            gates (list<str>) : name of the gates where to reduce to reduce the current matrix to.
-            v_gates (list<str>) : list with the names of the virtual gates (optional)
-        '''
-        v_gates = self.get_v_gate_names(v_gates, gates)
-        v_gate_matrix = np.eye(len(gates))
-
-        for i in range(len(gates)):
-            for j in range(len(gates)):
-                if gates[i] in self.gates:
-                    vi = self.virtual_gate_names.index(v_gates[i])
-                    rj = self.real_gate_names.index(gates[j])
-                    v_gate_matrix[i, j] = self.matrix[vi,rj]
-
-        result = virtual_gate('dummy', gates, v_gates)
-        result.virtual_gate_matrix_no_norm = v_gate_matrix
-        return result
-
-    def get_v_gate_names(self, v_gate_names, real_gates):
-        if v_gate_names is None:
-            v_gates = []
-            for rg in real_gates:
-                gate_index = self.gates.index(rg)
-                v_gates.append(self.v_gates[gate_index])
-        else:
-            v_gates = v_gate_names
-
-        return v_gates
 
 
 class virtual_gates_mgr(list):
-    def __init__(self, sync_engine, *args):
-        super(virtual_gates_mgr, self).__init__(*args)
-
+    def __init__(self, sync_engine):
+        super().__init__()
         self.sync_engine = sync_engine
 
-    def append(self, item):
+    def add(self, name, real_gate_names, virtual_gate_names=None,
+            matrix=None, normalization=False):
+        if virtual_gate_names is not None:
+            if len(real_gate_names) != len(virtual_gate_names):
+                raise ValueError("number of real gates and virtual gates is not equal.")
+        else:
+            virtual_gate_names = ["v" + name for name in real_gate_names]
+
+        vg = virtual_gate(name, real_gate_names, virtual_gate_names)
+        self.append(vg, matrix=matrix, normalization=normalization)
+
+    def append(self, item, matrix=None, normalization=False):
         if not isinstance(item, virtual_gate):
-            raise ValueError("please provide the virtual gates with the virtual_gate data type. {} detected".format(type(item)))
+            raise ValueError("Virtual gates should be specified with the virtual_gate class. "
+                             f"Got class {type(item)}")
 
-        # check for uniqueness of the virtual gate names.
-        virtual_gates = []
-        virtual_gates += item.virtual_gate_names
-        for i in self:
-            virtual_gates += i.virtual_gate_names
-
-        if len(np.unique(np.array(virtual_gates))) != len(virtual_gates):
-            raise ValueError("two duplicate names of virtual gates detected. Please fix this.")
+        self._check_virtual_gate_names(item.name, item.virtual_gate_names)
 
         if item.name in list(self.sync_engine.keys()):
             item_in_ram = self.sync_engine[item.name]
             if item_in_ram.real_gate_names == item.real_gate_names:
-                np.asarray(item.virtual_gate_matrix_no_norm)[:] = np.asarray(item_in_ram.virtual_gate_matrix_no_norm)[:]
+                item.r2v_matrix_no_norm[:] = item_in_ram.r2v_matrix_no_norm
+            else:
+                # TODO implement conversion
+                print('WARNING: Gates have changed. The values of the old virtual matrix are lost.')
+                if matrix is not None:
+                    item.r2v_matrix_no_norm[:] = matrix
+        elif matrix is not None:
+            item.r2v_matrix_no_norm[:] = matrix
 
-        self.sync_engine[item.name] =  item
+        item.saver = self._save_vgm
+        item.save()
 
-        return super(virtual_gates_mgr, self).append(item)
+        vgm = VirtualGateMatrix(item, normalization=normalization)
+
+        return super().append(vgm)
+
+    def _save_vgm(self, vgm):
+        self.sync_engine[vgm.name]=vgm
+
+    def _check_virtual_gate_names(self, name, virtual_gate_names):
+        # check for uniqueness of the virtual gate names.
+        for gate_name in virtual_gate_names:
+            for vg in self:
+                if gate_name in vg.virtual_gate_names:
+                    raise ValueError(f"Duplicate virtual gate {gate_name}. "
+                                     f"Defined in {vg.name} and {name}")
 
     def __getitem__(self, row):
         if isinstance(row, int):
@@ -148,20 +111,16 @@ class virtual_gates_mgr(list):
             row = self.index(row)
             return super(virtual_gates_mgr, self).__getitem__(row)
 
-        raise ValueError("Invalid key (name) {} provided for the virtual_gate object.")
+        raise ValueError(f"Invalid key/name {row} provided for the virtual gate matrix.")
 
     def index(self, name):
-        i = 0
-        options = []
-        for v_gate_item in self:
-            options.append(v_gate_item.name)
-            if v_gate_item.name  == name:
+        if len(self) == 0:
+            raise ValueError("No virtual matrix is defined.")
+        for i, virtual_gate_matrix in enumerate(self):
+            if virtual_gate_matrix.name == name:
                 return i
-            i += 1
-        if len(options) == 0:
-            raise ValueError("Trying to get find a virtual gate matrix, but no matrix is defined.")
+        raise ValueError(f"Virtual gate matrix {name} not registered in hardware")
 
-        raise ValueError("{} is not defined as a virtual gate. The options are, {}".format(name,options))
 
 class harware_parent(qc.Instrument):
     """docstring for harware_parent -- init a empy hardware object"""
@@ -231,10 +190,9 @@ class harware_parent(qc.Instrument):
         return RF_settings,qc_params
 
     def sync_data(self):
-        for item in self.virtual_gates:
-            # invoke property to update normalized matrix
-            item.virtual_gate_matrix
-            self.sync[item.name] = item
+        print("SYNC")
+#        for item in self.virtual_gates:
+#            self.sync[item.name] = item._persistent_object
         self.sync['AWG2DAC'] = self._AWG_to_dac_conversion
         self.sync['RFsettings'] = self._RF_settings
         self.sync.sync()
@@ -256,7 +214,3 @@ class harware_parent(qc.Instrument):
                 }
         return self.snap
 
-if __name__ == '__main__':
-    # example.
-    hw = hardware_example("my_harware_example")
-    print(hw.virtual_gates)

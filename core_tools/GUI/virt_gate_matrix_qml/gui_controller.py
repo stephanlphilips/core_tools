@@ -8,11 +8,15 @@ import os, sys
 from typing import Union
 import logging
 
+import qcodes as qc
+
 class virt_gate_matrix_GUI:
-    def __init__(self, virtual_gate_name : Union[str, int] = 0):
+    def __init__(self, virtual_gate_name : Union[str, int] = 0,
+                 invert : bool = False):
         """
         Args:
             virtual_gate_name: Name or index of virtual gate to display
+            invert: Show inverted matrix.
         """
         super().__init__()
         # self.app =  QtGui.QGuiApplication(sys.argv)
@@ -22,19 +26,18 @@ class virt_gate_matrix_GUI:
             self.instance_ready = False
             self.app = QtWidgets.QApplication([])
 
-        hw = hardware()
+        hw = qc.Station.default.hardware
         self.engine = QtQml.QQmlApplicationEngine()
 
         self.attenuation_model = attenuation_model(hw.awg2dac_ratios)
         self.engine.rootContext().setContextProperty("attenuation_model", self.attenuation_model)
-        
+
         if isinstance(virtual_gate_name, int):
             self.virtual_gate_index = virtual_gate_name
         else:
             self.virtual_gate_index = (hw.virtual_gates.virtual_gate_names).index(virtual_gate_name)
 
         if len(hw.virtual_gates) > self.virtual_gate_index:
-            hw = hardware()
             vg = hw.virtual_gates[self.virtual_gate_index]
             logging.info(f'creating objects for index {self.virtual_gate_index}')
             self.vg_matrix_model = vg_matrix_model(vg)
@@ -57,30 +60,33 @@ class virt_gate_matrix_GUI:
         self.engine.load(QtCore.QUrl.fromLocalFile(filename))
         self.win = self.engine.rootObjects()[0]
 
-        self._mat_inv_switch = self.engine.rootObjects()[0].findChild(QtCore.QObject, "mat_inv_switch")
-        self.set_table_headers()
+        normalize_button = self.win.findChild(QtCore.QObject, "normalize_button")
+        normalize_button.setProperty('enabled', vg.normalization)
+        reverse_normalize_button = self.win.findChild(QtCore.QObject, "reverse_normalize_button")
+        reverse_normalize_button.setProperty('enabled', vg.normalization)
 
-        timer = QtCore.QTimer()
-        timer.timeout.connect(lambda: None)
-        timer.start(100)
+        self._mat_inv_switch = self.win.findChild(QtCore.QObject, "mat_inv_switch")
+        self._mat_inv_switch.setProperty('checked', invert)
+        self.vg_matrix_model.set_virtual_2_real(self._mat_inv_switch.property('checked'))
+        self.set_table_headers()
 
         if self.instance_ready == False:
             self.app.exec_()
             print('exec')
-        
+
 
     def set_table_headers(self):
         root_context=self.engine.rootContext()
-        checked = self._mat_inv_switch.property('checked')
-        logging.info(f'set_table_headers: mat_inv {checked}')
+        inverted = self._mat_inv_switch.property('checked')
+        logging.info(f'set_table_headers: mat_inv {inverted}')
 
-        if checked:
+        if inverted:
             root_context.setContextProperty('row_header_model', self.gates_header_model)
             root_context.setContextProperty('column_header_model', self.vgates_header_model)
         else:
             root_context.setContextProperty('row_header_model', self.vgates_header_model)
             root_context.setContextProperty('column_header_model', self.gates_header_model)
-        
+
 if __name__ == "__main__":
     import numpy as np
 
@@ -92,10 +98,10 @@ if __name__ == "__main__":
     h = hardware()
     h.dac_gate_map = {
         # dacs for creating the quantum dots -- syntax, "gate name": (dac module number, dac index)
-        'B0': (0, 1), 'P1': (0, 2), 
+        'B0': (0, 1), 'P1': (0, 2),
         'B1': (0, 3), 'P2': (0, 4),
-        'B2': (0, 5), 'P3': (0, 6), 
-        'B3': (0, 7), 'P4': (0, 8), 
+        'B2': (0, 5), 'P3': (0, 6),
+        'B3': (0, 7), 'P4': (0, 8),
         'B4': (0, 9), 'P5': (0, 10),
         'B5': (0, 11),'P6': (0, 12),
         'B6': (0, 13)}
@@ -103,7 +109,7 @@ if __name__ == "__main__":
     h.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
     h.awg2dac_ratios.add(['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S6', 'SD1_P', 'SD2_P'])
     h.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P', 'COMP1', 'COMP2', 'COMP3'])
-    
+
     a = np.array([[ 1.00000000e+00,  0.00000000e+00,  0.00000000e+00,0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 0.00000000e+00],
             [ 6.49707806e-02,  2.82481655e-01,  4.90827766e-02, 7.81982372e-02,  3.10296188e-02,  3.77927331e-02, 2.04070954e-02,  1.92595334e-02,  5.77896842e-03, 5.23641473e-03,  1.07451230e-03,  1.20437539e-03, 1.08393785e-04,  4.03374906e-01, -5.72633650e-18,-1.75608355e-18],
             [ 0.00000000e+00,  0.00000000e+00,  1.00000000e+00, 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 0.00000000e+00],
@@ -120,7 +126,7 @@ if __name__ == "__main__":
             [-3.66373083e-17, -2.93006203e-17, -2.40292394e-17,-7.56924908e-17, -2.66398315e-17,  4.13863597e-17, 4.98254165e-18, -7.91675124e-18, -1.66866457e-16, 1.46595361e-16,  7.40710493e-16,  3.33829987e-17,-1.01078939e-16,  1.00000000e+00, -1.38777878e-17,-4.33680869e-18],
             [ 3.94710178e-02,  4.92640444e-02,  4.00235624e-03, 9.13044283e-03,  3.35657030e-03,  3.06239735e-03, 3.05006789e-03,  2.15866106e-03,  6.00781938e-04, 5.86911653e-04,  1.20434271e-04,  1.34989680e-04, 1.21490712e-05,  2.30623884e-01,  6.54425292e-01,-2.13653863e-18],
             [ 1.66746471e-04,  7.24984657e-04,  3.23423711e-04, 1.61107701e-03,  1.01776038e-03,  4.12665870e-03, 1.44668212e-03,  7.67513087e-03,  5.87574735e-03, 1.54538756e-02,  1.14956970e-02,  5.93898666e-02, 7.06073317e-02,  9.49489762e-02, -1.25916980e-17, 7.25136042e-01]])
-    
+
     # h.virtual_gates.test.matrix = a #np.linalg.inv(a)
 
 
@@ -130,4 +136,3 @@ if __name__ == "__main__":
 
 
 
-    

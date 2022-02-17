@@ -1,5 +1,5 @@
 from core_tools.drivers.hardware.hardware_SQL_backend import AWG_2_dac_ratio_queries
-from core_tools.drivers.hardware.virtual_gate_matrix import load_virtual_gate
+from core_tools.drivers.hardware.virtual_gate_matrix_db import load_virtual_gate
 from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
 
 import qcodes as qc
@@ -31,14 +31,14 @@ class virtual_gates_mgr():
         self.virtual_gate_names = []
 
     def add(self, name, gates : List[str], virtual_gates : Optional[List[str]] = None,
-            matrix = None):
+            matrix = None, normalization = False):
         if name not in self.virtual_gate_names:
             self.virtual_gate_names += [name]
 
-        virtual_gate_set = load_virtual_gate(name, gates, virtual_gates)
-        if matrix is not None and np.all(virtual_gate_set.matrix == np.eye(len(virtual_gate_set))):
-            virtual_gate_set.matrix = matrix
-        setattr(self, name, virtual_gate_set)
+        virtual_gate_matrix = load_virtual_gate(name, gates, virtual_gates, matrix,
+                                                normalization=normalization)
+        setattr(self, name, virtual_gate_matrix)
+        return virtual_gate_matrix
 
     def __len__(self):
         return len(self.virtual_gate_names)

@@ -1,4 +1,3 @@
-import qdarkstyle
 import numpy as np
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
@@ -13,6 +12,7 @@ from qcodes import MultiParameter
 from qcodes.measure import Measure
 from core_tools.utility.powerpoint import addPPTslide
 import logging
+from ..qt_util import qt_log_exception
 
 #TODO: Fix the measurement codes, to transpose the data properly (instead of fixing it in the plot)
 
@@ -125,20 +125,20 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
 
-        self.start_1D.clicked.connect(self._1D_start_stop)
-        self.start_2D.clicked.connect(self._2D_start_stop)
-        self._1D_update_plot.clicked.connect(self.update_plot_settings_1D)
-        self._2D_update_plot.clicked.connect(self.update_plot_settings_2D)
-        self._flip_axes.clicked.connect(self.do_flip_axes)
-        self.tabWidget.currentChanged.connect(self.tab_changed)
+        self.start_1D.clicked.connect(lambda:self._1D_start_stop())
+        self.start_2D.clicked.connect(lambda:self._2D_start_stop())
+        self._1D_update_plot.clicked.connect(lambda:self.update_plot_settings_1D())
+        self._2D_update_plot.clicked.connect(lambda:self.update_plot_settings_2D())
+        self._flip_axes.clicked.connect(lambda:self.do_flip_axes())
+        self.tabWidget.currentChanged.connect(lambda:self.tab_changed())
 
         self.init_defaults(pulse_lib.channels, cust_defaults)
 
-        self._1D_save_data.clicked.connect(self.save_data)
-        self._2D_save_data.clicked.connect(self.save_data)
+        self._1D_save_data.clicked.connect(lambda:self.save_data())
+        self._2D_save_data.clicked.connect(lambda:self.save_data())
 
-        self._1D_ppt_save.clicked.connect(self.copy_ppt)
-        self._2D_ppt_save.clicked.connect(self.copy_ppt)
+        self._1D_ppt_save.clicked.connect(lambda:self.copy_ppt())
+        self._2D_ppt_save.clicked.connect(lambda:self.copy_ppt())
 
         self.show()
         if instance_ready == False:
@@ -274,12 +274,12 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         for marker, check_box in self.marker_check_boxes.items():
             check_box.setChecked(marker in self._gen__enabled_markers)
 
-        self._1D_average.valueChanged.connect(self.update_plot_properties_1D)
-        self._1D_diff.stateChanged.connect(self.update_plot_properties_1D)
+        self._1D_average.valueChanged.connect(lambda:self.update_plot_properties_1D())
+        self._1D_diff.stateChanged.connect(lambda:self.update_plot_properties_1D())
 
-        self._2D_average.valueChanged.connect(self.update_plot_properties_2D)
-        self._2D_gradient.currentTextChanged.connect(self.update_plot_properties_2D)
-        self._2D_enh_contrast.stateChanged.connect(self.update_plot_properties_2D)
+        self._2D_average.valueChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_gradient.currentTextChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_enh_contrast.stateChanged.connect(lambda:self.update_plot_properties_2D())
 
         self._channels = self.get_activated_channels()
 
@@ -339,6 +339,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if dig_vmax is not None:
             print(f'Parameter dig_vmax is deprecated. Digitizer input should be configured directly on instrument.')
 
+    @qt_log_exception
     def update_plot_properties_1D(self):
         '''
         update properties in the liveplot without reloading the sequences (e.g. averaging/differentation of data)
@@ -347,6 +348,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._1D.averaging = self._1D_average.value()
             self.current_plot._1D.differentiate = self._1D_diff.isChecked()
 
+    @qt_log_exception
     def update_plot_properties_2D(self):
         '''
         update properties in the liveplot without reloading the sequences (e.g. averaging/gradient of data)
@@ -356,6 +358,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._2D.gradient = self._2D_gradient.currentText()
             self.current_plot._2D.enhanced_contrast = self._2D_enh_contrast.isChecked()
 
+    @qt_log_exception
     def get_offsets(self, dimension='1D'):
         offsets = {}
         for i in range(1,4):
@@ -366,6 +369,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         return offsets
 
+    @qt_log_exception
     def get_plot_settings(self):
         '''
         write the values of the input into the the class
@@ -425,6 +429,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         style = 'QLabel {color : red; }' if biasTerror1D > 0.05 else ''
         self._1D_biasTwarning.setStyleSheet(style)
 
+    @qt_log_exception
     def _1D_start_stop(self):
         '''
         Starts/stops the data acquisition and plotting.
@@ -463,6 +468,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._1D.stop()
             self.start_1D.setText("Start")
 
+    @qt_log_exception
     def _2D_start_stop(self):
         '''
         Starts/stops the data acquisition and plotting.
@@ -512,6 +518,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.start_2D.setText("Start")
 
 
+    @qt_log_exception
     def update_plot_settings_1D(self):
         '''
         update settings of the plot -- e.g. switch gate, things that require a re-upload of the data.
@@ -529,6 +536,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         except:
             logging.error('Update plot failed', exc_info=True)
 
+    @qt_log_exception
     def update_plot_settings_2D(self):
         '''
         update settings of the plot -- e.g. switch gate, things that require a re-upload of the data. ~
@@ -546,6 +554,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         except:
             logging.error('Update plot failed', exc_info=True)
 
+    @qt_log_exception
     def do_flip_axes(self):
         old_x_axis = self._2D_gate1_name.currentText()
         old_y_axis = self._2D_gate2_name.currentText()
@@ -558,6 +567,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.start_2D.text() == "Stop":
             self.update_plot_settings_2D()
 
+    @qt_log_exception
     def tab_changed(self):
         if self.current_plot._1D is not None:
             self.current_plot._1D.stop()
@@ -567,6 +577,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._2D.stop()
             self.start_2D.setText("Start")
 
+    @qt_log_exception
     def closeEvent(self, event):
         """
         overload the Qt close funtion. Make sure that all references in memory are fully gone,
@@ -594,6 +605,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         logging.info('Window closed')
 
 
+    @qt_log_exception
     def get_activated_channels(self):
         channels = set()
         for name, check_box in self.channel_check_boxes.items():
@@ -602,6 +614,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 channels.add(channel_nr)
         return list(channels)
 
+    @qt_log_exception
     def set_metadata(self):
         metadata = {}
         if self.tab_id == 0: # 1D
@@ -619,6 +632,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.metadata = metadata
 
+    @qt_log_exception
     def copy_ppt(self):
         """
         ppt the data
@@ -628,20 +642,18 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         elif self.tab_id == 1: # 2D
             figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
 
-        try:
-            ds = self.save_data()
-            notes = self.metadata.copy()
-            if hasattr(ds, 'exp_id'):
-                notes['dataset_id'] = ds.exp_id
-                notes['dataset_uuid'] = ds.exp_uuid
-            else:
-                notes['location'] = ds.location
+        ds = self.save_data()
+        notes = self.metadata.copy()
+        if hasattr(ds, 'exp_id'):
+            notes['dataset_id'] = ds.exp_id
+            notes['dataset_uuid'] = ds.exp_uuid
+        else:
+            notes['location'] = ds.location
 
-            addPPTslide(fig=figure_hand, notes=str(notes), verbose=-1)
-        except:
-            logging.error(f'Error adding slide', exc_info=True)
+        addPPTslide(fig=figure_hand, notes=str(notes), verbose=-1)
 
 
+    @qt_log_exception
     def save_data(self):
         """
         save the data
@@ -668,11 +680,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 # use qcodes measurement
                 measure = Measure(self.vm_data_param)
-                data = measure.get_data_set(location=None,
-                                            loc_record={
-                                            'name': 'vm_data',
-                                            'label': label})
-                data = measure.run(quiet=True)
+                data = measure.run(quiet=True, name=label)
                 data.finalize()
                 return data
         except:

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
 from core_tools.GUI.param_viewer.param_viewer_GUI_window import Ui_MainWindow
-from PyQt5 import QtCore, QtGui, QtWidgets
-from functools import partial
+from PyQt5 import QtCore, QtWidgets
 import qcodes as qc
-import numpy as np
 from dataclasses import dataclass
+from ..qt_util import qt_log_exception
 
 import logging
 
@@ -57,25 +56,30 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             self._add_gate(param, False)
 
         # add virtual gates
-        for virtual_gates_names in self.gates_object.v_gates.values():
-            for gate_name in virtual_gates_names:
-                param = getattr(self.gates_object, gate_name)
-                self._add_gate(param, True)
+        for gate_name in self.gates_object.v_gates:
+            param = getattr(self.gates_object, gate_name)
+            self._add_gate(param, True)
 
-        self.step_size.valueChanged.connect(partial(self._update_step, self.step_size.value))
+        self.step_size.valueChanged.connect(lambda:self._update_step(self.step_size.value))
         self._finish_gates_GUI()
 
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(partial(self._update_parameters))
+        self.timer.timeout.connect(lambda:self._update_parameters())
         self.timer.start(500)
 
         self.show()
         if instance_ready == False:
             self.app.exec()
 
+    @qt_log_exception
     def _update_step(self, value):
         self.update_step(value())
 
+    @qt_log_exception
+    def closeEvent(self, event):
+        self.timer.stop()
+
+    @qt_log_exception
     def update_step(self, value : float):
         """ Update step size of the parameter GUI elements with the specified value """
         self._step_size = value
@@ -86,6 +90,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.step_size.setValue(value)
 
+    @qt_log_exception
     def _add_RFset(self, parameter : qc.Parameter):
         ''' Add a new RF.
 
@@ -120,7 +125,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # TODO collect boundaries out of the harware
         set_input.setRange(-1e9,1e9)
-        set_input.valueChanged.connect(partial(self._set_set, parameter, set_input.value,division))
+        set_input.valueChanged.connect(lambda:self._set_set(parameter, set_input.value, division))
         set_input.setKeyboardTracking(False)
         set_input.setSingleStep(step_size)
 
@@ -132,6 +137,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         layout.addWidget(set_unit, i, 2, 1, 1)
         self.rf_settings.append(param_data_obj(parameter,  set_input, division))
 
+    @qt_log_exception
     def _add_gate(self, parameter : qc.Parameter, virtual : bool):
         '''
         add a new gate.
@@ -165,7 +171,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # TODO collect boundaries out of the harware
         voltage_input.setRange(-4000,4000.0)
-        voltage_input.valueChanged.connect(partial(self._set_gate, parameter, voltage_input.value, voltage_input))
+        voltage_input.valueChanged.connect(lambda:self._set_gate(parameter, voltage_input.value, voltage_input))
         voltage_input.setKeyboardTracking(False)
         layout.addWidget(voltage_input, i, 1, 1, 1)
 
@@ -178,6 +184,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             self.virtual_gates.append(param_data_obj(parameter,  voltage_input, 1))
 
+    @qt_log_exception
     def _set_gate(self, gate, value, voltage_input):
         # TODO add support if out of range.
         try:
@@ -191,12 +198,14 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         except:
             logging.error(f'Failed to set gate {gate} to {value()}', exc_info=True)
 
+    @qt_log_exception
     def _set_set(self, setting, value, division):
         # TODO add support if out of range.
         setting.set(value()*division)
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
         self.gates_object.hardware.sync_data()
 
+    @qt_log_exception
     def _finish_gates_GUI(self):
 
         for items, layout_widget in [ (self.real_gates, self.layout_real), (self.virtual_gates, self.layout_virtual),
@@ -211,6 +220,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.setWindowTitle(f'Viewer for {self.gates_object}')
 
+    @qt_log_exception
     def _update_parameters(self):
         '''
         updates the values of all the gates in the parameterviewer periodically
@@ -227,14 +237,17 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             return
 
         for param in params:
-            # do not update when a user clicks on it.
-            if not param.gui_input_param.hasFocus():
-                last_value = self.last_param_value.get(param.param_parameter.name, None)
-                new_value = param.param_parameter()/param.division
-                if new_value != last_value:
-                    logging.info(f'Update GUI {param.param_parameter.name} {last_value} -> {new_value}')
-                    self.last_param_value[param.param_parameter.name] = new_value
-                    param.gui_input_param.setValue(new_value)
+            try:
+                # do not update when a user clicks on it.
+                if not param.gui_input_param.hasFocus():
+                    last_value = self.last_param_value.get(param.param_parameter.name, None)
+                    new_value = param.param_parameter()/param.division
+                    if new_value != last_value:
+                        logging.info(f'Update GUI {param.param_parameter.name} {last_value} -> {new_value}')
+                        self.last_param_value[param.param_parameter.name] = new_value
+                        param.gui_input_param.setValue(new_value)
+            except:
+                logging.error(f'Error updating {param}', exc_info=True)
 
 
 

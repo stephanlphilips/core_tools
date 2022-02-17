@@ -2,16 +2,17 @@
 
 # Form implementation generated from reading ui file 'param_viewer_GUI_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.12.2
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(450, 1600)
+        MainWindow.resize(450, 1200)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -31,6 +32,7 @@ class Ui_MainWindow(object):
         self.gridLayout_6 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_6.setObjectName("gridLayout_6")
         self.layout_real = QtWidgets.QGridLayout()
+        self.layout_real.setSpacing(2)
         self.layout_real.setObjectName("layout_real")
         self.gridLayout_6.addLayout(self.layout_real, 0, 0, 1, 1)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
@@ -41,6 +43,7 @@ class Ui_MainWindow(object):
         self.gridLayout_5 = QtWidgets.QGridLayout(self.virtualgates)
         self.gridLayout_5.setObjectName("gridLayout_5")
         self.layout_virtual = QtWidgets.QGridLayout()
+        self.layout_virtual.setSpacing(2)
         self.layout_virtual.setObjectName("layout_virtual")
         self.gridLayout_5.addLayout(self.layout_virtual, 0, 0, 1, 1)
         self.tab_menu.addTab(self.virtualgates, "")
@@ -107,4 +110,5 @@ class Ui_MainWindow(object):
         self.label.setText(_translate("MainWindow", "Voltage step"))
         self.label_2.setText(_translate("MainWindow", "mV"))
         self.tab_menu.setTabText(self.tab_menu.indexOf(self.settings), _translate("MainWindow", "Settings"))
+
 

@@ -628,6 +628,23 @@ ApplicationWindow{
                 //     }
                 // }
 
+                Button {
+                  id: normalizeButton
+                  Layout.leftMargin : 10
+                  Layout.rightMargin : 10
+                  text: qsTr("Normalize")
+                  onClicked: vg_matrix_model.normalize_matrix(true)
+                  objectName: "normalize_button"
+                }
+                Button {
+                  id: reverseNormalizeButton
+                  Layout.leftMargin : 10
+                  Layout.rightMargin : 10
+                  text: qsTr("Reverse normalize")
+                  onClicked: vg_matrix_model.normalize_matrix(false)
+                  objectName: "reverse_normalize_button"
+                }
+
                 Rectangle {
                     width: 250
                     height: 50
@@ -640,7 +657,7 @@ ApplicationWindow{
                         font.pixelSize: 20
                         Layout.preferredWidth: 250
                         checked: false
-                        onToggled: vg_matrix_model.manipulate_matrix(mat_inv.checked, false)
+                        onToggled: vg_matrix_model.invert_matrix(mat_inv.checked)
                         objectName: "mat_inv_switch"
                     }
                 }
