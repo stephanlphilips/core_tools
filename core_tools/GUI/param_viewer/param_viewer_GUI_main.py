@@ -17,19 +17,23 @@ class param_data_obj:
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, gates_object: Optional[object] = None):
+    def __init__(self, gates_object: Optional[object] = None,
+                 max_diff : float = 1000):
         self.real_gates = list()
         self.virtual_gates = list()
         self.rf_settings = list()
         self.station = qc.Station.default
         self.last_param_value = {}
+        self.max_diff = max_diff
+        self.locked = False
+
         if gates_object:
             self.gates_object = gates_object
         else:
             try:
                 self.gates_object = self.station.gates
             except:
-                raise ValueError('Default guess for gates object wrong, please supply manually')
+                raise ValueError('`gates` must be set in qcodes.station or supplied as argument')
         self._step_size = 1 #mV
         instance_ready = True
 
@@ -60,7 +64,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             param = getattr(self.gates_object, gate_name)
             self._add_gate(param, True)
 
-        self.step_size.valueChanged.connect(lambda:self._update_step(self.step_size.value))
+        self.lock.stateChanged.connect(lambda: self._update_lock(self.lock.isChecked()))
+        self.step_size.valueChanged.connect(lambda: self.update_step(self.step_size.value()))
         self._finish_gates_GUI()
 
         self.timer = QtCore.QTimer()
@@ -70,10 +75,6 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.show()
         if instance_ready == False:
             self.app.exec()
-
-    @qt_log_exception
-    def _update_step(self, value):
-        self.update_step(value())
 
     @qt_log_exception
     def closeEvent(self, event):
@@ -89,6 +90,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             gate.gui_input_param.setSingleStep(value)
 
         self.step_size.setValue(value)
+
+    @qt_log_exception
+    def _update_lock(self, locked):
+        print('Locked:', locked)
+        self.locked = locked
 
     @qt_log_exception
     def _add_RFset(self, parameter : qc.Parameter):
@@ -125,6 +131,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # TODO collect boundaries out of the harware
         set_input.setRange(-1e9,1e9)
+        set_input.setValue(parameter()/division)
         set_input.valueChanged.connect(lambda:self._set_set(parameter, set_input.value, division))
         set_input.setKeyboardTracking(False)
         set_input.setSingleStep(step_size)
@@ -171,6 +178,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # TODO collect boundaries out of the harware
         voltage_input.setRange(-4000,4000.0)
+        voltage_input.setValue(parameter())
         voltage_input.valueChanged.connect(lambda:self._set_gate(parameter, voltage_input.value, voltage_input))
         voltage_input.setKeyboardTracking(False)
         layout.addWidget(voltage_input, i, 1, 1, 1)
@@ -186,7 +194,19 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def _set_gate(self, gate, value, voltage_input):
-        # TODO add support if out of range.
+        if self.locked:
+            logging.warning(f'Not changing voltage, ParameterViewer is locked!')
+            old_value = self.last_param_value.get(gate.name, None)
+            if old_value is not None:
+                voltage_input.setValue(old_value)
+            return
+
+        delta = abs(value() - gate())
+        if delta > self.max_diff:
+            logging.warning(f'Not setting {gate} to {value():.1f}mV. '
+                            f'Difference {delta:.0f} mV > {self.max_diff:.0f} mV')
+            return
+
         try:
             last_value = self.last_param_value.get(gate.name, None)
             last_rounded = voltage_input.valueFromText(voltage_input.textFromValue(last_value)) if last_value is not None else None
@@ -194,13 +214,16 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                 logging.info(f'GUI value changed: set gate {gate.name} {last_value} ({last_rounded}) -> {value()}')
                 gate.set(value())
             else:
-                logging.debug(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value()}; no update of gate')
+                logging.debug(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value()};'
+                              'no update of gate')
         except:
             logging.error(f'Failed to set gate {gate} to {value()}', exc_info=True)
+
 
     @qt_log_exception
     def _set_set(self, setting, value, division):
         # TODO add support if out of range.
+        logging.info(f'setting {setting} to {value():.1f} times {division:.1f}')
         setting.set(value()*division)
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
         self.gates_object.hardware.sync_data()
@@ -218,7 +241,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
             layout_widget.addItem(spacerItem1, 0, 3, 1, 1)
 
-        self.setWindowTitle(f'Viewer for {self.gates_object}')
+        self.setWindowTitle(f'Parameter Viewer for {self.gates_object}')
 
     @qt_log_exception
     def _update_parameters(self):
