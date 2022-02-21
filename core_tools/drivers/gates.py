@@ -61,9 +61,8 @@ class gates(qc.Instrument):
         if gate_name in self.hardware.boundaries.keys():
             min_voltage, max_voltage = self.hardware.boundaries[gate_name]
             if voltage < min_voltage or voltage > max_voltage:
-                raise ValueError(f"Voltage boundaries violated, trying to set gate {gate_name} to {gate_name} mV.\n"
-                                 f"The limit is set to {min_voltage} to {max_voltage} mV.\n"
-                                 "The limit can be changed by updating the hardware class")
+                raise ValueError(f"Voltage boundaries violated, trying to set gate {gate_name} to {voltage:.1f} mV.\n"
+                                 f"The limit is set to {min_voltage} to {max_voltage} mV.")
 
         getattr(self.dac_sources[dac_location[0]], f'dac{int(dac_location[1])}')(voltage)
 
@@ -90,9 +89,16 @@ class gates(qc.Instrument):
         virtual_voltages[voltage_key] = voltage
         new_voltages = np.matmul(np.linalg.inv(virt_gate_convertor.r2v_matrix), virtual_voltages)
 
-        for i,gate_name in enumerate(virt_gate_convertor.real_gates):
-            if new_voltages[i] != real_voltages[i]:
-                self.set(gate_name, new_voltages[i])
+        try:
+            for i,gate_name in enumerate(virt_gate_convertor.real_gates):
+                if new_voltages[i] != real_voltages[i]:
+                    self.set(gate_name, new_voltages[i])
+        except Exception as ex:
+            logging.warning(f'Failed to set virtual gate voltage to {voltage:.1f} mV; Reverting all voltages. '
+                            f'Exception: {ex}')
+            for i,gate_name in enumerate(virt_gate_convertor.real_gates):
+                self.set(gate_name, real_voltages[i])
+            raise
 
     def _get_voltage_virt(self, gate_name, virt_gate_convertor):
         '''
