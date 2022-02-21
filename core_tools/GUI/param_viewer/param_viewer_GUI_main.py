@@ -23,7 +23,6 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.virtual_gates = list()
         self.rf_settings = list()
         self.station = qc.Station.default
-        self.last_param_value = {}
         self.max_diff = max_diff
         self.locked = False
 
@@ -196,9 +195,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     def _set_gate(self, gate, value, voltage_input):
         if self.locked:
             logging.warning(f'Not changing voltage, ParameterViewer is locked!')
-            old_value = self.last_param_value.get(gate.name, None)
-            if old_value is not None:
-                voltage_input.setValue(old_value)
+            # Note value will be restored by _update_parameters
             return
 
         delta = abs(value() - gate())
@@ -208,21 +205,18 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             return
 
         try:
-            last_value = self.last_param_value.get(gate.name, None)
-            last_rounded = voltage_input.valueFromText(voltage_input.textFromValue(last_value)) if last_value is not None else None
-            if value() != last_rounded:
-                logging.info(f'GUI value changed: set gate {gate.name} {last_value} ({last_rounded}) -> {value()}')
+            last_value = gate.get()
+            new_text = voltage_input.text()
+            current_text = voltage_input.textFromValue(last_value)
+            if new_text != current_text:
+                logging.info(f'GUI value changed: set gate {gate.name} {current_text} -> {new_text}')
                 gate.set(value())
-            else:
-                logging.debug(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value()};'
-                              'no update of gate')
-        except:
-            logging.error(f'Failed to set gate {gate} to {value()}', exc_info=True)
+        except Exception as ex:
+            logging.error(f'Failed to set gate {gate} to {value()}: {ex}')
 
 
     @qt_log_exception
     def _set_set(self, setting, value, division):
-        # TODO add support if out of range.
         logging.info(f'setting {setting} to {value():.1f} times {division:.1f}')
         setting.set(value()*division)
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
@@ -262,13 +256,14 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         for param in params:
             try:
                 # do not update when a user clicks on it.
-                if not param.gui_input_param.hasFocus():
-                    last_value = self.last_param_value.get(param.param_parameter.name, None)
+                gui_input = param.gui_input_param
+                if not gui_input.hasFocus():
                     new_value = param.param_parameter()/param.division
-                    if new_value != last_value:
-                        logging.info(f'Update GUI {param.param_parameter.name} {last_value} -> {new_value}')
-                        self.last_param_value[param.param_parameter.name] = new_value
-                        param.gui_input_param.setValue(new_value)
+                    current_text = gui_input.text()
+                    new_text = gui_input.textFromValue(new_value)
+                    if current_text != new_text:
+                        logging.info(f'Update GUI {param.param_parameter.name} {current_text} -> {new_text}')
+                        gui_input.setValue(new_value)
             except:
                 logging.error(f'Error updating {param}', exc_info=True)
 
