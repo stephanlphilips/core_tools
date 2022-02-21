@@ -169,6 +169,7 @@ class dummy_digitzer_scan_parameter(MultiParameter):
         self.channels = channels
         self.biasT_corr = biasT_corr
         self.shape = shape
+        self.channel_names = digitizer.names
 
     def get_raw(self):
 

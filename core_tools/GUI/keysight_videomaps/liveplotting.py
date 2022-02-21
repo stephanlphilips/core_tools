@@ -35,10 +35,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     The code for this classes is multithreaded in order to make sure everything keeps smoots during aquisition of the data.
     """
-    @property
-    def tab_id(self):
-        return self.tabWidget.currentIndex()
-
     def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
                  iq_mode=None, channel_map=None):
         '''
@@ -105,6 +101,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             raise ValueError("Unsupported agrument for scan type.")
         self.current_plot = plot_content(None, None)
         self.current_param_getter = param_getter(None, None)
+        self.vm_data_param = None
         instance_ready = True
 
         # set graphical user interface
@@ -112,8 +109,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.app is None:
             instance_ready = False
             self.app = QtWidgets.QApplication([])
-
-#        self.app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
 
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
@@ -143,6 +138,25 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.show()
         if instance_ready == False:
             self.app.exec()
+
+    @property
+    def tab_id(self):
+        return self.tabWidget.currentIndex()
+
+    @property
+    def is_running(self):
+        if self.start_1D.text() == 'Stop':
+            return '1D'
+        elif self.start_2D.text() == 'Stop':
+            return '2D'
+        else:
+            return False
+
+    def turn_off(self):
+        if self.is_running == '1D':
+            self._1D_start_stop()
+        elif self.is_running == '2D':
+            self._2D_start_stop()
 
     def _init_channels(self, channel_map, iq_mode):
         self.channel_map = (
@@ -633,14 +647,13 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.metadata = metadata
 
     @qt_log_exception
-    def copy_ppt(self):
+    def copy_ppt(self, inp_title = ''):
         """
         ppt the data
         """
-        if self.tab_id == 0: # 1D
-            figure_hand = self.current_plot._1D.plot_widgets[0].plot_widget.parent()
-        elif self.tab_id == 1: # 2D
-            figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
+        if self.vm_data_param is None:
+            print('no data to plot')
+            return
 
         ds = self.save_data()
         notes = self.metadata.copy()
@@ -650,14 +663,36 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             notes['location'] = ds.location
 
-        addPPTslide(fig=figure_hand, notes=str(notes), verbose=-1)
+        if type(inp_title) is not str:
+            inp_title = ''
 
+        if self.tab_id == 0: # 1D
+            figure_hand = self.current_plot._1D.plot_widgets[0].plot_widget.parent()
+            gate_x = self._1D__gate_name
+            range_x = self._1D__V_swing
+            channels = ','.join(self.current_param_getter._1D.channel_names)
+            title = f'{gate_x} ({range_x:.0f} mV), m:{channels}'
+        elif self.tab_id == 1: # 2D
+            figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
+            gate_y = self._2D__gate2_name
+            gate_x = self._2D__gate1_name
+            range_y = self._2D__V2_swing
+            range_x = self._2D__V1_swing
+            channels = ','.join(self.current_param_getter._2D.channel_names)
+            title = f'{inp_title} {gate_y} ({range_y:.0f} mV) vs. {gate_x} ({range_x:.0f} mV), m:{channels}'
+        else:
+            title = 'Oops, unknown tab'
+
+        addPPTslide(title=title, fig=figure_hand, notes=str(notes), verbose=-1)
 
     @qt_log_exception
     def save_data(self):
         """
         save the data
         """
+        if self.vm_data_param is None:
+            print('no data to save')
+            return
         if self.tab_id == 0: # 1D
             label = self._1D__gate_name
         elif self.tab_id == 1: # 2D
@@ -665,6 +700,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.vm_data_param.update_metadata()
         self.metadata['average'] = self.vm_data_param.plot.average_scans
+        self.metadata['differentiate'] = self.vm_data_param.plot.gradient
 
         is_ds_configured = False
         try:
