@@ -77,7 +77,11 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_4">
             <item row="0" column="0">
-             <layout class="QGridLayout" name="layout_virtual"/>
+             <layout class="QGridLayout" name="layout_virtual">
+               <property name="spacing">
+                <number>2</number>
+               </property>
+             </layout>
             </item>
            </layout>
           </widget>

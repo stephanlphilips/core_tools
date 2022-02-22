@@ -52,6 +52,7 @@ class Ui_MainWindow(object):
         self.gridLayout_4 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents_2)
         self.gridLayout_4.setObjectName("gridLayout_4")
         self.layout_virtual = QtWidgets.QGridLayout()
+        self.layout_virtual.setSpacing(2)
         self.layout_virtual.setObjectName("layout_virtual")
         self.gridLayout_4.addLayout(self.layout_virtual, 0, 0, 1, 1)
         self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_2)
