@@ -8,13 +8,14 @@ import numpy as np
 
 class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, gates_object, pulse_lib):
+    def __init__(self, gates_object, pulse_lib, coloring=True):
         self.gates = []
         self.gates_object = gates_object
         self.AWG_attentuation_local_data = dict()
         self.timers =list()
         instance_ready = True
         self._updating = False
+        self._coloring = coloring
 
         self.pulse_lib = pulse_lib
         # Use attenuation table from the hardware object
@@ -297,6 +298,7 @@ s        Creates a lambda expression to update the matrix.
         if not self._updating:
             value = spin_box.value()
             virtual_gate_set.set_element(i, j, value, v2r=state['v2r'])
+            self.set_color(spin_box, value)
 
     @qt_log_exception
     def update_v_gates(self, virtual_gate_set, update_list, state):
@@ -309,8 +311,27 @@ s        Creates a lambda expression to update the matrix.
         self._updating = True
         for i,j, spin_box in update_list:
             if not spin_box.hasFocus():
-                spin_box.setValue(virtual_gate_set.get_element(i, j, v2r=state['v2r']))
+                value = virtual_gate_set.get_element(i, j, v2r=state['v2r'])
+                spin_box.setValue(value)
+                self.set_color(spin_box, value)
         self._updating = False
+
+    def set_color(self, spin_box, value):
+        if not self._coloring:
+            return
+        if value == 0.0:
+            r,g,b = 255,255,255
+        elif value > 0:
+            # blue
+            b = 255
+            r = max(150, int(255 - value * 200))
+            g = r
+        elif value < 0:
+            # red
+            r = 255
+            b = max(150, int(255 - abs(value) * 200))
+            g = b
+        spin_box.setStyleSheet(f'background-color:rgb({r},{g},{b});')
 
     @qt_log_exception
     def invert(self, virtual_gate_set, refresh, tableWidget, state):
