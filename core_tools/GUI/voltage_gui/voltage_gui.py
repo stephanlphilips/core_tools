@@ -163,7 +163,8 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
                                                       'c:\\',"Layout files (*.gds *.oas *.GDS *.OAS)")
         try:
             self.load_pattern(fname[0], fname[0].split('.')[-1].lower())
-        except:
+        except Exception as e:
+            print(e)
             logging.warning(f'file invalid: {fname[0]}')
               
     
@@ -186,8 +187,11 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
 
         topcell = lib.cells[0]
         
-        for pg in topcell.polygons:
-            polygon = poly_data_obj(pg.points, '', None)
+        all_layers = {str(pg.layer) for pg in topcell.polygons}
+        self._layers += list(all_layers)
+        
+        for i, pg in enumerate(topcell.polygons):
+            polygon = poly_data_obj(pg.points, f'G{i}', str(pg.layer))
             self.polygons.append(polygon)
         
         self.init_gui()
