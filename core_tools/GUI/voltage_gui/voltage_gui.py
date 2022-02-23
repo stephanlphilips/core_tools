@@ -192,6 +192,7 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
         
         self.init_gui()
         self.draw_main_plots()
+        self.save_layout()
 
     def save_layout(self):
         filename = self.filename + '.pickle'
