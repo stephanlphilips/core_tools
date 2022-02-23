@@ -24,6 +24,14 @@ class SQL_database_init:
 
         self.last_commit = time.time()
 
+    def _disconnect(self):
+        if self.conn_local is not None:
+            self.conn_local.close()
+            self.conn_local = None
+        if self.conn_remote is not None:
+            self.conn_remote.close()
+            self.conn_remote = None
+
     @property
     def local_conn_active(self):
         if self.SQL_conn_info_local.host == 'localhost':
@@ -41,6 +49,15 @@ class SQL_database_manager(SQL_database_init):
     __instance = None
 
     def __new__(cls):
+        if SQL_database_manager.__instance is not None:
+            db_mgr = SQL_database_manager.__instance
+            # check connections not closed
+            if (db_mgr.conn_local is None or db_mgr.conn_local.closed
+                or db_mgr.conn_remote is None or db_mgr.conn_remote.closed):
+                db_mgr._disconnect()
+                SQL_database_manager.__instance = None
+                logging.warning('Closed connections. Retry connection.')
+
         if SQL_database_manager.__instance is None:
             SQL_database_manager.__instance = object.__new__(cls)
             db_mgr = SQL_database_manager.__instance
@@ -52,8 +69,8 @@ class SQL_database_manager(SQL_database_init):
                 SQL_database_manager.__instance = None
                 raise
 
-            conn_local = db_mgr.conn_local
             if not db_mgr.SQL_conn_info_local.readonly:
+                conn_local = db_mgr.conn_local
                 sample_info_queries.generate_table(conn_local)
                 sample_info_queries.add_sample(conn_local)
 
