@@ -61,6 +61,7 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
 
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         
         try:
             self.load_layout()
@@ -136,28 +137,30 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
         self.color_voltages(self._ds_poly_handles, volts, self.ds_plotter_figures, self._ds_split, self._ds_diff)
     
     def add_layers(self, layers):
-        print(f'addd {layers}')
+        print(f'add {layers}')
         if type(layers) is str:
             layers = [layers]
         
         for lay in layers:
-            if lay not in self._layers:
+            if lay and lay not in self._layers:
                 self._layers.append(lay)
         
         self.init_gui()
+        self.draw_main_plots()
     
     def remove_layers(self, layers):
+        print(f'removing {layers}')
         if type(layers) is not list or type(layers) is not tuple:
             layers = [layers]
         
         for lay in layers:
-            self.layers.remove(lay)
+            self._layers.remove(lay)
         
         self.init_gui()
     
     def getfile(self):
         fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', 
-                                                      'c:\\',"Layout files (*.gds *.oas)")
+                                                      'c:\\',"Layout files (*.gds *.oas *.GDS *.OAS)")
         try:
             self.load_pattern(fname[0], fname[0].split('.')[-1].lower())
         except:
@@ -188,6 +191,7 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
             self.polygons.append(polygon)
         
         self.init_gui()
+        self.draw_main_plots()
 
     def save_layout(self):
         filename = self.filename + '.pickle'
@@ -279,22 +283,33 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
                 norm = Normalize(vmin= -absmax, vmax= absmax)
             else:
                 norm = Normalize(vmin = minV, vmax = maxV)
+
             normalizers.append(norm)
-            normalizers *= len(self.layers)
+            normalizers *= max(len(self.layers), 1)
         
         if diff:
             cmap = self.cmap_diff
         else:
             cmap = self.cmap
-        
+                
+        invalid_layer = False
         for i, poly in enumerate(self.polygons):
             v = volts[poly.gate_name]
             layer = poly.gate_layer
-            fig_index = self.layers.index(layer)
+            try:
+                fig_index = self.layers.index(layer)
+            except:
+                invalid_layer = True
+                fig_index = 0
             norm = normalizers[fig_index]
             ph = phs[i]
             ph.set_facecolor(cmap(norm(v)))
-        
+
+        if invalid_layer:
+            logging.warning('Please specify at least one layer. Plotting, but '
+                            'will keep shouting this error until a layer is '
+                            'added...')
+
         for i, pf in enumerate(plotter_figures):
             pf.colorbar_scaler.set_clim(vmin = normalizers[i].vmin, vmax = normalizers[i].vmax)
             pf.canvas.draw()
@@ -396,7 +411,10 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
             for lay in self.layers:
                 gate_layer.addItem(lay)
                 try:
-                    gate_layer.setCurrentText(poly.gate_layer)
+                    if poly.gate_layer:
+                        gate_layer.setCurrentText(poly.gate_layer)
+                    else:
+                        poly.gate_layer = gate_layer.currentText()
                 except:
                     pass
             gate_layer.currentTextChanged.connect(partial(self._change_gatelayer, i, gate_layer.currentText))
@@ -456,8 +474,21 @@ class voltage_plotter_pyqt(QtWidgets.QMainWindow, Ui_MainWindow):
         self.draw_main_plots()
         
     def _update(self):
-        if self.tabWidget.currentIndex() == 0:
-            self.color_voltages(self._main_poly_handles, self.get_voltages(), self.plotter_figures, self._split, False)
-        elif self.tabWidget.currentIndex() == 1:
-            self.color_ds_plots()
+        if self.polygons:
+            if self.tabWidget.currentIndex() == 0:
+                self.color_voltages(self._main_poly_handles, self.get_voltages(), self.plotter_figures, self._split, False)
+            elif self.tabWidget.currentIndex() == 1:
+                self.color_ds_plots()
+        else:
+            logging.warning('No layout present, cannot plot, turning off update.')
+            self._enabled_check.setChecked(False)
+            self._ds_enabled_check.setChecked(False)
+            self.timer.stop()
+            
+    def closeEvent(self, event):
+        """
+        overload the Qt close funtion. Make sure that all timers are stopped.
+        """
+        self.timer.stop()
+        logging.info('Window closed')
         
