@@ -94,7 +94,7 @@ class data_set:
         '''
         for minstr in self.__repr_attr_overview:
             for var_meas in minstr:
-                if var_meas[1].label == label_variable:
+                if var_meas[1].label == label_variable or var_meas[1].name == label_variable:
                     return var_meas[1]
 
         raise ValueError(f'Unable to find \'{label_variable}\' in ds with id :{self.exp_id}')
