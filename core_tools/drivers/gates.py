@@ -21,28 +21,34 @@ class gates(qc.Instrument):
         '''
         super(gates, self).__init__(name)
 
-        if not isinstance(hardware, type(hw_parent())):
-            raise ValueError('Please use the updated hardware class (see https://core-tools.readthedocs.io/ for more info).')
+        if not isinstance(hardware, hw_parent):
+            logging.info('Detected old hardware class')
 
         self.hardware = hardware
         self.dac_sources = dac_sources
 
         self._gv = dict()
-        self.v_gates = dict()
+        self.v_gates = list()
+        self._all_gate_names = list()
 
         # add gates:
         for gate_name, dac_location in self.hardware.dac_gate_map.items():
-            self.add_parameter(gate_name, set_cmd = partial(self._set_voltage,  gate_name), get_cmd=partial(self._get_voltage,  gate_name), unit = "mV")
+            self._all_gate_names.append(gate_name)
+            self.add_parameter(gate_name, set_cmd = partial(self._set_voltage,  gate_name),
+                               get_cmd=partial(self._get_voltage,  gate_name),
+                               unit = "mV")
 
         # make virtual gates:
         for virt_gate_set in self.hardware.virtual_gates:
-            self.v_gates[virt_gate_set.name] = list()
-            for i in range(len(virt_gate_set)):
-                if virt_gate_set.gates[i] in self.hardware.dac_gate_map.keys():
-                    gate_name = virt_gate_set.v_gates[i]
-                    self.v_gates[virt_gate_set.name].append(gate_name)
-                    self.add_parameter(gate_name, set_cmd = partial(self._set_voltage_virt, gate_name, virt_gate_set),
-                        get_cmd=partial(self._get_voltage_virt, gate_name, virt_gate_set), unit = "mV")
+            virt_gate_convertor = virt_gate_set.get_view(available_gates=self._all_gate_names)
+            self._all_gate_names += virt_gate_convertor.virtual_gates
+            self.v_gates += virt_gate_convertor.virtual_gates
+            for v_gate_name in virt_gate_convertor.virtual_gates:
+                self.add_parameter(v_gate_name,
+                                   set_cmd=partial(self._set_voltage_virt, v_gate_name, virt_gate_convertor),
+                                   get_cmd=partial(self._get_voltage_virt, v_gate_name, virt_gate_convertor),
+                                   unit="mV")
+
 
     def _set_voltage(self, gate_name, voltage):
         '''
@@ -55,10 +61,11 @@ class gates(qc.Instrument):
         if gate_name in self.hardware.boundaries.keys():
             min_voltage, max_voltage = self.hardware.boundaries[gate_name]
             if voltage < min_voltage or voltage > max_voltage:
-                raise ValueError("Voltage boundaries violated, trying to set gate {} to {}mV. \nThe limit is set to {} to {} mV.\nThe limit can be changed by updating the hardware class".format(gate_name, voltage, min_voltage, max_voltage))
+                raise ValueError(f"Voltage boundaries violated, trying to set gate {gate_name} to {voltage:.1f} mV.\n"
+                                 f"The limit is set to {min_voltage} to {max_voltage} mV.")
 
-        logging.info(f'set {gate_name} {voltage}')
-        getattr(self.dac_sources[dac_location[0]], f'dac{int(dac_location[1])}')(voltage)
+        logging.info(f'set {gate_name} {voltage:.1f} mV')
+        self.dac_sources[dac_location[0]].set(f'dac{int(dac_location[1])}', voltage)
 
     def _get_voltage(self, gate_name):
         '''
@@ -69,55 +76,47 @@ class gates(qc.Instrument):
         dac_location = self.hardware.dac_gate_map[gate_name]
         return getattr(self.dac_sources[dac_location[0]], f'dac{int(dac_location[1])}').cache()
 
-    def _set_voltage_virt(self, gate_name, virt_gate_obj, voltage):
+    def _set_voltage_virt(self, gate_name, virt_gate_convertor, voltage):
         '''
         set a voltage to the virtual dac
         Args:
             voltage (double) : voltage to set
-            name : name of the real gate (that corresponds the certain virtual gate)
+            gate_name : name of the virtual gate
         '''
-        names = list(self.gv.keys())
-        current_voltages = list(self.gv.values())
+        real_voltages = self._get_voltages(virt_gate_convertor.real_gates)
+        virtual_voltages =  np.matmul(virt_gate_convertor.r2v_matrix, real_voltages)
 
-        names_in_vg_matrix = list(set(names).intersection(virt_gate_obj.gates))
-        red_virt_gates_obj = virt_gate_obj.reduce(names_in_vg_matrix)
-        current_voltages_formatted = np.zeros([len(red_virt_gates_obj)])
-
-        for i in range(len(red_virt_gates_obj)):
-            current_voltages_formatted[i] = current_voltages[names.index(red_virt_gates_obj.gates[i])]
-
-        voltage_key = red_virt_gates_obj.v_gates.index(gate_name)
-        virtual_voltages =  np.matmul(red_virt_gates_obj.matrix,current_voltages_formatted)
+        voltage_key = virt_gate_convertor.virtual_gates.index(gate_name)
         virtual_voltages[voltage_key] = voltage
-        new_voltages = np.matmul(np.linalg.inv(red_virt_gates_obj.matrix), virtual_voltages)
+        new_voltages = np.matmul(np.linalg.inv(virt_gate_convertor.r2v_matrix), virtual_voltages)
 
-        i = 0
-        for gate_name in red_virt_gates_obj.gates:
-            if new_voltages[i] != current_voltages_formatted[i]:
-                logging.info(f'set {gate_name} {current_voltages_formatted[i]} -> {new_voltages[i]}')
-                self.set(gate_name, new_voltages[i])
-            i+=1
+        logging.info(f'set {gate_name} {voltage:.1f} mV')
+        try:
+            for i,gate_name in enumerate(virt_gate_convertor.real_gates):
+                if new_voltages[i] != real_voltages[i]:
+                    self.set(gate_name, new_voltages[i])
+        except Exception as ex:
+            logging.warning(f'Failed to set virtual gate voltage to {voltage:.1f} mV; Reverting all voltages. '
+                            f'Exception: {ex}')
+            for i,gate_name in enumerate(virt_gate_convertor.real_gates):
+                self.set(gate_name, real_voltages[i])
+            raise
 
-    def _get_voltage_virt(self, gate_name, virt_gate_obj):
+    def _get_voltage_virt(self, gate_name, virt_gate_convertor):
         '''
         get a voltage to the virtual dac
         Args:
-            name : name of the real gate (that corresponds the certain virtual gate)
+            gate_name : name of the virtual gate
         '''
-        names = list(self.gv.keys())
-        current_voltages = list(self.gv.values())
+        real_voltages = self._get_voltages(virt_gate_convertor.real_gates)
+        virtual_voltages =  np.matmul(virt_gate_convertor.r2v_matrix, real_voltages)
 
-        names_in_vg_matrix = list(set(names).intersection(virt_gate_obj.gates))
-        red_virt_gates_obj = virt_gate_obj.reduce(names_in_vg_matrix)
-        current_voltages_formatted = np.zeros([len(red_virt_gates_obj)])
-
-        for i in range(len(red_virt_gates_obj)):
-            current_voltages_formatted[i] = current_voltages[names.index(red_virt_gates_obj.gates[i])]
-
-        voltage_key = red_virt_gates_obj.v_gates.index(gate_name)
-        virtual_voltages =  np.matmul(red_virt_gates_obj.matrix,current_voltages_formatted)
+        voltage_key = virt_gate_convertor.virtual_gates.index(gate_name)
 
         return virtual_voltages[voltage_key]
+
+    def _get_voltages(self, gates):
+        return [self.get(gate_name) for gate_name in gates]
 
     def set_all_zero(self):
         '''
@@ -125,7 +124,7 @@ class gates(qc.Instrument):
         '''
         print("In progress ..")
         for gate_name, dac_location in self.hardware.dac_gate_map.items():
-            self._set_voltage(gate_name, 0)
+            self.set(gate_name, 0)
         print("All gates set to 0!")
 
     @property
@@ -152,10 +151,9 @@ class gates(qc.Instrument):
             self._set_voltage(names[i], voltages[i])
 
     def snapshot_base(self, update=False, params_to_skip_update=None):
-        # update virtual gates cached values by getting them.
-        for vgate_names in self.v_gates.values():
-            for vgate_name in vgate_names:
-                self.get(vgate_name)
+        # update real and virtual gates cached values by getting them.
+        for gate_name in self._all_gate_names:
+            self.get(gate_name)
 
         return super().snapshot_base(update, params_to_skip_update)
 

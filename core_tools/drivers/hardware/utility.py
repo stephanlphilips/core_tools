@@ -1,12 +1,9 @@
-from core_tools.drivers.hardware.virtual_gate_matrix import virtual_gate_matrix
-from core_tools.drivers.hardware.hardware import hardware
-
 from core_tools.data.ds.data_set import load_by_id
-from io import StringIO
 
 import numpy as np
+import qcodes as qc
 
-def load_virtual_gate_matrix_from_ds(ds_id, hardware_name):
+def load_virtual_gate_matrix_from_ds(ds_id, hardware_name='hardware'):
     '''
     load virtual gate matrix from a existing dataset.
 
@@ -16,7 +13,7 @@ def load_virtual_gate_matrix_from_ds(ds_id, hardware_name):
     '''
     load_virtual_gate_matrix_from_snapshot(load_by_id(ds_id).snapshot, hardware_name)
 
-def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name, no_norm=True):
+def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name='hardware', no_norm=True):
     '''
     load virtual gate matrix from a existing datasset.
 
@@ -40,39 +37,38 @@ def load_virtual_gate_matrix_from_snapshot(snapshot, hardware_name, no_norm=True
 
         mat = np.array(eval(matrix))
 
-        vg = virtual_gate_matrix(key, value['real_gate_names'], value['virtual_gate_names'], mat)
-        vg.save()
+        hw = qc.Station.default.hardware
+        hw.virtual_gates.add(key, value['real_gate_names'], value['virtual_gate_names'], mat)
         
-        h = hardware()
-        h.virtual_gates.add(vg.name, vg.gates, vg.v_gates)
-
         print(f'\tfound virtual gate matrix named ::\t{key} ({mat.shape[0]}x{mat.shape[1]})')
 
-def load_AWG_to_dac_conversion_from_ds(ds_id, hardware_name):
+def load_AWG_to_dac_conversion_from_ds(ds_id, hardware_name='hardware'):
     '''
     load AWG to dac conversion from a exisisting dataset.
 
     Args:
         ds_id (int) : id of the dataset to load
-        harware_name (str) : name of the hardware in the dataset its snapshow
+        harware_name (str) : name of the hardware in the dataset its snapshot
     '''
     load_AWG_to_dac_conversion_from_snapshot(load_by_id(ds_id).snapshot, hardware_name)
 
-def load_AWG_to_dac_conversion_from_snapshot(snapshot, hardware_name):
+def load_AWG_to_dac_conversion_from_snapshot(snapshot, hardware_name='hardware'):
     hardware_info = snapshot['station']['instruments'][hardware_name]
     if 'AWG_to_DAC' in hardware_info.keys():
         AWG_to_DAC = hardware_info['AWG_to_DAC']
     elif 'awg2dac_ratios' in hardware_info.keys():
         AWG_to_DAC = hardware_info['awg2dac_ratios']
     else:
-        raise ValueError('AWG to DAC conversio not found!')
+        raise ValueError('AWG to DAC conversion not found!')
 
-    h = hardware()
-    h.awg2dac_ratios.add(AWG_to_DAC.keys())
+    hw = qc.Station.default.hardware
+    hw.awg2dac_ratios.add(AWG_to_DAC.keys())
 
     for gate, value in AWG_to_DAC.items():
-        h.awg2dac_ratios[gate] = value
+        hw.awg2dac_ratios[gate] = value
     print('AWG to dac conversions loaded!')
+
+
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage

@@ -15,11 +15,8 @@ class gate_model(QtCore.QAbstractListModel):
         self._allow_mouse_wheel_updates = allow_mouse_wheel_updates
 
         self.current_vals = list()
-        self.virtual_gate_updates = list()
         for gate in self.gates:
-            self.current_vals += [getattr(self._data, gate)()]
-        for v_gate in self._data.hardware.virtual_gates:
-            self.virtual_gate_updates += [v_gate.last_update]
+            self.current_vals += [self._data.get(gate)]
 
     def rowCount(self, parent=None):
         return len(self.gates)
@@ -29,7 +26,7 @@ class gate_model(QtCore.QAbstractListModel):
         if role == self.gate:
             return self.gates[row]
         if role == self.voltage:
-            number =  getattr(self._data, self.gates[row])()
+            number =  self._data.get(self.gates[row])
             return f'{number:.2f}'
 
     def roleNames(self):
@@ -53,19 +50,14 @@ class gate_model(QtCore.QAbstractListModel):
     def update_model(self):
         to_update = False
 
-        for i in range(len(self.gates)):
-            gv = getattr(self._data, self.gates[i])()
-            
+        for i,gate_name in enumerate(self.gates):
+            gv = self._data.get(gate_name)
+
             if self.current_vals[i] != gv:
                 print(f'updating {i}, {gv}')
                 to_update = True
 
             self.current_vals[i] = gv
-
-        for i in range(len(self.virtual_gate_updates)):
-            if self.virtual_gate_updates[i] != self._data.hardware.virtual_gates[i].last_update:
-                to_update = True
-                self.virtual_gate_updates[i] = self._data.hardware.virtual_gates[i].last_update
 
         if to_update == True:
             self.setData(0, 0, QtCore.Qt.EditRole)
@@ -79,4 +71,4 @@ class gate_model(QtCore.QAbstractListModel):
         voltage = float(voltage)
         print(f'setting {name} to {voltage}')
         self.current_vals[self.gates.index(name)] = voltage
-        getattr(self._data, name)(voltage)
+        self._data.set(name, voltage)

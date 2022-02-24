@@ -2,19 +2,21 @@
 
 # Form implementation generated from reading ui file 'param_viewer_GUI_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.12.2
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(450, 1600)
+        MainWindow.resize(450, 1200)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
+        self.gridLayout.setContentsMargins(-1, -1, -1, 0)
         self.gridLayout.setObjectName("gridLayout")
         self.tab_menu = QtWidgets.QTabWidget(self.centralwidget)
         self.tab_menu.setObjectName("tab_menu")
@@ -31,6 +33,7 @@ class Ui_MainWindow(object):
         self.gridLayout_6 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_6.setObjectName("gridLayout_6")
         self.layout_real = QtWidgets.QGridLayout()
+        self.layout_real.setSpacing(2)
         self.layout_real.setObjectName("layout_real")
         self.gridLayout_6.addLayout(self.layout_real, 0, 0, 1, 1)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
@@ -49,6 +52,7 @@ class Ui_MainWindow(object):
         self.gridLayout_4 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents_2)
         self.gridLayout_4.setObjectName("gridLayout_4")
         self.layout_virtual = QtWidgets.QGridLayout()
+        self.layout_virtual.setSpacing(2)
         self.layout_virtual.setObjectName("layout_virtual")
         self.gridLayout_4.addLayout(self.layout_virtual, 0, 0, 1, 1)
         self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_2)
@@ -94,6 +98,14 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addLayout(self.gridLayout_2, 0, 0, 1, 1)
         self.tab_menu.addTab(self.settings, "")
         self.gridLayout.addWidget(self.tab_menu, 0, 0, 1, 1)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setContentsMargins(-1, -1, -1, 0)
+        self.horizontalLayout_2.setSpacing(0)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.lock = QtWidgets.QCheckBox(self.centralwidget)
+        self.lock.setObjectName("lock")
+        self.horizontalLayout_2.addWidget(self.lock)
+        self.gridLayout.addLayout(self.horizontalLayout_2, 1, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
@@ -116,4 +128,6 @@ class Ui_MainWindow(object):
         self.label.setText(_translate("MainWindow", "Voltage step"))
         self.label_2.setText(_translate("MainWindow", "mV"))
         self.tab_menu.setTabText(self.tab_menu.indexOf(self.settings), _translate("MainWindow", "Settings"))
+        self.lock.setText(_translate("MainWindow", "Lock parameter viewer"))
+
 

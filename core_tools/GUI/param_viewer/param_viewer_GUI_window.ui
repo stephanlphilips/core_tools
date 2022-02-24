@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>450</width>
+    <height>1200</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,6 +15,9 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
+	<property name="bottomMargin">
+	 <number>0</number>
+	</property>
     <item row="0" column="0">
      <widget class="QTabWidget" name="tab_menu">
       <property name="currentIndex">
@@ -41,7 +44,11 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_6">
             <item row="0" column="0">
-             <layout class="QGridLayout" name="layout_real"/>
+             <layout class="QGridLayout" name="layout_real">
+               <property name="spacing">
+                <number>2</number>
+               </property>
+			 </layout>
             </item>
            </layout>
           </widget>
@@ -70,12 +77,16 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_4">
             <item row="0" column="0">
-             <layout class="QGridLayout" name="layout_virtual"/>
+             <layout class="QGridLayout" name="layout_virtual">
+               <property name="spacing">
+                <number>2</number>
+               </property>
+             </layout>
             </item>
            </layout>
           </widget>
          </widget>
-        </item>
+		</item>
        </layout>
       </widget>
       <widget class="QWidget" name="RFsettings">
@@ -174,6 +185,23 @@
        </layout>
       </widget>
      </widget>
+    </item>
+    <item row="1" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+	  <property name="bottomMargin">
+	   <number>0</number>
+	  </property>
+	  <item>
+	   <widget class="QCheckBox" name="lock">
+		<property name="text">
+		 <string>Lock parameter viewer</string>
+		</property>
+	   </widget>
+	  </item>
+     </layout>	
     </item>
    </layout>
   </widget>

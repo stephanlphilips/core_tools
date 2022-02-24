@@ -56,7 +56,7 @@ class virtual_gate_queries:
         if len(return_data) == 0 or return_data[0][0] is None:
             return False
         return True
-    
+
     @staticmethod
     def table_name():
         sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
@@ -77,11 +77,11 @@ class AWG_2_dac_ratio_queries:
     @staticmethod
     def get_AWG_2_dac_ratios(conn, name):
         res = select_elements_in_table(conn, AWG_2_dac_ratio_queries.table_name(), ('real_gates', 'ratios'), where=('name', name))
-        
+
         gate_ratio_pairs = dict()
-        
+
         if len(res) != 0:
-            gates, ratios = json.loads(res[0]['real_gates'].tobytes()), json.loads(res[0]['ratios'].tobytes())            
+            gates, ratios = json.loads(res[0]['real_gates'].tobytes()), json.loads(res[0]['ratios'].tobytes())
             for i in range(len(gates)):
                 gate_ratio_pairs[gates[i]] = ratios[i]
 
@@ -109,7 +109,7 @@ class AWG_2_dac_ratio_queries:
         if len(return_data) == 0 or return_data[0][0] is None:
             return False
         return True
-    
+
     @staticmethod
     def table_name():
         sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
@@ -153,7 +153,7 @@ class RF_readout_settings_queries:
         if len(return_data) == 0 or return_data[0][0] is None:
             return False
         return True
-    
+
     @staticmethod
     def table_name():
         sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     # virtual_gate_queries.generate_table(conn)
 
     # r_gates = ['P1', 'P2', 'P3']
-    # v_gates = ['vP1', 'vP2', 'vP3'] 
+    # v_gates = ['vP1', 'vP2', 'vP3']
     # matrix = np.eye(3)
 
     # a,b,c = virtual_gate_queries.get_virtual_gate_matrix(conn, 'test2')

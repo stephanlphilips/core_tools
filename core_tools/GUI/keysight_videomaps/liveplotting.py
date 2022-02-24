@@ -1,4 +1,3 @@
-# import qdarkstyle
 import numpy as np
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
@@ -13,6 +12,7 @@ from qcodes import MultiParameter
 from qcodes.measure import Measure
 from core_tools.utility.powerpoint import addPPTslide
 import logging
+from ..qt_util import qt_log_exception
 
 #TODO: Fix the measurement codes, to transpose the data properly (instead of fixing it in the plot)
 
@@ -35,19 +35,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     The code for this classes is multithreaded in order to make sure everything keeps smoots during aquisition of the data.
     """
-    @property
-    def tab_id(self):
-        return self.tabWidget.currentIndex()
-
-    @property
-    def is_running(self):
-        if self.start_1D.text() == 'Stop':
-            return '1D'
-        elif self.start_2D.text() == 'Stop':
-            return '2D'
-        else:
-            return False
-
     def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
                  iq_mode=None, channel_map=None):
         '''
@@ -80,7 +67,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'ch3': bool,
                            'ch4': bool,
                            'sample_rate': float, # (currently only 100 or 500 allowed)
-                           'dig_vmax: float, # allowed: 4.0, 2.0, 1.0, 0.5, 0.25, 0.125
                            'enabled_markers': list[str],
                            'n_columns': int,
                            'line_margin': int,
@@ -115,6 +101,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             raise ValueError("Unsupported agrument for scan type.")
         self.current_plot = plot_content(None, None)
         self.current_param_getter = param_getter(None, None)
+        self.vm_data_param = None
         instance_ready = True
 
         # set graphical user interface
@@ -122,8 +109,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.app is None:
             instance_ready = False
             self.app = QtWidgets.QApplication([])
-
-        # self.app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
 
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
@@ -135,24 +120,37 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
 
-        self.start_1D.clicked.connect(self._1D_start_stop)
-        self.start_2D.clicked.connect(self._2D_start_stop)
-        self._1D_update_plot.clicked.connect(self.update_plot_settings_1D)
-        self._2D_update_plot.clicked.connect(self.update_plot_settings_2D)
-        self._flip_axes.clicked.connect(self.do_flip_axes)
-        self.tabWidget.currentChanged.connect(self.tab_changed)
+        self.start_1D.clicked.connect(lambda:self._1D_start_stop())
+        self.start_2D.clicked.connect(lambda:self._2D_start_stop())
+        self._1D_update_plot.clicked.connect(lambda:self.update_plot_settings_1D())
+        self._2D_update_plot.clicked.connect(lambda:self.update_plot_settings_2D())
+        self._flip_axes.clicked.connect(lambda:self.do_flip_axes())
+        self.tabWidget.currentChanged.connect(lambda:self.tab_changed())
 
         self.init_defaults(pulse_lib.channels, cust_defaults)
 
-        self._1D_save_data.clicked.connect(self.save_data)
-        self._2D_save_data.clicked.connect(self.save_data)
+        self._1D_save_data.clicked.connect(lambda:self.save_data())
+        self._2D_save_data.clicked.connect(lambda:self.save_data())
 
-        self._1D_ppt_save.clicked.connect(self.copy_ppt)
-        self._2D_ppt_save.clicked.connect(self.copy_ppt)
+        self._1D_ppt_save.clicked.connect(lambda:self.copy_ppt())
+        self._2D_ppt_save.clicked.connect(lambda:self.copy_ppt())
 
         self.show()
         if instance_ready == False:
             self.app.exec()
+
+    @property
+    def tab_id(self):
+        return self.tabWidget.currentIndex()
+
+    @property
+    def is_running(self):
+        if self.start_1D.text() == 'Stop':
+            return '1D'
+        elif self.start_2D.text() == 'Stop':
+            return '2D'
+        else:
+            return False
 
     def turn_off(self):
         if self.is_running == '1D':
@@ -247,12 +245,17 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'gradient': 'Off'}
 
         self.defaults_gen = {'sample_rate': 100,
-                           'dig_vmax': 2.0,
                            'acquisition_delay_ns': 500,
                            'n_columns': 4,
                            'line_margin': 1,
                            'bias_T_RC': 100,
                            'enabled_markers': []}
+
+        try:
+            val = cust_defaults['gen']['dig_vmax']
+            print(f"setting 'gen':{{ 'dig_vmax': {val} }} is deprecated.")
+        except:
+            pass
 
         # General defaults
 
@@ -285,12 +288,12 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         for marker, check_box in self.marker_check_boxes.items():
             check_box.setChecked(marker in self._gen__enabled_markers)
 
-        self._1D_average.valueChanged.connect(self.update_plot_properties_1D)
-        self._1D_diff.stateChanged.connect(self.update_plot_properties_1D)
+        self._1D_average.valueChanged.connect(lambda:self.update_plot_properties_1D())
+        self._1D_diff.stateChanged.connect(lambda:self.update_plot_properties_1D())
 
-        self._2D_average.valueChanged.connect(self.update_plot_properties_2D)
-        self._2D_gradient.currentTextChanged.connect(self.update_plot_properties_2D)
-        self._2D_enh_contrast.stateChanged.connect(self.update_plot_properties_2D)
+        self._2D_average.valueChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_gradient.currentTextChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_enh_contrast.stateChanged.connect(lambda:self.update_plot_properties_2D())
 
         self._channels = self.get_activated_channels()
 
@@ -348,8 +351,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self._channels = self.get_activated_channels()
         if dig_vmax is not None:
-            self._gen_dig_vmax.setCurrentText(str(dig_vmax))
+            print(f'Parameter dig_vmax is deprecated. Digitizer input should be configured directly on instrument.')
 
+    @qt_log_exception
     def update_plot_properties_1D(self):
         '''
         update properties in the liveplot without reloading the sequences (e.g. averaging/differentation of data)
@@ -357,9 +361,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.current_plot._1D  is not None:
             self.current_plot._1D.averaging = self._1D_average.value()
             self.current_plot._1D.differentiate = self._1D_diff.isChecked()
-            self.current_plot._1D.index_range = (self._1D_x_range_min.value(), int(self._1D__npt) + self._1D_x_range_max.value())
-        self.set_metadata()
 
+    @qt_log_exception
     def update_plot_properties_2D(self):
         '''
         update properties in the liveplot without reloading the sequences (e.g. averaging/gradient of data)
@@ -368,9 +371,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._2D.averaging = self._2D_average.value()
             self.current_plot._2D.gradient = self._2D_gradient.currentText()
             self.current_plot._2D.enhanced_contrast = self._2D_enh_contrast.isChecked()
-            self.current_plot._2D.index_range = ((self._2D_x_range_min.value(), int(self._2D__npt) + self._2D_x_range_max.value()), (self._2D_y_range_min.value(), int(self._2D__npt) + self._2D_y_range_max.value()))
-        self.set_metadata()
 
+    @qt_log_exception
     def get_offsets(self, dimension='1D'):
         offsets = {}
         for i in range(1,4):
@@ -381,6 +383,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         return offsets
 
+    @qt_log_exception
     def get_plot_settings(self):
         '''
         write the values of the input into the the class
@@ -405,7 +408,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 name:settings for name, settings in self.channel_map.items()
                 if self.channel_check_boxes[name].isChecked()
                 }
-        self._gen__dig_vmax = float(self._gen_dig_vmax.currentText())
         self._gen__acquisition_delay_ns = self._gen_acquisition_delay_ns.value()
         self._gen__enabled_markers = []
         for marker, cb in self.marker_check_boxes.items():
@@ -441,6 +443,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         style = 'QLabel {color : red; }' if biasTerror1D > 0.05 else ''
         self._1D_biasTwarning.setStyleSheet(style)
 
+    @qt_log_exception
     def _1D_start_stop(self):
         '''
         Starts/stops the data acquisition and plotting.
@@ -454,7 +457,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.current_param_getter._1D = self.construct_1D_scan_fast(
                             self._1D__gate_name, self._1D__V_swing, self._1D__npt, self._1D__t_meas*1000,
                             self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
-                            dig_vmax=self._gen__dig_vmax, acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                            acquisition_delay_ns=self._gen__acquisition_delay_ns,
                             enabled_markers=self._gen__enabled_markers,
                             channel_map=self._active_channel_map,
                             pulse_gates=self._1D__offsets,
@@ -479,6 +482,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._1D.stop()
             self.start_1D.setText("Start")
 
+    @qt_log_exception
     def _2D_start_stop(self):
         '''
         Starts/stops the data acquisition and plotting.
@@ -495,7 +499,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
                             self._2D__t_meas*1000, self._2D__biasT_corr,
                             self.pulse_lib, self.digitizer, self._channels, self._gen__sample_rate,
-                            dig_vmax=self._gen__dig_vmax,
                             acquisition_delay_ns=self._gen__acquisition_delay_ns,
                             enabled_markers=self._gen__enabled_markers,
                             channel_map=self._active_channel_map,
@@ -529,6 +532,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.start_2D.setText("Start")
 
 
+    @qt_log_exception
     def update_plot_settings_1D(self):
         '''
         update settings of the plot -- e.g. switch gate, things that require a re-upload of the data.
@@ -546,6 +550,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         except:
             logging.error('Update plot failed', exc_info=True)
 
+    @qt_log_exception
     def update_plot_settings_2D(self):
         '''
         update settings of the plot -- e.g. switch gate, things that require a re-upload of the data. ~
@@ -563,6 +568,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         except:
             logging.error('Update plot failed', exc_info=True)
 
+    @qt_log_exception
     def do_flip_axes(self):
         old_x_axis = self._2D_gate1_name.currentText()
         old_y_axis = self._2D_gate2_name.currentText()
@@ -575,6 +581,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.start_2D.text() == "Stop":
             self.update_plot_settings_2D()
 
+    @qt_log_exception
     def tab_changed(self):
         if self.current_plot._1D is not None:
             self.current_plot._1D.stop()
@@ -584,6 +591,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._2D.stop()
             self.start_2D.setText("Start")
 
+    @qt_log_exception
     def closeEvent(self, event):
         """
         overload the Qt close funtion. Make sure that all references in memory are fully gone,
@@ -611,6 +619,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         logging.info('Window closed')
 
 
+    @qt_log_exception
     def get_activated_channels(self):
         channels = set()
         for name, check_box in self.channel_check_boxes.items():
@@ -619,6 +628,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 channels.add(channel_nr)
         return list(channels)
 
+    @qt_log_exception
     def set_metadata(self):
         metadata = {}
         if self.tab_id == 0: # 1D
@@ -636,44 +646,53 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.metadata = metadata
 
+    @qt_log_exception
     def copy_ppt(self, inp_title = ''):
         """
         ppt the data
         """
-        try:
-            if type(inp_title) is not str:
-                inp_title = ''
-            if self.tab_id == 0: # 1D
-                figure_hand = self.current_plot._1D.plot_widgets[0].plot_widget.parent()
-                gate_x = self._1D__gate_name
-                range_x = self._1D__V_swing
-                channels = ','.join(self.current_param_getter._1D.channel_names)
-                title = f'{gate_x} ({range_x:.0f} mV), m:{channels}'
-            elif self.tab_id == 1: # 2D
-                figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
-                gate_y = self._2D__gate2_name
-                gate_x = self._2D__gate1_name
-                range_y = self._2D__V2_swing
-                range_x = self._2D__V1_swing
-                channels = ','.join(self.current_param_getter._2D.channel_names)
-                title = f'{inp_title} {gate_y} ({range_y:.0f} mV) vs. {gate_x} ({range_x:.0f} mV), m:{channels}'
-            try:
-                ds = self.save_data()
-                notes = self.metadata.copy()
-                notes['exp_id'] = ds.exp_id
-                notes['exp_uuid'] = ds.exp_uuid
-                addPPTslide(title = title, fig = figure_hand, notes=str(notes), verbose=-1)
-            except:
-                logging.error('could not add slide', exc_info=True)
-                pass
-        except:
-            logging.error('Failed to create slide', exc_info=True)
+        if self.vm_data_param is None:
+            print('no data to plot')
+            return
 
+        ds = self.save_data()
+        notes = self.metadata.copy()
+        if hasattr(ds, 'exp_id'):
+            notes['dataset_id'] = ds.exp_id
+            notes['dataset_uuid'] = ds.exp_uuid
+        else:
+            notes['location'] = ds.location
 
+        if type(inp_title) is not str:
+            inp_title = ''
+
+        if self.tab_id == 0: # 1D
+            figure_hand = self.current_plot._1D.plot_widgets[0].plot_widget.parent()
+            gate_x = self._1D__gate_name
+            range_x = self._1D__V_swing
+            channels = ','.join(self.current_param_getter._1D.channel_names)
+            title = f'{gate_x} ({range_x:.0f} mV), m:{channels}'
+        elif self.tab_id == 1: # 2D
+            figure_hand = self.current_plot._2D.plot_widgets[0].plot_widget.parent()
+            gate_y = self._2D__gate2_name
+            gate_x = self._2D__gate1_name
+            range_y = self._2D__V2_swing
+            range_x = self._2D__V1_swing
+            channels = ','.join(self.current_param_getter._2D.channel_names)
+            title = f'{inp_title} {gate_y} ({range_y:.0f} mV) vs. {gate_x} ({range_x:.0f} mV), m:{channels}'
+        else:
+            title = 'Oops, unknown tab'
+
+        addPPTslide(title=title, fig=figure_hand, notes=str(notes), verbose=-1)
+
+    @qt_log_exception
     def save_data(self):
         """
         save the data
         """
+        if self.vm_data_param is None:
+            print('no data to save')
+            return
         if self.tab_id == 0: # 1D
             label = self._1D__gate_name
         elif self.tab_id == 1: # 2D
@@ -681,6 +700,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.vm_data_param.update_metadata()
         self.metadata['average'] = self.vm_data_param.plot.average_scans
+        self.metadata['differentiate'] = self.vm_data_param.plot.gradient
 
         is_ds_configured = False
         try:
@@ -696,12 +716,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 # use qcodes measurement
                 measure = Measure(self.vm_data_param)
-                data = measure.get_data_set(location=None,
-                                            loc_record={
-                                            'name': 'vm_data',
-                                            'label': label})
-                data = measure.run(quiet=True)
+                data = measure.run(quiet=True, name=label)
                 data.finalize()
+                return data
         except:
             logging.error('Error during save data', exc_info=True)
 
@@ -725,6 +742,7 @@ class vm_data_param(MultiParameter):
 
     def update_metadata(self):
         self.load_metadata({'average':self.plot.average_scans})
+
 
     def get_raw(self):
         current_data = self.plot.buffer_data

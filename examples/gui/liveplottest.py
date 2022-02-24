@@ -1,3 +1,7 @@
+import time
+import logging
+from PyQt5 import QtCore
+import numpy as np
 import qcodes
 
 from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
@@ -49,7 +53,10 @@ station.add_component(dig)
 
 pulse = create_pulse_lib(awgs)
 
-plotting = liveplotting(pulse, dig, "Virtual")
+defaults = {
+    'gen':{'n_columns':2}
+    }
+plotting = liveplotting(pulse, dig, "Virtual", cust_defaults=defaults)
 plotting._2D_gate2_name.setCurrentIndex(1)
 plotting._2D_t_meas.setValue(1)
 plotting._2D_V1_swing.setValue(100)

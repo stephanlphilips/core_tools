@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import os, sys
+import logging
 
 os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
 
@@ -122,19 +123,23 @@ class vg_matrix_model(QtCore.QAbstractTableModel):
         super().__init__(parent)
         self.__data = data
         self._data = self.__data
+        self._v2r = False
 
         self._manipulate_callback = None
 
+    def set_virtual_2_real(self, v2r):
+        self._v2r = v2r
+
     def data(self, index, role):
         if role == vg_matrix_model.vg_matrix_data:
-            val = self._data[index.row(), index.column()]
-            val = round(val, 3)
-            if val == 1:
+            val = self._data.get_element(index.row(), index.column(), v2r=self._v2r)
+            rval = round(val, 3)
+            if rval == 1:
                 return '1'
-            if val == 0:
+            if rval == 0:
                 return '0'
 
-            return f'{self._data[index.row(), index.column()]:.3f}'
+            return f'{val:.3f}'
 
     def setData(self, index, value, role):
         if role == QtCore.Qt.EditRole:
@@ -151,22 +156,33 @@ class vg_matrix_model(QtCore.QAbstractTableModel):
     @QtCore.pyqtSlot('int','int', 'QString')
     def update_vg_matrix(self, row, coll, value):
         value = float(value)
-        print(f'vg_matrix_model: updating {row}, {coll} to value {value}')
-        self._data[row, coll] = value
+        self._data.set_element(row, coll, value, v2r=self._v2r)
 
-    @QtCore.pyqtSlot('int', 'int')
-    def manipulate_matrix(self, invert, norm):
+    @QtCore.pyqtSlot('int')
+    def normalize_matrix(self, normal):
         self._data = self.__data
-        
-        if norm == True:
-            self._data = self._data.norm
-        if invert == True:
-            self._data = self._data.inv
 
-        self.setData(None, 0, QtCore.Qt.EditRole)
+        try:
+            if normal:
+                self._data.normalize()
+            else:
+                self._data.reverse_normalize()
+            self.setData(None, 0, QtCore.Qt.EditRole)
+        except:
+            logging.error('normalize', exc_info=True)
 
-        if self._manipulate_callback is not None:
-            self._manipulate_callback()
+    @QtCore.pyqtSlot('int')
+    def invert_matrix(self, invert):
+        self._data = self.__data
+
+        try:
+            self.set_virtual_2_real(invert)
+            self.setData(None, 0, QtCore.Qt.EditRole)
+
+            if self._manipulate_callback is not None:
+                self._manipulate_callback()
+        except:
+            logging.error('invert', exc_info=True)
 
     def rowCount(self, index):
         return len(self._data.matrix)

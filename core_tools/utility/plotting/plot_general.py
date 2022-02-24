@@ -9,8 +9,8 @@ class _data_plotter:
 			#inverting indexes since matplotlib uses unverted indexes..
 			return self.local_data[idx[::-1]]
 
-	def render(self, scaler = 1, dpi = 150):
-		self.__set_nature_settings(scaler)
+	def render(self, scaler=1, font_size = 6, dpi = 150):
+		self.__set_nature_settings(scaler, font_size)
 		layout = self.plot_layout
 		fig = plt.figure(figsize=(layout.size[0]*0.0393*scaler, layout.size[1]*0.0393*scaler), dpi=dpi)
 		if layout.n_plots_y == 1 and layout.n_plots_x == 1:
@@ -34,13 +34,13 @@ class _data_plotter:
 		self.render(1)
 		plt.show()
 
-	def save(self, location):
-		self.render(dpi=500)
+	def save(self, location, font_size=6):
+		self.render(font_size=font_size, dpi=500)
 		plt.tight_layout()
 		plt.savefig(location,transparent=True, format="svg")
 
-	def __set_nature_settings(self, scaler):
+	def __set_nature_settings(self, scaler=1, font_size=6):
 		mpl.rcParams['font.family'] = 'Helvetica'
-		plt.rcParams['font.size'] = 6*scaler
+		plt.rcParams['font.size'] = font_size*scaler
 		plt.rcParams['axes.linewidth'] = 1*scaler
 		plt.rcParams['svg.fonttype'] = 'none'

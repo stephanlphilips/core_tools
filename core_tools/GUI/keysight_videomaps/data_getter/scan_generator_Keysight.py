@@ -14,7 +14,7 @@ import logging
 
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
-                           dig_samplerate, dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=None,
+                           dig_samplerate, dig_vmax=None, iq_mode=None, acquisition_delay_ns=None,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
     1D fast scan parameter constructor.
@@ -51,6 +51,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
+    if dig_vmax is not None:
+        print(f'Parameter dig_vmax is deprecated.')
     logging.info(f'Construct 1D: {gate}')
 
     vp = swing/2
@@ -156,12 +158,11 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
                                     (n_pt, ), (gate, ), (tuple(voltages_sp), ),
                                     biasT_corr, dig_samplerate, channels = channels,
-                                    Vmax=dig_vmax, iq_mode=iq_mode,
-                                    channel_map=channel_map)
+                                    iq_mode=iq_mode, channel_map=channel_map)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels, dig_samplerate, dig_vmax=2.0, iq_mode=None,
+                           digitizer, channels, dig_samplerate, dig_vmax=None, iq_mode=None,
                            acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
@@ -200,6 +201,8 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
+    if dig_vmax is not None:
+        print(f'Parameter dig_vmax is deprecated.')
     logging.info(f'Construct 2D: {gate1} {gate2}')
 
     # set up timing for the scan
@@ -330,8 +333,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
                                     biasT_corr, dig_samplerate,
-                                    channels=channels, Vmax=dig_vmax,
-                                    iq_mode=iq_mode, channel_map=channel_map)
+                                    channels=channels, iq_mode=iq_mode, channel_map=channel_map)
 
 
 class _digitzer_scan_parameter(MultiParameter):
@@ -339,7 +341,7 @@ class _digitzer_scan_parameter(MultiParameter):
     generator for the parameter f
     """
     def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate,
-                 data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4], Vmax=2.0, iq_mode=None, channel_map=None):
+                 data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4], iq_mode=None, channel_map=None):
         """
         args:
             digitizer (SD_DIG) : digizer driver:
@@ -373,7 +375,6 @@ class _digitzer_scan_parameter(MultiParameter):
         self.channels = channels
         self.biasT_corr = biasT_corr
         self.shape = shape
-        self.Vmax = Vmax
         self._init_channels(channels, channel_map, iq_mode)
 
         # clean up the digitizer before start
@@ -385,7 +386,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
         # set digitizer for proper init
         self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
-                                   data_mode = self.data_mode, channels = self.channels, Vmax=self.Vmax)
+                                   data_mode = self.data_mode, channels = self.channels)
 
         n_out_ch = len(self.channel_names)
         super().__init__(name=digitizer.name, names = self.channel_names,
@@ -420,7 +421,7 @@ class _digitzer_scan_parameter(MultiParameter):
     def get_raw(self):
 
         self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
-                                   data_mode = self.data_mode, channels = self.channels, Vmax=self.Vmax)
+                                   data_mode = self.data_mode, channels = self.channels)
 
         logging.info(f'Play')
         start = time.perf_counter()

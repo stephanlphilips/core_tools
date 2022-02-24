@@ -10,15 +10,18 @@ from si_prefix import si_format
 
 try:
     import keysightSD1
-except:
-    warnings.warn("\nM3102A needs Keysight AWG libraries. Please install if you need them.\n")
+    # check whether SD1 version 2.x or 3.x
+    is_sd1_3x = 'SD_SandBoxRegister' in dir(keysightSD1)
+    if not is_sd1_3x:
+        raise Exception('Old SD1 2.x is not supported anymore by M3102A driver')
 
-# check whether SD1 version 2.x or 3.x
-is_sd1_3x = 'SD_SandBoxRegister' in dir(keysightSD1)
-if is_sd1_3x:
     # import function for hvi2 downsampler FPGA image
     from keysight_fpga.sd1.dig_iq import config_channel, \
         is_iq_image_loaded, dig_set_lo, dig_set_input_channel, dig_set_downsampler
+
+except:
+    warnings.warn("\nM3102A needs Keysight AWG libraries. Please install if you need them.\n")
+
 
 
 import numpy as np
@@ -152,7 +155,7 @@ class line_trace(MultiParameter):
             return received
 
         n_received = len(received)
-#        logging.debug(f'DAQread ch:{ch} ready:{available} read:{n_received} offset:{offset}')
+        # logging.debug(f'DAQread ch:{ch} ready:{available} read:{n_received} offset:{offset}')
         if n_received != available:
             if available > n_received and available - n_received < 4:
                 # It seems that M3102A only returns multiples of 4 bytes.
@@ -182,7 +185,7 @@ class line_trace(MultiParameter):
 
             for ch in channels_to_read:
                 n_read = self._read_available(ch, daq_points_per_channel[ch], data_read[ch])
-#                logging.debug(f'ch{ch}: {n_read}')
+                # logging.debug(f'ch{ch}: {n_read}')
 
                 if n_read < 0:
                     consecutive_error_count += 1
@@ -215,7 +218,10 @@ class line_trace(MultiParameter):
                               f"requested:{len(daq_points_per_channel[ch])} received:{data_read[ch]}; "
                               "last values are zeros.")
 
-    def _get_data(self):
+    def get_data(self):
+        """
+        Get data of digitizer channels
+        """
         data_out = tuple()
 
         daq_points_per_channel = {}
@@ -273,117 +279,6 @@ class line_trace(MultiParameter):
                 data_out += (np.average(channel_data_raw), )
 
         return data_out
-
-    # NOTE: only used for old fpga image
-    def _read_channel_data(self, channel_number, channel_data_raw):
-        start = time.perf_counter()
-        data_length = len(channel_data_raw)
-
-        no_data_count = 0
-        consecutive_error_count = 0
-        points_acquired = 0
-
-        while points_acquired < data_length and consecutive_error_count < 3:
-            np_ready = self.my_instrument.SD_AIN.DAQcounterRead(channel_number)
-            check_error(np_ready)
-
-            if np_ready + points_acquired > data_length:
-                np_ready = data_length - points_acquired
-                logging.warning("more data points in digitizer ram than what is being collected.")
-
-            n_received = 0
-            if np_ready > 0:
-                # Always read with a timeout to prevent infinite blocking of HW (and reboot of system).
-                # There are np_ready points available. This can be read in 1 second.
-                received = self.my_instrument.SD_AIN.DAQread(channel_number, np_ready, 1000)
-                check_error(received)
-                if isinstance(received, int) and received < 0:
-                    # the error has already been logged
-                    consecutive_error_count += 1
-                    continue
-
-                n_received = len(received)
-#                logging.debug(f'DAQread ready:{np_ready} read:{n_received}')
-                if n_received != np_ready:
-                    if np_ready > n_received and np_ready - n_received < 4:
-                        # It seems that M3102A only returns multiples of 4 bytes.
-                        logging.warning(f'DAQread data remaining. ready:{np_ready} read:{n_received}')
-                    else:
-                        logging.error(f'DAQread failure. ready:{np_ready} read:{n_received}')
-
-            if n_received > 0:
-                channel_data_raw[points_acquired: points_acquired + n_received] = received
-                points_acquired = points_acquired + n_received
-                no_data_count = 0
-                consecutive_error_count = 0
-            else:
-#                logging.debug(f'no data; wait...')
-                no_data_count += 1
-                if no_data_count > 100:
-                    break
-                time.sleep(0.001)
-
-        if points_acquired != data_length:
-            logging.error(f"digitizer did not collect enough data points for channel {channel_number}; "
-                          f"requested:{data_length} received:{points_acquired}; last values are zeros.")
-
-        logging.info(f'channel {channel_number}: retrieved {points_acquired} points in {(time.perf_counter()-start)*1000:3.1f} ms')
-
-
-    # NOTE: only used for old fpga image
-    def _get_data_average(self):
-        data_out = tuple()
-
-         # note that we are acquirering two channels at the same time in this mode.
-        for channel_property in self.my_instrument.channel_properties.values():
-            # averaging mode: channels are read in pairs.
-            if channel_property.number in [2,4]:
-                # even numbers are read with odd channel.
-                continue
-            if channel_property.number not in self.channels and channel_property.number+1 not in self.channels:
-                # don't read anything if both channels not active.
-                continue
-
-            # make flat data structures.
-            channel_data_raw = np.zeros([channel_property.cycles*10], np.uint16)
-
-            self._read_channel_data(channel_property.number, channel_data_raw)
-
-            # format the data
-            channel_data_raw = channel_data_raw.reshape([channel_property.cycles, 10]).transpose().astype(np.int32)
-            channel_data = np.empty([2,channel_property.cycles])
-            channel_data[0] = ((channel_data_raw[1] & 2**16-1) << 16) | (channel_data_raw[0] & 2**16-1)
-            channel_data[1] = ((channel_data_raw[3] & 2**16-1) << 16) | (channel_data_raw[2] & 2**16-1)
-
-            # correct amplitude,
-            # outputs V, 5 for the acquisition in blocks of 5
-            channel_data[0] *= 5 * 2/(channel_property.t_measure-160)*channel_property.full_scale / 2**15
-            channel_data[1] *= 5 * 2/(channel_property.t_measure-160)*channel_property.full_scale / 2**15
-
-            # only add the data of the selected channels.
-            if channel_property.number in self.channels:
-                if channel_property.data_mode in [DATA_MODE.AVERAGE_CYCLES, DATA_MODE.AVERAGE_TIME_AND_CYCLES]:
-                   data_out += (np.average(channel_data[0]), )
-                else:
-                    data_out += (channel_data[0], )
-
-            if channel_property.number + 1 in self.channels:
-                if channel_property.data_mode in [DATA_MODE.AVERAGE_CYCLES, DATA_MODE.AVERAGE_TIME_AND_CYCLES]:
-                   data_out += (np.average(channel_data[1]), )
-                else:
-                    data_out += (channel_data[1], )
-
-        return data_out
-
-
-    def get_data(self):
-        """
-        Get data from the cards
-        """
-        if self.my_instrument.use_old_fpga_averaging:
-            return self._get_data_average()
-        else:
-            return self._get_data()
 
 
     def start_digitizers(self):
@@ -481,9 +376,6 @@ class line_trace(MultiParameter):
 
 @dataclass
 class channel_properties:
-    """
-    structure to save relevant information about marker data.
-    """
     name : str
     number : int
     active : bool = False
@@ -491,9 +383,9 @@ class channel_properties:
     data_mode : DATA_MODE = DATA_MODE.FULL
     points_per_cycle : int = 1
     cycles : int = 0
-    full_scale : float = 0 #peak voltage
-    impedance: Optional[int] = None
-    coupling: Optional[int] = None
+    full_scale : float = 0.0 # peak voltage; Note: Default is set in __init__
+    impedance: int = 1 # 50 Ohm
+    coupling: int = 0 # DC Coupling
     t_measure : float = 0 #measurement time in ns of the channel
     sample_rate : float = 500e6
     # daq configuration
@@ -531,7 +423,7 @@ class SD_DIG(Instrument):
         firmware_version = self.SD_AIN.getFirmwareVersion()
         major,minor,revision = firmware_version.split('.')
 
-        if (major == '02') != is_sd1_3x:
+        if major != '02':
             raise Exception(f'KeysightSD1 driver not compatible with firmware "{firmware_version}"')
 
         self.chassis = chassis
@@ -539,12 +431,13 @@ class SD_DIG(Instrument):
 
         self.operation_mode = OPERATION_MODES.SOFT_TRG
 
-        self.use_old_fpga_averaging = False
-
         self.channel_properties = dict()
         for i in range(n_channels):
-            properties = channel_properties(f'ch{i+1}', i + 1)
-            self.channel_properties[f'ch{i+1}'] = properties
+            ch = i+1
+            properties = channel_properties(f'ch{ch}', ch)
+            self.channel_properties[f'ch{ch}'] = properties
+            # set channel defaults
+            self.set_channel_properties(ch, V_range=2.0)
 
         self.add_parameter(
             'measure',
@@ -582,11 +475,6 @@ class SD_DIG(Instrument):
                 properties.acquisition_mode = mode
                 changed = True
 
-        if not is_sd1_3x and mode in [MODES.IQ_DEMODULATION, MODES.IQ_DEMOD_I_ONLY]:
-            raise Exception('IQ modes not supported for old Keysight firmware')
-
-        self.use_old_fpga_averaging = not is_sd1_3x and mode == MODES.AVERAGE
-
         if changed:
             self.measure._generate_parameter_info()
 
@@ -598,9 +486,6 @@ class SD_DIG(Instrument):
             2 : IQ demodulation
             3 : IQ demodulation I values only
         """
-        if not is_sd1_3x:
-            raise Exception('Operation not support for old KeysightSD1')
-
         properties = self.channel_properties[f'ch{channel}']
         if properties.acquisition_mode != mode:
             properties.acquisition_mode = mode
@@ -681,29 +566,38 @@ class SD_DIG(Instrument):
                 result.append(properties.number)
         return result
 
-    def set_channel_properties(self, channel, V_range, impedance = None, coupling = None):
+    def set_channel_properties(self, channel, V_range=None, impedance=None, coupling=None):
         """
-        sets quickly relevant channel properties.
+        sets channel properties.
         TODO: We need a validator on Vrange.
         Args:
             channel : channel number (1 to 4)
             V_range: amplitude range +- X Volts
             impedance: 0(HiZ), 1 (50 Ohm)
-            coulping: 0 (DC), 1 (AC)
+            coupling: 0 (DC), 1 (AC)
         """
+        update = False
         properties = self.channel_properties[f'ch{channel}']
-        if (properties.full_scale != V_range
-            or properties.impedance != impedance
-            or properties.coupling != coupling):
+        if V_range is not None and properties.full_scale != V_range:
             properties.full_scale = V_range
-            # hacky way to default to 0,1
-            properties.coupling = 0 if properties.coupling is None else properties.coupling
-            properties.impedance = 1 if properties.impedance is None else properties.impedance
-            # overwrite only if supplied
-            properties.coupling = coupling if coupling is not None else properties.coupling
-            properties.impedance = impedance if impedance is not None else properties.impedance
+            update = True
+        if impedance is not None and properties.impedance != impedance:
+            properties.impedance = impedance
+            update = True
+        if coupling is not None and properties.coupling != coupling:
+            properties.coupling = coupling
+            update = True
+
+        if update:
             self.measure._generate_parameter_info()
-            self.SD_AIN.channelInputConfig(channel, V_range, impedance, coupling)
+            rv = self.SD_AIN.channelInputConfig(channel, properties.full_scale,
+                                                properties.impedance, properties.coupling)
+            check_error(rv, 'chanelInputConfig')
+            full_scale = self.SD_AIN.channelFullScale(channel)
+            if abs(full_scale - properties.full_scale) > 0.01:
+                logging.warning(f'Incorrect full_scale value {properties.full_scale:4.2f}; '
+                                f'Changed to {full_scale:4.2f} V')
+                properties.full_scale = full_scale
 
 
     def set_daq_settings(self, channel, n_cycles, t_measure, sample_rate = 500e6,
@@ -749,18 +643,6 @@ class SD_DIG(Instrument):
 
             if is_iq_image_loaded(self.SD_AIN):
                 config_channel(self.SD_AIN, channel, properties.acquisition_mode, 1, 1, input_ch=0)
-
-        elif not is_sd1_3x:
-            if properties.acquisition_mode == MODES.AVERAGE:
-                prescaler = 0
-                sample_rate = 500e6
-                points_per_cycle = 1
-                daq_points_per_cycle = 10
-                daq_cycles = n_cycles
-                eff_t_measure = (t_measure//10) * 10
-                downsampling_factor = 1
-            else:
-                raise Exception(f'mode {properties.acquisition_mode} not supported for old firmware')
 
         else:
             if sample_rate != 500e6:
@@ -875,21 +757,6 @@ class SD_DIG(Instrument):
         """
         self.SD_AIN.DAQstopMultiple(daq_mask)
 
-
-    def writeRegisterByNumber(self, regNumber, varValue):
-        """
-        Write to a register of the AWG, by reffreing to the register number
-
-        Args:
-            regNumber (int) : number of the registry (0 to 16)
-            varValue (int/double) : value to be written into the registry
-        Returns:
-            Value (int) : error out (negative number)
-        """
-        if is_sd1_3x:
-            raise Exception('writeRegisterByNumber is not supported by KeysightSD1 3.x')
-        return self.SD_AIN.writeRegisterByNumber(regNumber, varValue)
-
     def daq_start_multiple(self, daq_mask, verbose=False):
         """ Start acquiring data or waiting for a trigger on the specified DAQs
 
@@ -908,44 +775,6 @@ class SD_DIG(Instrument):
         """
         self.SD_AIN.DAQtriggerMultiple(daq_mask)
 
-    ###############################
-    # firmware specific functions #  Only for FPGA image firmware 1.x
-    ###############################
-
-    def set_MAV_filter(self, maf_length = 16, maf_modulo = 1, fourchannel = False):
-        """
-        set the moving avererage filter
-        Args:
-            maf_length (int)
-            maf_modulo (int)
-        """
-        if is_sd1_3x:
-            raise Exception('set_MAV_filter is for firmware 2.x')
-        # logging.info(f'MAV filter {maf_length}/{maf_modulo}')
-        self.SD_AIN.FPGAwritePCport(1, [maf_length], 0, 1, 0)
-        self.SD_AIN.FPGAwritePCport(1, [maf_modulo], 1, 1, 0)
-        if fourchannel:
-            self.SD_AIN.FPGAwritePCport(3, [maf_length], 0, 1, 0)
-            self.SD_AIN.FPGAwritePCport(3, [maf_modulo], 1, 1, 0)
-        # print('fourchannel MAV')
-
-    def set_meas_time(self, total_time, fourchannel = False):
-        """
-        set time that there should be sampled.
-        Args:
-            total_time (ns)
-        """
-        if is_sd1_3x:
-            raise Exception('set_meas_time is for firmware 2.x')
-        # logging.info(f'meas time')
-        for channel_property in self.channel_properties.values():
-            if channel_property.active == True:
-                channel_property.t_measure = int(total_time/10)*10
-
-        self.SD_AIN.FPGAwritePCport(0,[ int(total_time/10)], 36, 1, 0)
-        if fourchannel:
-            self.SD_AIN.FPGAwritePCport(2,[ int(total_time/10)], 36, 1, 0)
-        # print('fourchannel meastime' + str(int(total_time/10)))
 
     ###############################
     # firmware specific functions #  Only for FPGA image firmware 2.x
@@ -1043,7 +872,7 @@ class SD_DIG(Instrument):
     ###########################################################
 
     def set_digitizer_software(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL,
-                               channels = [1,2], Vmax = 2.0, fourchannel = False,
+                               channels = [1,2], Vmax = None, fourchannel = False,
                                downsampled_rate = None, power2decimation = 0):
         """
         quick set of minumal settings to make it work.
@@ -1058,25 +887,21 @@ class SD_DIG(Instrument):
             downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
             power2decimation (int) : decimate data with 2**power2decimation
         """
+        if Vmax is not None:
+            v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
+            print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
         logging.info(f'set digitizer software')
         self.set_data_handling_mode(data_mode)
 
         self.set_operating_mode(OPERATION_MODES.SOFT_TRG)
         self.set_active_channels(channels)
         for channel in channels:
-            self.set_channel_properties(channel, Vmax)
-#            print('sds input is: %.1f' % sample_rate)
             self.set_daq_settings(channel, cycles, t_measure, sample_rate,
                                   downsampled_rate=downsampled_rate, power2decimation=power2decimation)
 
-        if self.use_old_fpga_averaging:
-#            print('setting time and MAF')
-            self.set_meas_time(t_measure, fourchannel = fourchannel)
-            self.set_MAV_filter(16,1, fourchannel = fourchannel)
-
 
     def set_digitizer_analog_trg(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL,
-                                 channels = [1,2], Vmax = 2.0, downsampled_rate = None, power2decimation = 0):
+                                 channels = [1,2], Vmax = None, downsampled_rate = None, power2decimation = 0):
         """
         quick set of minumal settings to make it work.
 
@@ -1091,25 +916,22 @@ class SD_DIG(Instrument):
             downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
             power2decimation (int) : decimate data with 2**power2decimation
         """
+        if Vmax is not None:
+            v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
+            print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
         logging.info(f'set digitizer analog')
         self.set_data_handling_mode(data_mode)
 
         self.set_operating_mode(OPERATION_MODES.ANALOG_TRG)
         self.set_active_channels(channels)
         for channel in channels:
-            self.set_channel_properties(channel, Vmax)
             self.set_daq_settings(channel, cycles, t_measure, sample_rate,
                                   downsampled_rate=downsampled_rate, power2decimation=power2decimation)
             self.set_ext_digital_trigger(channel)
 
-        if self.use_old_fpga_averaging:
-#            print('setting time and MAF')
-            self.set_meas_time(t_measure)
-            self.set_MAV_filter(16,1)
-
 
     def set_digitizer_HVI(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL,
-                          channels = [1,2], Vmax = 2.0, downsampled_rate = None, power2decimation = 0):
+                          channels = [1,2], Vmax = None, downsampled_rate = None, power2decimation = 0):
         """
         quick set of minimal settings to make it work.
 
@@ -1123,13 +945,15 @@ class SD_DIG(Instrument):
             downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
             power2decimation (int) : decimate data with 2**power2decimation
         """
+        if Vmax is not None:
+            v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
+            print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
         logging.info(f'set digitizer HVI: {t_measure}, {downsampled_rate}, {channels}')
         self.set_data_handling_mode(data_mode)
 
         self.set_operating_mode(OPERATION_MODES.HVI_TRG)
         self.set_active_channels(channels)
         for channel in channels:
-            self.set_channel_properties(channel, Vmax)
             self.set_daq_settings(channel, cycles, t_measure, sample_rate,
                                   downsampled_rate=downsampled_rate, power2decimation=power2decimation)
 

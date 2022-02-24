@@ -60,6 +60,9 @@
              <layout class="QHBoxLayout" name="horizontalLayout_2">
               <item>
                <layout class="QVBoxLayout" name="verticalLayout_2">
+			    <property name="spacing">
+			     <number>2</number>
+			    </property>
                 <item>
                  <widget class="QLabel" name="label_2">
                   <property name="font">
@@ -83,6 +86,9 @@
               </item>
               <item>
                <layout class="QVBoxLayout" name="verticalLayout_4">
+			    <property name="spacing">
+			     <number>2</number>
+			    </property>
                 <item>
                  <widget class="QLabel" name="label_5">
                   <property name="font">
@@ -106,13 +112,16 @@
               </item>
               <item>
                <layout class="QVBoxLayout" name="verticalLayout_3">
+			    <property name="spacing">
+			     <number>2</number>
+			    </property>
                 <item>
                  <widget class="QLabel" name="label_4">
                   <property name="font">
                    <font>
                     <pointsize>14</pointsize>
                    </font>
-                  </property>
+				  </property>
                   <property name="text">
                    <string>dB</string>
                   </property>
@@ -152,17 +161,6 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1126</width>
-     <height>22</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>

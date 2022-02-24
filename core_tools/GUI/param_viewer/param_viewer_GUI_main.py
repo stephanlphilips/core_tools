@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
 from core_tools.GUI.param_viewer.param_viewer_GUI_window import Ui_MainWindow
-from PyQt5 import QtCore, QtGui, QtWidgets
-from functools import partial
+from PyQt5 import QtCore, QtWidgets
 import qcodes as qc
-import numpy as np
 from dataclasses import dataclass
+from ..qt_util import qt_log_exception
 
 import logging
 
@@ -18,20 +17,24 @@ class param_data_obj:
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
-    def __init__(self, gates_object: Optional[object] = None, keysight_rf: Optional[object] = None):
+    def __init__(self, gates_object: Optional[object] = None,
+                 max_diff : float = 1000,
+                 keysight_rf: Optional[object] = None):
         self.real_gates = list()
         self.virtual_gates = list()
         self.rf_settings = list()
         self.station = qc.Station.default
+        self.max_diff = max_diff
         self.keysight_rf = keysight_rf
-        self.last_param_value = {}
+        self.locked = False
+
         if gates_object:
             self.gates_object = gates_object
         else:
             try:
                 self.gates_object = self.station.gates
             except:
-                raise ValueError('Default guess for gates object wrong, please supply manually')
+                raise ValueError('`gates` must be set in qcodes.station or supplied as argument')
         self._step_size = 1 #mV
         instance_ready = True
 
@@ -51,12 +54,12 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                 for RFpar in self.gates_object.hardware.RF_params:
                     param = getattr(inst, RFpar)
                     self._add_RFset(param)
-        try:
-            if self.keysight_rf is not None:
+        if self.keysight_rf is not None:
+            try:
                 for ks_param in self.keysight_rf.all_params:
                     self._add_RFset(ks_param)
-        except Exception as e:
-            print(e)
+            except Exception as e:
+                logging.error(f'Failed to add keysight RF {e}')
 
         # add real gates
         for gate_name in self.gates_object.hardware.dac_gate_map.keys():
@@ -64,25 +67,27 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             self._add_gate(param, False)
 
         # add virtual gates
-        for virtual_gates_names in self.gates_object.v_gates.values():
-            for gate_name in virtual_gates_names:
-                param = getattr(self.gates_object, gate_name)
-                self._add_gate(param, True)
+        for gate_name in self.gates_object.v_gates:
+            param = getattr(self.gates_object, gate_name)
+            self._add_gate(param, True)
 
-        self.step_size.valueChanged.connect(partial(self._update_step, self.step_size.value))
+        self.lock.stateChanged.connect(lambda: self._update_lock(self.lock.isChecked()))
+        self.step_size.valueChanged.connect(lambda: self.update_step(self.step_size.value()))
         self._finish_gates_GUI()
 
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(partial(self._update_parameters))
+        self.timer.timeout.connect(lambda:self._update_parameters())
         self.timer.start(500)
 
         self.show()
         if instance_ready == False:
             self.app.exec()
 
-    def _update_step(self, value):
-        self.update_step(value())
+    @qt_log_exception
+    def closeEvent(self, event):
+        self.timer.stop()
 
+    @qt_log_exception
     def update_step(self, value : float):
         """ Update step size of the parameter GUI elements with the specified value """
         self._step_size = value
@@ -93,6 +98,12 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.step_size.setValue(value)
 
+    @qt_log_exception
+    def _update_lock(self, locked):
+        print('Locked:', locked)
+        self.locked = locked
+
+    @qt_log_exception
     def _add_RFset(self, parameter : qc.Parameter):
         ''' Add a new RF.
 
@@ -126,16 +137,14 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         if 'enable' in name:
             set_input = QtWidgets.QCheckBox(self.RFsettings)
             set_input.setObjectName(name + "_input")
-            set_input.stateChanged.connect(partial(self._set_bool, parameter, set_input.isChecked))
-            layout.addWidget(set_input, i, 1, 1, 1)
+            set_input.stateChanged.connect(lambda: self._set_bool(parameter, set_input.isChecked))
         else:
             set_input = QtWidgets.QDoubleSpinBox(self.RFsettings)
             set_input.setObjectName(name + "_input")
             set_input.setMinimumSize(QtCore.QSize(100, 0))
-
-            # TODO collect boundaries out of the harware
             set_input.setRange(-1e9,1e9)
-            set_input.valueChanged.connect(partial(self._set_set, parameter, set_input.value,division))
+            set_input.setValue(parameter()/division)
+            set_input.valueChanged.connect(lambda:self._set_set(parameter, set_input.value, division))
             set_input.setKeyboardTracking(False)
             set_input.setSingleStep(step_size)
 
@@ -147,6 +156,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         layout.addWidget(set_unit, i, 2, 1, 1)
         self.rf_settings.append(param_data_obj(parameter,  set_input, division))
 
+    @qt_log_exception
     def _add_gate(self, parameter : qc.Parameter, virtual : bool):
         '''
         add a new gate.
@@ -180,7 +190,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # TODO collect boundaries out of the harware
         voltage_input.setRange(-4000,4000.0)
-        voltage_input.valueChanged.connect(partial(self._set_gate, parameter, voltage_input.value, voltage_input))
+        voltage_input.setValue(parameter())
+        voltage_input.valueChanged.connect(lambda:self._set_gate(parameter, voltage_input.value, voltage_input))
         voltage_input.setKeyboardTracking(False)
         layout.addWidget(voltage_input, i, 1, 1, 1)
 
@@ -193,27 +204,44 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             self.virtual_gates.append(param_data_obj(parameter,  voltage_input, 1))
 
+    @qt_log_exception
     def _set_gate(self, gate, value, voltage_input):
-        # TODO add support if out of range.
-        last_value = self.last_param_value.get(gate.name, None)
-        last_rounded = voltage_input.valueFromText(voltage_input.textFromValue(last_value)) if last_value is not None else None
-        if value() != last_rounded:
-            logging.info(f'GUI value changed: set gate {gate.name} {last_value} ({last_rounded}) -> {value()}')
-            gate.set(value())
-        else:
-            logging.debug(f'GUI rounded value changed: {gate.name} {last_value} ({last_rounded}) -> {value()}; no update of gate')
+        if self.locked:
+            logging.warning(f'Not changing voltage, ParameterViewer is locked!')
+            # Note value will be restored by _update_parameters
+            return
 
+        delta = abs(value() - gate())
+        if delta > self.max_diff:
+            logging.warning(f'Not setting {gate} to {value():.1f}mV. '
+                            f'Difference {delta:.0f} mV > {self.max_diff:.0f} mV')
+            return
+
+        try:
+            last_value = gate.get()
+            new_text = voltage_input.text()
+            current_text = voltage_input.textFromValue(last_value)
+            if new_text != current_text:
+                logging.info(f'GUI value changed: set gate {gate.name} {current_text} -> {new_text}')
+                gate.set(value())
+        except Exception as ex:
+            logging.error(f'Failed to set gate {gate} to {value()}: {ex}')
+
+
+    @qt_log_exception
     def _set_set(self, setting, value, division):
-        # TODO add support if out of range.
+        logging.info(f'setting {setting} to {value():.1f} times {division:.1f}')
         setting.set(value()*division)
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
         self.gates_object.hardware.sync_data()
 
+    @qt_log_exception
     def _set_bool(self, setting, value):
         setting.set(value())
         self.gates_object.hardware.RF_settings[setting.full_name] = value()
         self.gates_object.hardware.sync_data()
 
+    @qt_log_exception
     def _finish_gates_GUI(self):
 
         for items, layout_widget in [ (self.real_gates, self.layout_real), (self.virtual_gates, self.layout_virtual),
@@ -226,8 +254,9 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
             layout_widget.addItem(spacerItem1, 0, 3, 1, 1)
 
-        self.setWindowTitle(f'Viewer for {self.gates_object}')
+        self.setWindowTitle(f'Parameter Viewer for {self.gates_object}')
 
+    @qt_log_exception
     def _update_parameters(self):
         '''
         updates the values of all the gates in the parameterviewer periodically
@@ -244,17 +273,21 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             return
 
         for param in params:
-            # do not update when a user clicks on it.
-            if not param.gui_input_param.hasFocus():
-                if type(param.gui_input_param) == QtWidgets.QDoubleSpinBox:
-                    last_value = self.last_param_value.get(param.param_parameter.name, None)
-                    new_value = param.param_parameter()/param.division
-                    if new_value != last_value:
-                        logging.info(f'Update GUI {param.param_parameter.name} {last_value} -> {new_value}')
-                        self.last_param_value[param.param_parameter.name] = new_value
-                        param.gui_input_param.setValue(new_value)
-                elif type(param.gui_input_param) == QtWidgets.QCheckBox:
+            try:
+                # do not update when a user clicks on it.
+                gui_input = param.gui_input_param
+                if not gui_input.hasFocus():
+                    if isinstance(param.gui_input_param, QtWidgets.QDoubleSpinBox):
+                        new_value = param.param_parameter()/param.division
+                        current_text = gui_input.text()
+                        new_text = gui_input.textFromValue(new_value)
+                        if current_text != new_text:
+                            logging.info(f'Update GUI {param.param_parameter.name} {current_text} -> {new_text}')
+                            gui_input.setValue(new_value)
+                elif isinstance(param.gui_input_param, QtWidgets.QCheckBox):
                     param.gui_input_param.setChecked(param.param_parameter())
+            except:
+                logging.error(f'Error updating {param}', exc_info=True)
 
 
 
