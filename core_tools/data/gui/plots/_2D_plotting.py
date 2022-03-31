@@ -33,6 +33,9 @@ class _2D_plot:
         self.plot.setLabel('bottom', self.ds.y.label, units = format_unit(self.ds.y.unit))
         self.plot.setLabel('left', self.ds.x.label, units = format_unit(self.ds.x.unit))
         self.img = pg.ImageItem()
+        # set some image data. This is required for pyqtgraph > 0.11
+        self.img.setImage(np.zeros((1,1)))
+
         self.img_view = pg.ImageView(view=self.plot, imageItem=self.img)
         self.img_view.setColorMap(get_color_map())
         self.img_view.ui.roiBtn.hide()
@@ -45,13 +48,14 @@ class _2D_plot:
         self.layout.addWidget(self.label)
         self.widget.setLayout(self.layout)
 
+        # fill image with data
         self.current_x_scale = 1
         self.current_y_scale = 1
         self.current_x_off_set = 0
         self.current_y_off_set = 0
-
         self.update()
         self.plot.setAspectLocked(False)
+
         self.proxy = pg.SignalProxy(self.plot.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
     def update(self):
@@ -121,8 +125,8 @@ class _2D_plot:
                 self.img.translate(off, 0)
 
             self.plot.setLogMode(**{'x': self.logmode['x'], 'y': self.logmode['y']})
-        except:
-            pass
+        except Exception as ex:
+            print("Error:", ex)
 
     def detect_log_mode(self, data):
         args = np.argwhere(np.isfinite(data)).T[0]
