@@ -45,6 +45,7 @@ class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
 
     def closeEvent(self, event):
         self.alive = False
+        self.ui_box_mgr.close()
 
 class ui_box_mgr():
     def __init__(self, app, ds, plot_layout):
@@ -99,12 +100,12 @@ class ui_box_mgr():
         # update plot every 300 ms for a smooth plotting experience
 
         self.plot_layout.parentWidget().setUpdatesEnabled(True)
-        self.timer.timeout.connect(self.update_plots)
-        self.timer.start(300)
-
+        if not self.ds.completed:
+            self.timer.timeout.connect(self.update_plots)
+            self.timer.start(300)
 
     def update_plots(self):
-        if self.ds.completed==True:
+        if self.ds.completed:
             self.timer.stop()
         self.ds.sync()
 
@@ -114,6 +115,8 @@ class ui_box_mgr():
             except:
                 logging.error(f'Plot update failed', exc_info=True)
 
+    def close(self):
+        self.timer.stop()
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
