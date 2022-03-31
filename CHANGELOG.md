@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.1.1] - 2022-03-31
+### Fixed
+- DataBrowser updated for pyqtgraph > 0.11
+- DataBrowser fixed exceptions with slow connection to database
+
 ## \[1.1.0] - 2022-02-24
 ### Added
 - Automatically reconnect to database server when connection was lost/closed.
