@@ -54,6 +54,8 @@ class signale_handler(QtQuick.QQuickView):
         self.pro_set_sample_info_state_change_loc(1,1,1)
 
         _, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)
+
+        self.updating = False
         self.timer = QtCore.QTimer()
         self.timer.setInterval(500)
         self.timer.timeout.connect(self.check_for_updates)
@@ -116,13 +118,19 @@ class signale_handler(QtQuick.QQuickView):
         self.data_overview_model.reset_data(model_data)
 
     def check_for_updates(self):
-        update, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)
+        if self.updating:
+            return
+        try:
+            self.updating = True
+            update, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)
 
-        if update==True:
-            self.update_date_model()
+            if update==True:
+                self.update_date_model()
 
-            if self.live_plotting_enabled == True:
-                self.plot_ds(self.data_overview_model._data[0].uuid)
+                if self.live_plotting_enabled == True:
+                    self.plot_ds(self.data_overview_model._data[0].uuid)
+        finally:
+            self.updating = False
 
     def plot_ds(self, uuid):
         # let the garbage collector collect the old plots
