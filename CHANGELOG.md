@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.1.2] - 2022-04-04
+### Fixed
+- M3102A driver fixed initialization
+
 ## \[1.1.1] - 2022-03-31
 ### Fixed
 - DataBrowser updated for pyqtgraph > 0.11
