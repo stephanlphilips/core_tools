@@ -427,6 +427,13 @@ class SD_DIG(Instrument):
 
         self.operation_mode = OPERATION_MODES.SOFT_TRG
 
+        self.add_parameter(
+            'measure',
+            inst_name = self.name,
+            parameter_class=line_trace,
+            raw =False
+            )
+
         self.channel_properties = dict()
         for i in range(n_channels):
             ch = i+1
@@ -435,12 +442,6 @@ class SD_DIG(Instrument):
             # set channel defaults
             self.set_channel_properties(ch, V_range=2.0)
 
-        self.add_parameter(
-            'measure',
-            inst_name = self.name,
-            parameter_class=line_trace,
-            raw =False
-            )
 
     def close(self):
         self.SD_AIN.close()
