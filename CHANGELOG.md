@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.2.0] - 2022-04-14
+### Fixed
+- Added qt_utils.qt_init() for reliable startup of GUI
+- Added Qblox Pulsar support in Video Mode
+- Improved setup and release
+
 ## \[1.1.2] - 2022-04-04
 ### Fixed
 - M3102A driver fixed initialization
