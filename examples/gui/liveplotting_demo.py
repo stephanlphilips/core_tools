@@ -2,7 +2,7 @@ import qcodes
 
 from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
 from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer
-
+from core_tools.GUI.qt_util import qt_init
 
 from pulse_lib.base_pulse import pulselib
 
@@ -18,13 +18,16 @@ class DummyAwg:
     def __init__(self, name):
         self.name = name
 
+    def release_waveform_memory(self):
+        pass
+
 
 def create_pulse_lib(awgs):
     pulse = pulselib()
 
     for awg in awgs:
 
-        pulse.add_awgs(awg.name, awg)
+        pulse.add_awg(awg)
 
         # define channels
         for ch in range(1,5):
@@ -33,6 +36,8 @@ def create_pulse_lib(awgs):
     pulse.finish_init()
     return pulse
 
+
+qt_init()
 
 station = qcodes.Station()
 
