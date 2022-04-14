@@ -36,7 +36,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     The code for this classes is multithreaded in order to make sure everything keeps smoots during aquisition of the data.
     """
     def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
-                 iq_mode=None, channel_map=None):
+                 iq_mode=None, channel_map=None, channel_names=None):
         '''
         init of the class
 
@@ -81,6 +81,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
                 The default channel_map is:
                     {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+            channel_names (List[str]): Names of acquisition channels to use from pulse_lib configuration.
         '''
         logging.info('initialising vm')
         self.pulse_lib = pulse_lib
@@ -91,12 +92,23 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.construct_2D_scan_fast = scan_generator_Virtual.construct_2D_scan_fast
         elif scan_type == "Keysight":
             from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Keysight
+            if channel_names is not None:
+                logging.error('Specification of channel_names is not yet supported for Keysight')
             self.construct_1D_scan_fast = scan_generator_Keysight.construct_1D_scan_fast
             self.construct_2D_scan_fast = scan_generator_Keysight.construct_2D_scan_fast
         elif scan_type == "Tektronix":
             from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Tektronix
+            if channel_names is not None:
+                logging.error('Specification of channel_names is not yet supported for Tektronix')
             self.construct_1D_scan_fast = scan_generator_Tektronix.construct_1D_scan_fast
             self.construct_2D_scan_fast = scan_generator_Tektronix.construct_2D_scan_fast
+        elif scan_type == "Qblox":
+            from .data_getter import scan_generator_Qblox
+            if digitizer is not None:
+                logging.error('liveplotting parameter digitizer should be None for Qblox. '
+                              'QRM must be added to pulse_lib with  `add_digitizer`.')
+            self.construct_1D_scan_fast = scan_generator_Qblox.construct_1D_scan_fast
+            self.construct_2D_scan_fast = scan_generator_Qblox.construct_2D_scan_fast
         else:
             raise ValueError("Unsupported agrument for scan type.")
         self.current_plot = plot_content(None, None)
@@ -114,7 +126,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
-        self._init_channels(channel_map, iq_mode)
+        self._init_channels(channel_map, iq_mode, channel_names)
         self._init_markers(pulse_lib)
 
         pg.setConfigOption('background', 'w')
@@ -137,6 +149,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.show()
         if instance_ready == False:
+            print('APP EXEC')
             self.app.exec()
 
     @property
@@ -158,22 +171,29 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         elif self.is_running == '2D':
             self._2D_start_stop()
 
-    def _init_channels(self, channel_map, iq_mode):
-        self.channel_map = (
-                channel_map if channel_map is not None
-                else {f'ch{i}':(i, np.real) for i in range(1,5)})
+    def _init_channels(self, channel_map, iq_mode, channel_names):
+        if iq_mode is not None and channel_map is not None:
+            logging.warning('iq_mode is ignored when channel_map is also specified')
 
-        # backwards compatibility with older iq_mode parameter
-        iq_mode2numpy = {'I': np.real, 'Q': np.imag, 'abs': np.abs,
+        if channel_map is not None:
+            self.channel_map = channel_map
+        elif channel_names is not None:
+            self.channel_map = {name:(name, np.real) for name in channel_names}
+        elif iq_mode is not None:
+            # backwards compatibility with older iq_mode parameter
+            iq_mode2numpy = {'I': np.real, 'Q': np.imag, 'abs': np.abs,
                     'angle': np.angle, 'angle_deg': lambda x:np.angle(x, deg=True)}
-        if iq_mode is not None:
-            if channel_map is not None:
-                logging.warning('iq_mode is ignored when channel_map is also specified')
-            elif isinstance(iq_mode, str):
+            if isinstance(iq_mode, str):
                 self.channel_map = {f'ch{i}':(i, iq_mode2numpy[iq_mode]) for i in range(1,5)}
             else:
                 for ch, mode in iq_mode.items():
                     self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
+        else:
+            if self.digitizer is None:
+                self.channel_map = {name:(name, np.real) for name in self.pulse_lib.digitizer_channels}
+            else:
+                self.channel_map = {f'ch{i}':(i, np.real) for i in range(1,5)}
+
 
         # add to GUI
         self.channel_check_boxes = {}
