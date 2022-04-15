@@ -674,13 +674,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             print('no data to plot')
             return
 
-        ds = self.save_data()
+        _, dataset_metadata = self.save_data()
         notes = self.metadata.copy()
-        if hasattr(ds, 'exp_id'):
-            notes['dataset_id'] = ds.exp_id
-            notes['dataset_uuid'] = ds.exp_uuid
-        else:
-            notes['location'] = ds.location
+        notes.update(dataset_metadata)
 
         if type(inp_title) is not str:
             inp_title = ''
