@@ -8,4 +8,6 @@ def save_data(vm_data_parameter, label, backend='qcodes'):
     if data_saving_func is None:
         raise ValueError(f'Invalid backend \"{backend}\" selected as data saving backend. Please use one of: {_DATA_SAVING_MAP.keys()}')
 
-    return data_saving_func(vm_data_parameter=vm_data_parameter, label=label)
+    data, metadata = data_saving_func(vm_data_parameter=vm_data_parameter, label=label)
+    metadata['data_saving_backend'] = backend
+    return data, metadata
