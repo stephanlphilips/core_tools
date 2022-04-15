@@ -145,7 +145,7 @@ def save_data(vm_data_parameter, label):
     if len(unraveled_param.set_params) > 1:
         meas_ctrl.setpoints_grid(unraveled_param.set_params_setpoints)
     else:
-        meas_ctrl.setpoints(unraveled_param.set_params_setpoints)
+        meas_ctrl.setpoints(unraveled_param.set_params_setpoints[0])
 
     logging.debug(f'Starting measurement with name: {label}.')
     dataset = meas_ctrl.run(label)
