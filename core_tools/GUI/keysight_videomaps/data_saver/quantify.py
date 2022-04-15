@@ -8,13 +8,13 @@ import logging
 import numpy as np
 import numpy.typing as npt
 
-from qcodes import Parameter, MultiParameter
+from qcodes import Parameter, MultiParameter, Instrument
 
 from quantify_core.measurement import MeasurementControl
 from quantify_core.data.handling import set_datadir, get_datadir, get_latest_tuid
 
 DEFAULT_DATADIR = Path('./data')
-
+_MEASUREMENT_CONTROL_INSTRUMENT_NAME = 'MC_live_plot_saving'
 
 class UnravelMultiParameter:
 
@@ -132,7 +132,10 @@ def save_data(vm_data_parameter, label):
 
     logging.info(f"Data directory set to: \"{datadir}\".")
 
-    meas_ctrl = MeasurementControl(f'MC_{label}')
+    try:
+        meas_ctrl = Instrument.find_instrument(_MEASUREMENT_CONTROL_INSTRUMENT_NAME)
+    except KeyError:
+        meas_ctrl = MeasurementControl(_MEASUREMENT_CONTROL_INSTRUMENT_NAME)
     meas_ctrl.verbose(False)
 
     unraveled_param = UnravelMultiParameter(vm_data_parameter)
