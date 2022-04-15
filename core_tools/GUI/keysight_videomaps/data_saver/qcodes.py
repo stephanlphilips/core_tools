@@ -11,6 +11,15 @@ from core_tools.data.SQL.connect import sample_info
 
 
 def _create_metadata(dataset: DataSet) -> Dict[str, Any]:
+    """
+    Creates a metadata dict with information about the dataset.
+
+    Args:
+        dataset: The dataset object.
+
+    Returns:
+        A metadata dict containing the location on disk of the dataset and if available the experiment id and uuid.
+    """
     metadata = dict()
     if hasattr(dataset, 'exp_id'):
         metadata['dataset_id'] = dataset.exp_id
@@ -21,6 +30,16 @@ def _create_metadata(dataset: DataSet) -> Dict[str, Any]:
 
 
 def save_data(vm_data_parameter: MultiParameter, label: str) -> Tuple[DataSet, Dict[str, Any]]:
+    """
+    Performs a measurement using qcodes and writes the data to disk.
+
+    Args:
+        vm_data_parameter: a MultiParameter instance describing the measurement with settables, gettables and setpoints.
+        label: a string that is used to label the dataset.
+
+    Returns:
+        A Tuple (ds, metadata) containing the created dataset ds and a metadata dict with information about the dataset.
+    """
     is_ds_configured = False
     try:
         is_ds_configured = isinstance(sample_info.project, str)
