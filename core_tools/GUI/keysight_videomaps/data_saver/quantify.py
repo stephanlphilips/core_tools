@@ -14,11 +14,14 @@ from quantify_core.measurement import MeasurementControl
 from quantify_core.data.handling import set_datadir, get_datadir, get_latest_tuid
 
 DEFAULT_DATADIR = Path('./data')
+"""The default data directory to use if none is set up for quantify_core"""
 _MEASUREMENT_CONTROL_INSTRUMENT_NAME = 'MC_live_plot_saving'
+"""The name to use for the measurement control instance."""
 
 class UnravelMultiParameter:
 
     INVALID_SUBSTRINGS_IN_PARAM_NAME = {'.'}
+    """Specifies the substrings that cannot occur in the parameter name."""
 
     def __init__(self, multiparameter: MultiParameter):  # pylint: disable=too-many-locals
         """Split the MultiParameter that is returned by the pulse_lib function fast_scand1d_qblox() into
