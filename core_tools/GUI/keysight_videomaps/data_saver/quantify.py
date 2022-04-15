@@ -11,7 +11,7 @@ import numpy.typing as npt
 from qcodes import Parameter, MultiParameter
 
 from quantify_core.measurement import MeasurementControl
-from quantify_core.data.handling import set_datadir, get_datadir
+from quantify_core.data.handling import set_datadir, get_datadir, get_latest_tuid
 
 DEFAULT_DATADIR = Path('./data')
 
@@ -148,4 +148,4 @@ def save_data(vm_data_parameter, label):
     dataset = meas_ctrl.run(label)
     meas_ctrl.close()
 
-    return dataset
+    return dataset, {'tuid': get_latest_tuid(), 'datadir': datadir}
