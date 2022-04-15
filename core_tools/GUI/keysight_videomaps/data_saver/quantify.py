@@ -15,6 +15,7 @@ from quantify_core.data.handling import set_datadir, get_datadir
 
 DEFAULT_DATADIR = Path('./data')
 
+
 class UnravelMultiParameter:
 
     INVALID_SUBSTRINGS_IN_PARAM_NAME = {'.'}
