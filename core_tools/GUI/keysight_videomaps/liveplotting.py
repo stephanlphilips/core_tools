@@ -1,15 +1,13 @@
 import numpy as np
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
-from core_tools.sweeps.sweeps import do0D
-from core_tools.data.SQL.connect import sample_info
+from core_tools.GUI.keysight_videomaps import data_saver
 
 from dataclasses import dataclass
 from PyQt5 import QtCore, QtWidgets
 from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
 from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
 from qcodes import MultiParameter
-from qcodes.measure import Measure
 from core_tools.utility.powerpoint import addPPTslide
 import logging
 from ..qt_util import qt_log_exception
@@ -36,7 +34,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     The code for this classes is multithreaded in order to make sure everything keeps smoots during aquisition of the data.
     """
     def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
-                 iq_mode=None, channel_map=None, channel_names=None):
+                 iq_mode=None, channel_map=None, channel_names=None, data_saving_backend='qcodes'):
         '''
         init of the class
 
@@ -86,6 +84,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         logging.info('initialising vm')
         self.pulse_lib = pulse_lib
         self.digitizer = digitizer
+        self.data_saving_backend = data_saving_backend
 
         if scan_type == 'Virtual':
             self.construct_1D_scan_fast = scan_generator_Virtual.construct_1D_scan_fast
@@ -717,30 +716,16 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             label = self._1D__gate_name
         elif self.tab_id == 1: # 2D
             label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
+        else:
+            raise RuntimeError(f"Attempting to save data, but liveplotting could not determine whether 1D or 2D is "
+                               f"selected (self.tab_id=={self.tab_id}).")
 
         self.vm_data_param.update_metadata()
         self.metadata['average'] = self.vm_data_param.plot.average_scans
         self.metadata['differentiate'] = self.vm_data_param.plot.gradient
 
-        is_ds_configured = False
-        try:
-            is_ds_configured = isinstance(sample_info.project, str)
-        except: pass
+        return data_saver.save_data(self.vm_data_param, label, backend=self.data_saving_backend)
 
-        try:
-            if is_ds_configured:
-                logging.info('Save')
-                job = do0D(self.vm_data_param, name=label)
-                ds = job.run()
-                return ds
-            else:
-                # use qcodes measurement
-                measure = Measure(self.vm_data_param)
-                data = measure.run(quiet=True, name=label)
-                data.finalize()
-                return data
-        except:
-            logging.error(f'Error during save data', exc_info=True)
 
 class vm_data_param(MultiParameter):
     def __init__(self, param, plot, metadata):
@@ -768,6 +753,7 @@ class vm_data_param(MultiParameter):
         current_data = self.plot.buffer_data
         av_data = [np.sum(cd, 0).T/len(cd) for cd in current_data]
         return av_data
+
 
 if __name__ == '__main__':
     class test(object):
