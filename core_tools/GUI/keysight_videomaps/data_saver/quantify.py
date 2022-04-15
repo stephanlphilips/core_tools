@@ -125,7 +125,16 @@ class UnravelMultiParameter:
 
 
 def save_data(vm_data_parameter, label):
+    """
+    Performs a measurement using quantify_core and writes the data to disk.
 
+    Args:
+        vm_data_parameter: a MultiParameter instance describing the measurement with settables, gettables and setpoints.
+        label: a string that is used to label the dataset.
+
+    Returns:
+        A Tuple (ds, metadata) containing the created dataset ds and a metadata dict with information about the dataset.
+    """
     try:
         datadir = get_datadir()
     except NotADirectoryError:
