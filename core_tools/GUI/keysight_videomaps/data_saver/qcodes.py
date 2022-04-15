@@ -1,11 +1,16 @@
+from typing import Dict, Any, Tuple
+
 import logging
 
+from qcodes import MultiParameter
 from qcodes.measure import Measure
+from qcodes.data.data_set import DataSet
 
 from core_tools.sweeps.sweeps import do0D
 from core_tools.data.SQL.connect import sample_info
 
-def _create_metadata(dataset) -> dict:
+
+def _create_metadata(dataset: DataSet) -> Dict[str, Any]:
     metadata = dict()
     if hasattr(dataset, 'exp_id'):
         metadata['dataset_id'] = dataset.exp_id
@@ -14,7 +19,8 @@ def _create_metadata(dataset) -> dict:
         metadata['location'] = dataset.location
     return metadata
 
-def save_data(vm_data_parameter, label):
+
+def save_data(vm_data_parameter: MultiParameter, label: str) -> Tuple[DataSet, Dict[str, Any]]:
     is_ds_configured = False
     try:
         is_ds_configured = isinstance(sample_info.project, str)
