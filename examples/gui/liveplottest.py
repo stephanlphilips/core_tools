@@ -19,9 +19,9 @@ try:
     qcodes.Instrument.close_all()
 except: pass
 
-class DummyAwg:
+class DummyAwg(qcodes.Instrument):
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
 
     def release_waveform_memory(self):
         pass
@@ -60,7 +60,7 @@ pulse = create_pulse_lib(awgs)
 defaults = {
     'gen':{'n_columns':2}
     }
-plotting = liveplotting(pulse, dig, "Virtual", cust_defaults=defaults)
+plotting = liveplotting(pulse, dig, "Virtual", data_saving_backend='quantify', cust_defaults=defaults)
 plotting._2D_gate2_name.setCurrentIndex(1)
 plotting._2D_t_meas.setValue(1)
 plotting._2D_V1_swing.setValue(100)
