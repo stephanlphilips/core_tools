@@ -4,7 +4,8 @@ from PyQt5 import QtCore
 import numpy as np
 import qcodes
 
-from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
+from core_tools.GUI.keysight_videomaps import liveplotting
+from core_tools.GUI.keysight_videomaps.data_saver.qcodes import QCodesDataSaver
 from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer
 from core_tools.GUI.qt_util import qt_init
 
@@ -60,7 +61,9 @@ pulse = create_pulse_lib(awgs)
 defaults = {
     'gen':{'n_columns':2}
     }
-plotting = liveplotting(pulse, dig, "Virtual", data_saving_backend='quantify', cust_defaults=defaults)
+
+liveplotting.set_data_saver(QCodesDataSaver())
+plotting = liveplotting.liveplotting(pulse, dig, "Virtual", cust_defaults=defaults)
 plotting._2D_gate2_name.setCurrentIndex(1)
 plotting._2D_t_meas.setValue(1)
 plotting._2D_V1_swing.setValue(100)
