@@ -1,7 +1,3 @@
-import time
-import logging
-from PyQt5 import QtCore
-import numpy as np
 import qcodes
 
 from core_tools.GUI.keysight_videomaps import liveplotting
@@ -61,6 +57,8 @@ pulse = create_pulse_lib(awgs)
 defaults = {
     'gen':{'n_columns':2}
     }
+
+qt_init()
 
 liveplotting.set_data_saver(QCodesDataSaver())
 plotting = liveplotting.liveplotting(pulse, dig, "Virtual", cust_defaults=defaults)

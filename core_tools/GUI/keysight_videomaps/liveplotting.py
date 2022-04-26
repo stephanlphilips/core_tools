@@ -1,7 +1,10 @@
+from typing import Optional, Type
+
 import numpy as np
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
-from core_tools.GUI.keysight_videomaps import data_saver
+from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
+from core_tools.GUI.keysight_videomaps.data_saver.native import CoreToolsDataSaver
 
 from dataclasses import dataclass
 from PyQt5 import QtCore, QtWidgets
@@ -14,10 +17,21 @@ from ..qt_util import qt_log_exception
 
 #TODO: Fix the measurement codes, to transpose the data properly (instead of fixing it in the plot)
 
+_data_saver: Optional[IDataSaver] = None
+_DEFAULT_DATA_SAVER = CoreToolsDataSaver
+
+
+def set_data_saver(data_saver: IDataSaver):
+    assert isinstance(data_saver, IDataSaver)
+    global _data_saver
+    _data_saver = data_saver
+
+
 @dataclass
 class plot_content:
     _1D: _1D_live_plot
     _2D: _2D_live_plot
+
 
 @dataclass
 class param_getter:
@@ -34,7 +48,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     The code for this classes is multithreaded in order to make sure everything keeps smoots during aquisition of the data.
     """
     def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
-                 iq_mode=None, channel_map=None, channel_names=None, data_saving_backend='qcodes'):
+                 iq_mode=None, channel_map=None, channel_names=None):
         '''
         init of the class
 
@@ -84,7 +98,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         logging.info('initialising vm')
         self.pulse_lib = pulse_lib
         self.digitizer = digitizer
-        self.data_saving_backend = data_saving_backend
 
         if scan_type == 'Virtual':
             self.construct_1D_scan_fast = scan_generator_Virtual.construct_1D_scan_fast
@@ -705,6 +718,11 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         save the data
         """
+        global _data_saver
+        if _data_saver is None:
+            logging.warning(f"No data saver specified. Using {_DEFAULT_DATA_SAVER.__name__} as default.")
+            _data_saver = _DEFAULT_DATA_SAVER()
+
         if self.vm_data_param is None:
             print('no data to save')
             return
@@ -720,7 +738,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.metadata['average'] = self.vm_data_param.plot.average_scans
         self.metadata['differentiate'] = self.vm_data_param.plot.gradient
 
-        return data_saver.save_data(self.vm_data_param, label, backend=self.data_saving_backend)
+        try:
+            return _data_saver.save_data(self.vm_data_param, label)
+        except Exception:
+            logging.error(f'Error during save data', exc_info=True)
 
 
 class vm_data_param(MultiParameter):
