@@ -15,10 +15,7 @@ class QCodesDataSaver(IDataSaver):
 
     @property
     def path(self):
-        if isinstance(self._path, Path):
-            return str(self._path)
-        else:
-            return self._path
+        return str(self._path) if isinstance(self._path, Path) else self._path
 
     def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[DataSet, Dict[str, Any]]:
         """

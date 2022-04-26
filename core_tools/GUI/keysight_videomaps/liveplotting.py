@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional
 
 import numpy as np
 import pyqtgraph as pg
@@ -22,9 +22,22 @@ _DEFAULT_DATA_SAVER = CoreToolsDataSaver
 
 
 def set_data_saver(data_saver: IDataSaver):
+    """
+    Sets the data saver object to use.
+    """
     assert isinstance(data_saver, IDataSaver)
     global _data_saver
     _data_saver = data_saver
+
+
+def get_data_saver():
+    """
+    Returns the data saver that is set. If the data saver is not specified, this sets the default.
+    """
+    if _data_saver is None:
+        logging.warning(f"No data saver specified. Using {_DEFAULT_DATA_SAVER.__name__} as default.")
+        set_data_saver(_DEFAULT_DATA_SAVER())
+    return _data_saver
 
 
 @dataclass
@@ -37,6 +50,7 @@ class plot_content:
 class param_getter:
     _1D: object()
     _2D: object()
+
 
 class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     """
@@ -718,10 +732,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         save the data
         """
-        global _data_saver
-        if _data_saver is None:
-            logging.warning(f"No data saver specified. Using {_DEFAULT_DATA_SAVER.__name__} as default.")
-            _data_saver = _DEFAULT_DATA_SAVER()
+        data_saver = get_data_saver()
 
         if self.vm_data_param is None:
             print('no data to save')
@@ -739,7 +750,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.metadata['differentiate'] = self.vm_data_param.plot.gradient
 
         try:
-            return _data_saver.save_data(self.vm_data_param, label)
+            return data_saver.save_data(self.vm_data_param, label)
         except Exception:
             logging.error(f'Error during save data', exc_info=True)
 
