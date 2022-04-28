@@ -8,6 +8,7 @@ from qcodes import MultiParameter
 
 
 class IDataSaver(ABC):
+    """Specifies the interface data savers are to adhere to."""
 
     @abstractmethod
     def __init__(self, path: Optional[Union[Path, str]] = None):
