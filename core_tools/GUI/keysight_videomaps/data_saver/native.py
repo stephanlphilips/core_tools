@@ -1,8 +1,6 @@
-from typing import Dict, Any, Tuple, Union, Optional
+from typing import Dict, Any, Tuple
 
 import logging
-from pathlib import Path
-
 from qcodes import MultiParameter
 from qcodes.data.data_set import DataSet
 
@@ -13,16 +11,6 @@ from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
 
 
 class CoreToolsDataSaver(IDataSaver):
-    def __init__(self, path: Optional[Union[Path, str]] = None):
-        """
-        Instantiates the core tools native data saver.
-
-        Args:
-            path: Not supported for this data saver. The user should connect to the database first.
-        """
-        if path is not None:
-            raise ValueError(f'Specifying a custom path is not supported for this data-saving backend. Please connect '
-                             f'to the database manually.')
 
     def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[DataSet, Dict[str, Any]]:
         """
