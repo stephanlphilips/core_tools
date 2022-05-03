@@ -24,6 +24,9 @@ class sample_info:
         sample_info.set_up = set_up
         sample_info.sample = sample
 
+    def __str__(self) -> str:
+        return f"{sample_info.project}: {sample_info.set_up}-{sample_info.sample}"
+
 
 class conn_info_descriptor:
     def __set_name__(self, owner, name):

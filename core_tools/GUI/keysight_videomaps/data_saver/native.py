@@ -23,10 +23,11 @@ class CoreToolsDataSaver(IDataSaver):
         Returns:
             A Tuple (ds, metadata) containing the created dataset ds and a metadata dict with information about the dataset.
         """
-        assert hasattr(sample_info, 'project')
+        # Calling this before initializing the database will raise a ConnectionError.
+        sample_info_str = str(sample_info)
 
         logging.info('Save')
         job = do0D(vm_data_parameter, name=label)
         dataset = job.run()
 
-        return dataset, {"dataset_id": dataset.exp_id, "dataset_uuid": dataset.exp_uuid}
+        return dataset, {"dataset_id": dataset.exp_id, "dataset_uuid": dataset.exp_uuid, "sample_info": sample_info_str}
