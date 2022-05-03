@@ -17,7 +17,8 @@ class CoreToolsDataSaver(IDataSaver):
         Performs a measurement using core tools and writes the data to disk.
 
         Args:
-            vm_data_parameter: a MultiParameter instance describing the measurement with settables, gettables and setpoints.
+            vm_data_parameter: a MultiParameter instance describing the measurement with settables, gettables and
+            setpoints.
             label: a string that is used to label the dataset.
 
         Returns:

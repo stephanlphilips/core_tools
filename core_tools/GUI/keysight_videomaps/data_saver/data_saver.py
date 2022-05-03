@@ -13,9 +13,11 @@ class IDataSaver(ABC):
         Saves the data to disk.
 
         Args:
-            vm_data_parameter: a MultiParameter instance describing the measurement with settables, gettables and setpoints.
+            vm_data_parameter: a MultiParameter instance describing the measurement with settables, gettables and
+            setpoints.
             label: a string that is used to label the dataset.
 
         Returns:
-            A Tuple (ds, metadata) containing the created dataset ds and a metadata dict with information about the dataset.
+            A Tuple (ds, metadata) containing the created dataset ds and a metadata dict that uniquely identifies the
+            dataset.
         """
