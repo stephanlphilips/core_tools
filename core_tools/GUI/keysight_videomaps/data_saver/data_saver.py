@@ -8,7 +8,7 @@ class IDataSaver(ABC):
     """Specifies the interface data savers are to adhere to."""
 
     @abstractmethod
-    def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[Any, Dict[str, Any]]:
+    def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[Any, Dict[str, str]]:
         """
         Saves the data to disk.
 

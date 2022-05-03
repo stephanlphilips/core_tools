@@ -9,7 +9,7 @@ from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
 
 class QCodesDataSaver(IDataSaver):
 
-    def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[DataSet, Dict[str, Any]]:
+    def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[DataSet, Dict[str, str]]:
         """
         Performs a measurement using qcodes and writes the data to disk.
 
