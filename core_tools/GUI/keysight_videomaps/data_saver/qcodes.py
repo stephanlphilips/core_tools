@@ -19,7 +19,8 @@ class QCodesDataSaver(IDataSaver):
             label: a string that is used to label the dataset.
 
         Returns:
-            A Tuple (ds, metadata) containing the created dataset ds and a metadata dict with information about the dataset.
+            A Tuple (ds, metadata) containing the created dataset ds and a metadata dict that uniquely identifies the
+            dataset.
         """
         measure = Measure(vm_data_parameter)
         data = measure.run(quiet=True, name=label)

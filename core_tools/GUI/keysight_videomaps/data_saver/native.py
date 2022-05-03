@@ -22,7 +22,8 @@ class CoreToolsDataSaver(IDataSaver):
             label: a string that is used to label the dataset.
 
         Returns:
-            A Tuple (ds, metadata) containing the created dataset ds and a metadata dict with information about the dataset.
+            A Tuple (ds, metadata) containing the created dataset ds and a metadata dict that uniquely identifies the
+            dataset.
         """
         # Calling this before initializing the database will raise a ConnectionError.
         sample_info_str = str(sample_info)
