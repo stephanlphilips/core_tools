@@ -1,10 +1,7 @@
-import time
-import logging
-from PyQt5 import QtCore
-import numpy as np
 import qcodes
 
-from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
+from core_tools.GUI.keysight_videomaps import liveplotting
+from core_tools.GUI.keysight_videomaps.data_saver.qcodes import QCodesDataSaver
 from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer
 from core_tools.GUI.qt_util import qt_init
 
@@ -19,9 +16,9 @@ try:
     qcodes.Instrument.close_all()
 except: pass
 
-class DummyAwg:
+class DummyAwg(qcodes.Instrument):
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
 
     def release_waveform_memory(self):
         pass
@@ -41,28 +38,31 @@ def create_pulse_lib(awgs):
     pulse.finish_init()
     return pulse
 
+if __name__ == '__main__':
+    station = qcodes.Station()
 
-station = qcodes.Station()
+    awg_slots = [2, 3]
+    awgs = []
+    for i, slot in enumerate(awg_slots):
+        awg = DummyAwg(f'AWG{slot}')
+        awgs.append(awg)
+        station.add_component(awg)
 
-awg_slots = [2,3]
-awgs = []
-for i,slot in enumerate(awg_slots):
-    awg = DummyAwg(f'AWG{slot}')
-    awgs.append(awg)
-    station.add_component(awg)
-
-dig = fake_digitizer("fake_digitizer")
-station.add_component(dig)
+    dig = fake_digitizer("fake_digitizer")
+    station.add_component(dig)
 
 
-pulse = create_pulse_lib(awgs)
+    pulse = create_pulse_lib(awgs)
 
-defaults = {
-    'gen':{'n_columns':2}
-    }
-plotting = liveplotting(pulse, dig, "Virtual", cust_defaults=defaults)
-plotting._2D_gate2_name.setCurrentIndex(1)
-plotting._2D_t_meas.setValue(1)
-plotting._2D_V1_swing.setValue(100)
-plotting._2D_npt.setValue(80)
+    defaults = {
+        'gen': {'n_columns': 2}
+        }
 
+    qt_init()
+
+    # Using the qcodes datasaver since that can be used without establishing the connection to the database.
+    # Remove this line to use the default datasaver.
+    liveplotting.set_data_saver(QCodesDataSaver())
+
+    # Start the liveplotting
+    plotting = liveplotting.liveplotting(pulse, dig, "Virtual", cust_defaults=defaults)

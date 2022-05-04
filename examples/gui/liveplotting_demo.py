@@ -14,9 +14,9 @@ try:
     qcodes.Instrument.close_all()
 except: pass
 
-class DummyAwg:
+class DummyAwg(qcodes.Instrument):
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
 
     def release_waveform_memory(self):
         pass

@@ -1,30 +1,56 @@
+from typing import Optional
+
 import numpy as np
 import pyqtgraph as pg
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
-from core_tools.sweeps.sweeps import do0D
-from core_tools.data.SQL.connect import sample_info
+from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
+from core_tools.GUI.keysight_videomaps.data_saver.native import CoreToolsDataSaver
 
 from dataclasses import dataclass
 from PyQt5 import QtCore, QtWidgets
 from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
 from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
 from qcodes import MultiParameter
-from qcodes.measure import Measure
 from core_tools.utility.powerpoint import addPPTslide
 import logging
 from ..qt_util import qt_log_exception
 
 #TODO: Fix the measurement codes, to transpose the data properly (instead of fixing it in the plot)
 
+_data_saver: Optional[IDataSaver] = None
+_DEFAULT_DATA_SAVER = CoreToolsDataSaver
+
+
+def set_data_saver(data_saver: IDataSaver):
+    """
+    Sets the data saver object to use.
+    """
+    assert isinstance(data_saver, IDataSaver)
+    global _data_saver
+    _data_saver = data_saver
+
+
+def get_data_saver():
+    """
+    Returns the data saver that is set. If the data saver is not specified, this sets the default.
+    """
+    if _data_saver is None:
+        logging.warning(f"No data saver specified. Using {_DEFAULT_DATA_SAVER.__name__} as default.")
+        set_data_saver(_DEFAULT_DATA_SAVER())
+    return _data_saver
+
+
 @dataclass
 class plot_content:
     _1D: _1D_live_plot
     _2D: _2D_live_plot
 
+
 @dataclass
 class param_getter:
     _1D: object()
     _2D: object()
+
 
 class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     """
@@ -675,13 +701,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             print('no data to plot')
             return
 
-        ds = self.save_data()
+        _, dataset_metadata = self.save_data()
         notes = self.metadata.copy()
-        if hasattr(ds, 'exp_id'):
-            notes['dataset_id'] = ds.exp_id
-            notes['dataset_uuid'] = ds.exp_uuid
-        else:
-            notes['location'] = ds.location
+        notes.update(dataset_metadata)
 
         if type(inp_title) is not str:
             inp_title = ''
@@ -710,6 +732,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         save the data
         """
+        data_saver = get_data_saver()
+
         if self.vm_data_param is None:
             print('no data to save')
             return
@@ -717,30 +741,19 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             label = self._1D__gate_name
         elif self.tab_id == 1: # 2D
             label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
+        else:
+            raise RuntimeError(f"Attempting to save data, but liveplotting could not determine whether 1D or 2D is "
+                               f"selected (self.tab_id=={self.tab_id}).")
 
         self.vm_data_param.update_metadata()
         self.metadata['average'] = self.vm_data_param.plot.average_scans
         self.metadata['differentiate'] = self.vm_data_param.plot.gradient
 
-        is_ds_configured = False
         try:
-            is_ds_configured = isinstance(sample_info.project, str)
-        except: pass
-
-        try:
-            if is_ds_configured:
-                logging.info('Save')
-                job = do0D(self.vm_data_param, name=label)
-                ds = job.run()
-                return ds
-            else:
-                # use qcodes measurement
-                measure = Measure(self.vm_data_param)
-                data = measure.run(quiet=True, name=label)
-                data.finalize()
-                return data
-        except:
+            return data_saver.save_data(self.vm_data_param, label)
+        except Exception:
             logging.error(f'Error during save data', exc_info=True)
+
 
 class vm_data_param(MultiParameter):
     def __init__(self, param, plot, metadata):
@@ -768,6 +781,7 @@ class vm_data_param(MultiParameter):
         current_data = self.plot.buffer_data
         av_data = [np.sum(cd, 0).T/len(cd) for cd in current_data]
         return av_data
+
 
 if __name__ == '__main__':
     class test(object):
