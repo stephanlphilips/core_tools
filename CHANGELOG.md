@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.3.0] - 2022-05-20
+### Changed
+- VideoMode / liveplotting now uses DataSaver to store data
+  NOTE: call liveplotting.set_data_saver(QCodesDataSaver()) to enable saving to qcodes dataset
+
+### Fixed
+- Use acquisition_delay_ns for qblox VideoMode
+
+
 ## \[1.2.0] - 2022-04-14
 ### Fixed
 - Added qt_utils.qt_init() for reliable startup of GUI
