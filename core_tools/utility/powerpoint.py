@@ -6,6 +6,7 @@ import warnings
 import tempfile
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
+from qcodes.data.data_set import DataSet
 
 # explicit import
 try:
@@ -295,7 +296,7 @@ try:
                 notes = '\n' + extranotes + '\n' + notes
             if gates is not None:
                 notes = 'gates: ' + str(gates.allvalues()) + '\n\n' + notes
-        if isinstance(notes, qcodes.data.data_set.DataSet):
+        if isinstance(notes, DataSet):
             notes = reshape_metadata(notes, printformat='s', add_gates=True)
 
         if notes is not None:
