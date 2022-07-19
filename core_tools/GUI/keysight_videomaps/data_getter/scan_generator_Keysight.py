@@ -151,6 +151,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
                                               acquisition_delay_ns=acquisition_delay_ns))
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
+    my_seq.configure_digitizer = False
 
     logging.info(f'Upload')
     my_seq.upload()
@@ -325,6 +326,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
                                               acquisition_delay_ns=acquisition_delay_ns))
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
+    my_seq.configure_digitizer = False
 
     logging.info(f'Seq upload')
     my_seq.upload()

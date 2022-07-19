@@ -112,7 +112,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
     my_seq.n_rep = 1
-    my_seq.set_acquisition(t_measure=t_step, channels=acq_channels)
+    # Note: set average repetitions to retrieve 1D array with channel data
+    my_seq.set_acquisition(t_measure=t_step, channels=acq_channels, average_repetitions=True)
 
     logging.info(f'Upload')
     my_seq.upload()
@@ -257,7 +258,8 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
     my_seq.n_rep = 1
-    my_seq.set_acquisition(t_measure=t_step, channels=acq_channels)
+    # Note: set average repetitions to retrieve 1D array with channel data
+    my_seq.set_acquisition(t_measure=t_step, channels=acq_channels, average_repetitions=True)
 
     logging.info(f'Seq upload')
     my_seq.upload()
@@ -346,7 +348,7 @@ class _digitzer_scan_parameter(MultiParameter):
         # play sequence
         self.my_seq.play(release = False)
         logging.info(f'Idle after {(time.perf_counter()-start)*1000:3.1f} ms')
-        raw_dict = self.my_seq.get_measurement_data()
+        raw_dict = self.my_seq.get_channel_data()
 
         # get the data
         data = []
