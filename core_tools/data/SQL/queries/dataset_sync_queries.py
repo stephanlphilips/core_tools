@@ -70,10 +70,9 @@ class sync_mgr_queries:
                 content_to_update.keys(), content_to_update.values(),
                 condition=("uuid",uuid))
 
-        if not to_local:
-            update_table(sync_agent.conn_local, 'global_measurement_overview',
-                    ('table_synchronized', ), (True, ),
-                    condition=("uuid",uuid))
+        update_table(sync_agent.conn_local, 'global_measurement_overview',
+                ('table_synchronized', ), (True, ),
+                condition=("uuid",uuid))
 
         conn_src.commit()
         conn_dest.commit()
