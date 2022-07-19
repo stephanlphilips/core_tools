@@ -390,7 +390,6 @@ class channel_properties:
     daq_cycles: Optional[int] = None
     # settings of downsampler-iq FPGA image
     downsampled_rate : Optional[float] = None
-    power2decimation : int = 0
     downsampling_factor : int = 1
     lo_frequency : float = 0
     lo_phase : float = 0
@@ -596,6 +595,14 @@ class SD_DIG(Instrument):
                                 f'Changed to {full_scale:4.2f} V')
                 properties.full_scale = full_scale
 
+    def get_samples_per_measurement(self, t_measure, sample_rate):
+        if sample_rate > 100e6:
+            return int(t_measure*1e-9*sample_rate)
+
+        downsampling_factor = int(max(1, round(100e6 / sample_rate)))
+        t_downsampling = downsampling_factor * 10
+        return max(1, round(t_measure/t_downsampling))
+
 
     def set_daq_settings(self, channel, n_cycles, t_measure, sample_rate = 500e6,
                          DAQ_trigger_delay = 0, DAQ_trigger_mode = 1, downsampled_rate = None, power2decimation = 0):
@@ -609,17 +616,19 @@ class SD_DIG(Instrument):
             DAQ_trigger_delay (int) : use HVI for this..
             DAQ_trigger_mode (int) : 1 for HVI see manual for other options. (2 is external trigger)
             downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
-            power2decimation (int) : number of decimate-by-2 steps applied (with anti-alias filter)
+            power2decimation (int) : deprecated
         """
+        if power2decimation:
+            logging.warning('digitizer power2decimation is deprecated')
+
         properties = self.channel_properties[f'ch{channel}']
         properties.active = True
 
         # find aproriate prescalor if needed
         if properties.acquisition_mode == MODES.NORMAL:
-            if downsampled_rate is not None or power2decimation > 0:
-                logging.warning(f'ch{channel} downsampled_rate and power2decimation are ignored in NORMAL mode')
+            if downsampled_rate is not None:
+                logging.warning(f'ch{channel} downsampled_rate is ignored in NORMAL mode')
                 downsampled_rate = None
-                power2decimation = 0
 
             prescaler = max(0, int(500e6/sample_rate -1))
 
@@ -649,14 +658,14 @@ class SD_DIG(Instrument):
             prescaler = 0
             sample_rate = 500e6
             if downsampled_rate is None:
-                downsampling_factor = int(max(1, round(t_measure / 10 / 2**power2decimation)))
+                downsampling_factor = int(max(1, round(t_measure / 10)))
                 points_per_cycle = 1
             else:
-                downsampling_factor = int(max(1, round(100e6 / downsampled_rate / 2**power2decimation)))
-                t_downsampling = downsampling_factor * 10 * 2**power2decimation
+                downsampling_factor = int(max(1, round(100e6 / downsampled_rate)))
+                t_downsampling = downsampling_factor * 10
                 points_per_cycle = max(1, round(t_measure/t_downsampling))
 
-            eff_t_measure = points_per_cycle * downsampling_factor * 10 * 2**power2decimation
+            eff_t_measure = points_per_cycle * downsampling_factor * 10
 
             values_per_point = (
                     2
@@ -668,7 +677,7 @@ class SD_DIG(Instrument):
 
             config_channel(self.SD_AIN, channel, properties.acquisition_mode, downsampling_factor, points_per_cycle,
                            LO_f=properties.lo_frequency, phase=properties.lo_phase,
-                           p2decim=power2decimation, input_ch=config_input_channel)
+                           input_ch=config_input_channel)
 
         # add extra points for acquisition alignment and minimum number of points
         daq_points_per_cycle = self._get_aligned_npoints(daq_points_per_cycle)
@@ -690,7 +699,6 @@ class SD_DIG(Instrument):
         properties.sample_rate = sample_rate
         properties.prescaler = prescaler
         properties.downsampled_rate = downsampled_rate
-        properties.power2decimation = power2decimation
         properties.downsampling_factor = downsampling_factor
         properties.daq_points_per_cycle = daq_points_per_cycle
         properties.daq_cycles = daq_cycles
@@ -849,9 +857,8 @@ class SD_DIG(Instrument):
             logging.warning(f'set_measurement_time_averaging() cannot be used when downsampling ')
             return
 
-        power2decimation = properties.power2decimation
-        downsampling_factor = int(max(1, round(t_measure / 10 / 2**power2decimation)))
-        eff_t_measure = downsampling_factor * 10 * 2**power2decimation
+        downsampling_factor = int(max(1, round(t_measure / 10)))
+        eff_t_measure = downsampling_factor * 10
 
         if eff_t_measure != properties.t_measure:
             properties.downsampling_factor = downsampling_factor
@@ -860,7 +867,7 @@ class SD_DIG(Instrument):
             logging.debug(f'ch{channel} t_measure:{properties.t_measure}')
 
             dig_set_downsampler(self.SD_AIN, channel, downsampling_factor,
-                                properties.points_per_cycle, power2decimation)
+                                properties.points_per_cycle)
 
 
     ###########################################################
@@ -869,7 +876,7 @@ class SD_DIG(Instrument):
 
     def set_digitizer_software(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL,
                                channels = [1,2], Vmax = None, fourchannel = False,
-                               downsampled_rate = None, power2decimation = 0):
+                               downsampled_rate = None):
         """
         quick set of minumal settings to make it work.
 
@@ -881,7 +888,6 @@ class SD_DIG(Instrument):
             channels (list) : channels you want to measure
             vmax (double) : maximum voltage of input (Vpeak)
             downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
-            power2decimation (int) : decimate data with 2**power2decimation
         """
         if Vmax is not None:
             v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
@@ -893,11 +899,11 @@ class SD_DIG(Instrument):
         self.set_active_channels(channels)
         for channel in channels:
             self.set_daq_settings(channel, cycles, t_measure, sample_rate,
-                                  downsampled_rate=downsampled_rate, power2decimation=power2decimation)
+                                  downsampled_rate=downsampled_rate)
 
 
     def set_digitizer_analog_trg(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL,
-                                 channels = [1,2], Vmax = None, downsampled_rate = None, power2decimation = 0):
+                                 channels = [1,2], Vmax = None, downsampled_rate = None):
         """
         quick set of minumal settings to make it work.
 
@@ -910,7 +916,6 @@ class SD_DIG(Instrument):
             channels (list) : channels you want to measure
             vmax (float) : maximum voltage of input (Vpeak)
             downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
-            power2decimation (int) : decimate data with 2**power2decimation
         """
         if Vmax is not None:
             v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
@@ -922,7 +927,7 @@ class SD_DIG(Instrument):
         self.set_active_channels(channels)
         for channel in channels:
             self.set_daq_settings(channel, cycles, t_measure, sample_rate,
-                                  downsampled_rate=downsampled_rate, power2decimation=power2decimation)
+                                  downsampled_rate=downsampled_rate)
             self.set_ext_digital_trigger(channel)
 
 
