@@ -354,7 +354,7 @@ class _digitzer_scan_parameter(MultiParameter):
         data = []
         for setting in self.channel_map.values():
             ch, func = setting
-            ch_data = raw_dict[ch] * 1000.0 # mV
+            ch_data = raw_dict[ch]
             data.append(func(ch_data))
 
         # make sure that data is put in the right order.
