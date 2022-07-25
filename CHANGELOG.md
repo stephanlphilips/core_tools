@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.3.1] - 2022-07-25
+### Changed
+- Updates for pulselib 1.5 with configuration of Keysight digitizer
+
 ## \[1.3.0] - 2022-05-20
 ### Changed
 - VideoMode / liveplotting now uses DataSaver to store data
