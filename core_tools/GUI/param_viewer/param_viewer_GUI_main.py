@@ -212,7 +212,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             return
 
         delta = abs(value() - gate())
-        if delta > self.max_diff:
+        if self.max_diff is not None and delta > self.max_diff:
             logging.warning(f'Not setting {gate} to {value():.1f}mV. '
                             f'Difference {delta:.0f} mV > {self.max_diff:.0f} mV')
             return
