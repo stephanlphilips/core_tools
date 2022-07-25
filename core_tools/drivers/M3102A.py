@@ -31,6 +31,7 @@ def check_error(res, s=''):
         error = res
         msg = f'Keysight error: {keysightSD1.SD_Error.getErrorMessage(error)} ({error}) {s}'
         logging.error(msg)
+        raise Exception(msg)
     return res
 
 """
@@ -412,7 +413,7 @@ class SD_DIG(Instrument):
         NOTE: channels start for number 1! (e.g. channel 1, channel 2, channel 3, channel 4)
         """
         self.SD_AIN = keysightSD1.SD_AIN()
-        dig_name = check_error(self.SD_AIN.getProductNameBySlot(chassis, slot), 'getProductNameBySlot')
+        dig_name = check_error(self.SD_AIN.getProductNameBySlot(chassis, slot), f'getProductNameBySlot({chassis}, {slot})')
         check_error(self.SD_AIN.openWithSlot(dig_name, chassis, slot), 'openWithSlot')
 
         firmware_version = self.SD_AIN.getFirmwareVersion()
