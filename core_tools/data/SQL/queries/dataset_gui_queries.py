@@ -60,7 +60,7 @@ class query_for_samples():
         res = cur.fetchall()
         result |= set(sum(res, () ))
         cur.close()
-        return list(result)
+        return sorted(list(result))
 
 
 @dataclass
