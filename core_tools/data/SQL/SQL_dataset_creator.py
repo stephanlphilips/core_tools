@@ -112,8 +112,10 @@ class SQL_dataset_creator(object):
         ds_raw = load_ds_queries.get_dataset_raw(conn, exp_uuid)
         if sync:
             conn_mgr = SQL_database_manager()
+            sample_info_list = sync_mgr_queries.get_sample_info_list(conn_mgr.conn_local)
             sync_mgr_queries.sync_raw_data(conn_mgr, exp_uuid, to_local=True)
-            sync_mgr_queries.sync_table(conn_mgr, exp_uuid, to_local=True)
+            sync_mgr_queries.sync_table(conn_mgr, exp_uuid, to_local=True,
+                                        sample_info_list=sample_info_list)
 
         return ds_raw
 

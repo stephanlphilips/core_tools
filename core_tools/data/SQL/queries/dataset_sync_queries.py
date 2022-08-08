@@ -1,11 +1,41 @@
 from core_tools.data.SQL.SQL_common_commands import execute_statement, execute_query
 from core_tools.data.SQL.SQL_common_commands import select_elements_in_table, insert_row_in_table, update_table
-from core_tools.data.SQL.queries.dataset_creation_queries import data_table_queries
+from core_tools.data.SQL.queries.dataset_creation_queries import data_table_queries, sample_info_queries
 
 import psycopg2, json
 import numpy as np
 
 class sync_mgr_queries:
+    @staticmethod
+    def get_sample_info_list(conn):
+        '''
+        Returns:
+            list[tuple[str,str,str]]: list with (project, set_up, sample)
+        '''
+        res = select_elements_in_table(conn, "sample_info_overview",
+            ('project', 'set_up', 'sample'), dict_cursor=False)
+
+        return res
+
+    @staticmethod
+    def get_sample_info_from_measurements(conn):
+        '''
+        Returns:
+            list[tuple[str,str,str]]: list with (project, set_up, sample)
+        '''
+        res = execute_query(conn,
+                            "SELECT DISTINCT project, set_up, sample from global_measurement_overview")
+
+        return res
+
+    @staticmethod
+    def delete_all_sample_info_overview(conn):
+        '''
+        Deletes all entries from sample info overview.
+        '''
+        print('WARNING: Deleting all entries from sample_info_overview')
+        execute_statement(conn, 'DELETE FROM sample_info_overview')
+
     @staticmethod
     def get_sync_items_meas_table(sync_agent):
         '''
@@ -20,7 +50,7 @@ class sync_mgr_queries:
         return uuid_entries
 
     @staticmethod
-    def sync_table(sync_agent, uuid, to_local=False):
+    def sync_table(sync_agent, uuid, to_local=False, sample_info_list=None):
         '''
         syncs row in the table to the remote for the given uuid
 
@@ -50,6 +80,15 @@ class sync_mgr_queries:
 
         if len(entry_exists) == 0:
             print('create measurement row', uuid)
+            if sample_info_list:
+                sample_info = (source_content['project'],
+                               source_content['set_up'],
+                               source_content['sample'])
+                if sample_info not in sample_info_list:
+                    print('add sample info:', sample_info)
+                    sample_info_queries.add_sample(conn_dest, *sample_info)
+                    sample_info_list.append(sample_info)
+
             insert_row_in_table(conn_dest, 'global_measurement_overview',
                 tuple(source_content.keys()), tuple(source_content.values()))
         else:

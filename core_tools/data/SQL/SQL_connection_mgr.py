@@ -102,8 +102,20 @@ class SQL_sync_manager(SQL_database_init):
 
         return SQL_sync_manager.__instance
 
+    def rebuild_sample_info(self, remote=True):
+        conn = self.conn_remote if remote else self.conn_local
+        sample_info_list = sync_mgr_queries.get_sample_info_from_measurements(conn)
+        sync_mgr_queries.delete_all_sample_info_overview(conn)
+        print(f'Adding {len(sample_info_list)} entries to sample_info_overview')
+        for entry in sample_info_list:
+            project, set_up, sample = entry
+            print('  adding', entry)
+            sample_info_queries.add_sample(conn, project, set_up, sample)
+        conn.commit()
+
     def run(self):
         while self.do_sync == True:
+            sample_info_list = sync_mgr_queries.get_sample_info_list(self.conn_remote)
             uuid_update_list = sync_mgr_queries.get_sync_items_raw_data(self)
 
 
@@ -120,7 +132,7 @@ class SQL_sync_manager(SQL_database_init):
             for i in range(0,len(uuid_update_list)):
                 uuid = uuid_update_list[i]
                 print(f'updating table entry {i} of {len(uuid_update_list)}')
-                sync_mgr_queries.sync_table(self, uuid)
+                sync_mgr_queries.sync_table(self, uuid, sample_info_list=sample_info_list)
             if len(uuid_update_list) == 0:
                 print(f'not entries to update')
 
