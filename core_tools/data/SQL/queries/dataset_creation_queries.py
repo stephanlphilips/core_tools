@@ -70,11 +70,11 @@ class measurement_overview_queries:
 
         statement += "completed BOOL DEFAULT False, "
         statement += "data_size int,"
-        statement += "data_cleared BOOL DEFAULT False, "
+        statement += "data_cleared BOOL DEFAULT False, "     # Note [SdS]: Column is not used
 
-        statement += "data_synchronized BOOL DEFAULT False,"
-        statement += "table_synchronized BOOL DEFAULT False,"
-        statement += "sync_location text); "
+        statement += "data_synchronized BOOL DEFAULT False,"  # data + param table sync'd
+        statement += "table_synchronized BOOL DEFAULT False," # global_measurements_overview sync'd
+        statement += "sync_location text); "                  # Note [SdS]: Column is not used
 
         statement += "CREATE INDEX IF NOT EXISTS uuid_indexed ON {} USING BTREE (uuid) ;".format(measurement_overview_queries.table_name)
         statement += "CREATE INDEX IF NOT EXISTS starred_indexed ON {} USING BTREE (starred) ;".format(measurement_overview_queries.table_name)
@@ -176,8 +176,8 @@ class data_table_queries:
         statement += "write_cursor INT, "
         statement += "total_size INT, "
         statement += "oid INT, "
-        statement += "synchronized BOOL DEFAULT False,"
-        statement += "sync_location text);"
+        statement += "synchronized BOOL DEFAULT False," # Note [SdS]: Column is not used
+        statement += "sync_location text);"             # Note [SdS]: Column is not used
         execute_statement(conn, statement)
 
     @staticmethod

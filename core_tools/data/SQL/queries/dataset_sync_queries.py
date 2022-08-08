@@ -142,7 +142,6 @@ class sync_mgr_queries:
             'global_measurement_overview', ('exp_data_location', ),
             where=("uuid",uuid), dict_cursor=False)[0][0]
 
-#        data_table_queries.generate_table(sync_agent.conn_local, raw_data_table_name)
         sync_mgr_queries._sync_raw_data_table(conn_src, conn_dest, raw_data_table_name)
         sync_mgr_queries._sync_raw_data_lobj(conn_src, conn_dest, raw_data_table_name)
 
