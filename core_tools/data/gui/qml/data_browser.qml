@@ -63,18 +63,18 @@ ApplicationWindow{
 
                 RowLayout {
                     id: overview_select_sample
-                    Layout.leftMargin: 20 
-                    Layout.rightMargin: 20 
+                    Layout.leftMargin: 20
+                    Layout.rightMargin: 30
                     transformOrigin: Item.TopLeft
                     Layout.fillHeight: false
                     Layout.fillWidth: true
 
                     RowLayout {
                         Text {
-                            Layout.preferredWidth: 80
-                            height: 40
+                            Layout.preferredWidth: 70
+                            height: 30
                             text: 'Project'
-                            font.pixelSize: 20
+                            font.pixelSize: 16
                         }
 
                         ComboBox {
@@ -82,7 +82,7 @@ ApplicationWindow{
                             id: combobox_project
                             model : combobox_project_model
                             Layout.preferredWidth: 250
-                            Layout.margins: 5
+                            Layout.margins: 2
                             onActivated : signal_handler.pro_set_sample_info_state_change(combobox_project.currentIndex, combobox_set_up.currentIndex, combobox_sample.currentIndex);
 
                         }
@@ -94,10 +94,10 @@ ApplicationWindow{
 
                     RowLayout {
                         Text {
-                            Layout.preferredWidth: 80
-                            height: 40
+                            Layout.preferredWidth: 70
+                            height: 30
                             text: 'Set up'
-                            font.pixelSize: 20
+                            font.pixelSize: 16
                         }
 
                         ComboBox {
@@ -105,7 +105,7 @@ ApplicationWindow{
                             id: combobox_set_up
                             model : combobox_set_up_model
                             Layout.preferredWidth: 250
-                            Layout.margins: 5
+                            Layout.margins: 2
                             onActivated : signal_handler.pro_set_sample_info_state_change(combobox_project.currentIndex, combobox_set_up.currentIndex, combobox_sample.currentIndex);
                         }
                     }
@@ -116,10 +116,10 @@ ApplicationWindow{
 
                     RowLayout {
                         Text {
-                            Layout.preferredWidth: 80
-                            height: 40
+                            Layout.preferredWidth: 70
+                            height: 30
                             text: 'Sample'
-                            font.pixelSize: 20
+                            font.pixelSize: 16
                         }
 
                         ComboBox {
@@ -127,13 +127,13 @@ ApplicationWindow{
                             id: combobox_sample
                             model : combobox_sample_model
                             Layout.preferredWidth: 250
-                            Layout.margins: 5
+                            Layout.margins: 2
                             onActivated : signal_handler.pro_set_sample_info_state_change(combobox_project.currentIndex, combobox_set_up.currentIndex, combobox_sample.currentIndex);
 
                         }
                     }
 
-                    
+
                 }
 
                 RowLayout {
@@ -142,7 +142,7 @@ ApplicationWindow{
                     	color: "#FFFFFFFF"
                         Layout.fillHeight: true
                         Layout.leftMargin: 10
-                        width : 250
+                        width : 180
                         radius : 5
 
                         ListView {
@@ -150,25 +150,25 @@ ApplicationWindow{
 	                            id : date_list_delegate
 	                            Item {
 	                                width: parent.width
-	                                height: 42
-	                                
+	                                height: 36
+
 	                                Rectangle {
 	                                    id: r
 	                                    width: parent.width-20
 	                                    x: 10
-	                                    height: 42
+	                                    height: 36
 	                                    radius : 5
 	                                    color: 'transparent'
 
 	                                    RowLayout {
 	                                        width: 100
-	                                        height: 40
+	                                        height: 34
 	                                        spacing : 10
 	                                        Rectangle {
 	                                            id : rec_ind
-	                                            width: 20
+	                                            width: 12
 	                                            radius : 5
-	                                            height : 40
+	                                            height : 34
 	                                            color: "transparent"
 	                                            Layout.fillHeight: true
 	                                        }
@@ -177,14 +177,14 @@ ApplicationWindow{
 	                                            text: date
 	                                            Layout.alignment: Qt.AlignHLeft | Qt.AlignVCenter
 	                                            Layout.fillHeight: false
-	                                            font.pixelSize: 18
+	                                            font.pixelSize: 16
 	                                        }
 
 	                                    }
 	                                }
 
 	                                Rectangle {
-	                                    y : 40
+	                                    y : 36
 	                                    width: parent.width
 	                                    height: 5
 	                                    color: "transparent"
@@ -229,10 +229,10 @@ ApplicationWindow{
                                     x: 10
 
 	                                RowLayout {
-	                                    height: 42
+	                                    height: 36
 	                                    Rectangle {
 	                                    	x : 10
-	                                        width: 20
+	                                        width: 12
 	                                        radius : 5
 	                                        color: Material.color(Material.Pink)
 	                                        Layout.fillHeight: true
@@ -256,22 +256,22 @@ ApplicationWindow{
 	                                color: "#FFFFFF"
 
 	                                width: parent.width
-	                                height : 64 + 20
+	                                height : 40 + 20
 	                                radius : 5
 
 	                                Rectangle {
 	                                    id: header
 	                                    width: parent.width-20
-	                                    height: 64
+	                                    height: 40
 	                                    x : 10
-	                                    y : 10  
-	                                    
+	                                    y : 10
+
 	                                    radius : 5
 	                                    color: "#8e24aa"
 
 	                                    Text {
 	                                        width: parent.width
-	                                        height: 40
+	                                        height: 30
 	                                        color : "#FFFFFF"
 	                                        text: qsTr("Date")
 	                                        anchors.leftMargin: 25
@@ -279,7 +279,7 @@ ApplicationWindow{
 	                                        verticalAlignment: Text.AlignVCenter
 	                                        horizontalAlignment: Text.AlignLeft
 	                                        font.bold: true
-	                                        font.pixelSize: 18
+	                                        font.pixelSize: 16
 	                                    }
 	                                    MouseArea {
 	                                        anchors.fill: parent
@@ -306,7 +306,7 @@ ApplicationWindow{
 
                     Rectangle {
                         color: "#FFFFFFFF"
-                        
+
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.rightMargin: 10
@@ -318,7 +318,7 @@ ApplicationWindow{
 
                                 Rectangle {
                                     id: row_overview
-                                    height: 42
+                                    height: 36
 
                                     color: "#F5F5F5"
                                     anchors.right: parent.right
@@ -335,7 +335,7 @@ ApplicationWindow{
                                             width : 20
                                             height : 20
                                             Layout.leftMargin : 15
-                                            Layout.topMargin : (42-20)/4
+                                            Layout.topMargin : 4
                                             color : 'transparent'
                                             Star_shape{
                                                 anchors.fill: parent
@@ -346,12 +346,12 @@ ApplicationWindow{
                                         }
 
                                         TextEdit {
-                                            height: 42
+                                            height: 36
                                             text: id_
                                             focus : true
                                             readOnly : true
                                             selectByMouse : true
-                                            font.pixelSize: 16
+                                            font.pixelSize: 14
                                             Layout.preferredWidth: 80
                                             Layout.leftMargin: 20
                                         }
@@ -361,25 +361,25 @@ ApplicationWindow{
                                             focus : true
                                             readOnly : true
                                             selectByMouse : true
-                                            font.pixelSize: 16
-                                            Layout.preferredWidth: 220
+                                            font.pixelSize: 14
+                                            Layout.preferredWidth: 200
                                         }
 
                                         Text {
                                             text: date
-                                            font.pixelSize: 16
-                                            Layout.preferredWidth: 110
+                                            font.pixelSize: 14
+                                            Layout.preferredWidth: 100
                                         }
 
                                         Item{
-                                            height: 42
+                                            height: 36
                                             TextInput{
                                                 id : text_field_measurment_overview
                                                 z : 1
-                                                y : (42-18)/2
-                                                height: 42
+                                                y : (36-18)/2
+                                                height: 40
                                                 Layout.preferredWidth: text_field_measurment_overview.contentWidth
-                                                font.pixelSize: 16
+                                                font.pixelSize: 14
                                                 text : name
                                                 selectByMouse : true
                                                 selectedTextColor : '#FFFFFF'
@@ -395,7 +395,7 @@ ApplicationWindow{
                                         Item {
                                             id: element31
                                             width: 200
-                                            height: 42
+                                            height: 36
                                             Layout.fillWidth: true
                                         }
 
@@ -403,7 +403,7 @@ ApplicationWindow{
                                             id: element32
                                             text: keywords
                                             Layout.rightMargin: 20
-                                            font.pixelSize: 16
+                                            font.pixelSize: 14
                                         }
                                     }
 
@@ -426,11 +426,11 @@ ApplicationWindow{
                                     anchors.right: parent.right
                                     anchors.left: parent.left
 
-                                    height : 64+20
+                                    height : 40+20
 
 	                                Rectangle {
 	                                    id: data_content_view_header_box
-	                                    height: 64
+	                                    height: 40
 
 	                                    color: "#8E24AA"
 	                                    anchors.left: parent.left
@@ -449,7 +449,7 @@ ApplicationWindow{
 	                                            width : 20
 	                                            height : 20
 	                                            Layout.leftMargin : 15
-	                                            Layout.topMargin : (42-20)/4
+	                                            Layout.topMargin : 4
 	                                            color : 'transparent'
 	                                            Star_shape{
 	                                                anchors.fill: parent
@@ -462,29 +462,33 @@ ApplicationWindow{
 	                                            color : 'white'
 	                                            Layout.leftMargin: 20
 	                                            Layout.preferredWidth: 80
-	                                            font.pixelSize: 22
+	                                            font.bold: true
+	                                            font.pixelSize: 16
 	                                        }
 
 	                                        Text {
 	                                            text: qsTr("UUID")
 	                                            color : 'white'
-	                                            Layout.preferredWidth: 220
-	                                            font.pixelSize: 22
+	                                            Layout.preferredWidth: 200
+	                                            font.bold: true
+	                                            font.pixelSize: 16
 	                                        }
 
 
 	                                        Text {
 	                                            text: qsTr("Time")
 	                                            color : 'white'
-	                                            Layout.preferredWidth: 110
+	                                            Layout.preferredWidth: 100
 	                                            Layout.fillWidth: false
-	                                            font.pixelSize: 22
+	                                            font.bold: true
+	                                            font.pixelSize: 16
 	                                        }
 
 	                                        Text {
 	                                            text: qsTr("Name")
 	                                            color : 'white'
-	                                            font.pixelSize: 22
+	                                            font.bold: true
+	                                            font.pixelSize: 16
 	                                        }
 
 
@@ -498,7 +502,8 @@ ApplicationWindow{
 	                                            text: qsTr("Keywords")
 	                                            color : 'white'
 	                                            Layout.rightMargin: 20
-	                                            font.pixelSize: 22
+	                                            font.bold: true
+	                                            font.pixelSize: 16
 	                                        }
 
 	                                    }
@@ -525,13 +530,13 @@ ApplicationWindow{
 
                             flickableDirection: Flickable.VerticalFlick
                             boundsBehavior: Flickable.StopAtBounds
-                    
+
                             ScrollBar.vertical: ScrollBar {}
                         }
                     }
                 }
 
-                
+
 			}
         }
 
@@ -555,7 +560,7 @@ ApplicationWindow{
 
             Rectangle {
                 color: "#FFFFFFFF"
-                
+
                 y : 100
                 width : parent.width
                 height : parent.height - 100
@@ -828,7 +833,7 @@ ApplicationWindow{
                 Material.accent: (remote_conn.remote_conn_status == true) ? Material.Teal : Material.Red
                 width: 250
                 height: 50
-                text: 'Remote Connecetion'
+                text: 'Remote Connection'
                 leftPadding: 15
                 checkable: false
                 checked: true

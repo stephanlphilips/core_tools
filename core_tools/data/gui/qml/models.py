@@ -9,7 +9,7 @@ os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
 class date_model(QtCore.QAbstractListModel):
     def __init__(self, dates, parent=None):
         super().__init__(parent)
-        self._dates = dates 
+        self._dates = dates
 
     def rowCount(self, parent=None):
         return len(self._dates)
@@ -78,9 +78,9 @@ class data_overview_model(QtCore.QAbstractListModel):
 
 
 class combobox_model(QtCore.QAbstractListModel):
-    def __init__(self, string_list, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self._combobox_items = string_list 
+        self._combobox_items = []
 
     def rowCount(self, parent=None):
         return len(self._combobox_items)

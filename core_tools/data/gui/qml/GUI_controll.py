@@ -1,9 +1,8 @@
 from PyQt5 import QtCore, QtQuick
-from core_tools.data.gui.qml.models import date_model, data_overview_model
 # import os, sys
 # import core_tools.data.gui.qml as qml_in
 
-from core_tools.data.SQL.connect import sample_info, SQL_conn_info_local, SQL_conn_info_remote
+from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote
 from core_tools.data.SQL.queries.dataset_gui_queries import (
         alter_dataset, query_for_samples, query_for_measurement_results)
 
@@ -16,21 +15,82 @@ def if_any_to_none(arg):
         return None
     return arg
 
+def default(arg, default):
+    return arg if arg is not None else default
+
+
+class DataFilter:
+    def __init__(self, project_model, set_up_model, sample_model):
+        self.project = None
+        self.set_up = None
+        self.sample = None
+        self._project_model = project_model
+        self._set_up_model = set_up_model
+        self._sample_model = sample_model
+        self._update_lists()
+
+    def _update_lists(self):
+        self._projects = ['any'] + query_for_samples.get_projects(sample=self.sample, set_up=self.set_up)
+        self._set_ups = ['any'] + query_for_samples.get_set_ups(sample=self.sample, project=self.project)
+        self._samples = ['any'] + query_for_samples.get_samples(set_up=self.set_up, project=self.project)
+        self._project_model.reset_data(self._projects)
+        self._set_up_model.reset_data(self._set_ups)
+        self._sample_model.reset_data(self._samples)
+
+    def set_indices(self, index_project, index_set_up, index_sample):
+        self.project = if_any_to_none(self._project_model[index_project])
+        self.set_up = if_any_to_none(self._set_up_model[index_set_up])
+        self.sample = if_any_to_none(self._sample_model[index_sample])
+        self._update_lists()
+
+    def set_project(self, project):
+        project = if_any_to_none(project)
+        if project is None or project in self._projects:
+            self.project = project
+        else:
+            print(f'Project {project} not in list')
+            self.project = None
+        self._update_lists()
+
+    def set_set_up(self, set_up):
+        set_up = if_any_to_none(set_up)
+        if set_up is None or set_up in self._set_ups:
+            self.set_up = set_up
+        else:
+            print(f'Set-up {set_up} not in list')
+            self.set_up = None
+        self._update_lists()
+
+    def set_sample(self, sample):
+        sample = if_any_to_none(sample)
+        if sample is None or sample in self._samples:
+            self.sample = sample
+        else:
+            print(f'Sample {sample} not in list')
+            self.sample = None
+        self._update_lists()
+
+    @property
+    def project_index(self):
+        return self._projects.index(default(self.project, 'any'))
+
+    @property
+    def set_up_index(self):
+        return self._set_ups.index(default(self.set_up, 'any'))
+
+    @property
+    def sample_index(self):
+        return self._samples.index(default(self.sample, 'any'))
+
+
 class signale_handler(QtQuick.QQuickView):
-    def __init__(self, project_model, set_up_model, sample_model, date_model, data_overview_model):
+    def __init__(self, data_filter, date_model, data_overview_model):
         super().__init__()
         self.live_plotting_enabled = True
-        self.project_model = project_model
-        self.set_up_model = set_up_model
-        self.sample_model = sample_model
+        self._data_filter = data_filter
 
         self.date_model = date_model
         self.data_overview_model = data_overview_model
-
-        self.sample_info = dict()
-        self.sample_info['project'] = sample_info.project
-        self.sample_info['sample'] = sample_info.set_up
-        self.sample_info['set_up'] = sample_info.sample
 
         self.measurement_count =0
         self.plots = []
@@ -51,7 +111,10 @@ class signale_handler(QtQuick.QQuickView):
         else:
             obj.setProperty("remote_conn_status", False)
 
-        self.pro_set_sample_info_state_change_loc(1,1,1)
+        self.pro_set_sample_info_state_change_loc(
+                self._data_filter.project_index,
+                self._data_filter.set_up_index,
+                self._data_filter.sample_index)
 
         _, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)
 
@@ -70,38 +133,25 @@ class signale_handler(QtQuick.QQuickView):
         self.pro_set_sample_info_state_change_loc(index_project, index_set_up, index_sample)
 
     def pro_set_sample_info_state_change_loc(self, index_project, index_set_up, index_sample):
-        self.sample_info['project'] = if_any_to_none(self.project_model[index_project])
-        self.sample_info['set_up'] = if_any_to_none(self.set_up_model[index_set_up])
-        self.sample_info['sample'] = if_any_to_none(self.sample_model[index_sample])
-
-        projects = ['any'] + query_for_samples.get_projects(sample=self.sample_info['sample'], set_up=self.sample_info['set_up'])
-        set_ups = ['any'] + query_for_samples.get_set_ups(sample=self.sample_info['sample'], project=self.sample_info['project'])
-        samples = ['any'] + query_for_samples.get_samples(set_up=self.sample_info['set_up'], project=self.sample_info['project'])
-
-        idx_project = projects.index(self.project_model[index_project])
-        idx_set_up = set_ups.index(self.set_up_model[index_set_up])
-        idx_sample = samples.index(self.sample_model[index_sample])
-
-        self.project_model.reset_data(projects)
-        self.set_up_model.reset_data(set_ups)
-        self.sample_model.reset_data(samples)
+        self._data_filter.set_indices(index_project, index_set_up, index_sample)
 
         obj = self.win.findChild(QtCore.QObject, "combobox_project")
-        obj.setProperty("currentIndex", idx_project)
+        obj.setProperty("currentIndex", self._data_filter.project_index)
 
         obj = self.win.findChild(QtCore.QObject, "combobox_set_up")
-        obj.setProperty("currentIndex", idx_set_up)
+        obj.setProperty("currentIndex", self._data_filter.set_up_index)
 
         obj = self.win.findChild(QtCore.QObject, "combobox_sample")
-        obj.setProperty("currentIndex", idx_sample)
+        obj.setProperty("currentIndex", self._data_filter.sample_index)
 
         self.update_date_model()
         self.update_date_selection(0)
 
     def update_date_model(self):
         dates = query_for_measurement_results.get_all_dates_with_meaurements(
-                        self.sample_info['project'],self.sample_info['set_up'],
-                        self.sample_info['sample'])
+                self._data_filter.project,
+                self._data_filter.set_up,
+                self._data_filter.sample)
 
         self.date_model.reset_data(dates)
         obj = self.win.findChild(QtCore.QObject, "date_list_view")
@@ -113,7 +163,11 @@ class signale_handler(QtQuick.QQuickView):
         self.load_data_table(date)
 
     def load_data_table(self, date):
-        data = query_for_measurement_results.get_results_for_date(date, **self.sample_info)
+        data = query_for_measurement_results.get_results_for_date(
+                date,
+                project=self._data_filter.project,
+                set_up=self._data_filter.set_up,
+                sample=self._data_filter.sample)
         model_data = m_result_overview(data)
         self.data_overview_model.reset_data(model_data)
 
@@ -134,8 +188,11 @@ class signale_handler(QtQuick.QQuickView):
 
     def plot_ds(self, uuid):
         # let the garbage collector collect the old plots
-
-        ds = load_by_uuid(uuid)
+        try:
+            ds = load_by_uuid(uuid)
+        except Exception as ex:
+            print(ex)
+            return
         p = data_plotter(ds)
         self.plots.append(p)
 

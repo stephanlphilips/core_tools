@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets, QtQml
 from core_tools.data.gui.qml.models import date_model, data_overview_model, combobox_model
-from core_tools.data.gui.qml.GUI_controll import signale_handler
+from core_tools.data.gui.qml.GUI_controll import signale_handler, DataFilter
 import os, sys
 import core_tools.data.gui.qml as qml_in
 
@@ -8,8 +8,15 @@ from datetime import datetime
 
 from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
 
+def coalesce(*args):
+    for arg in args:
+        if arg is not None:
+            return arg
+    return None
+
+
 class data_browser():
-    def __init__(self):
+    def __init__(self, project=None, set_up=None, sample=None):
         super().__init__()
         self.app = QtCore.QCoreApplication.instance()
         self.instance_ready = True
@@ -18,18 +25,23 @@ class data_browser():
             self.app = QtWidgets.QApplication([])
 
         self.engine = QtQml.QQmlApplicationEngine()
-        
+
         self.date_model = date_model([])
         self.data_overview_model = data_overview_model([])
 
-        self.project_model = combobox_model(['any', sample_info.project])
-        self.set_up_model = combobox_model(['any', sample_info.set_up])
-        self.sample_model = combobox_model(['any', sample_info.sample])
+        self.project_model = combobox_model()
+        self.set_up_model = combobox_model()
+        self.sample_model = combobox_model()
 
-        self.signal_handler = signale_handler(self.project_model, self.set_up_model, self.sample_model, self.date_model, self.data_overview_model)
+        self.data_filter = DataFilter(self.project_model, self.set_up_model, self.sample_model)
+        self.data_filter.set_project(coalesce(project, sample_info.project))
+        self.data_filter.set_set_up(coalesce(set_up, sample_info.set_up))
+        self.data_filter.set_sample(coalesce(sample, sample_info.sample))
 
+        self.signal_handler = signale_handler(self.data_filter,
+                                              self.date_model, self.data_overview_model)
 
-        self.engine.rootContext().setContextProperty("combobox_project_model", self.project_model )
+        self.engine.rootContext().setContextProperty("combobox_project_model", self.project_model)
         self.engine.rootContext().setContextProperty("combobox_set_up_model", self.set_up_model)
         self.engine.rootContext().setContextProperty("combobox_sample_model", self.sample_model)
 
@@ -57,5 +69,5 @@ if __name__ == "__main__":
     # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
     # set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
     # set_up_remote_storage('131.180.205.81', 5432, 'stephan_test', 'magicc', 'spin_data_test', 'Intel Project', 'F006', 'SQ38328342')
-    
+
     g = data_browser()
