@@ -6,6 +6,13 @@ from core_tools.data.SQL.connect import SQL_conn_info_local, sample_info
 
 import psycopg2, json
 
+
+def is_valid_info(arg):
+    if arg is None or arg.lower() in ['', 'any', '*']:
+        return False
+    return True
+
+
 class sample_info_queries:
     '''
     small table that holds a overview of which samples have been measured on the current system.
@@ -23,9 +30,10 @@ class sample_info_queries:
         execute_statement(conn, statement)
 
     @staticmethod
-    def add_sample(conn):
-        sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
-        if sample is not None and set_up is not None and project is not None:
+    def add_sample(conn, project=None, set_up=None, sample=None):
+        if project is None and set_up is None and sample is None:
+            sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
+        if is_valid_info(sample) and is_valid_info(set_up) and is_valid_info(project):
             var_names = ('sample_info_hash', 'sample', 'set_up', 'project')
             var_values = (set_up+project+sample, sample, set_up, project)
             insert_row_in_table(conn, sample_info_queries.table_name, var_names, var_values,
@@ -88,6 +96,10 @@ class measurement_overview_queries:
         Returns:
             id, uuid, SQL_datatable : id and uuid of the new measurement and the tablename for raw data storage
         '''
+        if (not is_valid_info(sample_info.project)
+            or not is_valid_info(sample_info.set_up)
+            or not is_valid_info(sample_info.sample)):
+            raise Exception(f'Sample info not correct: {sample_info}')
         uuid = generate_uuid()
         var_names = ('uuid', 'set_up', 'project', 'sample', 'creasted_by', 'exp_name')
         var_values = (uuid, str(sample_info.set_up),  str(sample_info.project),
