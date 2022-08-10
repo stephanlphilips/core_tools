@@ -18,9 +18,10 @@ def dump_data_to_HDF5(exp_uuid, file_location):
         os.mkdir(file_location)
     except:
         pass
-        
+
     f = h5py.File(f"{file_location}/{exp_uuid}.hdf5", "w")
 
+    # TODO use fetch_raw_dataset_by_UUID instead of this copy/pasted code below.
     if load_ds_queries.check_uuid(SQL_database_manager().conn_local, exp_uuid):
         conn = SQL_database_manager().conn_local
     elif load_ds_queries.check_uuid(SQL_database_manager().conn_remote, exp_uuid):
@@ -62,6 +63,7 @@ def dump_data_to_HDF5(exp_uuid, file_location):
         f[f"{raw_data_row.oid}"][:] = data.buffer
         data_raw.append(raw_data_row)
 
+    # TODO replace pickle by decent storage. Pickle loads fails whenever one of the stored classes changes.
     pickle.dump([ds,data_raw], open( f"{file_location}/{exp_uuid}.p",  "wb" ))
 
     SQL_mgr = SQL_dataset_creator()
@@ -69,6 +71,7 @@ def dump_data_to_HDF5(exp_uuid, file_location):
 
 def load_data_from_HDF5(exp_uuid, file_location):
     f = h5py.File(f"{file_location}/{exp_uuid}.hdf5", "r")
+    # TODO replace pickle by decent storage. Pickle loads fails whenever one of the stored classes changes.
     ds, data_raw = pickle.load(open( f"{file_location}/{exp_uuid}.p", 'rb'))
 
     for raw_data_row in data_raw:
