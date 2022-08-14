@@ -14,7 +14,7 @@ import logging
 
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
-                           dig_samplerate, dig_vmax=None, iq_mode=None, acquisition_delay_ns=None,
+                           dig_samplerate, dig_vmax=None, iq_mode=None, acquisition_delay_ns=500,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
     1D fast scan parameter constructor.
@@ -164,7 +164,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
                            digitizer, channels, dig_samplerate, dig_vmax=None, iq_mode=None,
-                           acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
+                           acquisition_delay_ns=500, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
     2D fast scan parameter constructor.
