@@ -88,7 +88,8 @@ class scan_generic(metaclass=job_meta):
             logging.warning('Measurement aborted')
         except KeyboardInterrupt:
             logging.warning('Measurement interrupted')
-        except:
+        except Exception as ex:
+            print(f'\n*** ERROR in measurement: {ex}')
             logging.error('Exception in measurement', exc_info=True)
 
         finally:

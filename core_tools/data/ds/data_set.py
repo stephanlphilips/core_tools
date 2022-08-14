@@ -35,6 +35,10 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
         measurement_snapshot (dict[str,Any]) : snapshot of measurement parameters
         *m_params (m_param_dataset) : datasets of the measurement parameters
     '''
+    SQL_mgr = SQL_dataset_creator()
+    if SQL_mgr.conn is None:
+        raise Exception('No database connection set up')
+
     ds = data_set_raw(exp_name=experiment_name)
 
     if qc.Station.default is not None:
@@ -58,7 +62,6 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
 
     ds.snapshot = snapshot
 
-    SQL_mgr = SQL_dataset_creator()
     SQL_mgr.register_measurement(ds)
 
     return data_set(ds)
