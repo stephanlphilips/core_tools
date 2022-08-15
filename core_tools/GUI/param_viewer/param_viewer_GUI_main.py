@@ -71,8 +71,13 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             param = getattr(self.gates_object, gate_name)
             self._add_gate(param, True)
 
+        self.step_size.clear()
+        items = [100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1]
+        self.step_size.addItems(str(item) for item in items)
+        self.step_size.setCurrentText("1")
+
         self.lock.stateChanged.connect(lambda: self._update_lock(self.lock.isChecked()))
-        self.step_size.valueChanged.connect(lambda: self.update_step(self.step_size.value()))
+        self.step_size.currentIndexChanged.connect(lambda: self.update_step(float(self.step_size.currentText())))
         self._finish_gates_GUI()
 
         self.timer = QtCore.QTimer()
@@ -96,7 +101,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         for gate in self.virtual_gates:
             gate.gui_input_param.setSingleStep(value)
 
-        self.step_size.setValue(value)
+#        self.step_size.setValue(value)
 
     @qt_log_exception
     def _update_lock(self, locked):
