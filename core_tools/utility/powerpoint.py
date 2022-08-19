@@ -7,20 +7,8 @@ import tempfile
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from qcodes.data.data_set import DataSet
-
-# explicit import
-try:
-    from qcodes.plots.pyqtgraph import QtPlot
-except:
-    pass
-
-# do NOT load any other qtt submodules here
-
-try:
-    import qtpy.QtGui as QtGui
-    import qtpy.QtWidgets as QtWidgets
-except:
-    pass
+from qcodes.plots.pyqtgraph import QtPlot
+from PyQt5 import QtGui, QtWidgets
 
 
 def _convert_rgb_color_to_integer(rgb_color):
