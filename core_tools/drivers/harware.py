@@ -175,7 +175,7 @@ class harware_parent(qc.Instrument):
             for (param,val) in zip(qc_params,self.RF_settings.values()):
                 param(val)
         else:
-            self.RF_settings = self.gen_RF_settings(sources = sources)
+            self.RF_settings = RF_generated
 
     def gen_RF_settings(self, sources):
         RF_settings = dict()
