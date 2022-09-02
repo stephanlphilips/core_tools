@@ -60,8 +60,8 @@ class data_set_raw:
             size = m_param.data_buffer.cursor*8 #(64 bit numbers)
 
         return size
-@dataclass
 
+@dataclass
 class m_param_raw:
     param_id : int
     nth_set : int # if part of a set
