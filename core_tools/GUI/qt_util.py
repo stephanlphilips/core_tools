@@ -3,6 +3,13 @@ import threading
 
 from PyQt5 import QtCore, QtWidgets
 
+try:
+    import IPython.lib.guisupport as gs
+    from IPython import get_ipython
+except:
+    get_ipython = lambda x:None
+
+
 is_wrapped = threading.local()
 is_wrapped.val = False
 
@@ -41,9 +48,18 @@ def qt_init():
     '''
     # application reference must be held in global scope
     global _qt_app
-    _qt_app = QtCore.QCoreApplication.instance()
-    if _qt_app is None:
-        logging.info('Create Qt application')
-        _qt_app = QtWidgets.QApplication([])
-    else:
-        logging.debug('Qt application already created')
+
+    ipython = get_ipython()
+
+    if ipython:
+        if not gs.is_event_loop_running_qt4():
+            # print('Warning Qt5 not configured for IPython console. Activating it now.')
+            # ipython.run_line_magic('gui','qt5')
+            raise Exception('Configure QT5 in Spyder -> Preferences -> IPython Console -> Graphics -> Backend')
+
+        _qt_app = QtCore.QCoreApplication.instance()
+        if _qt_app is None:
+            logging.debug('Create Qt application')
+            _qt_app = QtWidgets.QApplication([])
+        else:
+            logging.debug('Qt application already created')
