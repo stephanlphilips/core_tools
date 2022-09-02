@@ -351,7 +351,7 @@ ApplicationWindow{
                                             focus : true
                                             readOnly : true
                                             selectByMouse : true
-                                            font.pixelSize: 14
+                                            font.pixelSize: 15
                                             Layout.preferredWidth: 80
                                             Layout.leftMargin: 20
                                         }
@@ -361,13 +361,13 @@ ApplicationWindow{
                                             focus : true
                                             readOnly : true
                                             selectByMouse : true
-                                            font.pixelSize: 14
+                                            font.pixelSize: 15
                                             Layout.preferredWidth: 200
                                         }
 
                                         Text {
                                             text: date
-                                            font.pixelSize: 14
+                                            font.pixelSize: 15
                                             Layout.preferredWidth: 100
                                         }
 
@@ -379,7 +379,7 @@ ApplicationWindow{
                                                 y : (36-18)/2
                                                 height: 40
                                                 Layout.preferredWidth: text_field_measurment_overview.contentWidth
-                                                font.pixelSize: 14
+                                                font.pixelSize: 15
                                                 text : name
                                                 selectByMouse : true
                                                 selectedTextColor : '#FFFFFF'
@@ -403,7 +403,7 @@ ApplicationWindow{
                                             id: element32
                                             text: keywords
                                             Layout.rightMargin: 20
-                                            font.pixelSize: 14
+                                            font.pixelSize: 15
                                         }
                                     }
 
