@@ -1,6 +1,19 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.0] - 2022-09-@@
+### Added
+- Added selection of project, set-up and sample at data_browser startup.
+- Added rebuild_sample_info() to SQL_sync_manager.
+
+### Changed
+- Improved error handling in data browser.
+- Do not accept 'any' as name for project, set-up, or sample in measurement.
+- Synchronize sample info to server.
+
+### Fixed
+- import of PyQt5
+
 ## \[1.3.1] - 2022-07-25
 ### Changed
 - Updates for pulselib 1.5 with configuration of Keysight digitizer
