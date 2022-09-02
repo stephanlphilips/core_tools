@@ -19,14 +19,15 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
     def __init__(self, gates_object: Optional[object] = None,
                  max_diff : float = 1000,
-                 keysight_rf: Optional[object] = None):
+                 keysight_rf: Optional[object] = None,
+                 locked=False):
         self.real_gates = list()
         self.virtual_gates = list()
         self.rf_settings = list()
         self.station = qc.Station.default
         self.max_diff = max_diff
         self.keysight_rf = keysight_rf
-        self.locked = False
+        self.locked = locked
 
         if gates_object:
             self.gates_object = gates_object
@@ -76,6 +77,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.step_size.addItems(str(item) for item in items)
         self.step_size.setCurrentText("1")
 
+        self.lock.setChecked(self.locked)
         self.lock.stateChanged.connect(lambda: self._update_lock(self.lock.isChecked()))
         self.step_size.currentIndexChanged.connect(lambda: self.update_step(float(self.step_size.currentText())))
         self._finish_gates_GUI()
