@@ -1,12 +1,10 @@
-from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets, QtQml
+from PyQt5 import QtCore, QtWidgets, QtQml
 from core_tools.data.gui.qml.models import date_model, data_overview_model, combobox_model
 from core_tools.data.gui.qml.GUI_controll import signale_handler, DataFilter
-import os, sys
+import os
 import core_tools.data.gui.qml as qml_in
 
-from datetime import datetime
-
-from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
+from core_tools.data.SQL.connect import SQL_conn_info_local, sample_info, set_up_local_storage
 
 def coalesce(*args):
     for arg in args:
@@ -16,7 +14,9 @@ def coalesce(*args):
 
 
 class data_browser():
-    def __init__(self, project=None, set_up=None, sample=None):
+    def __init__(self,
+                 project=None, set_up=None, sample=None,
+                 window_location=None, window_size=None):
         super().__init__()
         self.app = QtCore.QCoreApplication.instance()
         self.instance_ready = True
@@ -58,10 +58,15 @@ class data_browser():
         self.engine.load(QtCore.QUrl.fromLocalFile(filename))
         self.win = self.engine.rootObjects()[0]
         self.signal_handler.init_gui_variables(self.win)
+        if window_location is not None:
+            self.win.setPosition(window_location[0], window_location[1])
+        if window_size is not None:
+            self.win.setWidth(window_size[0])
+            self.win.setHeight(window_size[1])
 
         if self.instance_ready == False:
             self.app.exec_()
-            print('exec')
+
 
 if __name__ == "__main__":
     from core_tools.data.SQL.connect import SQL_conn_info_local, set_up_remote_storage, sample_info, set_up_local_storage
