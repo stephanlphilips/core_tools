@@ -2,8 +2,8 @@ import logging
 import psutil
 import sys
 import atexit
-
-from subprocess import Popen, CREATE_NEW_PROCESS_GROUP, PIPE, STDOUT
+import subprocess
+import platform
 from threading import Thread
 
 from core_tools.startup.config import get_configuration
@@ -19,9 +19,16 @@ def launch_app(name, module_name, kill=False, close_at_exit=False):
                '--detached'
                ]
         print('Launching', name)
-        proc = Popen(cmd,
-                     creationflags=CREATE_NEW_PROCESS_GROUP,
-                     stdout=PIPE, stderr=STDOUT, text=True)
+        if platform.system() == 'Windows':
+            creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            creationflags = 0
+        proc = subprocess.Popen(
+                cmd,
+                creationflags=creationflags,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True)
 
         thread = Thread(target=_echo_output, args=(proc, name))
         thread.start()

@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.2] - 2022-09-19
+### Fixed
+- Windows specific calls in app_launcher.
+
+## \[1.4.1] - 2022-09-19
+### Fixed
+- missing __init__.py
+
 ## \[1.4.0] - 2022-09-19
 ### Added
 - Added selection of project, set-up and sample at data_browser startup.
