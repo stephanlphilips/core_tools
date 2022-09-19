@@ -43,7 +43,7 @@ class measurement_overview_queries:
     '''
     large-ish table that holds all the inforamtion of what measurements are done.
 
-    The raw data is saved in other tables (-> data_table_queries)
+    The raw data is saved in table measurement_parameters (Old version: data_table_queries)
     '''
     table_name="global_measurement_overview"
 
@@ -74,7 +74,7 @@ class measurement_overview_queries:
 
         statement += "data_synchronized BOOL DEFAULT False,"  # data + param table sync'd
         statement += "table_synchronized BOOL DEFAULT False," # global_measurements_overview sync'd
-        statement += "sync_location text); "                  # Note [SdS]: Column is not used
+        statement += "sync_location text); "                  # Note [SdS]: Column is abused for migration to new measurement_parameters table
 
         statement += "CREATE INDEX IF NOT EXISTS uuid_indexed ON {} USING BTREE (uuid) ;".format(measurement_overview_queries.table_name)
         statement += "CREATE INDEX IF NOT EXISTS starred_indexed ON {} USING BTREE (starred) ;".format(measurement_overview_queries.table_name)
@@ -101,14 +101,18 @@ class measurement_overview_queries:
             or not is_valid_info(sample_info.sample)):
             raise Exception(f'Sample info not correct: {sample_info}')
         uuid = generate_uuid()
-        var_names = ('uuid', 'set_up', 'project', 'sample', 'creasted_by', 'exp_name')
+        # NOTE: column sync_location is abused for migration to new format
+        var_names = ('uuid', 'set_up', 'project', 'sample', 'creasted_by', 'exp_name', 'sync_location')
         var_values = (uuid, str(sample_info.set_up),  str(sample_info.project),
-            str(sample_info.sample) , SQL_conn_info_local.user, exp_name)
+            str(sample_info.sample) , SQL_conn_info_local.user, exp_name,
+            'New measurement_parameters')
 
         returning = ('id', 'uuid')
         query_outcome = insert_row_in_table(conn, measurement_overview_queries.table_name, var_names, var_values, returning)
 
-        SQL_datatable = ("_" + sample_info.set_up + "_" +sample_info.project + "_" +sample_info.sample +"_" + str(query_outcome[0][1])).replace(" ", "_").replace('-', '_')
+        # old SQL_datatable name is not used anymore for new measurements
+        # SQL_datatable = ("_" + sample_info.set_up + "_" +sample_info.project + "_" +sample_info.sample +"_" + str(query_outcome[0][1])).replace(" ", "_").replace('-', '_')
+        SQL_datatable = ''
         return query_outcome[0][0], query_outcome[0][1], SQL_datatable
 
     def update_measurement(conn, meas_uuid, meas_table_name=None, start_time=None, stop_time=None,
@@ -118,13 +122,13 @@ class measurement_overview_queries:
 
         Args:
             meas_uuid (int) : record that needs to be updated
-    		meas_table_name (str) : name of the table that contains the raw measurement data
-			start_time (long) : time in unix seconds since the epoch
-			stop_time (long) : time in unix seconds since the epoch
-			metadata (dict) : json string to be saved in the database
-			snapshot (dict) : snapshot of the exprimental set up
-			keywords (list) : keywords describing the measurement
-			completed (bool) : tell that the measurement is completed.
+            meas_table_name (str) : name of the table that contains the raw measurement data
+            start_time (long) : time in unix seconds since the epoch
+            stop_time (long) : time in unix seconds since the epoch
+            metadata (dict) : json string to be saved in the database
+            snapshot (dict) : snapshot of the exprimental set up
+            keywords (list) : keywords describing the measurement
+            completed (bool) : tell that the measurement is completed.
         '''
         var_names = ['exp_data_location','metadata', 'snapshot', 'keywords', 'data_size', 'data_synchronized', 'completed']
         var_values = [
@@ -207,5 +211,74 @@ class data_table_queries:
         statement = ""
         for i in range(len(data_items)):
             statement += "UPDATE {} SET write_cursor = {} WHERE id = {}; ".format(table_name, data_items[i].data_buffer.cursor, i+1)
+
+        execute_statement(conn, statement)
+
+
+class measurement_parameters_queries:
+    '''
+    table containing the raw data of every measurement parameter.
+    This is the new version that replaces class data_table_queries
+    '''
+    @staticmethod
+    def generate_table(conn):
+        statement = "CREATE TABLE if not EXISTS measurement_parameters ( "
+        statement += "id SERIAL primary key, "
+        statement += "exp_uuid BIGINT NOT NULL,"
+        statement += "param_index INT NOT NULL,"
+        statement += "param_id BIGINT, "
+        statement += "nth_set INT, "
+        statement += "nth_dim INT, "
+        statement += "param_id_m_param BIGINT, "
+        statement += "setpoint BOOL, "
+        statement += "setpoint_local BOOL, "
+        statement += "name_gobal text, "
+        statement += "name text NOT NULL,"
+        statement += "label text NOT NULL,"
+        statement += "unit text NOT NULL,"
+        statement += "depencies jsonb, "
+        statement += "shape jsonb, "
+        statement += "write_cursor INT, "
+        statement += "total_size INT, "
+        statement += "oid INT); "
+        statement += "CREATE INDEX IF NOT EXISTS exp_uuid_index ON measurement_parameters USING BTREE (exp_uuid) ;"
+        statement += "CREATE INDEX IF NOT EXISTS oid_index ON measurement_parameters USING BTREE (oid) ;"
+        execute_statement(conn, statement)
+
+    @staticmethod
+    def insert_measurement_params(conn, exp_uuid, data_items):
+        '''
+        instert all the info of the set and get parameters in the measurement table.
+
+        Args:
+            exp_uuid (int) : unique id of dataset
+            data_items (list[m_param_raw]) : raw format of the measurement parameter
+        '''
+        var_names = (
+            "exp_uuid","param_index",
+            "param_id", "nth_set", "nth_dim", "param_id_m_param",
+            "setpoint", "setpoint_local", "name_gobal", "name",
+            "label", "unit", "depencies", "shape",
+            "write_cursor", "total_size", "oid")
+
+        for index, item in enumerate(data_items):
+            var_values = (
+                exp_uuid, index,
+                item.param_id, item.nth_set, item.nth_dim,
+                item.param_id_m_param, item.setpoint, item.setpoint_local,
+                item.name_gobal, item.name, item.label,
+                item.unit, psycopg2.extras.Json(item.dependency), psycopg2.extras.Json(item.shape),
+                0, item.size, item.oid)
+
+            insert_row_in_table(conn, 'measurement_parameters', var_names, var_values)
+
+    @staticmethod
+    def update_cursors_in_meas_tab(conn, exp_uuid, data_items):
+        statement = ""
+        for index, item in enumerate(data_items):
+            statement += (
+                    "UPDATE measurement_parameters "
+                    f"SET write_cursor = {item.data_buffer.cursor} "
+                    f"WHERE exp_uuid = {exp_uuid} AND param_index = {index}; ")
 
         execute_statement(conn, statement)

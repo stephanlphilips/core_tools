@@ -1,6 +1,4 @@
 import json
-import time
-import logging
 
 from core_tools.data.SQL.SQL_common_commands import execute_query, select_elements_in_table
 from core_tools.data.ds.data_set_raw import data_set_raw, m_param_raw
@@ -62,16 +60,26 @@ class load_ds_queries:
             SQL_datatable=data['exp_data_location'],snapshot=data['snapshot'], metadata=data['metadata'],
             keywords=data['keywords'], completed=data['completed'],)
 
-        ds.measurement_parameters_raw = load_ds_queries.__get_dataset_raw_dataclasses(conn, ds.SQL_datatable)
+        # NOTE: column sync_location is abused for migration to new format
+        new_format = data['sync_location'] == 'New measurement_parameters'
+        exp_uuid = data['uuid']
+        ds.measurement_parameters_raw = load_ds_queries.__get_dataset_raw_dataclasses(
+                conn, ds.SQL_datatable, new_format, exp_uuid)
         return ds
 
     @staticmethod
-    def __get_dataset_raw_dataclasses(conn, table_name):
+    def __get_dataset_raw_dataclasses(conn, table_name, new_format, exp_uuid):
         var_names =    ("param_id", "nth_set", "nth_dim", "param_id_m_param",
                     "setpoint", "setpoint_local", "name_gobal", "name", "label",
                     "unit", "depencies", "shape", "total_size", "oid")
 
-        return_data = select_elements_in_table(conn, table_name, var_names, dict_cursor=False)
+        if new_format:
+            return_data = select_elements_in_table(conn, 'measurement_parameters', var_names,
+                                                   where=("exp_uuid", exp_uuid),
+                                                   order_by=("param_index", "ASC"),
+                                                   dict_cursor=False)
+        else:
+            return_data = select_elements_in_table(conn, table_name, var_names, dict_cursor=False)
 
         data_raw = []
         for row in return_data:

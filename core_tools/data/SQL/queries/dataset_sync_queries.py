@@ -138,21 +138,111 @@ class sync_mgr_queries:
             conn_src = sync_agent.conn_local
             conn_dest = sync_agent.conn_remote
 
-        raw_data_table_name = select_elements_in_table(conn_src,
-            'global_measurement_overview', ('exp_data_location', ),
-            where=("uuid",uuid), dict_cursor=False)[0][0]
+        raw_data_table_name, sync_location = select_elements_in_table(conn_src,
+            'global_measurement_overview',
+            ('exp_data_location', 'sync_location'),
+            where=("uuid", uuid),
+            dict_cursor=False)[0]
 
-        sync_mgr_queries._sync_raw_data_table(conn_src, conn_dest, raw_data_table_name)
-        sync_mgr_queries._sync_raw_data_lobj(conn_src, conn_dest, raw_data_table_name)
+        # NOTE: column sync_location is abused for migration to new format
+        new_format = sync_location == 'New measurement_parameters'
+
+        if new_format:
+            sync_mgr_queries._sync_raw_data_table(conn_src, conn_dest, uuid)
+            sync_mgr_queries._sync_raw_data_lobj(conn_src, conn_dest, uuid)
+        else:
+            sync_mgr_queries._sync_raw_data_table_old(conn_src, conn_dest, raw_data_table_name)
+            sync_mgr_queries._sync_raw_data_lobj_old(conn_src, conn_dest, raw_data_table_name)
 
         update_table(sync_agent.conn_local, 'global_measurement_overview',
                 ('data_synchronized', ), (True, ),
                 condition=("uuid",uuid))
         sync_agent.conn_local.commit()
 
+    @staticmethod
+    def _sync_raw_data_table(conn_src, conn_dest, exp_uuid):
+        n_row_src = select_elements_in_table(
+                conn_src, 'measurement_parameters',
+                (psycopg2.sql.SQL('COUNT(*)'), ),
+                where=('exp_uuid', exp_uuid),
+                dict_cursor=False)[0][0]
+
+        n_row_dest = select_elements_in_table(
+                conn_dest, 'measurement_parameters',
+                (psycopg2.sql.SQL('COUNT(*)'), ),
+                where=('exp_uuid', exp_uuid),
+                dict_cursor=False)[0][0]
+
+        if n_row_src != n_row_dest:
+            print('update parameters', exp_uuid)
+            remove_old_params = f"DELETE FROM measurement_parameters WHERE exp_uuid={exp_uuid}"
+            execute_statement(conn_dest, remove_old_params)
+
+            res_src = select_elements_in_table(
+                    conn_src, 'measurement_parameters',
+                    ('*', ),
+                    where=('exp_uuid', exp_uuid),
+                    order_by=('param_index', ''))
+
+            for result in res_src:
+                lobject = conn_dest.lobject(0,'w')
+                del result['id']
+                result['oid'] = lobject.oid
+                result['write_cursor'] = 0
+                result['depencies'] = json.dumps(result['depencies'])
+                result['shape'] = json.dumps(result['shape'])
+                insert_row_in_table(
+                        conn_dest, 'measurement_parameters',
+                        result.keys(), result.values())
+
+        conn_dest.commit()
 
     @staticmethod
-    def _sync_raw_data_table(conn_src, conn_dest, raw_data_table_name):
+    def _sync_raw_data_lobj(conn_src, conn_dest, exp_uuid):
+        res_src = select_elements_in_table(
+                conn_src, 'measurement_parameters',
+                ('write_cursor', 'total_size', 'oid'),
+                where=('exp_uuid', exp_uuid),
+                order_by=('param_index', ''))
+        res_dest = select_elements_in_table(
+                conn_dest, 'measurement_parameters',
+                ('write_cursor', 'total_size', 'oid'),
+                where=('exp_uuid', exp_uuid),
+                order_by=('param_index', ''))
+
+        print('update large object', exp_uuid)
+        for i in range(len(res_src)):
+            dest_cursor = res_dest[i]['write_cursor']
+            src_cursor = res_src[i]['write_cursor']
+            dest_oid = res_dest[i]['oid']
+            src_oid = res_src[i]['oid']
+            src_lobject = conn_src.lobject(src_oid,'rb')
+            dest_lobject = conn_dest.lobject(dest_oid,'wb')
+
+            while (dest_cursor != src_cursor):
+                src_lobject.seek(dest_cursor*8)
+                dest_lobject.seek(dest_cursor*8)
+                if src_cursor*8 - dest_cursor*8 < 2_000_000:
+                    mybuffer = np.frombuffer(src_lobject.read(src_cursor*8-dest_cursor*8))
+                    dest_cursor = src_cursor
+                else:
+                    print(f'large dataset, {(src_cursor*8-dest_cursor*8)*1e-9}GB')
+                    mybuffer = np.frombuffer(src_lobject.read(2_000_000))
+                    dest_cursor += int(2_000_000/8)
+                dest_lobject.write(mybuffer.tobytes())
+
+            dest_lobject.close()
+            src_lobject.close()
+
+            update_table(
+                    conn_dest, 'measurement_parameters',
+                    ('write_cursor',), (src_cursor,),
+                    condition=('oid',dest_oid))
+
+        conn_dest.commit()
+
+    @staticmethod
+    def _sync_raw_data_table_old(conn_src, conn_dest, raw_data_table_name):
         n_row_src = select_elements_in_table(conn_src, raw_data_table_name,
             (psycopg2.sql.SQL('COUNT(*)'), ), dict_cursor=False)[0][0]
 
@@ -186,7 +276,7 @@ class sync_mgr_queries:
         conn_dest.commit()
 
     @staticmethod
-    def _sync_raw_data_lobj(conn_src, conn_dest, raw_data_table_name):
+    def _sync_raw_data_lobj_old(conn_src, conn_dest, raw_data_table_name):
         res_src = select_elements_in_table(conn_src, raw_data_table_name,
             ('write_cursor', 'total_size', 'oid'), order_by=('id', ''))
         res_dest = select_elements_in_table(conn_dest, raw_data_table_name,

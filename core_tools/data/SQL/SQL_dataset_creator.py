@@ -1,4 +1,9 @@
-from core_tools.data.SQL.queries.dataset_creation_queries import sample_info_queries, measurement_overview_queries, data_table_queries
+from core_tools.data.SQL.queries.dataset_creation_queries import (
+        sample_info_queries,
+        measurement_overview_queries,
+        data_table_queries,
+        measurement_parameters_queries
+        )
 from core_tools.data.SQL.queries.dataset_loading_queries import load_ds_queries
 from core_tools.data.SQL.queries.dataset_sync_queries import sync_mgr_queries
 
@@ -15,9 +20,7 @@ class SQL_dataset_creator(object):
         Args:
             ds (data_set_raw) : raw dataset
         '''
-        #####################################################
-        # add a new entry in the measurements overiew table #
-        #####################################################
+        # add a new entry in the measurements overiew table
         sample_info_queries.add_sample(self.conn)
         ds.exp_id, ds.exp_uuid, ds.SQL_datatable = measurement_overview_queries.new_measurement(self.conn, ds.exp_name)
         ds.running = True
@@ -28,13 +31,9 @@ class SQL_dataset_creator(object):
         measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid, ds.SQL_datatable,
             start_time=ds.UNIX_start_time, metadata=ds.metadata, snapshot=ds.snapshot, keywords=ds.generate_keywords())
 
-        #################################################
-        # make table for storage of the getters/setters #
-        #################################################
-        data_table_queries.generate_table(self.conn, ds.SQL_datatable)
-
-        for m_param in ds.measurement_parameters_raw:
-            data_table_queries.insert_measurement_spec_in_meas_table(self.conn, ds.SQL_datatable, m_param)
+        # store of the getters/setters parameters
+        measurement_parameters_queries.insert_measurement_params(self.conn, ds.exp_uuid,
+                                                                 ds.measurement_parameters_raw)
 
         self.conn.commit()
 
@@ -45,7 +44,8 @@ class SQL_dataset_creator(object):
         Args:
             ds (dataset_raw)
         '''
-        data_table_queries.update_cursors_in_meas_tab(self.conn, ds.SQL_datatable, ds.measurement_parameters_raw)
+        measurement_parameters_queries.update_cursors_in_meas_tab(self.conn, ds.exp_uuid,
+                                                                  ds.measurement_parameters_raw)
         measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid, data_synchronized=False)
         self.conn.commit()
 
@@ -68,7 +68,7 @@ class SQL_dataset_creator(object):
         '''
         ds.UNIX_stop_time = time.time()
 
-        data_table_queries.update_cursors_in_meas_tab(self.conn, ds.SQL_datatable, ds.measurement_parameters_raw)
+        measurement_parameters_queries.update_cursors_in_meas_tab(self.conn, ds.exp_uuid, ds.measurement_parameters_raw)
         measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid,
             stop_time=ds.UNIX_stop_time, completed=True, data_size=ds.size(), data_synchronized=False)
 

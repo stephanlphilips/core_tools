@@ -1,5 +1,8 @@
 from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info
-from core_tools.data.SQL.queries.dataset_creation_queries import sample_info_queries, measurement_overview_queries
+from core_tools.data.SQL.queries.dataset_creation_queries import (
+        sample_info_queries,
+        measurement_overview_queries,
+        measurement_parameters_queries)
 from core_tools.data.SQL.queries.dataset_sync_queries import sync_mgr_queries
 import psycopg2
 import time
@@ -75,6 +78,7 @@ class SQL_database_manager(SQL_database_init):
                 sample_info_queries.add_sample(conn_local)
 
                 measurement_overview_queries.generate_table(conn_local)
+                measurement_parameters_queries.generate_table(conn_local)
                 conn_local.commit()
         return SQL_database_manager.__instance
 
@@ -94,9 +98,11 @@ class SQL_sync_manager(SQL_database_init):
 
             sample_info_queries.generate_table(SQL_sync_manager.__instance.conn_local)
             measurement_overview_queries.generate_table(SQL_sync_manager.__instance.conn_local)
+            measurement_parameters_queries.generate_table(SQL_sync_manager.__instance.conn_local)
 
             sample_info_queries.generate_table(SQL_sync_manager.__instance.conn_remote)
             measurement_overview_queries.generate_table(SQL_sync_manager.__instance.conn_remote)
+            measurement_parameters_queries.generate_table(SQL_sync_manager.__instance.conn_remote)
             SQL_sync_manager.__instance.conn_local.commit()
             SQL_sync_manager.__instance.conn_remote.commit()
 
@@ -106,10 +112,10 @@ class SQL_sync_manager(SQL_database_init):
         conn = self.conn_remote if remote else self.conn_local
         sample_info_list = sync_mgr_queries.get_sample_info_from_measurements(conn)
         sync_mgr_queries.delete_all_sample_info_overview(conn)
-        print(f'Adding {len(sample_info_list)} entries to sample_info_overview')
+        self.log(f'Adding {len(sample_info_list)} entries to sample_info_overview')
         for entry in sample_info_list:
             project, set_up, sample = entry
-            print('  adding', entry)
+            self.log('  adding', entry)
             sample_info_queries.add_sample(conn, project, set_up, sample)
         conn.commit()
 
@@ -121,22 +127,26 @@ class SQL_sync_manager(SQL_database_init):
 
             for i in range(len(uuid_update_list)):
                 uuid = uuid_update_list[i]
-                print(f'updating raw data {i} of {len(uuid_update_list)}')
+                self.log(f'updating raw data {i} of {len(uuid_update_list)}')
                 sync_mgr_queries.sync_raw_data(self, uuid)
 
             if len(uuid_update_list) == 0:
-                print(f'not files to update')
+                self.log(f'no raw data to update')
 
             uuid_update_list = sync_mgr_queries.get_sync_items_meas_table(self)
 
             for i in range(0,len(uuid_update_list)):
                 uuid = uuid_update_list[i]
-                print(f'updating table entry {i} of {len(uuid_update_list)}')
+                self.log(f'updating table entry {i} of {len(uuid_update_list)}')
                 sync_mgr_queries.sync_table(self, uuid, sample_info_list=sample_info_list)
             if len(uuid_update_list) == 0:
-                print(f'not entries to update')
+                self.log(f'no entries to update')
 
             time.sleep(2)
+
+    def log(self, message):
+        print(message)
+        logging.info(message)
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage

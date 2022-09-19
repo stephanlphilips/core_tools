@@ -1,15 +1,19 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.0] - 2022-09-@@
+## \[1.4.0] - 2022-09-19
 ### Added
 - Added selection of project, set-up and sample at data_browser startup.
 - Added rebuild_sample_info() to SQL_sync_manager.
+- Added locked option to parameter viewer startup.
+- Added HDF5 export and re-import for data publication.
 
 ### Changed
+- Changed database scheme !! Data written by v1.4+ can only be read by v1.4+ !!
 - Improved error handling in data browser.
 - Do not accept 'any' as name for project, set-up, or sample in measurement.
 - Synchronize sample info to server.
+- Changed layout of data-browser.
 
 ### Fixed
 - import of PyQt5
