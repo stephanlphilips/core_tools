@@ -1,0 +1,14 @@
+# selection used in databrowser. Any is an allowed value here.
+setup: Noether
+project: Demo
+sample: SQ_16x16_Magic
+
+remote_database:
+    user: username
+    password: yyyyy!
+    database: veldhorst_data
+    address: vanvliet.qutech.tudelft.nl:5432
+
+databrowser:
+    datasource: remote # required value
+

@@ -1,0 +1,90 @@
+instruments:
+
+  D5a1:
+    type: core_tools.drivers.virtual_dac.virtual_dac
+    enable_forced_reconnect: true
+
+    init:
+      my_type: SPI
+
+  D5a2:
+    type: core_tools.drivers.virtual_dac.virtual_dac
+    enable_forced_reconnect: true
+
+    init:
+      my_type: SPI
+
+  D5a3:
+    type: core_tools.drivers.virtual_dac.virtual_dac
+    enable_forced_reconnect: true
+
+    init:
+      my_type: SPI
+
+  gates:
+    type: core_tools.drivers.gates.gates
+    enable_forced_reconnect: true
+
+  digitizer_keys:
+    type: core_tools.drivers.M3102A.SD_DIG
+    # type: projects.keysight_measurement.M3102A.SD_DIG
+    enable_forced_reconnect: true
+    init:
+      chassis: 1
+      slot: 11
+
+  AWG1:
+    type: pulse_lib.tests.mock_m3202a.MockM3202A_fpga
+    enable_forced_reconnect : True
+    init:
+      chassis : 1
+      slot : 2
+
+  AWG2:
+    type: pulse_lib.tests.mock_m3202a.MockM3202A_fpga
+    enable_forced_reconnect : True
+    init:
+      chassis : 1
+      slot : 3
+
+  AWG3:
+    type: pulse_lib.tests.mock_m3202a.MockM3202A_fpga
+    enable_forced_reconnect : True
+    init:
+      chassis : 1
+      slot : 4
+
+  AWG4:
+    type: pulse_lib.tests.mock_m3202a.MockM3202A_fpga
+    enable_forced_reconnect : True
+    init:
+      chassis : 1
+      slot : 5
+
+  AWG5:
+    type: pulse_lib.tests.mock_m3202a.MockM3202A_fpga
+    enable_forced_reconnect : True
+    init:
+      chassis : 1
+      slot : 6  
+            
+  AWG6:
+    type: pulse_lib.tests.mock_m3202a.MockM3202A_fpga
+    enable_forced_reconnect : True
+    init:
+      chassis : 1
+      slot : 7
+
+  AWG7:
+    type: pulse_lib.tests.mock_m3202a.MockM3202A_fpga
+    enable_forced_reconnect : True
+    init:
+      chassis : 1
+      slot : 8  
+                    
+  AWG8:
+    type: pulse_lib.tests.mock_m3202a.MockM3202A_fpga
+    enable_forced_reconnect : True
+    init:
+      chassis : 1
+      slot : 9     

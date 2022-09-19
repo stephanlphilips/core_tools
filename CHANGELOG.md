@@ -9,6 +9,7 @@ All notable changes to core_tools will be documented in this file.
 - Added HDF5 export and re-import for data publication.
 - Added configuration using YAML file
 - Added simple startup of GUIs
+- Added examples/demo_station
 
 ### Changed
 - Changed database scheme !! Data written by v1.4+ can only be read by v1.4+ !!

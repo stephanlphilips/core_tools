@@ -1,0 +1,17 @@
+setup: Noether
+project: Demo
+sample: SQ_16x16_Magic
+
+local_database:
+    user: username
+    password: XXXX
+    database: measurement_data
+
+remote_database:
+    user: username
+    password: yyyyy!
+    database: veldhorst_data
+    address: vanvliet.qutech.tudelft.nl:5432
+
+databrowser:
+    datasource: local # required value
