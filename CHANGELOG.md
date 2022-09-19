@@ -7,6 +7,8 @@ All notable changes to core_tools will be documented in this file.
 - Added rebuild_sample_info() to SQL_sync_manager.
 - Added locked option to parameter viewer startup.
 - Added HDF5 export and re-import for data publication.
+- Added configuration using YAML file
+- Added simple startup of GUIs
 
 ### Changed
 - Changed database scheme !! Data written by v1.4+ can only be read by v1.4+ !!
