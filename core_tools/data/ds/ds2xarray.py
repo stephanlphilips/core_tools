@@ -1,6 +1,7 @@
 import xarray as xr
 import numpy as np
 import json
+import string
 import qcodes as qc
 
 def _add_coord(ds, param):
@@ -67,18 +68,14 @@ def ds2xarray(ct_ds):
                     dims.append(coord.param_name)
                     _add_coord(ds, coord)
             else:
-                if param.ndim > 0:
-                    coord = param.i
+                for i in range(param.ndim):
+                    dim_name  = string.ascii_lowercase[8+i]
+
+                    coord = getattr(param, dim_name)
                     dims.append(coord.param_name)
                     _add_coord(ds, coord)
-                if param.ndim > 1:
-                    coord = param.j
-                    dims.append(coord.param_name)
                     _add_coord(ds, coord)
-                if param.ndim > 2:
-                    coord = param.k
-                    dims.append(coord.param_name)
-                    _add_coord(ds, coord)
+
             _add_data_var(ds, param, dims, param_index)
 
     return ds
