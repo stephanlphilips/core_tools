@@ -63,3 +63,29 @@ def qt_init():
             _qt_app = QtWidgets.QApplication([])
         else:
             logging.debug('Qt application already created')
+
+
+_qt_message_handler_installed = False
+
+def _qt_message_handler(level, context, message):
+    if message.startswith('QSocketNotifier: Multiple socket notifiers for same socket'):
+        # ignore ipython warning
+        return
+    if level == QtCore.QtInfoMsg:
+        log_level = logging.INFO
+    elif level == QtCore.QtWarningMsg:
+        log_level = logging.WARNING
+    elif level == QtCore.QtCriticalMsg:
+        log_level = logging.CRITICAL
+    elif level == QtCore.QtFatalMsg:
+        log_level = logging.FATAL
+    else:
+        log_level = logging.DEBUG
+    logging.log(log_level, message)
+
+def install_qt_message_handler():
+    global _qt_message_handler_installed
+
+    if not _qt_message_handler_installed:
+        QtCore.qInstallMessageHandler(_qt_message_handler)
+        _qt_message_handler_installed = True

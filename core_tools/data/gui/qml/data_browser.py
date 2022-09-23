@@ -5,6 +5,7 @@ import os
 import core_tools.data.gui.qml as qml_in
 
 from core_tools.data.SQL.connect import SQL_conn_info_local, sample_info, set_up_local_storage
+from core_tools.GUI.qt_util import install_qt_message_handler
 
 def coalesce(*args):
     for arg in args:
@@ -17,7 +18,9 @@ class data_browser():
     def __init__(self,
                  project=None, set_up=None, sample=None,
                  window_location=None, window_size=None):
+        install_qt_message_handler()
         super().__init__()
+
         self.app = QtCore.QCoreApplication.instance()
         self.instance_ready = True
         if self.app is None:

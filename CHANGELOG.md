@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.3] - 2022-09-23
+### Fixed
+- Log QML GUI errors and warnings (databrowser, ...)
+
 ## \[1.4.2] - 2022-09-19
 ### Fixed
 - Windows specific calls in app_launcher.
