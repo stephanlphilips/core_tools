@@ -79,12 +79,12 @@ ApplicationWindow{
                         height : parent.height
                         Layout.alignment: Qt.AlignLeft | Qt.AlignTop
                         spacing: 0
-                        
+
                         Component{
                             id : variable_name_value_pair_delegate
                             Item{
                                 id : var_name_value_item
-                                width : parent.width
+                                width : lv_cat_cont.width
                                 Layout.fillWidth: true
                                 height : 45
 
@@ -122,7 +122,7 @@ ApplicationWindow{
                                     Rectangle{
                                     	height : 40
                                         width : 250
-	                                    color : ratios_text_field.focus ? "#8E24AA" : "#E0E0E0" 
+	                                    color : ratios_text_field.focus ? "#8E24AA" : "#E0E0E0"
 
 	                                    Rectangle{
 	                                    	anchors.top: parent.top
@@ -132,7 +132,7 @@ ApplicationWindow{
 	                                    	height : 38
 	                                        width : 248
 		                                    color : "#FFFFFF"
-		                                    
+
 		                                    MouseArea{
 	                                    		height : 38
 		                                        width : 248
@@ -161,7 +161,7 @@ ApplicationWindow{
 		                                        anchors.left: parent.left
 		                                        anchors.top: parent.top
 		                                        anchors.leftMargin: 5
-		                                        anchors.topMargin : 10 
+		                                        anchors.topMargin : 10
 		                                        font.pointSize: 12
 
     	                                        validator : DoubleValidator{bottom :  0 ; decimals : 5}
@@ -181,7 +181,7 @@ ApplicationWindow{
                                     Rectangle{
                                     	height : 40
                                         width : 250
-	                                    color : dbs_text_field.focus ? "#1E88E5" : "#BDBDBD" 
+	                                    color : dbs_text_field.focus ? "#1E88E5" : "#BDBDBD"
 
 	                                    Rectangle{
 	                                    	anchors.top: parent.top
@@ -191,7 +191,7 @@ ApplicationWindow{
 	                                    	height : 38
 	                                        width : 248
 		                                    color : "#FFFFFF"
-		                                    
+
 		                                    MouseArea{
 	                                    		height : 38
 		                                        width : 248
@@ -219,7 +219,7 @@ ApplicationWindow{
 		                                        anchors.left: parent.left
 		                                        anchors.top: parent.top
 		                                        anchors.leftMargin: 5
-		                                        anchors.topMargin : 10 
+		                                        anchors.topMargin : 10
 		                                        font.pointSize: 12
 
 		                                        validator : DoubleValidator{bottom :  -60 ; decimals : 3}
@@ -235,7 +235,7 @@ ApplicationWindow{
 
 	                                    }
                                     }
-                                    
+
                                     anchors.right: parent.right
                                     anchors.rightMargin: 20
                                 }
@@ -399,7 +399,7 @@ ApplicationWindow{
                         property int active_row : -1
 				        model: vg_matrix_model
 
-				        delegate: 
+				        delegate:
 				        	Item{
 				        		Rectangle {
                                     anchors.top: parent.top
@@ -452,7 +452,7 @@ ApplicationWindow{
                                             rowHeader_repeater.itemAt(row).children[1].color =  '#8E24AA'
 
                                             tableView.active_col = -1
-                                            tableView.active_row = -1                                      
+                                            tableView.active_row = -1
                                         }
 							            TextInput{
                                             id : text_field_measurment_overview
@@ -495,8 +495,8 @@ ApplicationWindow{
 				            Repeater {
                                 id : columnsHeader_repeater
 				                model: column_header_model
-                                
-                                delegate : 
+
+                                delegate :
                                     RowLayout{
                                         spacing : 0
     					                Rectangle{
@@ -543,7 +543,7 @@ ApplicationWindow{
                                         Text{
                                             anchors.right: parent.right
                                             rightPadding : 8
-                                            topPadding : 8 
+                                            topPadding : 8
                                             text: HeaderName
                                             font.pixelSize : 18
                                             color: "#FFFFFF"
@@ -608,7 +608,7 @@ ApplicationWindow{
                             onEditingFinished: {
                                 step_size_virt_mat.focus = false}
                         }
-                
+
                 }
 
                 // Rectangle {

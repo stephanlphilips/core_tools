@@ -142,6 +142,7 @@ ApplicationWindow{
                     	color: "#FFFFFFFF"
                         Layout.fillHeight: true
                         Layout.leftMargin: 10
+                        Layout.rightMargin: 10
                         width : 180
                         radius : 5
 
@@ -261,7 +262,7 @@ ApplicationWindow{
 
 	                                Rectangle {
 	                                    id: header
-	                                    width: parent.width-20
+	                                    width: parent.width-10
 	                                    height: 40
 	                                    x : 10
 	                                    y : 10
@@ -313,18 +314,21 @@ ApplicationWindow{
                         radius : 5
 
                         ListView {
-                        	Component{
+                            id: data_content_view
+                            height : parent.height
+                            width : parent.width
+                            spacing: 10
+                            clip : true
+
+                        	Component {
                                 id : data_content_view_delegate
 
                                 Rectangle {
                                     id: row_overview
                                     height: 36
+                                    width: data_content_view.width
 
                                     color: "#F5F5F5"
-                                    anchors.right: parent.right
-                                    anchors.left: parent.left
-                                    anchors.rightMargin: 20
-                                    anchors.leftMargin: 10
                                     radius : 5
                                     RowLayout {
                                         id: rowLayout115
@@ -437,8 +441,6 @@ ApplicationWindow{
 	                                    anchors.right: parent.right
 	                                    anchors.top: parent.top
 	                                    anchors.topMargin: 10
-	                                    anchors.leftMargin: 10
-	                                    anchors.rightMargin: 20
 	                                    radius : 5
 	                                    RowLayout {
 	                                        id: rowLayout
@@ -517,12 +519,6 @@ ApplicationWindow{
 	                                }
                                 }
                             }
-
-                            id: data_content_view
-                            height : parent.height
-                            width : parent.width
-                            spacing: 10
-                            clip : true
 
                             delegate: data_content_view_delegate
                             header : data_content_view_header

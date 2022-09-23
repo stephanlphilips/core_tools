@@ -26,7 +26,7 @@ ApplicationWindow{
         anchors.topMargin: 0
 
         z : 3
-        
+
         TabButton {
             text: qsTr("Gates")
             anchors.top: parent.top
@@ -58,6 +58,7 @@ ApplicationWindow{
             height: parent.height
 
             Rectangle {
+                id: real_gates_rect
                 Layout.topMargin : 20
                 Layout.leftMargin : 20
                 Layout.rightMargin : 20
@@ -68,12 +69,12 @@ ApplicationWindow{
 
                 color: "#FFFFFF"
 
-                    
+
                 Component{
                     id : real_voltages_delegate
                     Item{
                         id : var_name_value_item
-                        width : parent.width
+                        width : real_gates_rect.width
                         Layout.fillWidth: true
                         height : 45
                         z : 0
@@ -113,7 +114,7 @@ ApplicationWindow{
                                 height : 40
                                 Layout.minimumWidth: 100
                                 Layout.preferredWidth : 180
-                                color : real_voltage_values.focus ? "#8E24AA" : "#E0E0E0" 
+                                color : real_voltage_values.focus ? "#8E24AA" : "#E0E0E0"
 
                                 Rectangle{
                                     anchors.top: parent.top
@@ -123,7 +124,7 @@ ApplicationWindow{
                                     height : 38
                                     width : real_voltages_deg_rect.width-2
                                     color : "#FFFFFF"
-                                    
+
                                     MouseArea{
                                         height : 38
                                         width : real_voltages_deg_rect.width-2
@@ -153,7 +154,7 @@ ApplicationWindow{
                                         anchors.left: parent.left
                                         anchors.top: parent.top
                                         anchors.leftMargin: 5
-                                        anchors.topMargin : 10 
+                                        anchors.topMargin : 10
                                         font.pointSize: 12
 
                                         selectByMouse : true
@@ -181,7 +182,7 @@ ApplicationWindow{
 
                                 }
                             }
-                            
+
                             anchors.right: parent.right
                             anchors.rightMargin: 20
                             anchors.left: parent.left
@@ -277,7 +278,7 @@ ApplicationWindow{
                     header: real_voltages_delegate_header
 
                     ScrollBar.vertical: ScrollBar {}
-                    
+
                     Keys.onTabPressed : {
                         current_item ++
                         if (current_item == count){current_item = 0}
@@ -296,6 +297,7 @@ ApplicationWindow{
             height: parent.height
 
             Rectangle {
+                id: virtual_gates_rect
                 Layout.topMargin : 20
                 Layout.leftMargin : 20
                 Layout.rightMargin : 20
@@ -306,11 +308,11 @@ ApplicationWindow{
 
                 color: "#FFFFFF"
 
-                    
+
                 Component{
                     id : virtual_voltages_delegate
                     Item{
-                        width : parent.width
+                        width : virtual_gates_rect.width
                         Layout.fillWidth: true
                         height : 45
 
@@ -348,7 +350,7 @@ ApplicationWindow{
                                 height : 40
                                 Layout.minimumWidth: 100
                                 Layout.preferredWidth : 180
-                                color : virtual_voltage_values.focus ? "#8E24AA" : "#E0E0E0" 
+                                color : virtual_voltage_values.focus ? "#8E24AA" : "#E0E0E0"
 
                                 Rectangle{
                                     anchors.top: parent.top
@@ -358,7 +360,7 @@ ApplicationWindow{
                                     height : 38
                                     width : virt_voltages_deg_rect.width-2
                                     color : "#FFFFFF"
-                                    
+
                                     MouseArea{
                                         height : 38
                                         width : virt_voltages_deg_rect.width-2
@@ -387,7 +389,7 @@ ApplicationWindow{
                                         anchors.left: parent.left
                                         anchors.top: parent.top
                                         anchors.leftMargin: 5
-                                        anchors.topMargin : 10 
+                                        anchors.topMargin : 10
                                         font.pointSize: 12
 
                                         validator : DoubleValidator{bottom :  -1000 ; decimals : 2}
@@ -415,7 +417,7 @@ ApplicationWindow{
 
                                 }
                             }
-                            
+
                             anchors.right: parent.right
                             anchors.rightMargin: 20
                             anchors.left: parent.left
@@ -511,7 +513,7 @@ ApplicationWindow{
                     header: virtual_voltages_delegate_header
 
                     ScrollBar.vertical: ScrollBar {}
-                    
+
                     Keys.onTabPressed : {
                         current_item ++
                         if (current_item == count){current_item = 0}
@@ -563,7 +565,7 @@ ApplicationWindow{
                 width :250
                 anchors.top: step_size_containter2.top
                 anchors.topMargin: 5
-                color : stepsize_step.focus ? "#8E24AA" : "#E0E0E0" 
+                color : stepsize_step.focus ? "#8E24AA" : "#E0E0E0"
 
                 Rectangle{
                     anchors.top: parent.top
@@ -599,7 +601,7 @@ ApplicationWindow{
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.leftMargin: 5
-                        anchors.topMargin : 10 
+                        anchors.topMargin : 10
                         font.pointSize: 12
 
                         validator : DoubleValidator{bottom :  0 ; decimals : 2}
