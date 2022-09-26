@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import os, sys
+import logging
 
 os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
 
@@ -95,14 +96,17 @@ class singal_hander_4_variable_exporer(QtQuick.QQuickView):
 
     @QtCore.pyqtSlot('QString', 'int')
     def add_step(self, name, sign):
-        val_step_pair = self.model_4_name_values[name]
-        val_step_pair.value = val_step_pair.value + sign*val_step_pair.step
-
-        precision = int(-np.log10(val_step_pair.step) + 5)
-        if precision > 0:
-            val_step_pair.value = np.round(val_step_pair.value, precision)
-
-        self.model_4_name_values.update_data(name, val_step_pair.value, True)
+        try:
+            val_step_pair = self.model_4_name_values[name]
+            val_step_pair.value = val_step_pair.value + sign*val_step_pair.step
+    
+            precision = int(-np.log10(val_step_pair.step) + 5)
+            if precision > 0:
+                val_step_pair.value = np.round(val_step_pair.value, precision)
+    
+            self.model_4_name_values.update_data(name, val_step_pair.value, True)
+        except:
+            logging.error(f"Couldn't update {name}", exc_info=True)
 
     @QtCore.pyqtSlot('int')
     def update_tab(self, tab):
