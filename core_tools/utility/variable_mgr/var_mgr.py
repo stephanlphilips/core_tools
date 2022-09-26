@@ -57,6 +57,8 @@ class variable_mgr():
             self.data = dict()
             self.vars = dict()
             self.__load_variables()
+        elif self.conn_local.closed:
+            self.conn_local = SQL_database_manager().conn_local
 
     def __repr__(self):
         c=self.__class__
@@ -77,6 +79,7 @@ class variable_mgr():
         for item in all_specs:
             self.add_variable(item['category'], item['name'], item['unit'], item['step'], skip_init=True)
         self.vars = var_sql_queries.get_all_values(self.conn_local)
+        
     def show(self):
         self.__GUI = GUI_controller(self.data)
     
