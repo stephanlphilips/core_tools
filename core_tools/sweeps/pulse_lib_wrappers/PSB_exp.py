@@ -3,7 +3,6 @@ from core_tools.utility.digitizer_param_conversions import IQ_to_scalar, down_sa
 from core_tools.utility.mk_digitizer_param import get_digitizer_param
 from core_tools.utility.dig_utility import autoconfig_dig_v2, MODES
 from core_tools.drivers.M3102A import MODES, DATA_MODE, OPERATION_MODES
-from core_tools.sweeps.sweep_utility import check_OD_scan
 from core_tools.HVI2.schedule_manager import ScheduleMgr
 
 from core_tools.utility.qubit_param_gen.digitizer_parameter import get_digitizer_qubit_param
@@ -31,20 +30,20 @@ def run_qubit_exp(exp_name, sequence, mode = 'normal'):
     my_seq.n_rep = sequence.n_rep
 
     md = my_seq.measurements_description
-    
+
     n_acq = md.acquisition_count
     station.dig.set_operating_mode(OPERATION_MODES.HVI_TRG)
     station.dig.set_acquisition_mode(MODES.IQ_INPUT_SHIFTED_I_OUT)
-    
+
     active_channels = []
-    
+
     if not QsUploader.use_digitizer_sequencers:
         print(f'QsUploader.use_digitizer_sequencers set to {QsUploader.use_digitizer_sequencers}')
     for channel_name in md.acquisitions:
         dig_channel = station.pulse.digitizer_channels[channel_name]
-        
+
         for ch in dig_channel.channel_numbers:
-            if n_acq[channel_name] > 0: 
+            if n_acq[channel_name] > 0:
                 station.dig.set_channel_properties(ch, V_range=1.0)
                 station.dig.set_daq_settings(ch, my_seq.n_rep*n_acq[channel_name], 30)
                 active_channels.append(ch)
@@ -63,6 +62,6 @@ def run_qubit_exp(exp_name, sequence, mode = 'normal'):
     dig_param.setUpParam(mc, station.dig)
     my_seq.m_param = dig_param
 
-    return check_OD_scan(my_seq, dig_param) + (exp_name, )
+    return my_seq, dig_param, exp_name
 
 
