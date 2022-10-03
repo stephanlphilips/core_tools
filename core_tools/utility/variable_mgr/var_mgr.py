@@ -104,6 +104,12 @@ class variable_mgr():
         else:
             print(f'trying to add variable {name} that is already there')
 
+    def get_history(self, variable_name):
+        if hasattr(self, variable_name):
+            return var_sql_queries.get_history(variable_mgr().conn_local, variable_name)
+        else:
+            print(f'trying to fetch history of a variable {variable_name} that does not exist.')
+
     def remove_variable(self, variable_name):
         obj = super().__getattribute__(variable_name)
         
@@ -136,8 +142,37 @@ class variable_mgr():
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage
-    # set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
+    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D2S - SQ21-1-2-10-DEV-1")
+    import numpy as np
+    t = variable_mgr()
+    print(t.vars.keys())
+    import os
+    import matplotlib.pyplot as plt
+
+    try:
+        os.mkdir('C:/users/V2/Desktop/calibration_data')
+    except:
+        pass
+    for var in list(t.vars.keys())[2:]:
+        x,y = t.get_history(var)
+        plt.title(var)
+        plt.figure(figsize=(8, 6), dpi=80)
+        idx = (x >= np.datetime64('2021-07-05T03:30')) & (x <= np.datetime64('2021-08-25T03:30'))
+        fig, axs = plt.subplots()
+        average = np.average(y[idx])
+        std  =np.std(y[idx])
+        # plt.ylim((average-std*1.5,average+std*1.5))
+        axs.plot(x[idx],y[idx])
+        for label in axs.get_xticklabels(which='major'):
+            label.set(rotation=30, horizontalalignment='right')
+        # plt.show()
+        try:
+            os.mkdir(f'C:/users/V2/Desktop/calibration_data/{var}/')
+        except:
+            pass
+        np.savetxt(f'C:/users/V2/Desktop/calibration_data/{var}/raw.txt', np.array([x, y]).T, fmt='%s')
+        np.save(f'C:/users/V2/Desktop/calibration_data/{var}/raw.npy',  np.array([x, y]).T)
+        plt.savefig(f'C:/users/V2/Desktop/calibration_data/{var}/_{var}.png')
 
     t = variable_mgr()
 

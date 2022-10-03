@@ -5,6 +5,7 @@ from psycopg2.errors import UndefinedColumn
 from psycopg2 import sql
 
 import datetime, time
+import numpy as np
 
 def to_postgres_time(my_date_time):
     return time.strftime("%a, %d %b %Y %H:%M:%S +0000",my_date_time.timetuple())
@@ -53,6 +54,26 @@ class var_sql_queries:
             return {}
         return res[0]
 
+    def get_history(conn, variable_name):
+        '''
+        get the full history of a certain variable
+
+        Args:
+            variable_name (str) : name of the variable to fetch  
+        
+        Returns:
+            time, values : returns the time and associated values of the requested parameter
+        '''
+        data = []
+        for name in [sql.Identifier('insert_time'),sql.Identifier(variable_name)]:
+            query = sql.SQL("select {0} from {1} ").format( sql.SQL(', ').join([name]),
+                                    sql.SQL(var_sql_queries.gen_table_content_name()))
+            query += sql.SQL("WHERE {0} IS NOT NULL ").format(sql.Identifier(variable_name))
+            query += sql.SQL("ORDER BY {0} {1} ").format(sql.Identifier('id'), sql.SQL('ASC'))
+            
+            data += [np.array(execute_query(conn, query))]
+        
+        return data[0][~np.isnan(data[1])], data[1][~np.isnan(data[1])]
     def update_val(conn, name , value):
         all_vals = var_sql_queries.get_all_values(conn)
         if name is not None:
@@ -93,8 +114,8 @@ class var_sql_queries:
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage
     from core_tools.utility.variable_mgr.var_mgr import variable_mgr
-    set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "SQ21-XX-X-XX-X")
+    # set_up_local_storage('stephan', 'magicc', 'test', 'project', 'set_up', 'sample')
+    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D2S - SQ21-1-2-10-DEV-1")
 
     conn = variable_mgr().conn_local
     var_sql_queries.init_table(conn)
@@ -102,7 +123,8 @@ if __name__ == '__main__':
     # var_sql_queries.add_variable(conn, "SD1_P_on3execute_statement(conn, statement_1)", "mV", "SD voltages", 0.1)
     # var_sql_queries.add_variable(conn, "SD1_P_on", "mV", "SD voltages", 0.1)
     # var_sql_queries.update_val(conn, "SD1_P_on", 12)
-    print(var_sql_queries.get_all_values(conn))
-    print(var_sql_queries.get_all_specs(conn))
-    var_sql_queries.remove_variable(conn, "PHASE_q2_q6_X")
+    # print(var_sql_queries.get_all_values(conn))
+    # print(var_sql_queries.get_all_specs(conn))
+    print(var_sql_queries.get_history(conn, 'q1_MW_power'))
+    # var_sql_queries.remove_variable(conn, "PHASE_q2_q6_X")
 
