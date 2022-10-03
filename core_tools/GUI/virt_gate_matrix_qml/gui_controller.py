@@ -1,6 +1,5 @@
 from core_tools.GUI.virt_gate_matrix_qml.models import attenuation_model, table_header_model, vg_matrix_model
 from core_tools.drivers.hardware.hardware import hardware
-from core_tools.GUI.qt_util import install_qt_message_handler
 
 from PyQt5 import QtCore, QtWidgets, QtQml
 
@@ -19,7 +18,6 @@ class virt_gate_matrix_GUI:
             virtual_gate_name: Name or index of virtual gate to display
             invert: Show inverted matrix.
         """
-        install_qt_message_handler()
         super().__init__()
         # self.app =  QtGui.QGuiApplication(sys.argv)
         self.app = QtCore.QCoreApplication.instance()

@@ -2,7 +2,6 @@ from core_tools.GUI.parameter_viewer_qml.model import gate_model
 from PyQt5 import QtCore, QtWidgets, QtQml
 
 import core_tools.GUI.parameter_viewer_qml as qml_in
-from core_tools.GUI.qt_util import install_qt_message_handler
 import os
 
 import qcodes as qc
@@ -17,7 +16,6 @@ class param_viewer:
             gates: Gate instrument to use. If None, use qcodes.Station.default.gates
             allow_mouse_wheel_updates: If True, then allow changing parameter values using mouse scrolling
         """
-        install_qt_message_handler()
         super().__init__()
         self.app = QtCore.QCoreApplication.instance()
         self.instance_ready = True
