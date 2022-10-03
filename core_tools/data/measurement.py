@@ -81,6 +81,9 @@ class Measurement:
 
         m_param_parameter_spec = None
 
+        if isinstance(parameter, str):
+            raise Exception(f"'{parameter}' is not a Parameter")
+
         if isinstance(parameter, qc.Parameter):
             m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name,
                 [parameter.name], [parameter.label], [parameter.unit])
@@ -112,6 +115,8 @@ class Measurement:
                     my_local_setpoints.append(setpoint_local_parameter_spec)
                 m_param_parameter_spec.setpoints_local.append(my_local_setpoints)
 
+        if m_param_parameter_spec is None:
+            raise Exception(f'Unknown parameter type: {type(parameter)}')
 
         for setpoint in setpoints:
             m_param_parameter_spec.setpoints.append(copy.copy(self.setpoints[id(setpoint)]))
