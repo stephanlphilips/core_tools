@@ -31,6 +31,8 @@ class Configuration:
             parts = name.split('.')
             value = self._config
             for part in parts:
+                if value is None:
+                    raise KeyError()
                 value = value[part]
         except KeyError:
             raise KeyError(name) from None
