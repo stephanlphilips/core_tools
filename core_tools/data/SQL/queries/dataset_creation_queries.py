@@ -86,7 +86,7 @@ class measurement_overview_queries:
         execute_statement(conn, statement)
 
     @staticmethod
-    def new_measurement(conn, exp_name):
+    def new_measurement(conn, exp_name, start_time):
         '''
         insert new measurement in the measurement table
 
@@ -99,40 +99,45 @@ class measurement_overview_queries:
         if (not is_valid_info(sample_info.project)
             or not is_valid_info(sample_info.set_up)
             or not is_valid_info(sample_info.sample)):
-            raise Exception(f'Sample info not correct: {sample_info}')
+            raise Exception(f'Sample info not valid: {sample_info}')
+
         uuid = generate_uuid()
         # NOTE: column sync_location is abused for migration to new format
-        var_names = ('uuid', 'set_up', 'project', 'sample', 'creasted_by', 'exp_name', 'sync_location')
-        var_values = (uuid, str(sample_info.set_up),  str(sample_info.project),
-            str(sample_info.sample) , SQL_conn_info_local.user, exp_name,
-            'New measurement_parameters')
+        var_names = (
+                'uuid', 'set_up', 'project', 'sample',
+                'creasted_by', 'exp_name', 'sync_location', 'exp_data_location',
+                'start_time')
+        var_values = (
+                uuid, str(sample_info.set_up), str(sample_info.project), str(sample_info.sample),
+                SQL_conn_info_local.user, exp_name, 'New measurement_parameters', '',
+                psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(start_time))
+                )
 
         returning = ('id', 'uuid')
-        query_outcome = insert_row_in_table(conn, measurement_overview_queries.table_name, var_names, var_values, returning)
+        query_outcome = insert_row_in_table(conn, measurement_overview_queries.table_name,
+                                            var_names, var_values, returning)
 
-        # old SQL_datatable name is not used anymore for new measurements
-        # SQL_datatable = ("_" + sample_info.set_up + "_" +sample_info.project + "_" +sample_info.sample +"_" + str(query_outcome[0][1])).replace(" ", "_").replace('-', '_')
-        SQL_datatable = ''
-        return query_outcome[0][0], query_outcome[0][1], SQL_datatable
+        # NOTE: SQL_datatable name is not used anymore for new measurements
 
-    def update_measurement(conn, meas_uuid, meas_table_name=None, start_time=None, stop_time=None,
-            metadata=None, snapshot=None, keywords= None, data_size=None, data_synchronized=False, completed=False):
+        return query_outcome[0][0], query_outcome[0][1]
+
+    def update_measurement(conn, meas_uuid,
+                           stop_time=None, metadata=None, snapshot=None,
+                           keywords= None, data_size=None, data_synchronized=False,
+                           completed=False):
         '''
         fill in the addional data in a record of the measurements overview table.
 
         Args:
             meas_uuid (int) : record that needs to be updated
-            meas_table_name (str) : name of the table that contains the raw measurement data
-            start_time (long) : time in unix seconds since the epoch
             stop_time (long) : time in unix seconds since the epoch
             metadata (dict) : json string to be saved in the database
             snapshot (dict) : snapshot of the exprimental set up
             keywords (list) : keywords describing the measurement
             completed (bool) : tell that the measurement is completed.
         '''
-        var_names = ['exp_data_location','metadata', 'snapshot', 'keywords', 'data_size', 'data_synchronized', 'completed']
+        var_names = ['metadata', 'snapshot', 'keywords', 'data_size', 'data_synchronized', 'completed']
         var_values = [
-                meas_table_name,
                 psycopg2.Binary(str(json.dumps(metadata)).encode('ascii')),
                 psycopg2.Binary(str(json.dumps(snapshot)).encode('ascii')),
                 psycopg2.extras.Json(keywords),
@@ -141,9 +146,6 @@ class measurement_overview_queries:
                 str(completed),
                 ]
 
-        if start_time is not None:
-            var_names += ['start_time']
-            var_values += [psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(start_time))]
         if stop_time is not None:
             var_names += ['stop_time']
             var_values += [psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(stop_time))]

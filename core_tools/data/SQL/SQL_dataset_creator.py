@@ -20,22 +20,31 @@ class SQL_dataset_creator(object):
         Args:
             ds (data_set_raw) : raw dataset
         '''
-        # add a new entry in the measurements overiew table
-        sample_info_queries.add_sample(self.conn)
-        ds.exp_id, ds.exp_uuid, ds.SQL_datatable = measurement_overview_queries.new_measurement(self.conn, ds.exp_name)
-        ds.running = True
-        ds.UNIX_start_time = time.time()
+        try:
+            # add a new entry in the measurements overiew table
+            sample_info_queries.add_sample(self.conn)
 
-        print('\nStarting measurement with id : {}\n'.format(ds.exp_id))
+            ds.UNIX_start_time = time.time()
+            ds.exp_id, ds.exp_uuid = measurement_overview_queries.new_measurement(
+                    self.conn, ds.exp_name, ds.UNIX_start_time)
+            ds.running = True
 
-        measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid, ds.SQL_datatable,
-            start_time=ds.UNIX_start_time, metadata=ds.metadata, snapshot=ds.snapshot, keywords=ds.generate_keywords())
+            print('\nStarting measurement with id : {}\n'.format(ds.exp_id))
 
-        # store of the getters/setters parameters
-        measurement_parameters_queries.insert_measurement_params(self.conn, ds.exp_uuid,
-                                                                 ds.measurement_parameters_raw)
+            measurement_overview_queries.update_measurement(
+                    self.conn, ds.exp_uuid,
+                    metadata=ds.metadata, snapshot=ds.snapshot,
+                    keywords=ds.generate_keywords())
 
-        self.conn.commit()
+            # store of the getters/setters parameters
+            measurement_parameters_queries.insert_measurement_params(self.conn, ds.exp_uuid,
+                                                                     ds.measurement_parameters_raw)
+
+            self.conn.commit()
+        except:
+            if not self.conn.closed:
+                self.conn.rollback()
+            raise
 
     def update_write_cursors(self, ds):
         '''
