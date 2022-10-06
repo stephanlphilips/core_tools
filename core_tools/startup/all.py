@@ -81,6 +81,7 @@ def _configure_logging(cfg):
     root_logger.addHandler(file_handler)
 
     logging.info('Start logging')
+    print('Logging to:', filename)
 
     for name,level in logger_levels.items():
         logging.getLogger(name).setLevel(level)
