@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.5] - 2022-10-07
+- Fixed problem with QML GUI logging and some Spyder versions.
+- Added get_history to VarMgr.
+- Improved handing of database error messages
+
 ## \[1.4.4] - 2022-09-26
 ### Fixed
 - VarMgr: Reconnect to database after exception
