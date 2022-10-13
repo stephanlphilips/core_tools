@@ -45,7 +45,6 @@ def _generate_log_file_name():
     now = datetime.now()
     return f"{now:%Y-%m-%d}({pid:06d}).log"
 
-
 def _configure_logging(cfg):
     path = cfg.get('logging.file_location', '~/.core_tools')
     file_level = cfg.get('logging.file_level', 'INFO')
@@ -53,8 +52,8 @@ def _configure_logging(cfg):
     logger_levels = cfg.get('logging.logger_levels', {})
 
     name = _generate_log_file_name()
-    file_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    console_format = '%(name)-12s: %(levelname)-8s %(message)s'
+    file_format = '%(asctime)s | %(name)s | %(levelname)s | %(module)s | %(funcName)s:%(lineno)d | %(message)s'
+    console_format = '%(levelname)s %(module)s: %(message)s'
 
     path = os.path.expanduser(path)
     os.makedirs(path, exist_ok=True)
