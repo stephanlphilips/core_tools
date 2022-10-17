@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.6] - 2022-10-17
+- Improved logfile format
+- Requires numpy >= 1.20
+- Fixed load_by_uuid without database
+
 ## \[1.4.5] - 2022-10-07
 - Fixed problem with QML GUI logging and some Spyder versions.
 - Added get_history to VarMgr.

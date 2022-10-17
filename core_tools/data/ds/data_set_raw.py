@@ -14,8 +14,6 @@ class data_set_raw:
     project : str = field(default_factory=lambda: sample_info.project)
     sample : str = field(default_factory=lambda: sample_info.sample)
 
-    database : str = field(default_factory=lambda: SQL_conn_info_local.dbname)
-
     SQL_datatable : str = None
     measurement_parameters : list = field(default_factory=lambda: [])
     measurement_parameters_raw : list = field(default_factory=lambda: [])
