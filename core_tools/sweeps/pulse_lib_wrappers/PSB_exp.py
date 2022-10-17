@@ -1,14 +1,9 @@
-from core_tools.utility.digitizer_param_conversions import IQ_to_scalar, down_sampler,data_reshaper, PSB_param, get_phase_compentation_IQ_signal
 
-from core_tools.utility.mk_digitizer_param import get_digitizer_param
-from core_tools.utility.dig_utility import autoconfig_dig_v2, MODES
-from core_tools.drivers.M3102A import MODES, DATA_MODE, OPERATION_MODES
+from core_tools.drivers.M3102A import MODES, OPERATION_MODES
 from core_tools.HVI2.schedule_manager import ScheduleMgr
 
-from core_tools.utility.qubit_param_gen.digitizer_parameter import get_digitizer_qubit_param
 import qcodes as qc
 from pulse_lib.segments.utility.measurement_converter import measurement_converter
-from pulse_lib.configuration.physical_channels import digitizer_channel_iq
 from pulse_lib.keysight.qs_uploader import QsUploader
 
 
