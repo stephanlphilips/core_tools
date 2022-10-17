@@ -5,6 +5,7 @@ All notable changes to core_tools will be documented in this file.
 - Improved logfile format
 - Requires numpy >= 1.20
 - Fixed load_by_uuid without database
+- Show histogram checkbox for datasets >= 2D
 
 ## \[1.4.5] - 2022-10-07
 - Fixed problem with QML GUI logging and some Spyder versions.
