@@ -2,7 +2,7 @@ import xarray as xr
 import numpy as np
 import json
 import string
-import qcodes as qc
+from qcodes.utils.helpers import NumpyJSONEncoder
 
 def _add_coord(ds, param):
     name = param.param_name
@@ -33,8 +33,8 @@ def _add_data_var(ds, var, dims, param_index):
             }
 
 def ds2xarray(ct_ds):
-    snapshot_json = json.dumps(ct_ds.snapshot, cls=qc.utils.helpers.NumpyJSONEncoder)
-    metadata_json = json.dumps(ct_ds.metadata, cls=qc.utils.helpers.NumpyJSONEncoder)
+    snapshot_json = json.dumps(ct_ds.snapshot, cls=NumpyJSONEncoder)
+    metadata_json = json.dumps(ct_ds.metadata, cls=NumpyJSONEncoder)
 
     attrs = {
         'title':ct_ds.name,

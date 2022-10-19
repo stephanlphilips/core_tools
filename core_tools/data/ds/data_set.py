@@ -4,6 +4,7 @@ from core_tools.data.ds.data_set_raw import data_set_raw
 from core_tools.data.SQL.SQL_dataset_creator import SQL_dataset_creator
 import json
 import qcodes as qc
+from qcodes.utils.helpers import NumpyJSONEncoder
 
 def load_by_id(exp_id):
     '''
@@ -57,7 +58,7 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
     snapshot['measurement'] = measurement_snapshot
 
     # encode and decode to convert all numpy arrays and complex numbers to jsonable lists and dictionaries
-    snapshot_json = json.dumps(snapshot, cls=qc.utils.helpers.NumpyJSONEncoder)
+    snapshot_json = json.dumps(snapshot, cls=NumpyJSONEncoder)
     snapshot = json.loads(snapshot_json)
 
     ds.snapshot = snapshot
