@@ -9,14 +9,14 @@ def run_wrapper(run_function):
         except KILL_EXP:
             print('kill signal for the current experiment received.')
             returns = None
-        
-        args[0].n.close()
-        args[0].n = 0
+        finally:
+            args[0].n.close()
+            args[0].n = 0
 
         return returns
     return run
 
-class job_meta(type):  
+class job_meta(type):
     def __new__(cls,name, bases, dct):
         if 'run' not in dct:
             raise ValueError('Please define a run function in your job class.')
@@ -28,7 +28,7 @@ class job_meta(type):
         x.n = 0
         x.KILL = False
         return x
-        
+
 if __name__ == '__main__':
     import time
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
             for i in range(self.n_tot):
                 time.sleep(0.01)
                 self.n += 1
-    
+
     a = pulse_lib_sweep_virt(5)
     a.run()
     a.KILL = True
