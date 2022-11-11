@@ -4,6 +4,12 @@ from core_tools.data.SQL.queries.dataset_creation_queries import sample_info_que
 from core_tools.startup.db_connection import is_connected
 
 def set_sample_info(project=None, setup=None, sample=None):
+    if project is None:
+        project = sample_info.project
+    if setup is None:
+        setup = sample_info.set_up
+    if sample is None:
+        sample = sample_info.sample
     sample_info(project, setup, sample)
     if is_connected():
         db_mgr = SQL_database_manager()
