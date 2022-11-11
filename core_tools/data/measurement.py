@@ -151,6 +151,8 @@ class Measurement:
 
     def __enter__(self):
         # generate dataset
+        if len(self.m_param) == 0:
+            raise Exception('No measurement parameters specified')
         self.dataset = create_new_data_set(self.name, self.snapshot, *self.m_param.values())
 
         return self
