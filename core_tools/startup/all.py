@@ -46,6 +46,8 @@ def _generate_log_file_name():
     return f"{now:%Y-%m-%d}({pid:06d}).log"
 
 def _configure_logging(cfg):
+    if cfg.get('logging.disabled', False):
+        return
     path = cfg.get('logging.file_location', '~/.core_tools')
     file_level = cfg.get('logging.file_level', 'INFO')
     console_level = cfg.get('logging.console_level', 'WARNING')
