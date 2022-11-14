@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.7] - 2022-11-@@@
+
+- Fixed import of NumpyJSONEncoder for new qcodes versions
+- Improved error handling during measurement
+- Fixed VideoMode 2D scans for pyqtgraph 0.13+
+- Lowered GUI refresh rate to better support remote connections
+
 ## \[1.4.6] - 2022-10-17
 - Improved logfile format
 - Requires numpy >= 1.20

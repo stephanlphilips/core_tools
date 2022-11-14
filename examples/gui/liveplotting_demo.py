@@ -18,6 +18,9 @@ class DummyAwg(qcodes.Instrument):
     def __init__(self, name):
         super().__init__(name)
 
+    def get_idn(self):
+        return {}
+
     def release_waveform_memory(self):
         pass
 

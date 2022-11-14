@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from PyQt5.QtCore import QThread
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 from PyQt5 import QtCore
 import pyqtgraph as pg
 import numpy as np
@@ -149,7 +149,7 @@ class live_plot(live_plot_abs, QThread):
         self.plt_finished = False
         self.timer.setSingleShot(False)
         # refresh rate of images in milliseconds
-        self.timer.start(20)
+        self.timer.start(200)
 
         # start thread
         super().start()
@@ -297,8 +297,10 @@ class _2D_live_plot(live_plot):
 
             range1 = self.parameter_getter.setpoints[0][1][0][-1]
             range0 = self.parameter_getter.setpoints[0][0][-1]
-            img.translate(-range1, -range0)
-            img.scale(1/self.shape[0]*range1*2, 1/self.shape[1]*range0*2)
+            tr = QtGui.QTransform()
+            tr.translate(-range1, -range0)
+            tr.scale(1/self.shape[0]*range1*2, 1/self.shape[1]*range0*2)
+            img.setTransform(tr)
 
             plot_data = plot_widget_data(plot_2D, [img])
             self.plot_widgets.append(plot_data)
