@@ -4,7 +4,6 @@ import os
 
 path = 'c:/measurements/test_export'
 
-
 # Set data location for load_by_uuid.
 # When path is set it will use the path and not the database
 set_data_location(path)
@@ -16,4 +15,4 @@ for fname in files:
     uuid = int(name[3:-5])
 
     d = load_by_uuid(uuid)
-    print(f'imported {uuid}')
+    print(f'loaded {uuid}')
