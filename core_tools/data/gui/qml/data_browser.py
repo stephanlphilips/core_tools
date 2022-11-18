@@ -2,6 +2,8 @@ from PyQt5 import QtCore, QtWidgets, QtQml
 from core_tools.data.gui.qml.models import date_model, data_overview_model, combobox_model
 from core_tools.data.gui.qml.GUI_controll import signale_handler, DataFilter
 import os
+import platform
+import ctypes
 import core_tools.data.gui.qml as qml_in
 
 from core_tools.data.SQL.connect import SQL_conn_info_local, sample_info, set_up_local_storage
@@ -18,6 +20,8 @@ class data_browser():
                  project=None, set_up=None, sample=None,
                  window_location=None, window_size=None):
         super().__init__()
+
+        set_app_icon()
 
         self.app = QtCore.QCoreApplication.instance()
         self.instance_ready = True
@@ -68,6 +72,11 @@ class data_browser():
         if self.instance_ready == False:
             self.app.exec_()
 
+
+def set_app_icon():
+    if platform.system() == 'Windows':
+        myappid = u'core_tools.data_browser' # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
 if __name__ == "__main__":
     from core_tools.data.SQL.connect import SQL_conn_info_local, set_up_remote_storage, sample_info, set_up_local_storage
