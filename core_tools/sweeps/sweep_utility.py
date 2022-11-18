@@ -24,7 +24,8 @@ def get_measure_data(m_instr):
 FAST = "FAST"
 SLOW = "SLOW"
 
-
+# WARNING: Mode Fast sometimes gives corrupted data on Keysight. 
+# Mode Fast does not work with any of the other backends.
 MODE = SLOW
 
 
@@ -48,19 +49,25 @@ class PulseLibParameter(Parameter):
     def set_raw(self, value):
         if self.lowest_level:
             if self.flat_index == 0 and hasattr(self.sequencer, 'starting_lambda'):
-                    self.sequencer.starting_lambda(self.sequencer)
+                # TODO: What is this starting_lambda hack??
+                self.sequencer.starting_lambda(self.sequencer)
 
             if MODE == SLOW or self.flat_index == 0:
                 self.sequencer.upload(np.unravel_index(self.flat_index, self.sequencer.shape))
 
+            # TODO: Change to loop using sequencer.params
             index = np.unravel_index(self.flat_index, self.sequencer.shape)
             self.sequencer.play(index, release=True)
             if hasattr(self.sequencer, 'm_param'):
+                # NOTE: This is a hack to set the index for measurement_converter
                 self.sequencer.m_param.setIndex(tuple(index))
             if MODE == SLOW:
-                self.sequencer.uploader.wait_until_AWG_idle()
+                # Wait is not needed for Keysight, because the digitizer call is blocking.
+                # self.sequencer.uploader.wait_until_AWG_idle()
             if MODE==FAST and self.flat_index < np.prod(self.sequencer.shape) - 1:
+                # WARNING: upload during play regularly results in corrupt data in Keysight.
                 self.sequencer.upload(np.unravel_index(self.flat_index+1, self.sequencer.shape))
+
 
 class SequenceStartAction:
     def __init__(self, sequence):
@@ -90,6 +97,7 @@ def pulselib_2_qcodes(awg_sequence):
     if awg_sequence.shape == (1,):
         return set_param
     for i in range(len(awg_sequence.shape)):
+        # TODO: Use sequencer.params
         param = PulseLibParameter(name=awg_sequence.labels[i].replace(" ", "_"),
                                   label=awg_sequence.labels[i],
                                   unit=awg_sequence.units[i])
@@ -98,6 +106,7 @@ def pulselib_2_qcodes(awg_sequence):
 
     set_param[0].param.lowest_level=True
     return set_param[::-1]
+
 
 @dataclass
 class sweep_info():
@@ -111,14 +120,24 @@ class sweep_info():
     delay : float = 0
 
     def __post_init__(self):
-        self.orignal_value = None
+        self._values = None
+        self.original_value = None
         if not isinstance(self.param, PulseLibParameter):
-            self.orignal_value = self.param()
+            self.original_value = self.param()
 
     def reset_param(self):
-        if self.orignal_value is not None:
-            self.param.set(self.orignal_value)
+        if self.original_value is not None:
+            self.param.set(self.original_value)
 
+    def set_values(self, values):
+        self._values = values
+        self.n_points = len(values)
+
+    def values(self):
+        if self._values is None:
+            return np.linspace(self.start, self.stop, self.n_points)
+        else:
+            return self._values
 
 def check_OD_scan(sequence, minstr):
     raise Exception('This function was broken beyond repair. Do not use it. [SdS]')

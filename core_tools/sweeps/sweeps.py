@@ -121,7 +121,7 @@ class scan_generic(metaclass=job_meta):
                 raise KILL_EXP
         else:
             param_info = set_param[0]
-            for value in np.linspace(param_info.start, param_info.stop, param_info.n_points):
+            for value in param_info.values():
                 if not isinstance(param_info.param, ElapsedTimeParameter):
                     param_info.param(value)
                 time.sleep(param_info.delay)
