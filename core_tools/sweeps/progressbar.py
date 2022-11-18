@@ -16,10 +16,15 @@ class progress_bar():
 if __name__ == '__main__':
     import time
 
-    p = progress_bar(50)
-
-    for i in range(50):
-        time.sleep(0.01)
-        p += 1
-
-    p.close()
+    p = progress_bar(500)
+    try:
+        for i in range(500):
+            if i < 20:
+                time.sleep(0.9)
+            else:
+                time.sleep(i%20*0.1)
+            p += 1
+    #        if i % 50 == 0:
+    #            print()
+    finally:
+        p.close()
