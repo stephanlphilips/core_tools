@@ -3,6 +3,7 @@ from core_tools.data.gui.generate_mparam_ui_box import single_m_param_m_descript
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 import logging
+from datetime import datetime, timedelta
 
 from core_tools.data.gui.plots._1D_plotting import _1D_plot
 from core_tools.data.gui.plots._2D_plotting import _2D_plot
@@ -103,13 +104,15 @@ class ui_box_mgr():
         # update plot every 300 ms for a smooth plotting experience
 
         self.plot_layout.parentWidget().setUpdatesEnabled(True)
-        if not self.ds.completed:
+        if (not self.ds.completed
+            and datetime.now() - self.ds.run_timestamp < timedelta(days=1)):
             self.timer.timeout.connect(self.update_plots)
             self.timer.start(300)
 
     def update_plots(self):
         if self.ds.completed:
             self.timer.stop()
+
         self.ds.sync()
 
         for plot in self.plot_widgets:
