@@ -116,8 +116,6 @@ class signale_handler(QtQuick.QQuickView):
                 self._data_filter.set_up_index,
                 self._data_filter.sample_index)
 
-        _, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)
-
         self.updating = False
         self.timer = QtCore.QTimer()
         self.timer.setInterval(500)
@@ -144,6 +142,11 @@ class signale_handler(QtQuick.QQuickView):
         obj = self.win.findChild(QtCore.QObject, "combobox_sample")
         obj.setProperty("currentIndex", self._data_filter.sample_index)
 
+        _, self.measurement_count = query_for_measurement_results.detect_new_meaurements(
+                self.measurement_count,
+                project=self._data_filter.project,
+                set_up=self._data_filter.set_up,
+                sample=self._data_filter.sample)
         self.update_date_model()
         self.update_date_selection(0)
 
@@ -176,7 +179,11 @@ class signale_handler(QtQuick.QQuickView):
             return
         try:
             self.updating = True
-            update, self.measurement_count = query_for_measurement_results.detect_new_meaurements(self.measurement_count)
+            update, self.measurement_count = query_for_measurement_results.detect_new_meaurements(
+                    self.measurement_count,
+                    project=self._data_filter.project,
+                    set_up=self._data_filter.set_up,
+                    sample=self._data_filter.sample)
 
             if update==True:
                 self.update_date_model()

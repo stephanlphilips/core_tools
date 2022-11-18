@@ -147,8 +147,18 @@ class query_for_measurement_results:
         return query_for_measurement_results._to_measurement_results(res)
 
     @staticmethod
-    def detect_new_meaurements(n_records=0, remote=False):
-        statement = "SELECT count(*) from global_measurement_overview;"
+    def detect_new_meaurements(n_records=0, remote=False,
+                               project=None, set_up=None, sample=None):
+        statement = "SELECT count(*) from global_measurement_overview "
+        statement += "WHERE 1=1 "
+        if sample is not None:
+            statement += f" and sample =  '{sample}' "
+        if set_up is not None:
+            statement += f" and set_up = '{set_up}' "
+        if project is not None:
+            statement += f" and project = '{project}' "
+        statement += " ;"
+
         res = query_for_measurement_results._execute(statement, remote)
 
         update = False

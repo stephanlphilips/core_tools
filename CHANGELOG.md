@@ -12,6 +12,7 @@ All notable changes to core_tools will be documented in this file.
 - Added get_idn to Instruments gates, hardware, M3102A.
 - Fixed resetting histogram
 - Added option to disable live plotting of data browser at startup
+- Data browser live plotting now only checks for updates on selected project, setup and sample.
 
 ## \[1.4.6] - 2022-10-17
 - Improved logfile format
