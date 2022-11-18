@@ -18,7 +18,7 @@ def launch_app(name, module_name, kill=False, close_at_exit=False):
                config_file,
                '--detached'
                ]
-        print('Launching', name)
+        print('Launching', name, flush=True)
         if platform.system() == 'Windows':
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:

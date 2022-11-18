@@ -10,7 +10,7 @@ def databrowser_init():
     cfg = get_configuration()
     _configure_sample(cfg)
     _connect_to_db(cfg)
-    print('Starting GUI...')
+    print('Starting GUI...', flush=True)
 
 def databrowser_main():
     # this import takes some time...
