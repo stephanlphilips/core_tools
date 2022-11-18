@@ -22,6 +22,9 @@ class _2D_plot:
             (limitations due to image based implemenation in pyqtgraph)
         '''
         self.ds = ds_descr
+        self.x_unit_scaler = return_unit_scaler(self.ds.x.unit)
+        self.y_unit_scaler = return_unit_scaler(self.ds.y.unit)
+        self.value_unit_scaler = return_unit_scaler(self.ds.unit)
         self.logmode = {'x':False, 'y':False, 'z':False}
 
         pg.setConfigOption('background', None)
@@ -50,19 +53,14 @@ class _2D_plot:
         self.layout.addWidget(self.label)
         self.widget.setLayout(self.layout)
 
-        # fill image with data
-        self.current_x_scale = 1
-        self.current_y_scale = 1
-        self.current_x_off_set = 0
-        self.current_y_off_set = 0
         self.update()
         self.plot.setAspectLocked(False)
 
         self.proxy = pg.SignalProxy(self.plot.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
     def update(self):
-        x = self.ds.x()*return_unit_scaler(self.ds.x.unit)
-        y = self.ds.y()*return_unit_scaler(self.ds.y.unit)
+        x = self.ds.x()*self.x_unit_scaler
+        y = self.ds.y()*self.y_unit_scaler
 
         if self.detect_log_mode(x):
             self.logmode['y'] = True
@@ -114,7 +112,6 @@ class _2D_plot:
             tr.translate(y_off_set, x_off_set)
             tr.scale(y_scale, x_scale)
             self.img.setTransform(tr)
-
             self.plot.setLogMode(x=self.logmode['x'], y=self.logmode['y'])
         except Exception:
             logging.error("Error in plot update", exc_info=True)
@@ -128,15 +125,6 @@ class _2D_plot:
                 return True
 
         return False
-
-    def fix_units(self, descr):
-        unit = descr.unit
-        scaler = 1
-        if descr.unit in self.known_units.keys():
-            scaler = self.known_units[descr.unit]
-            unit = descr.unit[1:]
-
-        return unit, scaler
 
     def mouseMoved(self, evt):
         try:
@@ -159,18 +147,19 @@ class _2D_plot:
                 ds = self.ds
                 # Note: numpy 1.22 has nanargmin, but we're still on python 3.7.
                 # So use a[isnan(a)] = np.inf to remove nans
-                d = np.abs(ds.x()-x)
+                d = np.abs(ds.x()*self.x_unit_scaler-x)
                 d[np.isnan(d)] = np.inf
                 ix = d.argmin()
-                d = np.abs(ds.y()-y)
+                d = np.abs(ds.y()*self.y_unit_scaler-y)
                 d[np.isnan(d)] = np.inf
                 iy = d.argmin()
                 value = ds()[ix,iy]
+                value_formatted = si_format(value*self.value_unit_scaler, 3) if not np.isnan(value) else 'NaN'
 
                 self.label.setText("x={}, y={}: {}".format(
                     si_format(y, 3) + format_unit(ds.y.unit),
                     si_format(x, 3) + format_unit(ds.x.unit),
-                    si_format(value, 3) + format_unit(ds.unit)))
+                    value_formatted + format_unit(ds.unit)))
         except:
             logging.error('Error mouse move', exc_info=True)
 
