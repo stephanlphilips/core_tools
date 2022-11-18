@@ -443,6 +443,12 @@ class SD_DIG(Instrument):
             self.set_channel_properties(ch, V_range=2.0)
 
 
+    def get_idn(self):
+        return dict(vendor='Keysight',
+                    model=self.SD_AIN.getProductName(),
+                    serial=self.SD_AIN.getSerialNumber(),
+                    firmware=self.SD_AIN.getFirmwareVersion())
+
     def close(self):
         self.SD_AIN.close()
         super().close()

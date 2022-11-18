@@ -5,6 +5,8 @@ import shelve
 from typing import Sequence
 import json
 
+from core_tools import __version__ as ct_version
+
 from .hardware.virtual_gate_matrix_data import VirtualGateMatrixData
 from .hardware.virtual_gate_matrix import VirtualGateMatrix
 
@@ -140,6 +142,12 @@ class harware_parent(qc.Instrument):
             self._AWG_to_dac_conversion = self.sync['AWG2DAC']
 
         self._virtual_gates = virtual_gates_mgr(self.sync)
+
+    def get_idn(self):
+        return dict(vendor='CoreTools',
+                    model='hardware',
+                    serial='',
+                    firmware=ct_version)
 
     @property
     def virtual_gates(self):

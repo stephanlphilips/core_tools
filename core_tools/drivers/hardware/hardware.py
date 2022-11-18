@@ -1,3 +1,4 @@
+from core_tools import __version__ as ct_version
 from core_tools.drivers.hardware.hardware_SQL_backend import AWG_2_dac_ratio_queries
 from core_tools.drivers.hardware.virtual_gate_matrix_db import load_virtual_gate
 from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
@@ -135,6 +136,12 @@ class hardware(qc.Instrument):
         self._boundaries = boundaries_mgr(self._dac_gate_map)
         self._virtual_gates = virtual_gates_mgr()
         self._awg2dac_ratios = awg2dac_ratios_mgr()
+
+    def get_idn(self):
+        return dict(vendor='CoreTools',
+                    model='hardware',
+                    serial='',
+                    firmware=ct_version)
 
     @property
     def dac_gate_map(self):

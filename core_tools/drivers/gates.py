@@ -1,4 +1,5 @@
 from functools import partial
+from core_tools import __version__ as ct_version
 from core_tools.drivers.hardware.hardware import hardware as hw_parent
 
 import qcodes as qc
@@ -49,6 +50,12 @@ class gates(qc.Instrument):
                                    get_cmd=partial(self._get_voltage_virt, v_gate_name, virt_gate_convertor),
                                    unit="mV")
 
+
+    def get_idn(self):
+        return dict(vendor='CoreTools',
+                    model='gates',
+                    serial='',
+                    firmware=ct_version)
 
     def _set_voltage(self, gate_name, voltage):
         '''
