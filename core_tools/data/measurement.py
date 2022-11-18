@@ -34,7 +34,8 @@ class Measurement:
     '''
     class used to describe a measurement.
     '''
-    def __init__(self, name):
+    def __init__(self, name, silent=False):
+        self.silent = silent
         self.setpoints = dict()
         self.m_param = dict()
         self.dataset = None
@@ -154,6 +155,8 @@ class Measurement:
         if len(self.m_param) == 0:
             raise Exception('No measurement parameters specified')
         self.dataset = create_new_data_set(self.name, self.snapshot, *self.m_param.values())
+        if not self.silent:
+            print(f'\nStarting measurement with id : {self.dataset.exp_id} - {self.name}', flush=True)
 
         return self
 
@@ -164,7 +167,7 @@ class Measurement:
         if exc_type is None:
             return True
         if exc_type == KeyboardInterrupt:
-            print('Keyboard Interrupt detected. Data will be saved and a neat exit will be made.')
-            return True
+            print('\nMeasurement aborted with keyboard interrupt. Data has been saved.')
+            return False
 
         return False

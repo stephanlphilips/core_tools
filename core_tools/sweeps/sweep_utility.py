@@ -24,7 +24,7 @@ def get_measure_data(m_instr):
 FAST = "FAST"
 SLOW = "SLOW"
 
-# WARNING: Mode Fast sometimes gives corrupted data on Keysight. 
+# WARNING: Mode Fast sometimes gives corrupted data on Keysight.
 # Mode Fast does not work with any of the other backends.
 MODE = SLOW
 
@@ -64,6 +64,7 @@ class PulseLibParameter(Parameter):
             if MODE == SLOW:
                 # Wait is not needed for Keysight, because the digitizer call is blocking.
                 # self.sequencer.uploader.wait_until_AWG_idle()
+                pass
             if MODE==FAST and self.flat_index < np.prod(self.sequencer.shape) - 1:
                 # WARNING: upload during play regularly results in corrupt data in Keysight.
                 self.sequencer.upload(np.unravel_index(self.flat_index+1, self.sequencer.shape))

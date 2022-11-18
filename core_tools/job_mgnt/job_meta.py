@@ -2,16 +2,18 @@ from core_tools.sweeps.progressbar import progress_bar
 from core_tools.sweeps.sweep_utility import KILL_EXP
 
 def run_wrapper(run_function):
-    def run(*args, **kwargs):
-        args[0].n = progress_bar(args[0].n_tot)
+    def run(self, *args, **kwargs):
+        silent = getattr(self, 'silent', False)
+        self.n = progress_bar(self.n_tot) if not silent else 0
         try:
-            returns = run_function(*args, **kwargs)
+            returns = run_function(self, *args, **kwargs)
         except KILL_EXP:
             print('kill signal for the current experiment received.')
             returns = None
         finally:
-            args[0].n.close()
-            args[0].n = 0
+            if not silent:
+                self.n.close()
+            self.n = 0
 
         return returns
     return run

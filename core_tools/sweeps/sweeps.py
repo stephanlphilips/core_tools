@@ -18,16 +18,18 @@ class scan_generic(metaclass=job_meta):
     '''
     function that handeles the loop action and defines the run class.
     '''
-    def __init__(self, *args, name='', reset_param=False):
+    def __init__(self, *args, name='', reset_param=False, silent=False):
         '''
         init of the scan function
 
         Args:
             args (*list) :  provide here the sweep info and meaurment parameters
             reset_param (bool) : reset the setpoint parametes to their original value after the meaurement
+            silent (bool) : If True do not print dataset id and progress bar
         '''
         self.name = name
-        self.meas = Measurement(self.name)
+        self.silent = silent
+        self.meas = Measurement(self.name, silent)
 
         self.set_vars = []
         self.actions = []
@@ -88,6 +90,7 @@ class scan_generic(metaclass=job_meta):
             logging.warning('Measurement aborted')
         except KeyboardInterrupt:
             logging.warning('Measurement interrupted')
+            raise KeyboardInterrupt('Measurement interrupted') from None
         except Exception as ex:
             print(f'\n*** ERROR in measurement: {ex}')
             logging.error('Exception in measurement', exc_info=True)
@@ -98,7 +101,7 @@ class scan_generic(metaclass=job_meta):
                     try:
                         param.reset_param()
                     except:
-                        logging.error(f'Failed to reset parameter {param}')
+                        logging.error(f'Failed to reset parameter {param.param.name}')
 
         return self.meas.dataset
 
@@ -128,16 +131,16 @@ class scan_generic(metaclass=job_meta):
                 self._loop(set_param[1:], to_save + ((param_info.param, param_info.param()),), dataset)
 
 
-def do0D(*m_instr, name=''):
+def do0D(*m_instr, name='', silent=False):
     '''
     do a 0D scan
 
     Args:
         m_instr (*list) :  list of parameters to measure
     '''
-    return scan_generic(*m_instr, name=name, reset_param=False)
+    return scan_generic(*m_instr, name=name, reset_param=False, silent=silent)
 
-def do1D(param, start, stop, n_points, delay, *m_instr, name='', reset_param=False):
+def do1D(param, start, stop, n_points, delay, *m_instr, name='', reset_param=False, silent=False):
     '''
     do a 1D scan
 
@@ -148,12 +151,14 @@ def do1D(param, start, stop, n_points, delay, *m_instr, name='', reset_param=Fal
         delay (float) : time to wait after the set of the parameter
         m_instr (*list) :  list of parameters to measure
         reset_param (bool) : reset the setpoint parametes to their original value after the meaurement
+        silent (bool) : If True do not print dataset id and progress bar
     '''
     m_param = sweep_info(param, start, stop, n_points, delay)
-    return scan_generic(m_param, *m_instr,name=name, reset_param=reset_param)
+    return scan_generic(m_param, *m_instr,name=name, reset_param=reset_param, silent=silent)
 
 def do2D(param_1, start_1, stop_1, n_points_1, delay_1,
-            param_2, start_2, stop_2, n_points_2, delay_2, *m_instr, name='', reset_param=False):
+            param_2, start_2, stop_2, n_points_2, delay_2, *m_instr, name='',
+            reset_param=False, silent=False):
     '''
     do a 2D scan
 
@@ -168,10 +173,12 @@ def do2D(param_1, start_1, stop_1, n_points_1, delay_1,
         delay_2 (float) : time to wait after the set of the parameter
         m_instr (*list) :  list of parameters to measure
         reset_param (bool) : reset the setpoint parametes to their original value after the meaurement
+        silent (bool) : If True do not print dataset id and progress bar
     '''
     m_param_1 = sweep_info(param_1, start_1, stop_1, n_points_1, delay_1)
     m_param_2 = sweep_info(param_2, start_2, stop_2, n_points_2, delay_2)
-    return scan_generic(m_param_2, m_param_1, *m_instr, name=name, reset_param=reset_param)
+    return scan_generic(m_param_2, m_param_1, *m_instr,
+                        name=name, reset_param=reset_param, silent=silent)
 
 if __name__ == '__main__':
 

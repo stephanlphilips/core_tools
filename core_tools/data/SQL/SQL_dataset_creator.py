@@ -29,8 +29,6 @@ class SQL_dataset_creator(object):
                     self.conn, ds.exp_name, ds.UNIX_start_time)
             ds.running = True
 
-            print('\nStarting measurement with id : {}\n'.format(ds.exp_id))
-
             measurement_overview_queries.update_measurement(
                     self.conn, ds.exp_uuid,
                     metadata=ds.metadata, snapshot=ds.snapshot,
