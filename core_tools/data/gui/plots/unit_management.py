@@ -1,10 +1,10 @@
 from si_prefix import si_format
 import numpy as np
 
-known_units = {"mA" : 1e-3, "uA" : 1e-6, "nA" : 1e-9, "pA" : 1e-12, "fA" : 1e-15, 
-                    "nV" : 1e-9, "uV" : 1e-6, "mV" : 1e-3, 
-                    "ns" : 1e-9, "us" : 1e-6, "ms" : 1e-3, 
-                    "KHz" : 1e3, "MHz" : 1e6, "GHz" : 1e9 }
+known_units = {"mA" : 1e-3, "uA" : 1e-6, "nA" : 1e-9, "pA" : 1e-12, "fA" : 1e-15,
+                    "nV" : 1e-9, "uV" : 1e-6, "mV" : 1e-3,
+                    "ns" : 1e-9, "us" : 1e-6, "ms" : 1e-3,
+                    "kHz" : 1e3, "MHz" : 1e6, "GHz" : 1e9 }
 
 def fix_units(unit):
     scaler = 1
