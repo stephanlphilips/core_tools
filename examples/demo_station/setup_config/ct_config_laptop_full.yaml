@@ -17,4 +17,5 @@ remote_database:
 
 databrowser:
     datasource: remote # required value
+    live_plotting: True
 

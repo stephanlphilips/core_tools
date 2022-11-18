@@ -23,6 +23,7 @@ logging:
 
 databrowser:
     datasource: local # required value
+    live_plotting: True
     location: [0, 32]
     size: [1800, 900]
     logging:

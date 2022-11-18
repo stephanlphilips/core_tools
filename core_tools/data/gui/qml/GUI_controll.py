@@ -84,9 +84,10 @@ class DataFilter:
 
 
 class signale_handler(QtQuick.QQuickView):
-    def __init__(self, data_filter, date_model, data_overview_model):
+    def __init__(self, data_filter, date_model, data_overview_model,
+                 live_plotting_enabled=True):
         super().__init__()
-        self.live_plotting_enabled = True
+        self.live_plotting_enabled = live_plotting_enabled
         self._data_filter = data_filter
 
         self.date_model = date_model
@@ -100,16 +101,15 @@ class signale_handler(QtQuick.QQuickView):
         self.win = win
 
         obj = self.win.findChild(QtCore.QObject, "local_conn")
-        if SQL_conn_info_local.host == 'localhost':
-            obj.setProperty("local_conn_status", True)
-        else:
-            obj.setProperty("local_conn_status", False)
+        state = SQL_conn_info_local.host == 'localhost'
+        obj.setProperty("local_conn_status", state)
 
         obj = self.win.findChild(QtCore.QObject, "remote_conn")
-        if SQL_conn_info_remote.host != 'localhost':
-            obj.setProperty("remote_conn_status", True)
-        else:
-            obj.setProperty("remote_conn_status", False)
+        state = SQL_conn_info_remote.host != 'localhost'
+        obj.setProperty("remote_conn_status", state)
+
+        obj = self.win.findChild(QtCore.QObject, "enable_liveplotting")
+        obj.setProperty("checked", self.live_plotting_enabled)
 
         self.pro_set_sample_info_state_change_loc(
                 self._data_filter.project_index,

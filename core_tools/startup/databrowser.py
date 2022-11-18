@@ -20,10 +20,12 @@ def databrowser_main():
     cfg = get_configuration()
     location = cfg.get('databrowser.location')
     size = cfg.get('databrowser.size')
+    live_plotting = cfg.get('databrowser.live_plotting', True)
 
     _browser_instance = data_browser(
             window_location=location,
-            window_size=size)
+            window_size=size,
+            live_plotting_enabled = live_plotting)
 
 
 def _configure_sample(cfg):

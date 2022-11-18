@@ -841,6 +841,7 @@ ApplicationWindow{
         }
 
         SwitchDelegate {
+            objectName : 'enable_liveplotting'
             id: enable_liveplotting
             height: 50
             text: qsTr("Enable liveplotting")

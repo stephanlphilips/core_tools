@@ -18,7 +18,8 @@ def coalesce(*args):
 class data_browser():
     def __init__(self,
                  project=None, set_up=None, sample=None,
-                 window_location=None, window_size=None):
+                 window_location=None, window_size=None,
+                 live_plotting_enabled=True):
         super().__init__()
 
         set_app_icon()
@@ -44,7 +45,8 @@ class data_browser():
         self.data_filter.set_sample(coalesce(sample, sample_info.sample))
 
         self.signal_handler = signale_handler(self.data_filter,
-                                              self.date_model, self.data_overview_model)
+                                              self.date_model, self.data_overview_model,
+                                              live_plotting_enabled=live_plotting_enabled)
 
         self.engine.rootContext().setContextProperty("combobox_project_model", self.project_model)
         self.engine.rootContext().setContextProperty("combobox_set_up_model", self.set_up_model)
