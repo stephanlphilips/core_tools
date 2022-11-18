@@ -84,10 +84,13 @@ class ui_box_mgr():
                 if item.n_dim == 2 and item.enable == True:
                     plot_widget = _2D_plot(item.ds, {'z':item.z_log})
                     plot_widgets.append(plot_widget)
+                    histogram = plot_widget.img_view.ui.histogram
                     if not item.show_histogram:
-                        plot_widget.img_view.ui.histogram.hide()
+                        if not histogram.isHidden():
+                            histogram.hide()
                     else:
-                        plot_widget.img_view.ui.histogram.show()
+                        if histogram.isHidden():
+                            histogram.show()
 
         for i in reversed(range(self.plot_layout.count())):
             widgetToRemove = self.plot_layout.itemAt(i).widget()
