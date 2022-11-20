@@ -11,7 +11,6 @@ import logging
 class SQL_database_init:
     conn_local = None
     conn_remote = None
-    last_commit = 0
 
     def _connect(self):
         self.SQL_conn_info_local = SQL_conn_info_local
@@ -24,8 +23,6 @@ class SQL_database_init:
         if self.conn_remote is None:
             self.conn_remote = psycopg2.connect(dbname=SQL_conn_info_remote.dbname, user=SQL_conn_info_remote.user,
                 password=SQL_conn_info_remote.passwd, host=SQL_conn_info_remote.host, port=SQL_conn_info_remote.port)
-
-        self.last_commit = time.time()
 
     def _disconnect(self):
         if self.conn_local is not None:
