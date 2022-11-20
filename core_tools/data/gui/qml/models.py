@@ -1,7 +1,6 @@
-from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets
+from PyQt5 import QtCore
 
-import numpy as np
-import os, sys
+import os
 
 os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
 
