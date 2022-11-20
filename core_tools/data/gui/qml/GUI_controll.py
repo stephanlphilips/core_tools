@@ -1,6 +1,5 @@
+import logging
 from PyQt5 import QtCore, QtQuick
-# import os, sys
-# import core_tools.data.gui.qml as qml_in
 
 from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote
 from core_tools.data.SQL.queries.dataset_gui_queries import (
@@ -48,6 +47,7 @@ class DataFilter:
         if project is None or project in self._projects:
             self.project = project
         else:
+            logging.warning(f'Project {project} not in list')
             print(f'Project {project} not in list')
             self.project = None
         self._update_lists()
@@ -57,6 +57,7 @@ class DataFilter:
         if set_up is None or set_up in self._set_ups:
             self.set_up = set_up
         else:
+            logging.warning(f'Set-up {set_up} not in list')
             print(f'Set-up {set_up} not in list')
             self.set_up = None
         self._update_lists()
@@ -66,6 +67,7 @@ class DataFilter:
         if sample is None or sample in self._samples:
             self.sample = sample
         else:
+            logging.warning(f'Sample {sample} not in list')
             print(f'Sample {sample} not in list')
             self.sample = None
         self._update_lists()
@@ -197,8 +199,8 @@ class signale_handler(QtQuick.QQuickView):
         # let the garbage collector collect the old plots
         try:
             ds = load_by_uuid(uuid)
-        except Exception as ex:
-            print(ex)
+        except Exception:
+            logging.error(f'Failed to load dataset {uuid}', exc_info=True)
             return
         p = data_plotter(ds)
         self.plots.append(p)
