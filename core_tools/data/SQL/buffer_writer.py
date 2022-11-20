@@ -61,7 +61,7 @@ class buffer_writer(buffer_reference):
         try:
             if self.cursor - self.cursor_db != 0:
                 # self.__load_blocks(self.cursor - self.cursor_db)
-				self.lobject.write((self.buffer[self.cursor_db:self.cursor]).tobytes())
+                self.lobject.write((self.buffer[self.cursor_db:self.cursor]).tobytes())
                 self.cursor_db += self.cursor - self.cursor_db
         except:
             # NOTE: After a commit the lobject is not valid anymore and must be created again.
