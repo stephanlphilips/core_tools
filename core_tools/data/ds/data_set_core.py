@@ -137,12 +137,16 @@ class data_set:
             force (bool) : enforce the update
         '''
         current_time = time.time()
-        if current_time - self.last_commit > 0.2 or force==True:
-            self.last_commit=current_time
-
+        # increase flush interval for long measurements to reduce overhead
+        run_duration = current_time - self.__data_set_raw.UNIX_start_time
+        flush_interval = 0.25
+        if run_duration > 10.0: flush_interval *= 2
+        if run_duration > 30.0: flush_interval *= 2
+        if current_time - self.last_commit > flush_interval or force==True:
             self.__data_set_raw.sync_buffers()
             SQL_ds_creator = SQL_dataset_creator()
             SQL_ds_creator.update_write_cursors(self.__data_set_raw)
+            self.last_commit = time.time()
 
     def __repr__(self):
         output_print = "DataSet :: {}\n\nid = {}\nuuid = {}\n\n".format(self.name, self.exp_id, self.exp_uuid)
