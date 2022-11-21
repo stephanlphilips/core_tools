@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.9] - 2022-11-@@@
+- Added 'I+Q' and 'abs+angle' to iq_mode options of video mode
+
 ## \[1.4.8] - 2022-11-21
 
 - Improved performance of measurement for measurements > 30 s.
