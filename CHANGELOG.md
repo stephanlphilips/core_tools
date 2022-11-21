@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.8] - 2022-11-20
+
+- Improved performance of measurement for measurements > 30 s.
+- Added first version of new Scan class.
+
 ## \[1.4.7] - 2022-11-18
 
 - Fixed import of NumpyJSONEncoder for new qcodes versions
