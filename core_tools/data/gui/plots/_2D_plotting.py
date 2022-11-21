@@ -59,17 +59,22 @@ class _2D_plot:
         self.proxy = pg.SignalProxy(self.plot.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
 
     def update(self):
-        x = self.ds.x()*self.x_unit_scaler
-        y = self.ds.y()*self.y_unit_scaler
-
-        if self.detect_log_mode(x):
-            self.logmode['y'] = True
-            x = np.log10(x)
-        if self.detect_log_mode(y):
-            self.logmode['x'] = True
-            y = np.log10(y)
         try:
+            # logging.info(f'updating {self.ds.name} {self.ds.y.name} vs {self.ds.x.name} ')
+            x = self.ds.x()*self.x_unit_scaler
+            y = self.ds.y()*self.y_unit_scaler
+
+            if self.detect_log_mode(x):
+                self.logmode['y'] = True
+                x = np.log10(x)
+            if self.detect_log_mode(y):
+                self.logmode['x'] = True
+                y = np.log10(y)
+
             x_args = np.argwhere(np.isfinite(x)).T[0]
+            if len(x_args) == 0:
+                # No data yet. Nothing to update.
+                return
             x_limit = [np.min(x_args), np.max(x_args)]
             x_limit_num = (x[x_limit[0]], x[x_limit[1]])
             y_args = np.argwhere(np.isfinite(y)).T[0]
@@ -154,7 +159,7 @@ class _2D_plot:
                 d[np.isnan(d)] = np.inf
                 iy = d.argmin()
                 value = ds()[ix,iy]
-                value_formatted = si_format(value*self.value_unit_scaler, 3) if not np.isnan(value) else 'NaN'
+                value_formatted = si_format(value*self.value_unit_scaler, 3) if not np.isnan(value) else 'NaN '
 
                 self.label.setText("x={}, y={}: {}".format(
                     si_format(y, 3) + format_unit(ds.y.unit),
