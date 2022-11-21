@@ -80,3 +80,24 @@ ds5 = Scan(
         sweep(y, -10, 10, 41, delay=0.001),
         t,
         name='test_2D').run()
+
+#%%
+from core_tools.sweeps.sweeps import do1D
+
+t.reset_clock()
+
+ds_inner2 = []
+def inner_scan_do1D():
+    ds = do1D(
+        x, -20, 20, 11, 0.01,
+        t,
+        name='test_inner_do1D',
+        silent=True,
+        ).run()
+    ds_inner2.append(ds)
+
+ds6 = Scan(
+        sweep(y, -1, 1, 3, delay=0.2),
+        Function(inner_scan_do1D),
+        t,
+        reset_param=True).run()
