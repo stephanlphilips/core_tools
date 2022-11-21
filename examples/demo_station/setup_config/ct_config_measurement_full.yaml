@@ -1,6 +1,6 @@
-setup: Noether
+setup: CoreTools
 project: Demo
-sample: SQ_16x16_Magic
+sample: MagicSample
 
 local_database:
     user: username

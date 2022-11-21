@@ -1,7 +1,7 @@
 # selection used in databrowser. Any is an allowed value here.
-setup: Noether
+setup: CoreTools
 project: Demo
-sample: SQ_16x16_Magic
+sample: MagicSample
 
 remote_database:
     user: username

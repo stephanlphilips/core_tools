@@ -1,7 +1,7 @@
 # selection used in databrowser. Any is an allowed value here.
-setup: Noether
+setup: CoreTools
 project: Demo
-sample: SQ_16x16_Magic
+sample: MagicSample
 
 # local database can be used for caching of data
 local_database:
@@ -17,5 +17,5 @@ remote_database:
 
 databrowser:
     datasource: remote # required value
-    live_plotting: True
+    live_plotting: False
 
