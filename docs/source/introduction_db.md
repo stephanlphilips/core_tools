@@ -21,7 +21,7 @@ Steps:
     * CREATE USER myusername WITH PASSWORD 'mypasswd';
     * CREATE DATABASE 'mydbname';
     * GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
- 
+
 In case you are running along with a server set up, it is recommended to have 'mydbname' to be the same as the one on the server.
 
 In python you can run the following code to set up the database:
@@ -36,7 +36,7 @@ Arguments are:
 * dbname (str) : database to connect with (e.g. 'vandersypen_data')
 * project (str) : project for which the data will be saved
 * set_up (str) : set up at which the data has been measured
-* sample (str) : sample name 
+* sample (str) : sample name
 
 
 Setting up a remote database
@@ -56,9 +56,9 @@ The arguments are:
 * dbname (str) : database to connect with (e.g. 'vandersypen_data')
 * project (str) : project for which the data will be saved
 * set_up (str) : set up at which the data has been measured
-* sample (str) : sample name 
+* sample (str) : sample name
 
-Note that the admin of the server has to provide you with login credentials for the storage. 
+Note that the admin of the server has to provide you with login credentials for the storage.
 
 ### admin set up.
 Example for a linux server running ubuntu.
@@ -81,9 +81,11 @@ Now, make the databases and users,
 Then set up a database and related users:
 ```SQL
 CREATE USER myusername WITH PASSWORD 'mypasswd';
-CREATE DATABASE 'mydbname';
+CREATE DATABASE "mydbname";
 GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
+GRANT CREATE ON SCHEMA public TO 'myusername'
 ```
+Note: The last line is required since release 15 of Postgresql.
 
 The default install of postgress does not allow external connections. We can adjest this by typing
 ```bash
@@ -102,9 +104,9 @@ and add the following line,
 ```
 host    all     all     0.0.0.0/0               md5
 ```
-Now restart the postgres services to apply the changes, 
+Now restart the postgres services to apply the changes,
 ```bash
-sudo systemctl restart postgresql.service 
+sudo systemctl restart postgresql.service
 ```
 Note : also make sure port 5432 is open, e.g.:
 ```bash
@@ -123,7 +125,7 @@ After this, you can set up the python connection using:
 
 ```python
 from core_tools.data.SQL.connector import set_up_local_and_remote_storage
-set_up_local_and_remote_storage(server, port, 
+set_up_local_and_remote_storage(server, port,
                                     user_local, passwd_local, dbname_local,
                                     user_remote, passwd_remote, dbname_remote,
                                     project, set_up, sample)
