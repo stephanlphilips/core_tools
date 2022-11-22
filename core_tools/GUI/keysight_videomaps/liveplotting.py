@@ -206,7 +206,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 'abs': np.abs,
                 'angle': np.angle,
                 'angle_deg': lambda x:np.angle(x, deg=True),
-                'I+Q': [('_I', np.real), ('Q', np.imag)],
+                'I+Q': [('_I', np.real), ('_Q', np.imag)],
                 'abs+angle': [('_amp', np.abs), ('_angle', np.angle)],
                 }
 
