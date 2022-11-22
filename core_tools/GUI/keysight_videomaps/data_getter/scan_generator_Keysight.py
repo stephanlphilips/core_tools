@@ -442,7 +442,7 @@ class _digitzer_scan_parameter(MultiParameter):
             data.append(func(ch_data))
 
         # make sure that data is put in the right order.
-        data_out = [np.zeros(self.shape) for i in range(len(data))]
+        data_out = [np.zeros(self.shape, dtype=d.dtype) for d in data]
 
         for i in range(len(data)):
             ch_data = data[i].reshape(self.shape)
