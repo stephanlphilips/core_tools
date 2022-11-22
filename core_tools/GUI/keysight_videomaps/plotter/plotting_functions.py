@@ -289,7 +289,7 @@ class _2D_live_plot(live_plot):
             min_max = QtWidgets.QLabel(plot_2D)
             min_max.setText(f"min:{0:4.0f} max:{0:4.0f} mV    ")
             min_max.setStyleSheet("QLabel { background-color : white; color : black; }")
-            min_max.setGeometry(100, 2, 150, 14)
+            min_max.setGeometry(110, 2, 150, 14)
             self.min_max.append(min_max)
 
             icol = i % n_col
