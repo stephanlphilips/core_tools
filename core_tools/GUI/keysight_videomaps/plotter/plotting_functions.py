@@ -160,6 +160,7 @@ class live_plot(live_plot_abs, QThread):
         while self.plt_finished != True:
             time.sleep(0.01) #5ms interval to make sure gil releases.
         self.timer.stop()
+        self.update_plot()
 
     def refresh(self):
         if not self.active:
