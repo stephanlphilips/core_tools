@@ -22,6 +22,7 @@ Steps:
     * CREATE DATABASE 'mydbname';
     * GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
     * GRANT CREATE ON SCHEMA public TO 'myusername'
+
    Note: The last line is required since release 15 of Postgresql.
 
 In case you are running along with a server set up, it is recommended to have 'mydbname' to be the same as the one on the server.
