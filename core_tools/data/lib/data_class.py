@@ -5,8 +5,6 @@ from dataclasses import dataclass, field
 
 import uuid
 import numpy as np
-import numbers
-import json
 
 
 class dataclass_raw_parent:
@@ -45,7 +43,7 @@ class dataclass_raw_parent:
             input_data (dict): dict formatted as e.g. write_data({'id(parameter_1)' : parameter_1.get(), id(parameter_2) : parameter_2.get(), ..})
         '''
         if self.id_info not in input_data.keys():
-            txt = 'Key not found. A write is attempted to a parameter that has not been declaired yet. '
+            txt = f'Key {self.id_info} not found in {input_data.keys()}. A write is attempted to a parameter that has not been declaired yet. '
             txt += 'Please first register the parameter with register_set_parameter/register_get_parameter '
             raise KeyError(txt)
         data_in = input_data[self.id_info]
