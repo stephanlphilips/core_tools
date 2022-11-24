@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.10] - 2022-11-24
+
+- Fixed corrupt charts and weird font sizes when using Windows display scaling.
+
 ## \[1.4.9] - 2022-11-22
 
 - Added 'I+Q' and 'abs+angle' to iq_mode options of video mode

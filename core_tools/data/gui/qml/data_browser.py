@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets, QtQml
+from PyQt5 import QtCore, QtWidgets, QtQml, QtGui
 from core_tools.data.gui.qml.models import date_model, data_overview_model, combobox_model
 from core_tools.data.gui.qml.GUI_controll import signale_handler, DataFilter
 import os
@@ -28,8 +28,10 @@ class data_browser():
         self.instance_ready = True
         if self.app is None:
             self.instance_ready = False
+            QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
             self.app = QtWidgets.QApplication([])
 
+        self.app.setFont(QtGui.QFont("Sans Serif", 8))
         self.engine = QtQml.QQmlApplicationEngine()
 
         self.date_model = date_model([])

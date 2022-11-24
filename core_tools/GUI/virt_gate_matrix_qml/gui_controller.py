@@ -1,7 +1,7 @@
 from core_tools.GUI.virt_gate_matrix_qml.models import attenuation_model, table_header_model, vg_matrix_model
 from core_tools.drivers.hardware.hardware import hardware
 
-from PyQt5 import QtCore, QtWidgets, QtQml
+from PyQt5 import QtCore, QtWidgets, QtQml, QtGui
 
 import core_tools.GUI.virt_gate_matrix_qml  as qml_in
 import os
@@ -19,12 +19,16 @@ class virt_gate_matrix_GUI:
             invert: Show inverted matrix.
         """
         super().__init__()
-        # self.app =  QtGui.QGuiApplication(sys.argv)
+
+
         self.app = QtCore.QCoreApplication.instance()
         self.instance_ready = True
         if self.app is None:
             self.instance_ready = False
+            QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
             self.app = QtWidgets.QApplication([])
+
+        self.app.setFont(QtGui.QFont("Sans Serif", 8))
 
         hw = qc.Station.default.hardware
         self.engine = QtQml.QQmlApplicationEngine()

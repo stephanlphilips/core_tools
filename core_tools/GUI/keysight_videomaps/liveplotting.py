@@ -7,7 +7,7 @@ from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
 from core_tools.GUI.keysight_videomaps.data_saver.native import CoreToolsDataSaver
 
 from dataclasses import dataclass
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
 from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
 from qcodes import MultiParameter
@@ -143,6 +143,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             instance_ready = False
             self.app = QtWidgets.QApplication([])
 
+        self.app.setFont(QtGui.QFont("Sans Serif", 8))
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)

@@ -1,7 +1,7 @@
 import logging
 import threading
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 try:
     import IPython.lib.guisupport as gs
@@ -57,6 +57,7 @@ def qt_init():
             # ipython.run_line_magic('gui','qt5')
             raise Exception('Configure QT5 in Spyder -> Preferences -> IPython Console -> Graphics -> Backend')
 
+        QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
         _qt_app = QtCore.QCoreApplication.instance()
         if _qt_app is None:
             logging.debug('Create Qt application')

@@ -1,5 +1,5 @@
 from core_tools.GUI.parameter_viewer_qml.model import gate_model
-from PyQt5 import QtCore, QtWidgets, QtQml
+from PyQt5 import QtCore, QtWidgets, QtQml, QtGui
 
 import core_tools.GUI.parameter_viewer_qml as qml_in
 import os
@@ -22,8 +22,10 @@ class param_viewer:
 
         if self.app is None:
             self.instance_ready = False
+            QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
             self.app = QtWidgets.QApplication([])
 
+        self.app.setFont(QtGui.QFont("Sans Serif", 8))
         self.engine = QtQml.QQmlApplicationEngine()
 
         if gates is None:
