@@ -4,27 +4,23 @@ import json
 import string
 from qcodes.utils.helpers import NumpyJSONEncoder
 
-def _add_coord(ds, param, dup=0):
-    name = param.param_name
-    if dup > 0:
-        name += f'-{dup}'
+def _add_coord(ds, param):
     data = param()
     attrs = {
             'units':param.unit,
             'long_name':param.label,
             }
 
-    if name in ds.coords:
+    dup = 0
+    param_name = param.param_name
+    name = param_name
+    while name in ds.coords:
         if (np.array_equal(data , ds.coords[name].data, equal_nan=True)
             and attrs == ds.coords[name].attrs):
-            # coord already added
+            # coord already added and identical
             return name
-        print('*** Duplicate *** ', name, ds.attrs['uuid'])
-#        print(data)
-#        print(ds.coords[name].data)
-        return _add_coord(ds, param, dup+1)
-#        raise Exception('Cannot handle conversion with duplicate coordinate names that are not equal. '
-#                        f'(coord={name})')
+        dup += 1
+        name = f'{param_name}-{dup}'
 
     ds.coords[name] = data
     ds.coords[name].attrs = attrs
