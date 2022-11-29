@@ -74,8 +74,7 @@ def xarray2ds(xr_ds):
     m_params = []
     # loop over data vars and coords.
     for name,param in xr_ds.data_vars.items():
-        dependencies = [get_coord_param_id(coord_names, par_name) for par_name in param.coords]
-        dependencies.reverse()
+        dependencies = [get_coord_param_id(coord_names, par_name) for par_name in param.dims]
         m_param = to_raw_param(param,
                                param_id=data_names.index(name),
                                dependencies=dependencies)
