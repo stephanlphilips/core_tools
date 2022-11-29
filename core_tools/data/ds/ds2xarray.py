@@ -4,8 +4,10 @@ import json
 import string
 from qcodes.utils.helpers import NumpyJSONEncoder
 
-def _add_coord(ds, param):
+def _add_coord(ds, param, dup=0):
     name = param.param_name
+    if dup > 0:
+        name += f'-{dup}'
     data = param()
     attrs = {
             'units':param.unit,
@@ -16,12 +18,17 @@ def _add_coord(ds, param):
         if (np.array_equal(data , ds.coords[name].data, equal_nan=True)
             and attrs == ds.coords[name].attrs):
             # coord already added
-            return
-        raise Exception('Cannot handle conversion with duplicate coordinate names that are not equal. '
-                        f'(coord={name})')
+            return name
+        print('*** Duplicate *** ', name, ds.attrs['uuid'])
+#        print(data)
+#        print(ds.coords[name].data)
+        return _add_coord(ds, param, dup+1)
+#        raise Exception('Cannot handle conversion with duplicate coordinate names that are not equal. '
+#                        f'(coord={name})')
 
     ds.coords[name] = data
     ds.coords[name].attrs = attrs
+    return name
 
 def _add_data_var(ds, var, dims, param_index):
     name = var.param_name
@@ -61,20 +68,19 @@ def ds2xarray(ct_ds):
             if param.ndim <= 2:
                 if param.ndim > 0:
                     coord = param.x
-                    dims.append(coord.param_name)
-                    _add_coord(ds, coord)
+                    dim_name = _add_coord(ds, coord)
+                    dims.append(dim_name)
                 if param.ndim > 1:
                     coord = param.y
-                    dims.append(coord.param_name)
-                    _add_coord(ds, coord)
+                    dim_name = _add_coord(ds, coord)
+                    dims.append(dim_name)
             else:
                 for i in range(param.ndim):
                     dim_name  = string.ascii_lowercase[8+i]
 
                     coord = getattr(param, dim_name)
-                    dims.append(coord.param_name)
-                    _add_coord(ds, coord)
-                    _add_coord(ds, coord)
+                    dim_name = _add_coord(ds, coord)
+                    dims.append(dim_name)
 
             _add_data_var(ds, param, dims, param_index)
 
