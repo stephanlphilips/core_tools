@@ -137,6 +137,12 @@ class dataset_data_description():
     def full(self):
         return self.__raw_data.data_buffer.data
 
+    def written(self):
+        try:
+            return self.__raw_data.data_buffer.cursor
+        except:
+            return None
+
     def get_raw_content(self):
         return self.__repr_attr_overview
 
