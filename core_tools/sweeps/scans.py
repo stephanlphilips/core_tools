@@ -5,7 +5,8 @@ import numpy as np
 from core_tools.data.measurement import Measurement
 from core_tools.sweeps.progressbar import progress_bar
 from pulse_lib.sequencer import sequencer
-#from core_tools.sweeps.sweep_utility import KILL_EXP
+from core_tools.sweeps.sweep_utility import KILL_EXP
+from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 
 class Break(Exception):
     # TODO @@@ allow loop parameter to break to
@@ -121,8 +122,8 @@ class Scan:
         self.actions = []
         self.meas = Measurement(self.name, silent=silent)
 
-        self.setters = []
-        self.m_instr = []
+        self.setters = [] # @@@ set_params
+        self.m_instr = [] # @@@ get_params
 
         for arg in args:
             if isinstance(arg, Setter):
@@ -177,8 +178,9 @@ class Scan:
             logging.info(f'Total duration: {duration:5.2f} s ({duration/self.n_tot*1000:5.1f} ms/pt)')
         except Break as b:
             logging.warning(f'Measurement break: {b}')
-#        except KILL_EXP: # TODO @@@ check job_manager
-#            logging.warning('Measurement aborted')
+        except KILL_EXP:
+            # Note: KILL is used by job mgmnt
+            logging.warning('Measurement aborted')
         except KeyboardInterrupt:
             logging.warning('Measurement interrupted')
             raise KeyboardInterrupt('Measurement interrupted') from None
@@ -189,8 +191,18 @@ class Scan:
 
         return self.meas.dataset
 
-    def put(self):
-        TODO()
+    def put(self, priority = 1):
+        '''
+        put the job in a queue.
+        '''
+        def abort_measurement():
+            if self.KILL:
+                raise KILL_EXP()
+        self.KILL = False
+        self.actions.append(Function(abort_measurement))
+        queue = queue_mgr()
+        job = ExperimentJob(priority, self)
+        queue.put(job)
 
 
 class Runner:
@@ -247,8 +259,6 @@ class Runner:
             # end of action list: store results
             self._push_results()
             self._inc_count()
-#            if self.KILL:
-#                raise KILL_EXP
             return
 
         action = self._actions[iaction]

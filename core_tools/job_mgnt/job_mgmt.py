@@ -1,45 +1,32 @@
-from core_tools.job_mgnt.job_meta import job_meta
 from dataclasses import dataclass, field
 from typing import Any
 import time
 
-import threading, queue
+import threading
 from queue import PriorityQueue
+
 
 @dataclass(order=True)
 class ExperimentJob:
     priority: float
     job: Any = field(compare=False)
+    seq_nr: int = 0
+
+    def __post_init__(self):
+        # NOTE: use seq_nr to keep insertion order for jobs with equal priority
+        self.seq_nr = ExperimentJob.seq_cntr
+        ExperimentJob.seq_cntr += 1
 
     def kill(self):
         self.job.KILL = True
 
+# NOTE: use seq_cntr to keep insertion order for jobs with equal priority
+ExperimentJob.seq_cntr = 0
 
-class job_wrapper_helper(metaclass=job_meta):
-    def __init__(self, function, *args, **kwargs):
-        self.func = function
-        self.args = args
-        self.kwargs = kwargs
-    def run(self):
-        return self.func(*self.args, **self.kwargs)
-
-def job_wrapper(func):
-    '''
-    wrapper that can turn any function into a job.
-    '''
-    def wrap(*args, **kwargs):
-        # j = job_wrapper_helper(func, *args, **kwargs)
-        # queue = queue_mgr()
-        # queue.put(ExperimentJob(1, job = j))
-        func(*args, **kwargs)
-        
-    return wrap
 
 class queue_mgr():
     __instance = None
     __init = False
-    q = None
-    job_refs = []
 
     def __new__(cls):
         if queue_mgr.__instance is None:
@@ -48,25 +35,28 @@ class queue_mgr():
 
     def __init__(self):
         if self.__init == False:
-            print('initializing')
+            print('Starting job queue_mgr')
             self.q = PriorityQueue()
-            self.job_refs = list()
+            # Note: We have to use a dict, because the ExperimentJob only compares on priority
+            self.job_refs = dict()
 
             def worker():
                 while True:
                     n_jobs = self.q.qsize()
                     if n_jobs != 0:
-                        print('{} items queued.'.format(n_jobs))
-                        print('Starting new job.')
                         job_object = self.q.get()
+                        print(f'{n_jobs} items queued. Starting next job')
                         try:
-                            print(job_object.job.KILL)
                             if job_object.job.KILL != True:
                                 job_object.job.run()
                         except Exception as e:
-                            print('an exception in the job occurred? Going to the next job.')
+                            print(f'{type(e).__name__} {e} in job. Continuing with next job.')
                             print(e)
-                        self.q.task_done()
+                        finally:
+                            self.q.task_done()
+                            try:
+                                del self.job_refs[id(job_object)]
+                            except: pass
                     else:
                         # 200ms sleep.
                         time.sleep(0.2)
@@ -82,7 +72,7 @@ class queue_mgr():
             job (ExperimentJob) : job object
         '''
         self.q.put(job)
-        self.job_refs.append(job)
+        self.job_refs[id(job)] = job
 
     def kill(self, job):
         '''
@@ -97,10 +87,12 @@ class queue_mgr():
         '''
         kill all the jobs
         '''
-        for job in self.job_refs:
+        job_refs = self.job_refs.copy()
+        for job in job_refs.values():
             job.kill()
 
-        self.job_refs = []
+        self.job_refs = dict()
+        print(f'Killed {len(job_refs)} jobs')
 
     def join(self):
         self.q.join()
@@ -119,12 +111,6 @@ if __name__ == '__main__':
     from qcodes.dataset.experiment_container import load_or_create_experiment
     from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
 
-    @job_wrapper
-    def test():
-        print('blah')
-    
-
-    test()
     # class MyCounter(qc.Parameter):
     #     def __init__(self, name):
     #         # only name is required
@@ -164,7 +150,7 @@ if __name__ == '__main__':
     # q.put(job1)
     # q.put(job2)
     # q.put(job3)
-    
+
     # q.killall()
     # scan1 = do2D(x, 0, 20, 20, 0.0, y, 0, 80, 30, 0.1, my_param)
     # scan2 = do2D(x, 0, 20, 20, 0.0, timer, 0, 80, 30, .1, my_param)

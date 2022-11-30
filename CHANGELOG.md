@@ -1,10 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.11] - 2022-11-29
+## \[1.4.11] - 2022-12-01
 
 - Fixed data loading from HDF5 and conversion xarray dataset to core-tools dataset.
 - Correctly convert datasets with dimensions with same name, but different coordinates.
+- Fixed memory leakage in job_mgmt.
+- Maintain insertion order in job queue for jobs with equal priority.
 
 ## \[1.4.10] - 2022-11-24
 
