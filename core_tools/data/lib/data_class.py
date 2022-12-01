@@ -162,10 +162,6 @@ class m_param_dataclass(dataclass_raw_parent):
         for setpoint in self.setpoints:
             setpoint.generate_data_buffer(setpoint_shape)
 
-        # for setpoint_local_list in self.setpoints_local:
-        #     for setpoint_local in setpoint_local_list:
-        #         setpoint_local.generate_data_buffer()
-
         self.generate_data_buffer(setpoint_shape)
         self.__initialized = True
 
