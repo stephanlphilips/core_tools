@@ -83,11 +83,7 @@ class Function(Action):
         if self._add_dataset:
             kwargs['dataset'] = dataset
         if self._add_last_values:
-            kwargs['last_values'] = {
-                    param.name:value
-                    for param,value in last_values
-                    if param is not None
-                    }
+            kwargs['last_values'] = last_values
         self._func(*self._args, **kwargs)
 
 
@@ -122,60 +118,61 @@ class Scan:
         self.actions = []
         self.meas = Measurement(self.name, silent=silent)
 
-        self.setters = [] # @@@ set_params
-        self.m_instr = [] # @@@ get_params
+        self.set_params = []
+        self.m_params = []
+        self.loop_shape = []
 
         for arg in args:
             if isinstance(arg, Setter):
-                self.setters.append(arg)
-                self.actions.append(arg)
+                self._add_setter(arg)
             elif isinstance(arg, sequencer):
-                # TODO @@@@ check order of parameters
                 seq_params = arg.params
-                for var in seq_params:
+                # Note: reverse order, because axis=0 is fastest running and must thus be last.
+                for var in seq_params[::-1]:
                     setter = ArraySetter(var, var.values, resetable=False)
-                    self.setters.append(setter)
-                    self.actions.append(setter)
+                    self._add_setter(setter)
                 self.actions.append(Function(_start_sequence, arg))
                 self.meas.add_snapshot('sequence', arg.metadata)
                 if hasattr(arg, 'starting_lambda'):
                     print('WARNING: sequencer starting_lambda is not supported anymore')
             elif isinstance(arg, Getter):
-                self.actions.append(arg)
-                self.m_instr.append(arg.param)
+                self._add_getter(arg)
             elif isinstance(arg, Function):
                 self.actions.append(arg)
             else:
-                self.actions.append(Getter(arg))
-                self.m_instr.append(arg)
-
-        set_params = []
-        self.n_tot = 1
-        for setter in self.setters:
-            self.meas.register_set_parameter(setter.param, setter.n_points)
-            set_params.append(setter.param)
-            self.n_tot *= setter.n_points
-
-        for instr in self.m_instr:
-            self.meas.register_get_parameter(instr, *set_params)
+                # Assume it is a measurement parameter
+                getter = Getter(arg)
+                self._add_getter(getter)
 
         if name == '':
-            if len(self.setters) == 0:
-                self.name = '0D_' + self.m_instr[0].name[:10]
+            if len(self.set_params) == 0:
+                self.name = '0D_' + self.m_params[0].name[:10]
             else:
-                self.name += '{}D_'.format(len(self.setters))
+                self.name += '{}D_'.format(len(self.set_params))
 
         self.meas.name = self.name
 
+    def _add_setter(self, setter):
+        self.meas.register_set_parameter(setter.param, setter.n_points)
+        self.set_params.append(setter.param)
+        self.actions.append(setter)
+        self.loop_shape.append(setter.n_points)
+
+    def _add_getter(self, getter):
+        self.actions.append(getter)
+        self.m_params.append(getter.param)
+        self.meas.register_get_parameter(getter.param, *self.set_params)
+
+
     def run(self):
         try:
-            n_params = len(self.setters) + len(self.m_instr)
             start = time.perf_counter()
             with self.meas as m:
-                runner = Runner(m, self.actions, n_params, self.n_tot)
+                runner = Runner(m, self.actions, self.loop_shape)
                 runner.run(self.reset_param, self.silent)
             duration = time.perf_counter() - start
-            logging.info(f'Total duration: {duration:5.2f} s ({duration/self.n_tot*1000:5.1f} ms/pt)')
+            n_tot = np.prod(self.loop_shape) if len(self.loop_shape) > 0 else 1
+            logging.info(f'Total duration: {duration:5.2f} s ({duration/n_tot*1000:5.1f} ms/pt)')
         except Break as b:
             logging.warning(f'Measurement break: {b}')
         except KILL_EXP:
@@ -206,13 +203,15 @@ class Scan:
 
 
 class Runner:
-    def __init__(self, measurement, actions, n_param, n_tot):
+    def __init__(self, measurement, actions, loop_shape):
         self._measurement = measurement
         self._actions = actions
-        self._n_tot = n_tot
+        self._n_tot = np.prod(loop_shape) if len(loop_shape) > 0 else 1
         self._n = 0
-        self._data = [[None,None]]*n_param
+        self._setpoints = [[None,None]]*len(loop_shape)
+        self._m_values = {}
         self._action_duration = [0.0]*len(actions)
+        self._action_cnt = [0]*len(actions)
         self._store_duration = 0.0
 
     def run(self, reset_param=False, silent=False):
@@ -224,9 +223,7 @@ class Runner:
             self._loop()
         except:
             last_index = {
-                param.name:data
-                for action,(param,data) in zip(self._actions, self._data)
-                if isinstance(action, Setter)
+                param.name:data for param,data in self._setpoints
                 }
             msg = f'Measurement stopped at {last_index}'
             if not silent:
@@ -256,8 +253,6 @@ class Runner:
 
     def _loop(self, iaction=0, iparam=0):
         if iaction == len(self._actions):
-            # end of action list: store results
-            self._push_results()
             self._inc_count()
             return
 
@@ -268,25 +263,33 @@ class Runner:
 
         try:
             t_start = time.perf_counter()
-            next_param = iparam
+
             if isinstance(action, Getter):
-                next_param += 1
-                value = action.param()
-                self._data[iparam] = [action.param, value]
+                m_param = action.param
+                value = m_param()
+                self._m_values[m_param.name] = value
+                t_store = time.perf_counter()
+                self._measurement.add_result((m_param, value), *self._setpoints)
+                self._store_duration += time.perf_counter()-t_store
 
             elif isinstance(action, Function):
-                if action.add_dataset:
-                    self._push_results(iparam)
-                action(self._measurement.dataset, self._data)
+                last_values = {
+                    param.name:value
+                    for param,value in self._setpoints
+                    if param is not None
+                    }
+                last_values.update(self._m_values)
+                action(self._measurement.dataset, last_values)
 
             if action._delay:
                 time.sleep(action._delay)
+
             self._action_duration[iaction] += time.perf_counter()-t_start
-            self._loop(iaction+1, next_param)
+            self._action_cnt[iaction] += 1
+            self._loop(iaction+1, iparam)
         except Break:
-            for i in range(iparam, len(self._data)):
-                self._data[i][1] = None
-            self._push_results()
+            for i in range(iparam, len(self._setpoints)):
+                self._setpoints[i][1] = None
             raise
 
     def _loop_setter(self, action, iaction, iparam):
@@ -295,35 +298,28 @@ class Runner:
                 t_start = time.perf_counter()
                 action.param(value)
                 value = action.param()
-                self._data[iparam] = [action.param, value]
+                self._setpoints[iparam] = [action.param, value]
                 if action._delay:
                     time.sleep(action._delay)
                 self._action_duration[iaction] += time.perf_counter()-t_start
+                self._action_cnt[iaction] += 1
                 self._loop(iaction+1, iparam+1)
             except Break as b:
                 if b.exit_loop():
                     raise
-                # TODO @@@ fill missing data?? dataset must be rectangular/box
-                # what should be the values for the setters when they are not actually set?
+                # TODO @@@ fill missing data. dataset must be rectangular/box
+                # Requires current loop index and shape per m_param.
 
     def _inc_count(self):
         self._n += 1
         if self.pbar is not None:
             self.pbar += 1
         n = self._n
-        if n % 10 == 0:
-            t_actions = {action.name:f'{self._action_duration[i]*1000/n:4.1f}'
-                         for i,action in enumerate(self._actions)}
+        if n % 1 == 0:
+            t_actions = {
+                action.name: f'{self._action_duration[i]*1000/self._action_cnt[i]:4.1f}'
+                for i,action in enumerate(self._actions)
+                }
             t_store = self._store_duration*1000/n
             logging.debug(f'npt:{n} actions: {t_actions} store:{t_store:5.1f} ms')
 
-    def _push_results(self, iparam=None):
-        t_start = time.perf_counter()
-        if iparam is not None:
-            data = self._data[self._n_data:iparam]
-            self._n_data = iparam
-        else:
-            data = self._data[self._n_data:]
-            self._n_data = 0
-        self._measurement.add_result(*data)
-        self._store_duration += time.perf_counter()-t_start
