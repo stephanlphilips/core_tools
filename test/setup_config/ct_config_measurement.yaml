@@ -1,0 +1,74 @@
+setup: CoreTools
+project: Test
+sample: CT-Test
+
+local_database:
+    user: sdesnoo
+    password: FastSp!ns
+    database: sds_test
+#    database: veldhorst_data
+
+#remote_database:
+#    user: xld_measurement_pc
+#    password: XLDspin001
+#    database: sixdots
+#    address: vanvliet.qutech.tudelft.nl:5432
+
+#remote_database:
+#    user: veldhorst_lab
+#    password: Veldhorst!
+#    database: veldhorst_data
+#    address: vanvliet.qutech.tudelft.nl:5432
+#
+#remote_database:
+#    user: sdesnoo
+#    password: DataSp!ns
+#    database: sds_test
+#    address: vanvliet.qutech.tudelft.nl:5432
+
+logging:
+    file_location: c:/measurements/logs
+    file_level: DEBUG
+    console_level: WARNING
+    logger_levels:
+        matplotlib: WARNING
+        pyvisa: INFO
+
+databrowser:
+    datasource: local # required value
+    live_plotting: True
+    location: [0, 32]
+    size: [1800, 900]
+    logging:
+        file_location: ~/.core_tools/logs
+        file_name: databrowser.log
+        file_level: INFO
+
+parameter_viewer:
+    location: [1000, 10]
+    size: [400, 800]
+    lock: True
+
+virtual_matrix_gui:
+    location: [0, 0]
+    size: [1200, 1000]
+    coloring: True
+
+parameter_viewer_qml:
+    location: [0, 32]
+    size: [500, 900]
+    allow_mouse_wheel_updates: True
+
+virtual_matrix_gui_qml:
+    location: [0, 32]
+    size: [1100, 900]
+    invert_matrix: True
+
+videomode:
+    settings_dir: ~/.core_tools/videomode
+
+db_sync:
+    logging:
+        file_location: ~/.core_tools/logs
+        file_name: db_sync.log
+        file_level: INFO

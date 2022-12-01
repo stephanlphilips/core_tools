@@ -1,0 +1,28 @@
+# selection used in databrowser. Any is an allowed value here.
+setup: Any
+project: Any
+sample: Any
+
+local_database:
+    user: sdesnoo
+    password: FastSp!ns
+    database: sds_test
+
+#remote_database:
+#    user: scappucci_lab
+#    password: Scappucci!
+##    user: nicoh
+##    password: hendrickx
+#    database: veldhorst_data
+#    address: vanvliet.qutech.tudelft.nl:5432
+
+remote_database:
+    user: vandersypen_lab
+    password: Vandersypen!
+    database: veldhorst_data
+    address: vanvliet.qutech.tudelft.nl:5432
+
+databrowser:
+    datasource: remote # required value
+    live_plotting: False
+

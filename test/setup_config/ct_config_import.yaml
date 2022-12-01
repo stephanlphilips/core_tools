@@ -1,0 +1,8 @@
+# selection used in databrowser. Any is an allowed value here.
+setup: Any
+project: Any
+sample: Any
+
+databrowser:
+    datasource: local # required value
+
