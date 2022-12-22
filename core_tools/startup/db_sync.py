@@ -6,7 +6,7 @@ from core_tools.data.SQL.SQL_connection_mgr import SQL_sync_manager
 
 
 def sync_init():
-    set_sample_info(None, None, None)
+    set_sample_info('Any', 'Any', 'Any')
     connect_local_and_remote_db()
     print('Starting DB sync')
 
