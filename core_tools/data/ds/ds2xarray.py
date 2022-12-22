@@ -14,6 +14,8 @@ def _add_coord(ds, param):
     dup = 0
     param_name = param.param_name
     name = param_name
+    if not name:
+        name = param.name
     while name in ds.coords:
         if (np.array_equal(data , ds.coords[name].data, equal_nan=True)
             and attrs == ds.coords[name].attrs):
@@ -28,6 +30,8 @@ def _add_coord(ds, param):
 
 def _add_data_var(ds, var, dims, param_index):
     name = var.param_name
+    if not name:
+        name = var.name
     ds[name] = (dims, var())
     ds[name].attrs = {
             'units':var.unit,
@@ -38,6 +42,9 @@ def _add_data_var(ds, var, dims, param_index):
 def ds2xarray(ct_ds):
     snapshot_json = json.dumps(ct_ds.snapshot, cls=NumpyJSONEncoder)
     metadata_json = json.dumps(ct_ds.metadata, cls=NumpyJSONEncoder)
+
+    if len(ct_ds) == 0:
+        raise Exception(f'Dataset has no data ({ct_ds.exp_uuid})')
 
     attrs = {
         'title':ct_ds.name,
