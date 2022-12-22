@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.12] - 2022-12-22
+
+- Fixed db_sync script
+
 ## \[1.4.11] - 2022-12-01
 
 - Fixed data loading from HDF5 and conversion xarray dataset to core-tools dataset.
