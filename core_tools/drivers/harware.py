@@ -198,7 +198,6 @@ class harware_parent(qc.Instrument):
         return RF_settings,qc_params
 
     def sync_data(self):
-        print("SYNC")
 #        for item in self.virtual_gates:
 #            self.sync[item.name] = item._persistent_object
         self.sync['AWG2DAC'] = self._AWG_to_dac_conversion
