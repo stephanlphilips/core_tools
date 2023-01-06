@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(name="core_tools",
-	version="1.4.12",
-	packages = find_packages(),
+    version="1.4.12",
+    packages = find_packages(),
     python_requires=">=3.7",
-	install_requires=[
+    install_requires=[
           'pyqt5', 'pyqtgraph',
           'si-prefix', 'matplotlib', 'psycopg2',
           'xarray',
@@ -12,4 +12,7 @@ setup(name="core_tools",
           'pulse_lib',
           'numpy >= 1.20',
       ],
-	)
+    package_data={
+        "": ["*.qml"],
+    },
+    )
