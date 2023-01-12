@@ -610,6 +610,10 @@ class SD_DIG(Instrument):
         t_downsampling = downsampling_factor * 10
         return max(1, round(t_measure/t_downsampling))
 
+    def force_daq_configuration(self):
+        for properties in self.channel_properties.values():
+            properties.daq_points_per_cycle = None
+            properties.daq_cycles = None
 
     def set_daq_settings(self, channel, n_cycles, t_measure, sample_rate = 500e6,
                          DAQ_trigger_delay = 0, DAQ_trigger_mode = 1, downsampled_rate = None, power2decimation = 0):
