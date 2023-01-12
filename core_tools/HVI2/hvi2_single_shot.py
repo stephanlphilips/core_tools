@@ -73,15 +73,24 @@ class Hvi2SingleShot():
                 # self._wait_state_clear(dig_seq, running=ds_ch)
 
                 dig_seq.ds.control(push=ds_ch)
-                dig_seq.wait(600)
+                dig_seq.wait(1000)
                 # self._wait_state_clear(dig_seq, pushing=ds_ch)
 
-    def _get_trigger_channels(self, dig_seq, i):
+    def _get_ds_trigger_channels(self, dig_seq, i):
         trigger_ch = self._module_config(dig_seq, 'trigger_ch')
+        ds_ch = self._module_config(dig_seq, 'ds_ch')
         if trigger_ch is None:
-            return self._module_config(dig_seq, 'ds_ch')
+            return ds_ch
         else:
-            return trigger_ch[i]
+            return list(set(ds_ch).intersection(set(trigger_ch[i])))
+
+    def _get_raw_trigger_channels(self, dig_seq, i):
+        trigger_ch = self._module_config(dig_seq, 'trigger_ch')
+        raw_ch = self._module_config(dig_seq, 'raw_ch')
+        if trigger_ch is None:
+            return raw_ch
+        else:
+            return list(set(raw_ch).intersection(set(trigger_ch[i])))
 
     def sequence(self, sequencer, hardware):
         self.hardware = hardware
@@ -163,7 +172,6 @@ class Hvi2SingleShot():
                             else:
                                 dig_seq.wait(10)
 
-
                             if self._module_config(dig_seq, 'sequencer'):
                                 dig_seq.qs.clear()
                             else:
@@ -171,7 +179,11 @@ class Hvi2SingleShot():
                             dig_seq.start(all_ch)
 
                             if len(ds_ch) > 0:
-                                dig_seq.wait(40)
+                                # Push some data get DAQ in correct state
+                                # Sometimes the DMA gets stuck when there is no data 
+                                # written to DAQ between start and trigger.
+                                dig_seq.ds.control(push=ds_ch)
+                                dig_seq.wait(1000)
                                 dig_seq.trigger(ds_ch)
 
                     with sync.Repeat(sync['n_rep']):
@@ -219,14 +231,8 @@ class Hvi2SingleShot():
                                     awg_seq.wait(10)
 
                             for dig_seq in dig_seqs:
-                                iq_ch = self._module_config(dig_seq, 'iq_ch')
-                                ds_ch = self._module_config(dig_seq, 'ds_ch')
-                                raw_ch = self._module_config(dig_seq, 'raw_ch')
 
                                 dig_seq.log.write(2)
-#                                if len(iq_ch) > 0:
-#                                    dig_seq.ds.control(phase_reset=iq_ch)
-#                                else:
                                 dig_seq.wait(10)
 
                                 if self._module_config(dig_seq, 'sequencer'):
@@ -239,13 +245,14 @@ class Hvi2SingleShot():
 
                                 for i in range(n_triggers):
                                     dig_seq.wait(dig_seq[f'dig_wait_{i+1}'])
-                                    if len(raw_ch) > 0:
-                                        dig_seq.trigger(raw_ch)
+                                    raw_trigger_ch = self._get_raw_trigger_channels(dig_seq, i)
+                                    if len(raw_trigger_ch) > 0:
+                                        dig_seq.trigger(raw_trigger_ch)
                                     else:
                                         dig_seq.wait(10)
                                     dig_seq.wait(40)
 
-                                    trigger_ch = self._get_trigger_channels(dig_seq, i)
+                                    trigger_ch = self._get_ds_trigger_channels(dig_seq, i)
                                     if len(trigger_ch) > 0:
                                         dig_seq.ds.control(start=trigger_ch)
                                     else:
