@@ -350,24 +350,23 @@ class _digitzer_scan_parameter(MultiParameter):
         logging.info(f'Idle after {(time.perf_counter()-start)*1000:3.1f} ms')
         raw_dict = self.my_seq.get_channel_data()
 
-        # get the data
-        data = []
-        for setting in self.channel_map.values():
-            ch, func = setting
-            ch_data = raw_dict[ch]
-            data.append(func(ch_data))
-
-        # make sure that data is put in the right order.
-        data_out = [np.zeros(self.shape, dtype=d.dtype) for d in data]
-
-        for i in range(len(data)):
-            ch_data = data[i].reshape(self.shape)
+        # Reorder data for bias-T correction
+        data = {}
+        for name,raw in raw_dict.item():
             if self.biasT_corr:
-                data_out[i][:len(ch_data[::2])] = ch_data[::2]
-                data_out[i][len(ch_data[::2]):] = ch_data[1::2][::-1]
-
+                raw = raw.reshape(self.shape)
+                ch_data = np.zeros(self.shape, dtype=raw.dtype)
+                ch_data[:len(ch_data[::2])] = raw[::2]
+                ch_data[len(ch_data[::2]):] = raw[1::2][::-1]
+                data[name] = ch_data
             else:
-                data_out[i] = ch_data
+                data[name] = raw.reshape(self.shape)
+
+        # post-process data
+        data_out = []
+        for ch,func in self.channel_map.values():
+            ch_data = data[ch]
+            data_out.append(func(ch_data))
 
         logging.info(f'Done')
         return tuple(data_out)

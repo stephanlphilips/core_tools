@@ -435,23 +435,24 @@ class _digitzer_scan_parameter(MultiParameter):
 
         # get the data
         raw = self.dig.measure()
-        data = []
-        for setting in self.channel_map.values():
-            ch, func = setting
-            ch_data = raw[self.channels.index(ch)]
-            data.append(func(ch_data))
 
-        # make sure that data is put in the right order.
-        data_out = [np.zeros(self.shape, dtype=d.dtype) for d in data]
+        # Reorder data for bias-T correction
+        data = [np.zeros(self.shape, dtype=d.dtype) for d in raw]
 
         for i in range(len(data)):
-            ch_data = data[i].reshape(self.shape)
+            ch_data = raw[i].reshape(self.shape)
             if self.biasT_corr:
-                data_out[i][:len(ch_data[::2])] = ch_data[::2]
-                data_out[i][len(ch_data[::2]):] = ch_data[1::2][::-1]
+                data[i][:len(ch_data[::2])] = ch_data[::2]
+                data[i][len(ch_data[::2]):] = ch_data[1::2][::-1]
 
             else:
-                data_out[i] = ch_data
+                data[i] = ch_data
+
+        # post-process data
+        data_out = []
+        for ch,func in self.channel_map.values():
+            ch_data = data[self.channels.index(ch)]
+            data_out.append(func(ch_data))
 
         logging.info(f'Done')
         return tuple(data_out)
