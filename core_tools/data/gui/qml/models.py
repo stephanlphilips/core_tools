@@ -51,7 +51,8 @@ class data_overview_model(QtCore.QAbstractListModel):
         if role == self.my_ID:
             return self._data[row].my_id
         if role == self.UUID:
-            return str(self._data[row].uuid)
+            s = str(self._data[row].uuid)
+            return s[:-14] + '_' + s[-14:-9] + '_' + s[-9:]
         if role == self.name:
             return self._data[row].name
         if role == self.keywords:
