@@ -89,7 +89,7 @@ class Hvi2VideoMode():
                 # self._wait_state_clear(dig_seq, running=ds_ch)
 
                 dig_seq.ds.control(push=ds_ch)
-                dig_seq.wait(600)
+                dig_seq.wait(1000)
                 # self._wait_state_clear(dig_seq, pushing=ds_ch)
 
     def sequence(self, sequencer, hardware):
@@ -128,7 +128,11 @@ class Hvi2VideoMode():
                     dig_seq.start(all_ch)
 
                     if len(ds_ch) > 0:
-                        dig_seq.wait(40)
+                        # Push some data get DAQ in correct state
+                        # Sometimes the DMA gets stuck when there is no data
+                        # written to DAQ between start and trigger.
+                        dig_seq.ds.control(push=ds_ch)
+                        dig_seq.wait(1000)
                         dig_seq.trigger(ds_ch)
 
             with sync.Repeat(sync['n_rep']):
