@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.13] - 2022-01-16
+
+- Add QML files to setup
+- Improved HVI2; fixed a case where digitizer did not return data.
+- Added method force_daq_configuration() to Keysight digitizer to resolve 'no data' state.
+- Show UUID in 3 parts separated by '_' in data browser
+
 ## \[1.4.12] - 2022-12-22
 
 - Fixed db_sync script
