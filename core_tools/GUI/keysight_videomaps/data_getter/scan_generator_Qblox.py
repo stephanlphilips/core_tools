@@ -352,7 +352,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
         # Reorder data for bias-T correction
         data = {}
-        for name,raw in raw_dict.item():
+        for name,raw in raw_dict.items():
             if self.biasT_corr:
                 raw = raw.reshape(self.shape)
                 ch_data = np.zeros(self.shape, dtype=raw.dtype)
