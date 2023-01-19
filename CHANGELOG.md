@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.14] - 2022-01-19
+
+- Fixed bug in VideoMode for Qblox
+
 ## \[1.4.13] - 2022-01-16
 
 - Add QML files to setup
