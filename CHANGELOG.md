@@ -1,11 +1,18 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.14] - 2022-01-19
+## \[1.4.15] - 2023-01-23
+
+- Added var_mgr.get_values_at(time)
+- Added iq_mode 'amplitude+phase' to VideoMode
+- Reduced load on database server by databrowser
+
+## \[1.4.14] - 2023-01-19
 
 - Fixed bug in VideoMode for Qblox
+- Added save_csv(dataset)
 
-## \[1.4.13] - 2022-01-16
+## \[1.4.13] - 2023-01-16
 
 - Add QML files to setup
 - Improved HVI2; fixed a case where digitizer did not return data.

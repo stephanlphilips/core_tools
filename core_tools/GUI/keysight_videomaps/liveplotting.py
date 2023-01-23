@@ -8,6 +8,7 @@ from core_tools.GUI.keysight_videomaps.data_saver.native import CoreToolsDataSav
 
 from dataclasses import dataclass
 from PyQt5 import QtCore, QtWidgets, QtGui
+from core_tools.GUI.keysight_videomaps.data_getter.iq_modes import iq_mode2numpy
 from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
 from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
 from qcodes import MultiParameter
@@ -100,8 +101,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'acquisition_delay_ns': float, # Time in ns between AWG output change and digitizer acquisition start.
                            }
             iq_mode (str): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
-                    complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg', 'I+Q',
-                    'abs+angle'. In the latter two cases 2 charts will be shown for each channel.
+                    complex I/Q value should be plotted: 'I', 'Q', 'amplitude', 'phase', 'phase_deg', 'I+Q',
+                    'amplitude+phase'. In the latter two cases 2 charts will be shown for each channel.
             channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
                 defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
                 E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
@@ -201,18 +202,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.channel_map = channel_map
             return
 
-        iq_mode2numpy = {
-                'I': np.real,
-                'Q': np.imag,
-                'abs': np.abs,
-                'angle': np.angle,
-                'angle_deg': lambda x:np.angle(x, deg=True),
-                'I+Q': [('_I', np.real), ('_Q', np.imag)],
-                'abs+angle': [('_amp', np.abs), ('_angle', np.angle)],
-                }
-
         if isinstance(iq_mode, dict):
-            print('Warning: iq_mode with dictionary will be dropped in the next release.')
             for ch, mode in iq_mode.items():
                 self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
             return

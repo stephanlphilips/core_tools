@@ -4,13 +4,15 @@ Created on Fri Aug  9 16:50:02 2019
 
 @author: V2
 """
+import numpy as np
+import time
+import logging
+
 from qcodes import MultiParameter
 from core_tools.drivers.M3102A import DATA_MODE
 from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
 from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
-import numpy as np
-import time
-import logging
+from .iq_modes import iq_mode2numpy
 
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
@@ -403,10 +405,6 @@ class _digitzer_scan_parameter(MultiParameter):
         self.channel_map = (
                 channel_map if channel_map is not None
                 else {f'ch{i}':(i, np.real) for i in channels})
-
-        # backwards compatibility with older iq_mode parameter
-        iq_mode2numpy = {'I': np.real, 'Q': np.imag, 'abs': np.abs,
-                    'angle': np.angle, 'angle_deg': lambda x:np.angle(x, deg=True)}
 
         if iq_mode is not None:
             if channel_map is not None:
