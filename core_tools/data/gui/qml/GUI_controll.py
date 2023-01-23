@@ -95,7 +95,7 @@ class signale_handler(QtQuick.QQuickView):
         self.date_model = date_model
         self.data_overview_model = data_overview_model
 
-        self.measurement_count =0
+        self.max_measurement_id =0
         self.plots = []
 
 
@@ -144,8 +144,8 @@ class signale_handler(QtQuick.QQuickView):
         obj = self.win.findChild(QtCore.QObject, "combobox_sample")
         obj.setProperty("currentIndex", self._data_filter.sample_index)
 
-        _, self.measurement_count = query_for_measurement_results.detect_new_meaurements(
-                self.measurement_count,
+        _, self.max_measurement_id = query_for_measurement_results.detect_new_meaurements(
+                0,
                 project=self._data_filter.project,
                 set_up=self._data_filter.set_up,
                 sample=self._data_filter.sample)
@@ -181,8 +181,8 @@ class signale_handler(QtQuick.QQuickView):
             return
         try:
             self.updating = True
-            update, self.measurement_count = query_for_measurement_results.detect_new_meaurements(
-                    self.measurement_count,
+            update, self.max_measurement_id = query_for_measurement_results.detect_new_meaurements(
+                    self.max_measurement_id,
                     project=self._data_filter.project,
                     set_up=self._data_filter.set_up,
                     sample=self._data_filter.sample)

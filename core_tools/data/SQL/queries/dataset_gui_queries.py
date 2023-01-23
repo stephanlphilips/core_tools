@@ -80,7 +80,6 @@ class query_for_measurement_results:
     def get_results_for_date(date, sample, set_up, project, remote=False):
         if date is None:
             return []
-
         statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords FROM global_measurement_overview "
         statement += "WHERE start_time >= '{}' and start_time < '{} '".format(date, date+ datetime.timedelta(1))
         if sample is not None:
@@ -96,7 +95,7 @@ class query_for_measurement_results:
 
     @staticmethod
     def get_all_dates_with_meaurements(project, set_up, sample, remote=False):
-        statement = "SELECT DISTINCT date_trunc('day', start_time) FROM global_measurement_overview "
+        statement = "SELECT DISTINCT date(start_time) FROM global_measurement_overview "
         statement += "where 1=1 "
         if sample is not None:
             statement += " and sample =  '{}' ".format(sample)
@@ -147,26 +146,29 @@ class query_for_measurement_results:
         return query_for_measurement_results._to_measurement_results(res)
 
     @staticmethod
-    def detect_new_meaurements(n_records=0, remote=False,
+    def detect_new_meaurements(max_measurement_id=0, remote=False,
                                project=None, set_up=None, sample=None):
-        statement = "SELECT count(*) from global_measurement_overview "
-        statement += "WHERE 1=1 "
+        statement = "SELECT max(id) from global_measurement_overview"
+        where = []
+        where.append(f"id >= {max_measurement_id}")
         if sample is not None:
-            statement += f" and sample =  '{sample}' "
+            where.append(f"sample =  '{sample}'")
         if set_up is not None:
-            statement += f" and set_up = '{set_up}' "
+            where.append(f"set_up = '{set_up}'")
         if project is not None:
-            statement += f" and project = '{project}' "
+            where.append(f"project = '{project}'")
+        if len(where) > 0:
+            statement += " WHERE " + ' AND '.join(where)
         statement += " ;"
 
         res = query_for_measurement_results._execute(statement, remote)
 
         update = False
-        if res[0][0] != n_records:
+        if res[0][0] != max_measurement_id:
             update =True
-            n_records = res[0][0]
+            max_measurement_id = res[0][0]
 
-        return update, n_records
+        return update, max_measurement_id
 
     @staticmethod
     def _execute(statement, remote):

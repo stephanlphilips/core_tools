@@ -76,6 +76,7 @@ class measurement_overview_queries:
         statement += "table_synchronized BOOL DEFAULT False," # global_measurements_overview sync'd
         statement += "sync_location text); "                  # Note [SdS]: Column is abused for migration to new measurement_parameters table
 
+        statement += "CREATE INDEX IF NOT EXISTS id_indexed ON {} USING BTREE (id) ;".format(measurement_overview_queries.table_name)
         statement += "CREATE INDEX IF NOT EXISTS uuid_indexed ON {} USING BTREE (uuid) ;".format(measurement_overview_queries.table_name)
         statement += "CREATE INDEX IF NOT EXISTS starred_indexed ON {} USING BTREE (starred) ;".format(measurement_overview_queries.table_name)
         statement += "CREATE INDEX IF NOT EXISTS date_day_index ON {} USING BTREE (project, set_up, sample) ;".format(measurement_overview_queries.table_name)
