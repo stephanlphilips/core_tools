@@ -94,7 +94,6 @@ class var_sql_queries:
         res = select_elements_in_table(conn, var_sql_queries.gen_table_content_name(), ('*',),
             where=('insert_time', insert_time), order_by=('id','desc'),
             limit=1, dict_cursor=RealDictCursor)
-        print(res)
         res = dict(res[0])
         del res['id']
         return res
