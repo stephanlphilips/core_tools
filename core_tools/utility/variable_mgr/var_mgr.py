@@ -15,13 +15,13 @@ class variable_descriptor:
 
         if skip_init == False:
             var_sql_queries.add_variable(variable_mgr().conn_local, name , unit, category, step, value)
-    
+
     def __get__(self, obj, objtype=None):
         return obj.vars[self.name]
 
     def __set__(self, obj, value):
         all_vals, last_id = var_sql_queries.update_val(variable_mgr().conn_local, self.name, value)
-        
+
         obj.update_GUI()
         obj.vars = dict(all_vals)
 
@@ -52,7 +52,7 @@ class variable_mgr():
         # fetch the connection from the database object, no need to connect multiple times.
         if self.conn_local is None:
             self.conn_local = SQL_database_manager().conn_local
-            
+
             self.__GUI = None
             self.data = dict()
             self.vars = dict()
@@ -79,10 +79,10 @@ class variable_mgr():
         for item in all_specs:
             self.add_variable(item['category'], item['name'], item['unit'], item['step'], skip_init=True)
         self.vars = var_sql_queries.get_all_values(self.conn_local)
-        
+
     def show(self):
         self.__GUI = GUI_controller(self.data)
-    
+
     def update_GUI(self):
         if self.__GUI is not None:
             self.__GUI.set_data()
@@ -110,9 +110,12 @@ class variable_mgr():
         else:
             print(f'trying to fetch history of a variable {variable_name} that does not exist.')
 
+    def get_values_at(self, time):
+        return var_sql_queries.get_values_at(variable_mgr().conn_local, time)
+
     def remove_variable(self, variable_name):
         obj = super().__getattribute__(variable_name)
-        
+
         self.data[obj.category].pop(variable_name, None)
         if len(self.data[obj.category]) == 0:
             self.data.pop(obj.category, None)
@@ -120,13 +123,13 @@ class variable_mgr():
 
         var_sql_queries.remove_variable(self.conn_local, variable_name)
         super().__delattr__(variable_name)
-        
+
         if self.__GUI is not None:
                     self.__GUI.set_data()
 
     def __getitem__(self, item):
         return getattr(self, item)
-    
+
     def __getattribute__(self, name): #little hack to make make the descriptors work.
         attr = super().__getattribute__(name)
         if isinstance(attr, variable_descriptor):
@@ -188,7 +191,7 @@ if __name__ == '__main__':
     # t.add_variable("SD voltages", "SD1_P_off", 'mV', 0.1)
     # t.add_variable("SD voltages", "SD1_P_on_11", 'mV', 0.1)
     # t.add_variable("SD voltages", "SD1_P_on_10", 'mV', 0.1)
-    
+
     # t.add_variable("Dot properties", "U1", 'mV', 1)
     # t.add_variable("Dot properties", "U2", 'mV', 1)
     # t.add_variable("Dot properties", "U3", 'mV', 1)

@@ -1,14 +1,13 @@
 from core_tools.data.SQL.connect import sample_info
 from core_tools.data.SQL.SQL_common_commands import insert_row_in_table, update_table, select_elements_in_table, execute_statement, alter_table, execute_query
-from psycopg2.extras import RealDictCursor, DictCursor
-from psycopg2.errors import UndefinedColumn
+from psycopg2.extras import RealDictCursor
 from psycopg2 import sql
 
-import datetime, time
+import datetime
 import numpy as np
 
 def to_postgres_time(my_date_time):
-    return time.strftime("%a, %d %b %Y %H:%M:%S +0000",my_date_time.timetuple())
+    return my_date_time.strftime("%a, %d %b %Y %H:%M:%S.%f +0000")
 
 class var_sql_queries:
     @staticmethod
@@ -40,14 +39,14 @@ class var_sql_queries:
             update_table(conn, var_sql_queries.gen_table_content_name(), (name,), (value,), condition=('id', last_update_id))
             conn.commit()
 
-        else: 
+        else:
             print('Variable {} already present, skipping.'.format(name))
 
     def get_all_specs(conn):
         return select_elements_in_table(conn, var_sql_queries.gen_table_overview_name(), ('*', ), dict_cursor=RealDictCursor)
 
     def get_all_values(conn):
-        res = select_elements_in_table(conn, var_sql_queries.gen_table_content_name(), ('*',), 
+        res = select_elements_in_table(conn, var_sql_queries.gen_table_content_name(), ('*',),
             order_by=('id','DESC'), limit=100, dict_cursor=RealDictCursor)
 
         if len(res) == 0:
@@ -59,8 +58,8 @@ class var_sql_queries:
         get the full history of a certain variable
 
         Args:
-            variable_name (str) : name of the variable to fetch  
-        
+            variable_name (str) : name of the variable to fetch
+
         Returns:
             time, values : returns the time and associated values of the requested parameter
         '''
@@ -70,10 +69,36 @@ class var_sql_queries:
                                     sql.SQL(var_sql_queries.gen_table_content_name()))
             query += sql.SQL("WHERE {0} IS NOT NULL ").format(sql.Identifier(variable_name))
             query += sql.SQL("ORDER BY {0} {1} ").format(sql.Identifier('id'), sql.SQL('ASC'))
-            
+
             data += [np.array(execute_query(conn, query))]
-        
+
         return data[0][~np.isnan(data[1])], data[1][~np.isnan(data[1])]
+
+    def get_values_at(conn, time):
+        '''
+        Returns values of all variable at specified time.
+
+        Args:
+            time (datetime) : time
+
+        Returns:
+            dict(variable_name, value)
+        '''
+        query = f"SELECT max(insert_time) FROM {var_sql_queries.gen_table_content_name()} "
+        query += f"WHERE insert_time < '{time}'"
+
+        res = execute_query(conn, query)
+        print(res)
+        insert_time = res[0]
+
+        res = select_elements_in_table(conn, var_sql_queries.gen_table_content_name(), ('*',),
+            where=('insert_time', insert_time), order_by=('id','desc'),
+            limit=1, dict_cursor=RealDictCursor)
+        print(res)
+        res = dict(res[0])
+        del res['id']
+        return res
+
     def update_val(conn, name , value):
         all_vals = var_sql_queries.get_all_values(conn)
         if name is not None:
@@ -94,7 +119,7 @@ class var_sql_queries:
         statement_2 = sql.SQL("ALTER TABLE {} DROP COLUMN IF EXISTS {}").format(sql.SQL(var_sql_queries.gen_table_content_name()), sql.Identifier(variable_name))
         res = execute_query(conn, statement_1)
         execute_statement(conn, statement_2)
-        
+
         if len(res) == 0:
             print('Nothing to remove. {} is not present in the database?'.format(variable_name))
 
