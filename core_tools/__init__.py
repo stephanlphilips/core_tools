@@ -10,4 +10,4 @@ from core_tools.startup.gui import (
         start_virtual_matrix_gui_qml
         )
 
-__version__ = "1.4.14"
+__version__ = "1.4.15"
