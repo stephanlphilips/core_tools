@@ -14,6 +14,7 @@ from core_tools.drivers.M3102A import SD_DIG
 from .scheduler_hardware import default_scheduler_hardware
 from .hvi2_single_shot import Hvi2SingleShot
 from .hvi2_video_mode import Hvi2VideoMode
+from .hvi2_continuous_mode import Hvi2ContinuousMode
 from .hvi2_schedule import Hvi2Schedule
 
 # TODO: make scheduler into QCoDeS instrument. This solves closing and reloading issues.
@@ -21,7 +22,8 @@ class Hvi2ScheduleLoader(HardwareSchedule):
     schedule_cache = {}
     script_classes = {
             Hvi2VideoMode,
-            Hvi2SingleShot
+            Hvi2SingleShot,
+            Hvi2ContinuousMode,
         }
 
     def __init__(self, pulse_lib:pulselib, script_name:str, digitizers:Union[None, SD_DIG,List[SD_DIG]]=None,
@@ -44,6 +46,9 @@ class Hvi2ScheduleLoader(HardwareSchedule):
         self._switch_los = switch_los
         self._enabled_los = enabled_los
 
+    @property
+    def script_name(self):
+        return self._script_name
 
     def _update_hardware(self, pulse_lib, digitizers):
         hw = default_scheduler_hardware
@@ -87,7 +92,6 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             else:
                 return n
 
-    # TODO: @@@ change hvi_params to measurements
     def set_configuration(self, hvi_params, n_waveforms):
         conf = {}
         conf['script_name'] = self._script_name
