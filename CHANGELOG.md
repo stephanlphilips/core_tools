@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.16] - 2023-02-01
+
+- Added HVI2 Continuous mode
+
 ## \[1.4.15] - 2023-01-23
 
 - Added var_mgr.get_values_at(time)
