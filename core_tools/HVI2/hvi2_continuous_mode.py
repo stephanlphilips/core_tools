@@ -80,6 +80,6 @@ class Hvi2ContinuousMode():
 
     def stop(self, hvi_exec):
         for awg in self.hardware.awgs:
-            awg.stop()
+            awg.awg_stop_multiple(0b1111)
         logging.info(f'stop HVI')
 
