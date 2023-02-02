@@ -180,6 +180,7 @@ class line_trace(MultiParameter):
         consecutive_error_count = 0
         last_read = time.perf_counter()
         has_read_timeout = False
+        timeout_seconds = self.my_instrument._timeout_seconds
 
         while len(channels_to_read) > 0 and not has_read_timeout and consecutive_error_count < 5:
             any_read = False
@@ -208,7 +209,7 @@ class line_trace(MultiParameter):
                 time.sleep(0.001)
                 # abort when no data has been received for 30 s and at least 2 checks without any data
                 # the timeout of 30 s is needed for T1 measurement of 100 ms and one flush every 256 measurements.
-                has_read_timeout = no_data_count >= 2 and (no_data_time > 3)
+                has_read_timeout = no_data_count >= 2 and (no_data_time > timeout_seconds)
                 if (no_data_time > 0.5 and no_data_count < 100) or no_data_count % 100 == 0:
                     logging.debug(f'no data available ({no_data_count}, {no_data_time:4.2f} s); wait...')
 
@@ -426,6 +427,7 @@ class SD_DIG(Instrument):
         self.slot = slot
 
         self.operation_mode = OPERATION_MODES.SOFT_TRG
+        self._timeout_seconds = 3
 
         self.add_parameter(
             'measure',
@@ -569,6 +571,9 @@ class SD_DIG(Instrument):
                 result.append(properties.number)
         return result
 
+    def set_timeout(self, seconds):
+        self._timeout_seconds = seconds
+
     def set_channel_properties(self, channel, V_range=None, impedance=None, coupling=None):
         """
         sets channel properties.
@@ -598,8 +603,8 @@ class SD_DIG(Instrument):
             check_error(rv, 'chanelInputConfig')
             full_scale = self.SD_AIN.channelFullScale(channel)
             if abs(full_scale - properties.full_scale) > 0.01:
-                logging.warning(f'Incorrect full_scale value {properties.full_scale:4.2f}; '
-                                f'Changed to {full_scale:4.2f} V')
+                logging.warning(f'Incorrect full_scale value {properties.full_scale:5.3f}; '
+                                f'Changed to {full_scale:5.3f} V')
                 properties.full_scale = full_scale
 
     def get_samples_per_measurement(self, t_measure, sample_rate):
