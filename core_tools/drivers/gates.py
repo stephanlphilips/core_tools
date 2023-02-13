@@ -12,13 +12,21 @@ class gates(qc.Instrument):
     gates class, generate qcodes parameters for the real gates and the virtual gates
     It also manages the virtual gate matrix.
     """
-    def __init__(self, name, hardware, dac_sources):
+    def __init__(self, name, hardware, dac_sources, dc_gain={}):
         '''
         gates object
         args:
             name (str) : name of the instrument
-            hardware (class) : class describing the instrument (standard qtt issue, see example below to generate a gate set).
+            hardware (class) : class describing the instrument
             dac_sources (list<virtual_dac>) : list with the dacs
+            dc_gain (Dict[str,float]) : DC gain factors to compensate for.
+
+        Notes:
+            DC gain is the value of the external amplification factor.
+            dc_gain = {'P1': 4.0} means P1 has an external amplification of 4.0.
+            The DAC output will be set to v_gate/4.0.
+
+            To avoid accidents, DC gain cannot be changed at run-time.
         '''
         super(gates, self).__init__(name)
 
@@ -27,6 +35,7 @@ class gates(qc.Instrument):
 
         self.hardware = hardware
         self.dac_sources = dac_sources
+        self.dc_gain = dc_gain.copy()
 
         self._gv = dict()
         self.v_gates = list()
@@ -71,8 +80,13 @@ class gates(qc.Instrument):
                 raise ValueError(f"Voltage boundaries violated, trying to set gate {gate_name} to {voltage:.1f} mV.\n"
                                  f"The limit is set to {min_voltage} to {max_voltage} mV.")
 
-        logging.info(f'set {gate_name} {voltage:.1f} mV')
-        self.dac_sources[dac_location[0]].set(f'dac{int(dac_location[1])}', voltage)
+        if gate_name in self.dc_gain:
+            dac_voltage = voltage / self.dc_gain[gate_name]
+            logging.info(f'set {gate_name} {voltage:.1f} mV (DAC:{dac_voltage:.1f} mV)')
+        else:
+            dac_voltage = voltage
+            logging.info(f'set {gate_name} {voltage:.1f} mV')
+        self.dac_sources[dac_location[0]].set(f'dac{int(dac_location[1])}', dac_voltage)
 
     def _get_voltage(self, gate_name):
         '''
@@ -81,7 +95,11 @@ class gates(qc.Instrument):
             gate_name (str) : name of the gate to set
         '''
         dac_location = self.hardware.dac_gate_map[gate_name]
-        return getattr(self.dac_sources[dac_location[0]], f'dac{int(dac_location[1])}').cache()
+        voltage = getattr(self.dac_sources[dac_location[0]], f'dac{int(dac_location[1])}').cache()
+        if gate_name in self.dc_gain:
+            return voltage * self.dc_gain[gate_name]
+        else:
+            return voltage
 
     def _set_voltage_virt(self, gate_name, virt_gate_convertor, voltage):
         '''
