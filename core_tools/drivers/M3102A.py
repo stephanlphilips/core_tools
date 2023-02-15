@@ -2,6 +2,7 @@
 from qcodes import Instrument, MultiParameter
 from dataclasses import dataclass
 from typing import Optional
+import math
 import warnings
 import logging
 import time
@@ -84,6 +85,8 @@ class DATA_MODE:
     AVERAGE_CYCLES = 2
     AVERAGE_TIME_AND_CYCLES = 3
 
+def iround(x):
+    return math.floor(x+0.5)
 
 class line_trace(MultiParameter):
     """
@@ -607,7 +610,16 @@ class SD_DIG(Instrument):
                                 f'Changed to {full_scale:5.3f} V')
                 properties.full_scale = full_scale
 
+    def actual_acquisition_points(self, ch, t_measure, sample_rate):
+        mode = self.channel_properties[ch].acquisition_mode
+        # resolution in nanoseconds
+        resolution = 2 if mode == MODES.NORMAL else 10
+        interval = iround(1e9/sample_rate/resolution)*resolution
+        n_samples = max(1, int(t_measure/interval))
+        return n_samples, interval
+
     def get_samples_per_measurement(self, t_measure, sample_rate):
+        # TODO: remove old function when actual_acquisition_points is used everywhere.
         if sample_rate > 100e6:
             return int(t_measure*1e-9*sample_rate)
 
