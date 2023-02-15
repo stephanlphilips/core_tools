@@ -80,7 +80,7 @@ ds4 = Scan(
 #%%
 ds5 = Scan(
         sweep(y, -20, 20, 21),
-        sweep(y, -10, 10, 41, delay=0.001),
+        sweep(x, -10, 10, 41, delay=0.001),
         t,
         name='test_2D').run()
 
@@ -108,6 +108,8 @@ ds6 = Scan(
 #%%
 
 ds = Scan(
-        sweep(y, [-1, 1, 10, 12], delay=0.2),
+        sweep(y, [1, 2, 6, 7], delay=0.1),
+        sweep(x, [-1, 1, 4, 12], delay=0.2),
         t,
         name='test_sweep_array').run()
+
