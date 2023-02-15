@@ -3,12 +3,11 @@ import sys
 from ctypes import *
 from math import pow, log, ceil
 from abc import ABCMeta, abstractmethod
-import keysightSD1.SD1constants as constants
+import keysightSD1.SD1constants_31 as constants
 import numpy as np
 
 if sys.version_info[1] > 7 and sys.platform not in  ['linux', 'darwin']:
-    os.add_dll_directory('C:\\Program Files\\Keysight\\SD1\\shared')
-    os.add_dll_directory('C:\\Program Files\\Common Files\\Keysight\\PathWave Test Sync Executive\\Core\\bin')
+    raise Exception(f'Please upgrade to Keysight SD1 3.4+')
 
 
 def to_numpy_float(data):
