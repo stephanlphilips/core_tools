@@ -8,6 +8,7 @@ from threading import Thread
 
 from core_tools.startup.config import get_configuration
 
+logger = logging.getLogger(__name__)
 
 def launch_app(name, module_name, kill=False, close_at_exit=False):
     if not _is_running(name, module_name, kill):
@@ -44,7 +45,7 @@ def _is_running(name, module_name, kill=False):
             if p.name().startswith('python'):
                 if module_name in p.cmdline():
                     if kill:
-                        logging.warning(f'Stopping active {name}')
+                        logger.warning(f'Stopping active {name}')
                         p.kill()
                         return False
                     else:

@@ -9,6 +9,8 @@ import time
 import copy
 from si_prefix import si_format
 
+logger = logging.getLogger(__name__)
+
 try:
     import keysightSD1
     # check whether SD1 version 2.x or 3.x
@@ -31,7 +33,7 @@ def check_error(res, s=''):
     if (type(res) is int and res < 0):
         error = res
         msg = f'Keysight error: {keysightSD1.SD_Error.getErrorMessage(error)} ({error}) {s}'
-        logging.error(msg)
+        logger.error(msg)
         raise Exception(msg)
     return res
 
@@ -145,7 +147,7 @@ class line_trace(MultiParameter):
 
         length = len(buffer)
         if available + offset > length:
-            logging.warning(f"ch{ch} more data points in digitizer ram ({available}+{offset}) "
+            logger.warning(f"ch{ch} more data points in digitizer ram ({available}+{offset}) "
                             f"than what is being collected ({length}).")
             available = length - offset
 
@@ -159,13 +161,13 @@ class line_trace(MultiParameter):
             return received
 
         n_received = len(received)
-        # logging.debug(f'DAQread ch:{ch} ready:{available} read:{n_received} offset:{offset}')
+        # logger.debug(f'DAQread ch:{ch} ready:{available} read:{n_received} offset:{offset}')
         if n_received != available:
             if available > n_received and available - n_received < 4:
                 # It seems that M3102A only returns multiples of 4 bytes.
-                logging.warning(f'DAQread data remaining. ch:{ch} ready:{available} read:{n_received}')
+                logger.warning(f'DAQread data remaining. ch:{ch} ready:{available} read:{n_received}')
             else:
-                logging.error(f'DAQread failure. ch:{ch} ready:{available} read:{n_received}')
+                logger.error(f'DAQread failure. ch:{ch} ready:{available} read:{n_received}')
 
         if n_received > 0:
             buffer[offset:offset + n_received] = received
@@ -190,7 +192,7 @@ class line_trace(MultiParameter):
 
             for ch in channels_to_read:
                 n_read = self._read_available(ch, daq_points_per_channel[ch], data_read[ch])
-                # logging.debug(f'ch{ch}: {n_read}')
+                # logger.debug(f'ch{ch}: {n_read}')
 
                 if n_read < 0:
                     consecutive_error_count += 1
@@ -214,12 +216,12 @@ class line_trace(MultiParameter):
                 # the timeout of 30 s is needed for T1 measurement of 100 ms and one flush every 256 measurements.
                 has_read_timeout = no_data_count >= 2 and (no_data_time > timeout_seconds)
                 if (no_data_time > 0.5 and no_data_count < 100) or no_data_count % 100 == 0:
-                    logging.debug(f'no data available ({no_data_count}, {no_data_time:4.2f} s); wait...')
+                    logger.debug(f'no data available ({no_data_count}, {no_data_time:4.2f} s); wait...')
 
-        logging.info(f'channels {channels}: retrieved {data_read} points in {(time.perf_counter()-start)*1000:3.1f} ms')
+        logger.info(f'channels {channels}: retrieved {data_read} points in {(time.perf_counter()-start)*1000:3.1f} ms')
         for ch in channels:
             if data_read[ch] != len(daq_points_per_channel[ch]):
-                logging.error(f"digitizer did not collect enough data points for channel {ch}; "
+                logger.error(f"digitizer did not collect enough data points for channel {ch}; "
                               f"requested:{len(daq_points_per_channel[ch])} received:{data_read[ch]}; "
                               "last values are zeros.")
 
@@ -466,7 +468,7 @@ class SD_DIG(Instrument):
         return super().snapshot_base(update, params_to_skip_update=param_to_skip)
 
     def set_aquisition_mode(self, mode):
-        logging.warning('M3102A.set_aquisition_mode is deprecated. Use M3102A.set_acquisition_mode')
+        logger.warning('M3102A.set_aquisition_mode is deprecated. Use M3102A.set_acquisition_mode')
         self.set_acquisition_mode(mode)
 
     def set_acquisition_mode(self, mode):
@@ -606,7 +608,7 @@ class SD_DIG(Instrument):
             check_error(rv, 'chanelInputConfig')
             full_scale = self.SD_AIN.channelFullScale(channel)
             if abs(full_scale - properties.full_scale) > 0.01:
-                logging.warning(f'Incorrect full_scale value {properties.full_scale:5.3f}; '
+                logger.warning(f'Incorrect full_scale value {properties.full_scale:5.3f}; '
                                 f'Changed to {full_scale:5.3f} V')
                 properties.full_scale = full_scale
 
@@ -647,7 +649,7 @@ class SD_DIG(Instrument):
             power2decimation (int) : deprecated
         """
         if power2decimation:
-            logging.warning('digitizer power2decimation is deprecated')
+            logger.warning('digitizer power2decimation is deprecated')
 
         properties = self.channel_properties[f'ch{channel}']
         properties.active = True
@@ -655,7 +657,7 @@ class SD_DIG(Instrument):
         # find aproriate prescalor if needed
         if properties.acquisition_mode == MODES.NORMAL:
             if downsampled_rate is not None:
-                logging.warning(f'ch{channel} downsampled_rate is ignored in NORMAL mode')
+                logger.warning(f'ch{channel} downsampled_rate is ignored in NORMAL mode')
                 downsampled_rate = None
 
             prescaler = max(0, int(500e6/sample_rate -1))
@@ -666,7 +668,7 @@ class SD_DIG(Instrument):
                                   'M3102A frequency is limited to range [100..500] MHz')
             sample_rate = 500e6/(prescaler+1)
             if properties.sample_rate != sample_rate:
-                logging.info("Effective sampling frequency is set to {}Sa/s (prescaler = {})"
+                logger.info("Effective sampling frequency is set to {}Sa/s (prescaler = {})"
                              .format(si_format(sample_rate, precision=1), prescaler))
 
             points_per_cycle = int(t_measure*1e-9*sample_rate)
@@ -680,7 +682,7 @@ class SD_DIG(Instrument):
 
         else:
             if sample_rate != 500e6:
-                logging.warning(f'Sample rate is always 500 MSa/s in mode {properties.acquisition_mode}. '
+                logger.warning(f'Sample rate is always 500 MSa/s in mode {properties.acquisition_mode}. '
                                 f'Ignoring requested {sample_rate}')
 
             prescaler = 0
@@ -713,7 +715,7 @@ class SD_DIG(Instrument):
 
         if (properties.daq_points_per_cycle != daq_points_per_cycle
             or properties.daq_cycles != daq_cycles):
-            logging.debug(f'ch{channel} config: {daq_points_per_cycle}, {daq_cycles}')
+            logger.debug(f'ch{channel} config: {daq_points_per_cycle}, {daq_cycles}')
             check_error(self.SD_AIN.DAQconfig(channel, daq_points_per_cycle, daq_cycles,
                                               DAQ_trigger_delay, DAQ_trigger_mode), 'DAQconfig')
 
@@ -740,7 +742,7 @@ class SD_DIG(Instrument):
             mode: 1(trig high), 2 (trig low), 3 (raising edge), 4 (falling edge)
         """
 
-        logging.info('set ext trigger')
+        logger.info('set ext trigger')
 
         # Make sure input port is enabled
         self.SD_AIN.triggerIOconfig(1)
@@ -828,7 +830,7 @@ class SD_DIG(Instrument):
         properties.input_channel = input_channel if input_channel is not None else channel
 
         if properties.acquisition_mode == MODES.NORMAL:
-            logging.warning('Input channel selection has no effect when normal mode is selected')
+            logger.warning('Input channel selection has no effect when normal mode is selected')
         dig_set_input_channel(self.SD_AIN, channel, properties.input_channel)
 
     def set_demodulated_in(self, channel, phase, output_IQ):
@@ -877,12 +879,12 @@ class SD_DIG(Instrument):
         '''
         properties = self.channel_properties[f'ch{channel}']
         if properties.acquisition_mode == 0:
-            logging.warning(f'set_measurement_time_averaging() cannot be used in normal mode')
+            logger.warning(f'set_measurement_time_averaging() cannot be used in normal mode')
             return
 
         if properties.downsampled_rate is not None:
             # points_per_cycle cannot change without reconfiguring DAQ.
-            logging.warning(f'set_measurement_time_averaging() cannot be used when downsampling ')
+            logger.warning(f'set_measurement_time_averaging() cannot be used when downsampling ')
             return
 
         downsampling_factor = int(max(1, round(t_measure / 10)))
@@ -892,7 +894,7 @@ class SD_DIG(Instrument):
             properties.downsampling_factor = downsampling_factor
             properties.points_per_cycle = 1
             properties.t_measure = eff_t_measure
-            logging.debug(f'ch{channel} t_measure:{properties.t_measure}')
+            logger.debug(f'ch{channel} t_measure:{properties.t_measure}')
 
             dig_set_downsampler(self.SD_AIN, channel, downsampling_factor,
                                 properties.points_per_cycle)
@@ -920,7 +922,7 @@ class SD_DIG(Instrument):
         if Vmax is not None:
             v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
             print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
-        logging.info(f'set digitizer software')
+        logger.info(f'set digitizer software')
         self.set_data_handling_mode(data_mode)
 
         self.set_operating_mode(OPERATION_MODES.SOFT_TRG)
@@ -948,7 +950,7 @@ class SD_DIG(Instrument):
         if Vmax is not None:
             v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
             print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
-        logging.info(f'set digitizer analog')
+        logger.info(f'set digitizer analog')
         self.set_data_handling_mode(data_mode)
 
         self.set_operating_mode(OPERATION_MODES.ANALOG_TRG)
@@ -977,7 +979,7 @@ class SD_DIG(Instrument):
         if Vmax is not None:
             v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
             print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
-        logging.info(f'set digitizer HVI: {t_measure}, {downsampled_rate}, {channels}')
+        logger.info(f'set digitizer HVI: {t_measure}, {downsampled_rate}, {channels}')
         self.set_data_handling_mode(data_mode)
 
         self.set_operating_mode(OPERATION_MODES.HVI_TRG)

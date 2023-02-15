@@ -4,6 +4,8 @@ from functools import partial
 import logging
 from keysight_fpga.sd1.dig_iq import load_iq_image
 
+logger = logging.getLogger(__name__)
+
 class keysight_rfgen(Instrument):
     """
     Qcodes driver for the Keysight RF generation and demodulation.
@@ -38,7 +40,7 @@ class keysight_rfgen(Instrument):
         for (lo_key, (awg_name, channel, amp, freq, enab)) in awg_channel_los.items():
             lo = self.generate_lo(lo_key, awg_name, channel, amp, freq, enab)
 
-            logging.info(f'setting channel {channel} of awg {awg_name} as lo with id {lo}')
+            logger.info(f'setting channel {channel} of awg {awg_name} as lo with id {lo}')
 
             awg = self.awg_dict[awg_name]
             awg.set_lo_mode(channel, True)

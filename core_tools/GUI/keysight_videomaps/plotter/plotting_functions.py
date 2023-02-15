@@ -11,6 +11,8 @@ import logging
 from matplotlib import cm
 from .colors import polar_to_rgb, compress_range
 
+logger = logging.getLogger(__name__)
+
 # Get the colormap
 colormap = cm.get_cmap("viridis")  # cm.get_cmap("CMRmap")
 colormap._init()
@@ -145,7 +147,7 @@ class live_plot(live_plot_abs, QThread):
             self.plot_data.append(np.zeros([*shape]))
 
     def start(self):
-        logging.info('running start function in plotting_func')
+        logger.info('running start function in plotting_func')
         self.active = True
         self.plt_finished = False
         self.timer.setSingleShot(False)
@@ -229,7 +231,7 @@ class _1D_live_plot(live_plot):
             for i in range(len(self.plot_widgets)):
                 self.plot_widgets[i].plot_items[0].setData(self.x_data,self.plot_data[i])
         except:
-            logging.error(f'Plotting failed', exc_info=True)
+            logger.error(f'Plotting failed', exc_info=True)
             # slow down to reduce error burst
             time.sleep(0.5)
 
@@ -258,7 +260,7 @@ class _1D_live_plot(live_plot):
                 self.plot_data_valid = True
             except Exception as e:
                 self.plot_data_valid = True
-                logging.error(f'Exception: {e}', exc_info=True)
+                logger.error(f'Exception: {e}', exc_info=True)
                 print('frame dropped (check logging)')
                 # slow down to reduce error burst
                 time.sleep(0.5)
@@ -350,12 +352,12 @@ class _2D_live_plot(live_plot):
                     self.min_max[i].setText('           ')
                     img_item.setLookupTable(None)
                 else:
-                    logging.warning(f'Unknown gradient setting {self.gradient}')
+                    logger.warning(f'Unknown gradient setting {self.gradient}')
 
                 img_item.setImage(plot_data)
                 self.prog_bar.setValue(self.prog_per)
         except Exception as e:
-            logging.error(f'Exception plotting: {e}', exc_info=True)
+            logger.error(f'Exception plotting: {e}', exc_info=True)
             # slow down to reduce error burst
             time.sleep(0.5)
 
@@ -384,7 +386,7 @@ class _2D_live_plot(live_plot):
                 self.plot_data_valid = True
             except Exception as e:
                 self.plot_data_valid = True
-                logging.error(f'Exception: {e}', exc_info=True)
+                logger.error(f'Exception: {e}', exc_info=True)
                 # slow down to reduce error burst
                 time.sleep(0.5)
 

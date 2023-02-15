@@ -10,6 +10,8 @@ import logging
 
 import qcodes as qc
 
+logger = logging.getLogger(__name__)
+
 class virt_gate_matrix_GUI:
     def __init__(self, virtual_gate_name : Union[str, int] = 0,
                  invert : bool = False):
@@ -43,7 +45,7 @@ class virt_gate_matrix_GUI:
 
         if len(hw.virtual_gates) > self.virtual_gate_index:
             vg = hw.virtual_gates[self.virtual_gate_index]
-            logging.info(f'creating objects for index {self.virtual_gate_index}')
+            logger.info(f'creating objects for index {self.virtual_gate_index}')
             self.vg_matrix_model = vg_matrix_model(vg)
             self.vg_matrix_model._manipulate_callback = self.set_table_headers
 
@@ -60,7 +62,7 @@ class virt_gate_matrix_GUI:
 
         # grab directory from the import!
         filename = os.path.join(qml_in.__file__[:-12], "virt_gate_matrix_gui.qml")
-        logging.info(f'loading qml from {filename}')
+        logger.info(f'loading qml from {filename}')
         self.engine.load(QtCore.QUrl.fromLocalFile(filename))
         self.win = self.engine.rootObjects()[0]
 
@@ -82,7 +84,7 @@ class virt_gate_matrix_GUI:
     def set_table_headers(self):
         root_context=self.engine.rootContext()
         inverted = self._mat_inv_switch.property('checked')
-        logging.info(f'set_table_headers: mat_inv {inverted}')
+        logger.info(f'set_table_headers: mat_inv {inverted}')
 
         if inverted:
             root_context.setContextProperty('row_header_model', self.gates_header_model)

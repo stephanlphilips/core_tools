@@ -7,6 +7,8 @@ import pyqtgraph as pg
 import numpy as np
 import logging
 
+logger = logging.getLogger(__name__)
+
 class _2D_plot:
     def __init__(self, ds_descr, logmode=dict()):
         '''
@@ -60,7 +62,7 @@ class _2D_plot:
 
     def update(self):
         try:
-            # logging.info(f'updating {self.ds.name} {self.ds.y.name} vs {self.ds.x.name} ')
+            # logger.info(f'updating {self.ds.name} {self.ds.y.name} vs {self.ds.x.name} ')
             x = self.ds.x()*self.x_unit_scaler
             y = self.ds.y()*self.y_unit_scaler
 
@@ -119,7 +121,7 @@ class _2D_plot:
             self.img.setTransform(tr)
             self.plot.setLogMode(x=self.logmode['x'], y=self.logmode['y'])
         except Exception:
-            logging.error("Error in plot update", exc_info=True)
+            logger.error("Error in plot update", exc_info=True)
 
     def detect_log_mode(self, data):
         args = np.argwhere(np.isfinite(data)).T[0]
@@ -166,7 +168,7 @@ class _2D_plot:
                     si_format(x, 3) + format_unit(ds.x.unit),
                     value_formatted + format_unit(ds.unit)))
         except:
-            logging.error('Error mouse move', exc_info=True)
+            logger.error('Error mouse move', exc_info=True)
 
 
 

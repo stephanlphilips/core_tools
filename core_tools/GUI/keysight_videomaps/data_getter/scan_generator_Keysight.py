@@ -14,6 +14,7 @@ from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
 from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
 from .iq_modes import iq_mode2numpy
 
+logger = logging.getLogger(__name__)
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
                            dig_samplerate, dig_vmax=None, iq_mode=None, acquisition_delay_ns=500,
@@ -55,7 +56,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     """
     if dig_vmax is not None:
         print(f'Parameter dig_vmax is deprecated.')
-    logging.info(f'Construct 1D: {gate}')
+    logger.info(f'Construct 1D: {gate}')
 
     vp = swing/2
     line_margin = int(line_margin)
@@ -71,7 +72,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     min_step_eff = 200 if not add_line_delay else 350
     if step_eff < min_step_eff:
         msg = f'Measurement time too short. Minimum is {t_step + min_step_eff-step_eff}'
-        logging.error(msg)
+        logger.error(msg)
         raise Exception(msg)
 
     n_ptx = n_pt + 2*line_margin
@@ -155,7 +156,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     my_seq.sample_rate = sample_rate
     my_seq.configure_digitizer = False
 
-    logging.info(f'Upload')
+    logger.info(f'Upload')
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
@@ -206,14 +207,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     """
     if dig_vmax is not None:
         print(f'Parameter dig_vmax is deprecated.')
-    logging.info(f'Construct 2D: {gate1} {gate2}')
+    logger.info(f'Construct 2D: {gate1} {gate2}')
 
     # set up timing for the scan
     step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
 
     if step_eff < 200:
         msg = f'Measurement time too short. Minimum is {t_step + 200-step_eff}'
-        logging.error(msg)
+        logger.error(msg)
         raise Exception(msg)
 
     line_margin = int(line_margin)
@@ -323,14 +324,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
-    logging.info(f'Add HVI')
+    logger.info(f'Add HVI')
     my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer,
                                               acquisition_delay_ns=acquisition_delay_ns))
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
     my_seq.configure_digitizer = False
 
-    logging.info(f'Seq upload')
+    logger.info(f'Seq upload')
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
@@ -408,7 +409,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
         if iq_mode is not None:
             if channel_map is not None:
-                logging.warning('iq_mode is ignored when channel_map is also specified')
+                logger.warning('iq_mode is ignored when channel_map is also specified')
             elif isinstance(iq_mode, str):
                 self.channel_map = {f'ch{i}':(i, iq_mode2numpy[iq_mode]) for i in channels}
             else:
@@ -423,13 +424,13 @@ class _digitzer_scan_parameter(MultiParameter):
         self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
                                    data_mode = self.data_mode, channels = self.channels)
 
-        logging.info(f'Play')
+        logger.info(f'Play')
         start = time.perf_counter()
         # play sequence
         self.my_seq.play(release=False)
         start2 = time.perf_counter()
         self.pulse_lib.uploader.wait_until_AWG_idle()
-        logging.info(f'AWG idle after {(time.perf_counter()-start)*1000:3.1f} ms, ({(time.perf_counter()-start2)*1000:3.1f} ms)')
+        logger.info(f'AWG idle after {(time.perf_counter()-start)*1000:3.1f} ms, ({(time.perf_counter()-start2)*1000:3.1f} ms)')
 
         # get the data
         raw = self.dig.measure()
@@ -452,7 +453,7 @@ class _digitzer_scan_parameter(MultiParameter):
             ch_data = data[self.channels.index(ch)]
             data_out.append(func(ch_data))
 
-        logging.info(f'Done')
+        logger.info(f'Done')
         return tuple(data_out)
 
     def restart(self):
@@ -460,7 +461,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def stop(self):
         if not self.my_seq is None and not self.pulse_lib is None:
-            logging.info('stop: release memory')
+            logger.info('stop: release memory')
             # remove pulse sequence from the AWG's memory, unload schedule and free memory.
             self.my_seq.close()
             self.my_seq = None
@@ -469,7 +470,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def __del__(self):
         if not self.my_seq is None and not self.pulse_lib is None:
-            logging.error(f'Cleanup in __del__(); Call stop()!')
+            logger.error(f'Cleanup in __del__(); Call stop()!')
             self.stop()
 
 if __name__ == '__main__':

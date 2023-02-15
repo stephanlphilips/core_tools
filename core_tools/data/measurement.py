@@ -30,6 +30,9 @@ import numpy as np
 import copy
 import logging
 
+logger = logging.getLogger(__name__)
+
+
 class Measurement:
     '''
     class used to describe a measurement.
@@ -129,7 +132,7 @@ class Measurement:
         try:
             self.snapshot[param.name] = param.snapshot()
         except:
-            logging.error(f'Parameter snapshot failed', exc_info=True)
+            logger.error(f'Parameter snapshot failed', exc_info=True)
 
     def add_snapshot(self, name, snapshot):
         self.snapshot[name] = snapshot

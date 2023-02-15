@@ -8,6 +8,9 @@ import psycopg2
 import time
 import logging
 
+logger = logging.getLogger(__name__)
+
+
 class SQL_database_init:
     conn_local = None
     conn_remote = None
@@ -56,7 +59,7 @@ class SQL_database_manager(SQL_database_init):
                 or db_mgr.conn_remote is None or db_mgr.conn_remote.closed):
                 db_mgr._disconnect()
                 SQL_database_manager.__instance = None
-                logging.warning('Closed connections. Retry connection.')
+                logger.warning('Closed connections. Retry connection.')
 
         if SQL_database_manager.__instance is None:
             SQL_database_manager.__instance = object.__new__(cls)
@@ -64,7 +67,7 @@ class SQL_database_manager(SQL_database_init):
             try:
                 SQL_database_init._connect(db_mgr)
             except Exception:
-                logging.error('Failed to connect to database', exc_info=True)
+                logger.error('Failed to connect to database', exc_info=True)
                 # could not connect, for example wrong password, reset class instance
                 SQL_database_manager.__instance = None
                 raise
@@ -143,7 +146,7 @@ class SQL_sync_manager(SQL_database_init):
 
     def log(self, message):
         print(message)
-        logging.info(message)
+        logger.info(message)
 
 if __name__ == '__main__':
     from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage

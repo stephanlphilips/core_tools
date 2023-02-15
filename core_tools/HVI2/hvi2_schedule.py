@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jun 16 15:49:54 2020
-@author: sdesnoo
-"""
 import logging
 
 from pulse_lib.schedule.hardware_schedule import HardwareSchedule
@@ -13,6 +8,8 @@ from hvi2_script.system import HviSystem
 from hvi2_script.sequencer import HviSequencer
 import keysightSD1 as SD1
 import uuid
+
+logger = logging.getLogger(__name__)
 
 class Hvi2Schedule(HardwareSchedule):
     verbose = False
@@ -64,7 +61,7 @@ class Hvi2Schedule(HardwareSchedule):
             dig.daq_flush_multiple(0b1111)
 
     def compile(self):
-        logging.info(f"Build HVI2 schedule with script '{self.script.name}'")
+        logger.info(f"Build HVI2 schedule with script '{self.script.name}'")
         hvi_system = HviSystem()
         for awg in self.hardware.awgs:
             sd_aou = awg.awg
@@ -81,12 +78,12 @@ class Hvi2Schedule(HardwareSchedule):
         self.sequencer = sequencer
         self.script.sequence(sequencer, self.hardware)
         if self.verbose:
-            logging.debug(f"Script '{self.script.name}':\n" + self.sequencer.describe())
+            logger.debug(f"Script '{self.script.name}':\n" + self.sequencer.describe())
 
         try:
             self.hvi_exec = self.sequencer.compile()
         except:
-            logging.error(f"Exception in compilation of '{self.script.name}'", exc_info=True)
+            logger.error(f"Exception in compilation of '{self.script.name}'", exc_info=True)
             raise
 
     def is_loaded(self):
@@ -94,7 +91,7 @@ class Hvi2Schedule(HardwareSchedule):
 
     def load(self):
         if self._is_loaded:
-            logging.info(f'HVI2 schedule already loaded')
+            logger.info(f'HVI2 schedule already loaded')
             return
 
         self.hardware.release_schedule()
@@ -103,16 +100,16 @@ class Hvi2Schedule(HardwareSchedule):
         if self.hvi_exec is None:
             self.compile()
 
-        logging.info(f"Load HVI2 schedule with script '{self.script.name}' (id:{self.hvi_id})")
+        logger.info(f"Load HVI2 schedule with script '{self.script.name}' (id:{self.hvi_id})")
         self.hardware.set_schedule(self)
         self._might_be_loaded = True
         self.hvi_exec.load()
         if self.hvi_exec.is_running():
-            logging.warning(f'HVI running after load; attempting to stop HVI and modules')
+            logger.warning(f'HVI running after load; attempting to stop HVI and modules')
             self.hvi_exec.stop()
             self.reconfigure_modules()
             if self.hvi_exec.is_running():
-                logging.eror(f'Still Running after stop')
+                logger.eror(f'Still Running after stop')
         self._is_loaded = True
 
     def unload(self):
@@ -122,7 +119,7 @@ class Hvi2Schedule(HardwareSchedule):
             self.script.stop(self.hvi_exec)
             self._is_loaded = False
         if self._might_be_loaded:
-            logging.info(f"Unload HVI2 schedule with script'{self.script.name}' (id:{self.hvi_id})")
+            logger.info(f"Unload HVI2 schedule with script'{self.script.name}' (id:{self.hvi_id})")
             self.hvi_exec.unload()
             self._might_be_loaded = False
             self.hardware.release_schedule()
@@ -133,7 +130,7 @@ class Hvi2Schedule(HardwareSchedule):
     def start(self, waveform_duration, n_repetitions, sequence_variables):
         hvi_params = {**self.schedule_parms, **sequence_variables}
         if self.verbose:
-            logging.debug(f'start: {hvi_params}')
+            logger.debug(f'start: {hvi_params}')
         self.script.start(self.hvi_exec, waveform_duration, n_repetitions, hvi_params)
 
     def stop(self):
@@ -146,7 +143,7 @@ class Hvi2Schedule(HardwareSchedule):
     def __del__(self):
         if self._is_loaded:
             try:
-                logging.warning(f'Automatic close of Hvi2Schedule in __del__()')
+                logger.warning(f'Automatic close of Hvi2Schedule in __del__()')
 #                self.unload()
             except:
-                logging.error(f'Exception unloading HVI', exc_info=True)
+                logger.error(f'Exception unloading HVI', exc_info=True)

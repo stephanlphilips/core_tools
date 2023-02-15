@@ -12,6 +12,7 @@ from qcodes import MultiParameter
 
 from .iq_modes import iq_mode2numpy
 
+logger = logging.getLogger(__name__)
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
                            digitizer=None, channels=None, dig_samplerate=None,
@@ -52,7 +53,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-    logging.info(f'Construct 1D: {gate}')
+    logger.info(f'Construct 1D: {gate}')
 
     vp = swing/2
     line_margin = int(line_margin)
@@ -63,7 +64,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
 
     if t_step < 1000:
         msg = f'Measurement time too short. Minimum is 1000'
-        logging.error(msg)
+        logger.error(msg)
         raise Exception(msg)
 
     n_ptx = n_pt + 2*line_margin
@@ -117,7 +118,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     # Note: set average repetitions to retrieve 1D array with channel data
     my_seq.set_acquisition(t_measure=t_step, channels=acq_channels, average_repetitions=True)
 
-    logging.info(f'Upload')
+    logger.info(f'Upload')
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
@@ -167,7 +168,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-    logging.info(f'Construct 2D: {gate1} {gate2}')
+    logger.info(f'Construct 2D: {gate1} {gate2}')
 
     # set up timing for the scan
     acquisition_delay = max(100, acquisition_delay_ns)
@@ -175,7 +176,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     if t_step < 1000:
         msg = f'Measurement time too short. Minimum is 1000'
-        logging.error(msg)
+        logger.error(msg)
         raise Exception(msg)
 
     if channels is None:
@@ -263,7 +264,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     # Note: set average repetitions to retrieve 1D array with channel data
     my_seq.set_acquisition(t_measure=t_step, channels=acq_channels, average_repetitions=True)
 
-    logging.info(f'Seq upload')
+    logger.info(f'Seq upload')
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
@@ -329,7 +330,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
         if iq_mode is not None:
             if channel_map is not None:
-                logging.warning('iq_mode is ignored when channel_map is also specified')
+                logger.warning('iq_mode is ignored when channel_map is also specified')
             elif isinstance(iq_mode, str):
                 self.channel_map = {f'ch{i}':(i, iq_mode2numpy[iq_mode]) for i in channels}
             else:
@@ -341,11 +342,11 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def get_raw(self):
 
-        logging.info(f'Play')
+        logger.info(f'Play')
         start = time.perf_counter()
         # play sequence
         self.my_seq.play(release = False)
-        logging.info(f'Idle after {(time.perf_counter()-start)*1000:3.1f} ms')
+        logger.info(f'Idle after {(time.perf_counter()-start)*1000:3.1f} ms')
         raw_dict = self.my_seq.get_channel_data()
 
         # Reorder data for bias-T correction
@@ -366,7 +367,7 @@ class _digitzer_scan_parameter(MultiParameter):
             ch_data = data[ch]
             data_out.append(func(ch_data))
 
-        logging.info(f'Done')
+        logger.info(f'Done')
         return tuple(data_out)
 
     def restart(self):
@@ -374,7 +375,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def stop(self):
         if not self.my_seq is None and not self.pulse_lib is None:
-            logging.info('stop: release memory')
+            logger.info('stop: release memory')
             # remove pulse sequence from the AWG's memory, unload schedule and free memory.
             self.my_seq.close()
             self.my_seq = None
@@ -383,6 +384,6 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def __del__(self):
         if not self.my_seq is None and not self.pulse_lib is None:
-            logging.error(f'Cleanup in __del__(); Call stop()!')
+            logger.error(f'Cleanup in __del__(); Call stop()!')
             self.stop()
 

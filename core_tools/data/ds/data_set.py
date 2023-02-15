@@ -6,6 +6,9 @@ import json
 import qcodes as qc
 from qcodes.utils.helpers import NumpyJSONEncoder
 
+logger = logging.getLogger(__name__)
+
+
 def load_by_id(exp_id):
     '''
     load a dataset by specifying its id (search in local db)
@@ -46,7 +49,7 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
         station_snapshot = qc.Station.default.snapshot()
         snapshot = {'station': station_snapshot}
     else:
-        logging.error('No station configured')
+        logger.error('No station configured')
         snapshot = {'station': None}
 
     # intialize the buffers for the measurement

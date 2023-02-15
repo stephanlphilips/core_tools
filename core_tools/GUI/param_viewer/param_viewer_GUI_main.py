@@ -8,6 +8,8 @@ from ..qt_util import qt_log_exception
 
 import logging
 
+logger = logging.getLogger(__name__)
+
 @dataclass
 class param_data_obj:
     param_parameter : any
@@ -60,7 +62,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                 for ks_param in self.keysight_rf.all_params:
                     self._add_RFset(ks_param)
             except Exception as e:
-                logging.error(f'Failed to add keysight RF {e}')
+                logger.error(f'Failed to add keysight RF {e}')
 
         # add real gates
         for gate_name in self.gates_object.hardware.dac_gate_map.keys():
@@ -214,13 +216,13 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     @qt_log_exception
     def _set_gate(self, gate, value, voltage_input):
         if self.locked:
-            logging.warning(f'Not changing voltage, ParameterViewer is locked!')
+            logger.warning(f'Not changing voltage, ParameterViewer is locked!')
             # Note value will be restored by _update_parameters
             return
 
         delta = abs(value() - gate())
         if self.max_diff is not None and delta > self.max_diff:
-            logging.warning(f'Not setting {gate} to {value():.1f}mV. '
+            logger.warning(f'Not setting {gate} to {value():.1f}mV. '
                             f'Difference {delta:.0f} mV > {self.max_diff:.0f} mV')
             return
 
@@ -229,15 +231,15 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             new_text = voltage_input.text()
             current_text = voltage_input.textFromValue(last_value)
             if new_text != current_text:
-                logging.info(f'GUI value changed: set gate {gate.name} {current_text} -> {new_text}')
+                logger.info(f'GUI value changed: set gate {gate.name} {current_text} -> {new_text}')
                 gate.set(value())
         except Exception as ex:
-            logging.error(f'Failed to set gate {gate} to {value()}: {ex}')
+            logger.error(f'Failed to set gate {gate} to {value()}: {ex}')
 
 
     @qt_log_exception
     def _set_set(self, setting, value, division):
-        logging.info(f'setting {setting} to {value():.1f} times {division:.1f}')
+        logger.info(f'setting {setting} to {value():.1f} times {division:.1f}')
         setting.set(value()*division)
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
         self.gates_object.hardware.sync_data()
@@ -289,12 +291,12 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                         current_text = gui_input.text()
                         new_text = gui_input.textFromValue(new_value)
                         if current_text != new_text:
-                            logging.info(f'Update GUI {param.param_parameter.name} {current_text} -> {new_text}')
+                            logger.info(f'Update GUI {param.param_parameter.name} {current_text} -> {new_text}')
                             gui_input.setValue(new_value)
                 elif isinstance(param.gui_input_param, QtWidgets.QCheckBox):
                     param.gui_input_param.setChecked(param.param_parameter())
             except:
-                logging.error(f'Error updating {param}', exc_info=True)
+                logger.error(f'Error updating {param}', exc_info=True)
 
 
 

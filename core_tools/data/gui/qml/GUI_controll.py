@@ -9,6 +9,8 @@ from core_tools.data.ds.data_set import load_by_uuid
 from core_tools.data.gui.plot_mgr import data_plotter
 from core_tools.data.gui.data_browser_models.result_table_data_class import m_result_overview
 
+logger = logging.getLogger(__name__)
+
 def if_any_to_none(arg):
     if arg == "any":
         return None
@@ -47,7 +49,7 @@ class DataFilter:
         if project is None or project in self._projects:
             self.project = project
         else:
-            logging.warning(f'Project {project} not in list')
+            logger.warning(f'Project {project} not in list')
             print(f'Project {project} not in list')
             self.project = None
         self._update_lists()
@@ -57,7 +59,7 @@ class DataFilter:
         if set_up is None or set_up in self._set_ups:
             self.set_up = set_up
         else:
-            logging.warning(f'Set-up {set_up} not in list')
+            logger.warning(f'Set-up {set_up} not in list')
             print(f'Set-up {set_up} not in list')
             self.set_up = None
         self._update_lists()
@@ -67,7 +69,7 @@ class DataFilter:
         if sample is None or sample in self._samples:
             self.sample = sample
         else:
-            logging.warning(f'Sample {sample} not in list')
+            logger.warning(f'Sample {sample} not in list')
             print(f'Sample {sample} not in list')
             self.sample = None
         self._update_lists()
@@ -200,7 +202,7 @@ class signale_handler(QtQuick.QQuickView):
         try:
             ds = load_by_uuid(uuid)
         except Exception:
-            logging.error(f'Failed to load dataset {uuid}', exc_info=True)
+            logger.error(f'Failed to load dataset {uuid}', exc_info=True)
             return
         p = data_plotter(ds)
         self.plots.append(p)

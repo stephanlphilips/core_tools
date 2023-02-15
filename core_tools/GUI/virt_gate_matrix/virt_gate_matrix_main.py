@@ -5,6 +5,7 @@ from ..qt_util import qt_log_exception
 import logging
 import numpy as np
 
+logger = logging.getLogger(__name__)
 
 class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
     """docstring for virt_gate_matrix_GUI"""
@@ -283,13 +284,13 @@ s        Creates a lambda expression to update the matrix.
 
     @qt_log_exception
     def normalize(self, virtual_gate_set, refresh):
-        logging.info(f'Normalize {virtual_gate_set.name}')
+        logger.info(f'Normalize {virtual_gate_set.name}')
         virtual_gate_set.normalize()
         refresh()
 
     @qt_log_exception
     def reverse_normalize(self, virtual_gate_set, refresh):
-        logging.info(f'Reverse normalize {virtual_gate_set.name}')
+        logger.info(f'Reverse normalize {virtual_gate_set.name}')
         virtual_gate_set.reverse_normalize()
         refresh()
 

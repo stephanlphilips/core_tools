@@ -1,10 +1,11 @@
-from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets
-import core_tools.utility.variable_mgr.qml as qml_in
+from PyQt5 import QtCore, QtQuick
 from dataclasses import dataclass
 
 import numpy as np
-import os, sys
+import os
 import logging
+
+logger = logging.getLogger(__name__)
 
 os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
 
@@ -99,14 +100,14 @@ class singal_hander_4_variable_exporer(QtQuick.QQuickView):
         try:
             val_step_pair = self.model_4_name_values[name]
             val_step_pair.value = val_step_pair.value + sign*val_step_pair.step
-    
+
             precision = int(-np.log10(val_step_pair.step) + 5)
             if precision > 0:
                 val_step_pair.value = np.round(val_step_pair.value, precision)
-    
+
             self.model_4_name_values.update_data(name, val_step_pair.value, True)
         except:
-            logging.error(f"Couldn't update {name}", exc_info=True)
+            logger.error(f"Couldn't update {name}", exc_info=True)
 
     @QtCore.pyqtSlot('int')
     def update_tab(self, tab):
@@ -120,7 +121,7 @@ class singal_hander_4_variable_exporer(QtQuick.QQuickView):
     def set_categories(self, categories):
         self.categories = categories
         self.model_4_categories.reset_data(self.categories)
-    
+
     # external_updates
     def set_data(self):
         tab = self.selected_tab

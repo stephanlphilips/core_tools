@@ -2,6 +2,8 @@ import logging
 
 from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
 
+logger = logging.getLogger(__name__)
+
 class Hvi2ContinuousMode():
     verbose = True
 
@@ -81,5 +83,5 @@ class Hvi2ContinuousMode():
     def stop(self, hvi_exec):
         for awg in self.hardware.awgs:
             awg.awg_stop_multiple(0b1111)
-        logging.info(f'stop HVI')
+        logger.info(f'stop HVI')
 

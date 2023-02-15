@@ -1,13 +1,13 @@
 import core_tools.data.gui.ui_files.plotter_basic_autgen as plotter_basic_autgen
 from core_tools.data.gui.generate_mparam_ui_box import single_m_param_m_descriptor
-from PyQt5 import QtCore, QtGui, QtWidgets
-import sys
+from PyQt5 import QtCore, QtWidgets
 import logging
 from datetime import datetime, timedelta
 
 from core_tools.data.gui.plots._1D_plotting import _1D_plot
 from core_tools.data.gui.plots._2D_plotting import _2D_plot
 
+logger = logging.getLogger(__name__)
 
 class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
     def __init__(self, ds):
@@ -42,7 +42,7 @@ class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
             if self.instance_ready == False:
                 self.app.exec()
         except:
-            logging.error(f'Data plotter', exc_info=True)
+            logger.error(f'Data plotter', exc_info=True)
 
     def closeEvent(self, event):
         self.alive = False
@@ -119,18 +119,8 @@ class ui_box_mgr():
             try:
                 plot.update()
             except:
-                logging.error(f'Plot update failed', exc_info=True)
+                logger.error(f'Plot update failed', exc_info=True)
 
     def close(self):
         self.timer.stop()
 
-if __name__ == '__main__':
-    from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
-    from core_tools.data.ds.data_set import load_by_uuid, load_by_id
-    import sys
-    import datetime
-    # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
-
-    ds = load_by_id(307)
-    p = data_plotter(ds)

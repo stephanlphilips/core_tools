@@ -15,6 +15,7 @@ try:
 except:
     pass
 
+logger = logging.getLogger(__name__)
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
                            dig_samplerate, dig_vmax=None, iq_mode=None, acquisition_delay_ns=None,
@@ -56,7 +57,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     """
     if dig_vmax is not None:
         print(f'Parameter dig_vmax is deprecated.')
-    logging.info(f'Construct 1D: {gate}')
+    logger.info(f'Construct 1D: {gate}')
 
     vp = swing/2
     line_margin = int(line_margin)
@@ -73,7 +74,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     min_step_eff = 200 if not add_line_delay else 350
     if step_eff < min_step_eff:
         msg = f'Measurement time too short. Minimum is {t_step + min_step_eff-step_eff}'
-        logging.error(msg)
+        logger.error(msg)
         raise Exception(msg)
 
     n_ptx = n_pt + 2*line_margin
@@ -144,7 +145,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
-    logging.info(f'Upload')
+    logger.info(f'Upload')
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, acquisition_delay_ns, n_lines, line_delay_pts,
@@ -195,7 +196,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     """
     if dig_vmax is not None:
         print(f'Parameter dig_vmax is deprecated.')
-    logging.info(f'Construct 2D: {gate1} {gate2}')
+    logger.info(f'Construct 2D: {gate1} {gate2}')
 
     # set up timing for the scan
     if not acquisition_delay_ns:
@@ -204,7 +205,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     if step_eff < 200:
         msg = f'Measurement time too short. Minimum is {t_step + 200-step_eff}'
-        logging.error(msg)
+        logger.error(msg)
         raise Exception(msg)
 
     line_margin = int(line_margin)
@@ -301,7 +302,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
-    logging.info(f'Seq upload')
+    logger.info(f'Seq upload')
     my_seq.upload()
 
     n_lines = n_pt2
@@ -402,7 +403,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
         if iq_mode is not None:
             if channel_map is not None:
-                logging.warning('iq_mode is ignored when channel_map is also specified')
+                logger.warning('iq_mode is ignored when channel_map is also specified')
             elif isinstance(iq_mode, str):
                 self.channel_map = {f'ch{i+1}':(i, iq_mode2numpy[iq_mode]) for i in channels}
             else:
@@ -413,7 +414,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def get_raw(self):
         start = time.perf_counter()
-        logging.info('Play')
+        logger.info('Play')
         # play sequence
         self.my_seq.play(release=False)
 
@@ -423,7 +424,7 @@ class _digitzer_scan_parameter(MultiParameter):
         pretrigger = self.dig.pretrigger_memory_size()
 
         duration = (time.perf_counter() - start)*1000
-        logging.info(f'Acquired ({duration:5.1f} ms)')
+        logger.info(f'Acquired ({duration:5.1f} ms)')
 
         point_data = np.zeros((len(self.channels), self.n_points))
 
@@ -442,7 +443,7 @@ class _digitzer_scan_parameter(MultiParameter):
                 idata = ipt + iline * points_per_line
                 point_data[:,idata] = np.mean(sample_data, axis=1) * 1000
         duration = (time.perf_counter() - start)*1000
-        logging.info(f'Averaged ({duration:5.1f} ms)')
+        logger.info(f'Averaged ({duration:5.1f} ms)')
 
 
         # Reorder data for bias-T correction
@@ -464,7 +465,7 @@ class _digitzer_scan_parameter(MultiParameter):
             data_out.append(func(ch_data))
 
         duration = (time.perf_counter() - start)*1000
-        logging.info(f'Done ({duration:5.1f} ms)')
+        logger.info(f'Done ({duration:5.1f} ms)')
         return tuple(data_out)
 
     def restart(self):
@@ -473,7 +474,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def stop(self):
         if not self.my_seq is None and not self.pulse_lib is None:
-            logging.info('stop: release memory')
+            logger.info('stop: release memory')
             # remove pulse sequence from the AWG's memory, unload schedule and free memory.
             self.my_seq.close()
             self.my_seq = None
@@ -481,6 +482,6 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def __del__(self):
         if not self.my_seq is None and not self.pulse_lib is None:
-            logging.warning(f'Cleanup in __del__(); Call stop()!')
+            logger.warning(f'Cleanup in __del__(); Call stop()!')
             self.stop()
 

@@ -8,6 +8,8 @@ from pulse_lib.sequencer import sequencer
 from core_tools.sweeps.sweep_utility import KILL_EXP
 from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 
+logger = logging.getLogger(__name__)
+
 class Break(Exception):
     # TODO @@@ allow loop parameter to break to
     def __init__(self, msg, loops=None):
@@ -172,18 +174,18 @@ class Scan:
                 runner.run(self.reset_param, self.silent)
             duration = time.perf_counter() - start
             n_tot = np.prod(self.loop_shape) if len(self.loop_shape) > 0 else 1
-            logging.info(f'Total duration: {duration:5.2f} s ({duration/n_tot*1000:5.1f} ms/pt)')
+            logger.info(f'Total duration: {duration:5.2f} s ({duration/n_tot*1000:5.1f} ms/pt)')
         except Break as b:
-            logging.warning(f'Measurement break: {b}')
+            logger.warning(f'Measurement break: {b}')
         except KILL_EXP:
             # Note: KILL is used by job mgmnt
-            logging.warning('Measurement aborted')
+            logger.warning('Measurement aborted')
         except KeyboardInterrupt:
-            logging.warning('Measurement interrupted')
+            logger.warning('Measurement interrupted')
             raise KeyboardInterrupt('Measurement interrupted') from None
         except Exception as ex:
             print(f'\n*** ERROR in measurement: {ex}')
-            logging.error('Exception in measurement', exc_info=True)
+            logger.error('Exception in measurement', exc_info=True)
             raise
 
         return self.meas.dataset
@@ -228,7 +230,7 @@ class Runner:
             msg = f'Measurement stopped at {last_index}'
             if not silent:
                 print('\n'+msg, flush=True)
-            logging.info(msg)
+            logger.info(msg)
             raise
         finally:
             if self.pbar is not None:
@@ -249,7 +251,7 @@ class Runner:
                 try:
                     param(value)
                 except:
-                    logging.error(f'Failed to reset parameter {param.name}')
+                    logger.error(f'Failed to reset parameter {param.name}')
 
     def _loop(self, iaction=0, iparam=0):
         if iaction == len(self._actions):
@@ -321,5 +323,5 @@ class Runner:
                 for i,action in enumerate(self._actions)
                 }
             t_store = self._store_duration*1000/n
-            logging.debug(f'npt:{n} actions: {t_actions} store:{t_store:5.1f} ms')
+            logger.debug(f'npt:{n} actions: {t_actions} store:{t_store:5.1f} ms')
 

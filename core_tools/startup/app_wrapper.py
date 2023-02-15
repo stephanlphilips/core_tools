@@ -4,6 +4,8 @@ import sys
 
 from core_tools.startup.config import load_configuration
 
+logger = logging.getLogger(__name__)
+
 # reference to running data_browser to avoid diposal and garbage collection
 _browser_instance = None
 
@@ -32,7 +34,7 @@ def run_app(name, app_init, app_main):
     try:
         app_main()
     except:
-        logging.error("Fatal exception", exc_info=True)
+        logger.error("Fatal exception", exc_info=True)
         raise
 
 
@@ -85,7 +87,7 @@ def _configure_logging(cfg, app_name):
     file_handler.setFormatter(logging.Formatter(file_format))
     root_logger.addHandler(file_handler)
 
-    logging.info(f'Start {app_name} logging')
+    logger.info(f'Start {app_name} logging')
 
     for name in ['matplotlib', 'h5py', 'qcodes']:
         logging.getLogger(name).setLevel(logging.INFO)

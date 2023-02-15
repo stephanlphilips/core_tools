@@ -11,18 +11,20 @@ from keysight_fpga.sd1.fpga_utils import (
     )
 from keysight_fpga.sd1.dig_iq import get_iq_image_filename, is_iq_image_loaded, FpgaDownsamplerExtension
 
+logger = logging.getLogger(__name__)
+
 try:
     from keysight_fpga.qcodes.M3202A_qs import FpgaAwgSequencerExtension
     add_awg_sequencer = True
 except:
-    logging.info('No AWG sequencer extensions imported')
+    logger.info('No AWG sequencer extensions imported')
     add_awg_sequencer = False
 
 try:
     from keysight_fpga.qcodes.M3102A_qs import FpgaDigSequencerExtension
     add_dig_sequencer = True
 except:
-    logging.info('No digitizer sequencer extensions imported')
+    logger.info('No digitizer sequencer extensions imported')
     add_dig_sequencer = False
 
 def get_awg_image_filename(module):
@@ -31,7 +33,7 @@ def get_awg_image_filename(module):
 
 def add_extensions(hvi_system):
     for awg_engine in hvi_system.get_engines(module_type='awg'):
-        logging.info(f'Adding {awg_engine.name} extensions')
+        logger.info(f'Adding {awg_engine.name} extensions')
         awg = awg_engine.module
         if has_fpga_info(awg):
             image_id, version_date, clock_frequency = get_fpga_info(awg)
@@ -39,7 +41,7 @@ def add_extensions(hvi_system):
                 bitstream = os.path.join(get_fpga_image_path(awg), f'awg_sequencer_{image_id}.k7z')
             else:
                 bitstream = get_awg_image_filename(awg)
-            logging.info(f'{awg_engine.name} load symbols {bitstream}')
+            logger.info(f'{awg_engine.name} load symbols {bitstream}')
             awg_engine.load_fpga_symbols(bitstream)
             awg_engine.add_extension('sys', FpgaSysExtension)
             awg_engine.add_extension('log', FpgaLogExtension)
@@ -60,14 +62,14 @@ def add_extensions(hvi_system):
             awg_engine.add_extension('log', FpgaNoLogExtension)
 
     for dig_engine in hvi_system.get_engines(module_type='digitizer'):
-        logging.info(f'Adding {dig_engine.name} extensions')
+        logger.info(f'Adding {dig_engine.name} extensions')
         digitizer = dig_engine.module
         if not is_iq_image_loaded(digitizer):
-            logging.warn(f'downsampler-iq FPGA image not loaded')
+            logger.warn(f'downsampler-iq FPGA image not loaded')
 
         if has_fpga_info(digitizer):
             dig_bitstream = get_iq_image_filename(digitizer)
-            logging.info(f'{dig_engine.name} load symbols {dig_bitstream}')
+            logger.info(f'{dig_engine.name} load symbols {dig_bitstream}')
             dig_engine.load_fpga_symbols(dig_bitstream)
             dig_engine.add_extension('sys', FpgaSysExtension)
             dig_engine.add_extension('log', FpgaLogExtension)

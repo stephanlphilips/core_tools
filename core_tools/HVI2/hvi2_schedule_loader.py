@@ -1,6 +1,3 @@
-"""
-@author: sdesnoo
-"""
 import logging
 from typing import List, Union
 from collections.abc import Iterable
@@ -10,12 +7,13 @@ from pulse_lib.schedule.hardware_schedule import HardwareSchedule
 
 from core_tools.drivers.M3102A import SD_DIG
 
-
 from .scheduler_hardware import default_scheduler_hardware
 from .hvi2_single_shot import Hvi2SingleShot
 from .hvi2_video_mode import Hvi2VideoMode
 from .hvi2_continuous_mode import Hvi2ContinuousMode
 from .hvi2_schedule import Hvi2Schedule
+
+logger = logging.getLogger(__name__)
 
 # TODO: make scheduler into QCoDeS instrument. This solves closing and reloading issues.
 class Hvi2ScheduleLoader(HardwareSchedule):
@@ -74,7 +72,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
     def close_all():
         n_schedules = len(Hvi2ScheduleLoader.schedule_cache)
         if n_schedules > 0:
-            logging.info(f'Closing and deleting {n_schedules} schedules')
+            logger.info(f'Closing and deleting {n_schedules} schedules')
         for entry in Hvi2ScheduleLoader.schedule_cache.values():
             entry.close()
         Hvi2ScheduleLoader.schedule_cache = {}
@@ -152,7 +150,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
 
     def load(self):
         if not self._configuration:
-            logging.warning('Cannot load schedule without configuration')
+            logger.warning('Cannot load schedule without configuration')
             return
         if not self._schedule:
             self._get_schedule()
@@ -182,7 +180,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
     def _get_script(self):
         for script_class in Hvi2ScheduleLoader.script_classes:
             if script_class.name == self._script_name:
-                logging.info(f'Create {self._script_name} {self._configuration}')
+                logger.info(f'Create {self._script_name} {self._configuration}')
                 return script_class(self._configuration)
         raise ValueError(f"Unknown script '{self._script_name}'")
 

@@ -3,6 +3,8 @@ import logging
 from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
 from core_tools.drivers.M3102A import MODES
 
+logger = logging.getLogger(__name__)
+
 class Hvi2VideoMode():
     verbose = True
 
@@ -232,5 +234,5 @@ class Hvi2VideoMode():
 
 
     def stop(self, hvi_exec):
-        logging.info(f'stop HVI')
+        logger.info(f'stop HVI')
 

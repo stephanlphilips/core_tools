@@ -7,6 +7,9 @@ import numpy as np
 import copy
 import logging
 
+logger = logging.getLogger(__name__)
+
+
 class gates(qc.Instrument):
     """
     gates class, generate qcodes parameters for the real gates and the virtual gates
@@ -31,7 +34,7 @@ class gates(qc.Instrument):
         super(gates, self).__init__(name)
 
         if not isinstance(hardware, hw_parent):
-            logging.info('Detected old hardware class')
+            logger.info('Detected old hardware class')
 
         self.hardware = hardware
         self.dac_sources = dac_sources
@@ -82,10 +85,10 @@ class gates(qc.Instrument):
 
         if gate_name in self.dc_gain:
             dac_voltage = voltage / self.dc_gain[gate_name]
-            logging.info(f'set {gate_name} {voltage:.1f} mV (DAC:{dac_voltage:.1f} mV)')
+            logger.info(f'set {gate_name} {voltage:.1f} mV (DAC:{dac_voltage:.1f} mV)')
         else:
             dac_voltage = voltage
-            logging.info(f'set {gate_name} {voltage:.1f} mV')
+            logger.info(f'set {gate_name} {voltage:.1f} mV')
         self.dac_sources[dac_location[0]].set(f'dac{int(dac_location[1])}', dac_voltage)
 
     def _get_voltage(self, gate_name):
@@ -115,13 +118,13 @@ class gates(qc.Instrument):
         virtual_voltages[voltage_key] = voltage
         new_voltages = np.matmul(np.linalg.inv(virt_gate_convertor.r2v_matrix), virtual_voltages)
 
-        logging.info(f'set {gate_name} {voltage:.1f} mV')
+        logger.info(f'set {gate_name} {voltage:.1f} mV')
         try:
             for i,gate_name in enumerate(virt_gate_convertor.real_gates):
                 if new_voltages[i] != real_voltages[i]:
                     self.set(gate_name, new_voltages[i])
         except Exception as ex:
-            logging.warning(f'Failed to set virtual gate voltage to {voltage:.1f} mV; Reverting all voltages. '
+            logger.warning(f'Failed to set virtual gate voltage to {voltage:.1f} mV; Reverting all voltages. '
                             f'Exception: {ex}')
             for i,gate_name in enumerate(virt_gate_convertor.real_gates):
                 self.set(gate_name, real_voltages[i])

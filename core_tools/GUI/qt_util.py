@@ -1,7 +1,7 @@
 import logging
 import threading
 
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtWidgets
 
 try:
     import IPython.lib.guisupport as gs
@@ -9,6 +9,7 @@ try:
 except:
     get_ipython = lambda x:None
 
+logger = logging.getLogger(__name__)
 
 is_wrapped = threading.local()
 is_wrapped.val = False
@@ -31,7 +32,7 @@ def qt_log_exception(func):
             try:
                 return func(*args, **kwargs)
             except:
-                logging.error('Exception in GUI', exc_info=True)
+                logger.error('Exception in GUI', exc_info=True)
                 raise
             finally:
                 is_wrapped.val = False
@@ -60,10 +61,10 @@ def qt_init():
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
         _qt_app = QtCore.QCoreApplication.instance()
         if _qt_app is None:
-            logging.debug('Create Qt application')
+            logger.debug('Create Qt application')
             _qt_app = QtWidgets.QApplication([])
         else:
-            logging.debug('Qt application already created')
+            logger.debug('Qt application already created')
 
 
 _qt_message_handler_installed = False
@@ -82,7 +83,7 @@ def _qt_message_handler(level, context, message):
         log_level = logging.FATAL
     else:
         log_level = logging.DEBUG
-    logging.log(log_level, message)
+    logger.log(log_level, message)
 
 def install_qt_message_handler():
     global _qt_message_handler_installed

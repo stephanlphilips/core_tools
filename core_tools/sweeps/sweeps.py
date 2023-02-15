@@ -14,6 +14,8 @@ from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 import numpy as np
 import time
 
+logger = logging.getLogger(__name__)
+
 class scan_generic(metaclass=job_meta):
     '''
     function that handeles the loop action and defines the run class.
@@ -87,13 +89,13 @@ class scan_generic(metaclass=job_meta):
                 self._loop(self.set_vars, tuple(), ds)
 
         except KILL_EXP:
-            logging.warning('Measurement aborted')
+            logger.warning('Measurement aborted')
         except KeyboardInterrupt:
-            logging.warning('Measurement interrupted')
+            logger.warning('Measurement interrupted')
             raise KeyboardInterrupt('Measurement interrupted') from None
         except Exception as ex:
             print(f'\n*** ERROR in measurement: {ex}')
-            logging.error('Exception in measurement', exc_info=True)
+            logger.error('Exception in measurement', exc_info=True)
 
         finally:
             if self.reset_param:
@@ -101,7 +103,7 @@ class scan_generic(metaclass=job_meta):
                     try:
                         param.reset_param()
                     except:
-                        logging.error(f'Failed to reset parameter {param.param.name}')
+                        logger.error(f'Failed to reset parameter {param.param.name}')
 
         return self.meas.dataset
 

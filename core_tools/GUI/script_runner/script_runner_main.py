@@ -14,10 +14,7 @@ try:
 except:
     runcell = None
 
-
 logger = logging.getLogger(__name__)
-
-
 
 
 class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):

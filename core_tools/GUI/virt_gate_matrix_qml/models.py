@@ -1,10 +1,11 @@
-from PyQt5 import QtCore, QtQuick, QtGui, QtWidgets
-import core_tools.utility.variable_mgr.qml as qml_in
+from PyQt5 import QtCore
 from dataclasses import dataclass
 
 import numpy as np
-import os, sys
+import os
 import logging
+
+logger = logging.getLogger(__name__)
 
 os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
 
@@ -169,7 +170,7 @@ class vg_matrix_model(QtCore.QAbstractTableModel):
                 self._data.reverse_normalize()
             self.setData(None, 0, QtCore.Qt.EditRole)
         except:
-            logging.error('normalize', exc_info=True)
+            logger.error('normalize', exc_info=True)
 
     @QtCore.pyqtSlot('int')
     def invert_matrix(self, invert):
@@ -182,7 +183,7 @@ class vg_matrix_model(QtCore.QAbstractTableModel):
             if self._manipulate_callback is not None:
                 self._manipulate_callback()
         except:
-            logging.error('invert', exc_info=True)
+            logger.error('invert', exc_info=True)
 
     def rowCount(self, index):
         return len(self._data.matrix)

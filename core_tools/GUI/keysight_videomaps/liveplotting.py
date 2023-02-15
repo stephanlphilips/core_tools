@@ -16,7 +16,7 @@ from core_tools.utility.powerpoint import addPPTslide
 import logging
 from ..qt_util import qt_log_exception
 
-#TODO: Fix the measurement codes, to transpose the data properly (instead of fixing it in the plot)
+logger = logging.getLogger(__name__)
 
 _data_saver: Optional[IDataSaver] = None
 _DEFAULT_DATA_SAVER = CoreToolsDataSaver
@@ -36,7 +36,7 @@ def get_data_saver():
     Returns the data saver that is set. If the data saver is not specified, this sets the default.
     """
     if _data_saver is None:
-        logging.warning(f"No data saver specified. Using {_DEFAULT_DATA_SAVER.__name__} as default.")
+        logger.warning(f"No data saver specified. Using {_DEFAULT_DATA_SAVER.__name__} as default.")
         set_data_saver(_DEFAULT_DATA_SAVER())
     return _data_saver
 
@@ -112,7 +112,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 The default channel_map is:
                     {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
         '''
-        logging.info('initialising vm')
+        logger.info('initialising vm')
         self.pulse_lib = pulse_lib
         self.digitizer = digitizer
         self.scan_type = scan_type
@@ -130,7 +130,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         elif scan_type == "Qblox":
             from .data_getter import scan_generator_Qblox
             if digitizer is not None:
-                logging.error('liveplotting parameter digitizer should be None for Qblox. '
+                logger.error('liveplotting parameter digitizer should be None for Qblox. '
                               'QRM must be added to pulse_lib with  `add_digitizer`.')
             self.construct_1D_scan_fast = scan_generator_Qblox.construct_1D_scan_fast
             self.construct_2D_scan_fast = scan_generator_Qblox.construct_2D_scan_fast
@@ -203,7 +203,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     def _set_channel_map(self, channel_map, iq_mode):
         if channel_map is not None:
             if iq_mode is not None:
-                logging.warning('iq_mode is ignored when channel_map is specified')
+                logger.warning('iq_mode is ignored when channel_map is specified')
             self.channel_map = channel_map
             return
 
@@ -507,7 +507,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         '''
         if self.start_1D.text() == "Start":
             if self.current_plot._1D is None:
-                logging.info('Creating 1D scan')
+                logger.info('Creating 1D scan')
                 try:
                     self.get_plot_settings()
                     self.start_1D.setEnabled(False)
@@ -525,9 +525,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             self._gen__n_columns)
                     self.start_1D.setEnabled(True)
                     self.set_metadata()
-                    logging.info('Finished init currentplot and current_param')
+                    logger.info('Finished init currentplot and current_param')
                 except Exception as e:
-                    logging.error(e, exc_info=True)
+                    logger.error(e, exc_info=True)
             else:
                 self.current_param_getter._1D.restart()
 
@@ -545,9 +545,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         Starts/stops the data acquisition and plotting.
         '''
         if self.start_2D.text() == "Start":
-            logging.info('Starting 2D')
+            logger.info('Starting 2D')
             if self.current_plot._2D is None:
-                logging.info('Creating 2D scan')
+                logger.info('Creating 2D scan')
                 self.get_plot_settings()
                 self.start_2D.setEnabled(False)
                 try:
@@ -562,7 +562,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             pulse_gates=self._2D__offsets,
                             line_margin=self._gen__line_margin,
                             )
-                    logging.info('Finished Param, now plot')
+                    logger.info('Finished Param, now plot')
                     self.current_plot._2D = _2D_live_plot(
                             self, self._2D_plotter_frame, self._2D_plotter_layout, self.current_param_getter._2D,
                             self._2D_average.value(), self._2D_gradient.currentText(), self._gen__n_columns,
@@ -570,21 +570,21 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.current_plot._2D.enhanced_contrast = self._2D_enh_contrast.isChecked()
                     self.start_2D.setEnabled(True)
                     self.set_metadata()
-                    logging.info('Finished init currentplot and current_param')
+                    logger.info('Finished init currentplot and current_param')
                 except Exception as e:
-                    logging.error(e, exc_info=True)
+                    logger.error(e, exc_info=True)
             else:
                 self.current_param_getter._2D.restart()
 
-            logging.info('Defining vm_data_param')
+            logger.info('Defining vm_data_param')
             self.vm_data_param = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
 
             self.start_2D.setText("Stop")
-            logging.info('Starting the plot')
+            logger.info('Starting the plot')
             self.current_plot._2D.start()
 
         elif self.start_2D.text() == "Stop":
-            logging.info('Stopping 2D')
+            logger.info('Stopping 2D')
             self.current_plot._2D.stop()
             self.start_2D.setText("Start")
 
@@ -605,7 +605,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.start_1D.setText("Start")
             self._1D_start_stop()
         except:
-            logging.error('Update plot failed', exc_info=True)
+            logger.error('Update plot failed', exc_info=True)
 
     @qt_log_exception
     def update_plot_settings_2D(self):
@@ -623,7 +623,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.start_2D.setText("Start")
             self._2D_start_stop()
         except:
-            logging.error('Update plot failed', exc_info=True)
+            logger.error('Update plot failed', exc_info=True)
 
     @qt_log_exception
     def do_flip_axes(self):
@@ -676,7 +676,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if liveplotting.last_instance == self:
             liveplotting.last_instance = None
-        logging.info('Window closed')
+        logger.info('Window closed')
 
     @qt_log_exception
     def get_activated_channels(self):
@@ -765,7 +765,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         try:
             return data_saver.save_data(self.vm_data_param, label)
         except Exception:
-            logging.error(f'Error during save data', exc_info=True)
+            logger.error(f'Error during save data', exc_info=True)
 
 
 class vm_data_param(MultiParameter):

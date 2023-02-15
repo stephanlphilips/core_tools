@@ -10,6 +10,7 @@ from .db_connection import (
         connect_local_and_remote_db)
 from .sample_info import set_sample_info
 
+logger = logging.getLogger(__name__)
 
 def configure(filename):
     qt_init()
@@ -37,7 +38,7 @@ def _connect_to_db(cfg):
     elif use_remote:
         connect_remote_db()
     else:
-        logging.warning('No database configured')
+        logger.warning('No database configured')
 
 
 def _generate_log_file_name():
@@ -81,7 +82,7 @@ def _configure_logging(cfg):
     file_handler.setFormatter(logging.Formatter(file_format))
     root_logger.addHandler(file_handler)
 
-    logging.info('Start logging')
+    logger.info('Start logging')
     print('Logging to:', filename)
 
     for name,level in logger_levels.items():

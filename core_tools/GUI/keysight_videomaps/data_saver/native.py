@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Tuple
 
 import logging
 from qcodes import MultiParameter
@@ -9,6 +9,7 @@ from core_tools.data.SQL.connect import sample_info
 
 from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
 
+logger = logging.getLogger(__name__)
 
 class CoreToolsDataSaver(IDataSaver):
 
@@ -28,7 +29,7 @@ class CoreToolsDataSaver(IDataSaver):
         # Calling this before initializing the database will raise a ConnectionError.
         sample_info_str = str(sample_info)
 
-        logging.info('Save')
+        logger.info('Save')
         job = do0D(vm_data_parameter, name=label)
         dataset = job.run()
 

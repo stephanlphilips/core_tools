@@ -2,6 +2,8 @@ import logging
 
 from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
 
+logger = logging.getLogger(__name__)
+
 '''
 Single shot HVI schedule.
 
@@ -180,7 +182,7 @@ class Hvi2SingleShot():
 
                             if len(ds_ch) > 0:
                                 # Push some data get DAQ in correct state
-                                # Sometimes the DMA gets stuck when there is no data 
+                                # Sometimes the DMA gets stuck when there is no data
                                 # written to DAQ between start and trigger.
                                 dig_seq.ds.control(push=ds_ch)
                                 dig_seq.wait(1000)
@@ -288,17 +290,17 @@ class Hvi2SingleShot():
             return hvi_params[f'dig_trigger_{i+1}']
         except:
             if warn:
-                logging.warning(f"Couldn't find HVI variable dig_trigger_{i+1}; trying dig_wait_{i+1}")
+                logger.warning(f"Couldn't find HVI variable dig_trigger_{i+1}; trying dig_wait_{i+1}")
         try:
             return hvi_params[f'dig_wait_{i+1}']
         except:
             if i == 0:
                 if warn:
-                    logging.warning(f"Couldn't find HVI variable dig_wait_{i+1}; trying dig_wait")
+                    logger.warning(f"Couldn't find HVI variable dig_wait_{i+1}; trying dig_wait")
                 return hvi_params['dig_wait']
             else:
                 if warn:
-                    logging.warning(f"Couldn't find HVI variable dig_wait_{i+1}")
+                    logger.warning(f"Couldn't find HVI variable dig_wait_{i+1}")
                 raise
 
 
@@ -311,19 +313,19 @@ class Hvi2SingleShot():
 
     def start(self, hvi_exec, waveform_duration, n_repetitions, hvi_params):
         if self.started != hvi_exec.is_running():
-            logging.debug(f'HVI running: {not self.started}; started: {self.started}')
+            logger.debug(f'HVI running: {not self.started}; started: {self.started}')
             self.started = not self.started
         if self.started:
             if self.use_systicks:
                 sys_ticks = self.hardware.awgs[0].get_sys_ticks()//200_000
             else:
                 sys_ticks = hvi_exec.read_register(self.r_ticks)//200_000
-            logging.debug(f'HVI idle: {sys_ticks} ms')
+            logger.debug(f'HVI idle: {sys_ticks} ms')
             # check restart timeout with margin of 50 ms.
             if sys_ticks > StartTimeout - 50:
                 self.stop(hvi_exec)
         if not self.started:
-            logging.info('start hvi')
+            logger.info('start hvi')
             hvi_exec.start()
             self.started = True
 
@@ -369,7 +371,7 @@ class Hvi2SingleShot():
                 loop_duration = 600
                 period_wait = hvi_params['sequence_period'] - loop_duration
                 if period_wait < awg_wait:
-                    logging.error(f'Specified "sequence_period" is too short. Minimum: {awg_wait + loop_duration}')
+                    logger.error(f'Specified "sequence_period" is too short. Minimum: {awg_wait + loop_duration}')
                 awg_wait = max(period_wait, awg_wait)
             self._set_wait_time(hvi_exec, self.r_wave_duration.registers[awg.name],
                                 awg_wait - tot_wait_awg)
@@ -379,11 +381,11 @@ class Hvi2SingleShot():
 
 
     def stop(self, hvi_exec):
-        logging.info(f'stop HVI')
+        logger.info(f'stop HVI')
         if self.started != hvi_exec.is_running():
-            logging.warning(f'HVI running-1: {hvi_exec.is_running()}; started: {self.started}')
+            logger.warning(f'HVI running-1: {hvi_exec.is_running()}; started: {self.started}')
         self.started = False
         hvi_exec.write_register(self.r_stop, 1)
         if self.started != hvi_exec.is_running():
-            logging.warning(f'HVI running-2: {hvi_exec.is_running()}; started: {self.started}')
+            logger.warning(f'HVI running-2: {hvi_exec.is_running()}; started: {self.started}')
 
