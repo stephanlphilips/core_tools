@@ -21,6 +21,9 @@ class DummyAwg(qcodes.Instrument):
     def get_idn(self):
         return {}
 
+    def awg_flush(self, ch):
+        pass
+
     def release_waveform_memory(self):
         pass
 
