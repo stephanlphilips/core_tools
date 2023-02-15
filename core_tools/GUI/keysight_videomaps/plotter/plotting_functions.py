@@ -64,7 +64,7 @@ class live_plot(live_plot_abs, QThread):
     # list of plot_widget_data (1 per plot)
     plot_widgets = []
     def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, gradient,
-                 n_col, prog_bar = None):
+                 n_col, prog_bar = None, refresh_rate_ms=100):
         '''
         init the class
 
@@ -85,6 +85,7 @@ class live_plot(live_plot_abs, QThread):
         self.top_layout = top_layout
         self.n_col = n_col
         self.prog_bar = prog_bar
+        self.refresh_rate_ms = refresh_rate_ms
 
         # getter for the scan.
         self.parameter_getter = parameter_getter
@@ -149,7 +150,7 @@ class live_plot(live_plot_abs, QThread):
         self.plt_finished = False
         self.timer.setSingleShot(False)
         # refresh rate of images in milliseconds
-        self.timer.start(200)
+        self.timer.start(self.refresh_rate_ms)
 
         # start thread
         super().start()
@@ -158,7 +159,7 @@ class live_plot(live_plot_abs, QThread):
         self.active = False
 
         while self.plt_finished != True:
-            time.sleep(0.01) #5ms interval to make sure gil releases.
+            time.sleep(0.01) # 10 ms interval to make sure gil releases.
         self.timer.stop()
         self.update_plot()
 

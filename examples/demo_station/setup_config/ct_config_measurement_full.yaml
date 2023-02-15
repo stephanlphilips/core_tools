@@ -51,6 +51,10 @@ virtual_matrix_gui_qml:
     size: [1100, 900]
     invert_matrix: True
 
+script_runner:
+    location: [0, 0]
+    size: [600, 400]
+
 videomode:
     settings_dir: ~/.core_tools/videomode
 

@@ -7,6 +7,7 @@ _pv_qt = None
 _pv_qml =  None
 _vmg_qt = None
 _vmg_qml = None
+_script_runner = None
 
 def start_parameter_viewer(keysight_rf=None):
     from core_tools.GUI.param_viewer.param_viewer_GUI_main import param_viewer
@@ -56,6 +57,14 @@ def start_virtual_matrix_gui_qml():
     _set_window_qml(_vmg_qml, cfg, 'virtual_matrix_gui_qml')
     return _vmg_qml
 
+def start_script_runner():
+    from core_tools.GUI.script_runner.script_runner_main import ScriptRunner
+
+    global _script_runner
+    cfg = get_configuration()
+    _script_runner = ScriptRunner()
+    _set_window(_script_runner, cfg, 'script_runner')
+    return _script_runner
 
 def _get_station():
     return qc.Station.default

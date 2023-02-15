@@ -54,6 +54,9 @@ class param_getter:
 
 
 class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
+    # class variable to keep the last instance alive and retrievable by other components.
+    last_instance = None
+
     """
     Liveplotting designed for the V2 system.
 
@@ -170,6 +173,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._1D_ppt_save.clicked.connect(lambda:self.copy_ppt())
         self._2D_ppt_save.clicked.connect(lambda:self.copy_ppt())
+
+        liveplotting.last_instance = self
 
         self.show()
         if instance_ready == False:
@@ -668,8 +673,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             from core_tools.HVI2.scheduler_hardware import default_scheduler_hardware
             default_scheduler_hardware.release_schedule()
         except: pass
-        logging.info('Window closed')
 
+        if liveplotting.last_instance == self:
+            liveplotting.last_instance = None
+        logging.info('Window closed')
 
     @qt_log_exception
     def get_activated_channels(self):

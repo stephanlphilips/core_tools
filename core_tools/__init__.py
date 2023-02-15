@@ -7,7 +7,8 @@ from core_tools.startup.gui import (
         start_parameter_viewer,
         start_parameter_viewer_qml,
         start_virtual_matrix_gui,
-        start_virtual_matrix_gui_qml
+        start_virtual_matrix_gui_qml,
+        start_script_runner,
         )
 
 __version__ = "1.4.16"

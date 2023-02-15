@@ -10,12 +10,20 @@ station = init_station()
 
 pulse = init_pulse_lib()
 
+
 # start GUIs
 ct.start_parameter_viewer()
 ct.start_virtual_matrix_gui(pulse)
 
 ct.start_parameter_viewer_qml()
 ct.start_virtual_matrix_gui_qml()
+
+# Example ScriptRunner
+def set_gate_voltage(gate_name:str, value:float):
+    station.gates.set(gate_name, value)
+
+script_gui = ct.start_script_runner()
+script_gui.add_function(set_gate_voltage, 'Set voltage', gate_name='P1')
 
 # start in separate processes
 ct.launch_databrowser()
