@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.17] - 2023-02-15
+
+- Added DC gain to gates
+- Added set_timeout to Keysight digitizer driver M3201A
+- Added ScriptRunner GUI
+- Replaced logging by logging.getLogger(__name__)
+- Changed included KeysightSD1 package to coexist with official Keysight package
+
 ## \[1.4.16] - 2023-02-01
 
 - Added HVI2 Continuous mode
