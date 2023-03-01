@@ -1,5 +1,5 @@
-from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
+from functools import partial
 from PyQt5.QtCore import QThread
 from PyQt5 import QtWidgets, QtGui
 from PyQt5 import QtCore
@@ -22,55 +22,59 @@ lut = np.array(colormap.colors)*255 # Convert matplotlib colormap from 0-1 to 0-
 class plot_widget_data:
     plot_widget: pg.PlotWidget # widget.
     plot_items: list # line in the plot.
+    color_bar: any = None
+
+class plot_param:
+    def __init__(self, multi_parameter, i):
+        self.name = multi_parameter.names[i]
+        self.label = multi_parameter.labels[i]
+        self.unit = multi_parameter.units[i]
+        self.shape = multi_parameter.shapes[i]
+        self.ndim = len(self.shape)
+        self.setpoints = multi_parameter.setpoints[i]
+        self.setpoint_names = multi_parameter.setpoint_names[i]
+        self.setpoint_labels = multi_parameter.setpoint_labels[i]
+        self.setpoint_units = multi_parameter.setpoint_units[i]
+
+    def xlabel(self, dim):
+        # x0 .. xn
+        return self.setpoint_labels[dim]
+
+    def xunit(self, dim):
+        # x0 .. xn
+        return self.setpoint_units[dim]
+
+    def xrange(self, dim):
+        # in qcodes: ndim of setpoints has dimension ndim+1 in a tuple.
+        # convert to numpy n*m array
+        setpoints = np.array(self.setpoints[dim])
+        base_index = (0,) * dim
+        # return first and last value
+        return setpoints[base_index+(0,)], setpoints[base_index+(-1,)]
+
+    def get_index(self, *values):
+        indices = []
+        for i,value in enumerate(values):
+            xrange = self.xrange(i)
+            index = round((value-xrange[0]) / (xrange[1]-xrange[0]) * self.shape[i])
+            if index < 0 or index >= self.shape[i]:
+                index = None
+            indices.append(index)
+        return indices
 
 
-class live_plot_abs():
-    """
-    abstract class that defines some essenstial functions a user should define.
-    """
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def init_plot():
-        """
-        funtion where the plots are initialized.
-
-        Use:
-            self.top_frame (QtWidgets.QFrame) : frame wherin to place the plots
-            self.top_layout (QtWidgets.QGridLayout) : layout in the frame for the plots
-
-        # add here data in the self.plot_widgets object (using the data class plot_widget_data)
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def run():
-        '''
-        run methods to fetch data. This method will be run in a seperate thread to get data from the digitizer.
-        '''
-        raise NotImplementedError
-
-    @abstractmethod
-    def update_plot():
-        '''
-        update the plot with that data that is in the buffer
-        '''
-        raise NotImplementedError
-
-
-class live_plot(live_plot_abs, QThread):
+class live_plot(QThread):
     active = False
     plt_finished = True
     update_buffers = False
 
-    # list of plot_widget_data (1 per plot)
-    plot_widgets = []
-    def __init__(self, app, top_frame, top_layout, parameter_getter, averaging, gradient,
-                 n_col, prog_bar = None, refresh_rate_ms=100):
+    def __init__(self,  top_layout, parameter_getter, averaging, gradient,
+                 n_col, prog_bar=None, gate_values_label=None,
+                 gates=None, refresh_rate_ms=100,
+                 on_mouse_moved=None, on_mouse_clicked=None):
         '''
         init the class
 
-        app (QApplication) : the QT app that is currently running
         top_frame (QtWidgets.QFrame) : frame wherin to place the plots
         top_layout (QtWidgets.QGridLayout) : layout in the frame for the plots
         parameter_getter (QCoDeS multiparamter) : qCoDeS multiparamter that is used to get the data.
@@ -78,19 +82,23 @@ class live_plot(live_plot_abs, QThread):
         differentiate (bool) : differentiate plot - true/false
         n_col (int): max number of plots on a row
         '''
-        super(QThread, self).__init__()
-        super(live_plot_abs, self).__init__()
-        # general variables needed for the plotting
-        self.app = app
+        super().__init__()
+
         self.n_plots = len(parameter_getter.names)
-        self.top_frame = top_frame
         self.top_layout = top_layout
         self.n_col = n_col
         self.prog_bar = prog_bar
+        self.gate_values_label = gate_values_label
+        self.gates = gates
         self.refresh_rate_ms = refresh_rate_ms
+        self._on_mouse_moved = on_mouse_moved
+        self._on_mouse_clicked = on_mouse_clicked
+        self.gate_x_voltage = None
+        self.gate_y_voltage = None
 
         # getter for the scan.
         self.parameter_getter = parameter_getter
+        self.plot_params = [plot_param(parameter_getter, i) for i in range(self.n_plots)]
         self.shape = parameter_getter.shapes[0] #assume all the shapes are the same.
         self.plot_widgets = []
 
@@ -134,15 +142,13 @@ class live_plot(live_plot_abs, QThread):
         self.refresh()
 
     def generate_buffers(self):
-        # buffer_data
-        shape = list(self.shape)
-
         self.buffer_data = []
         self.plot_data = []
         self.plot_data_valid = False
         self.average_scans = 0
 
         for i in range(self.n_plots):
+            shape = list(self.plot_params[i].shape)
             self.buffer_data.append(np.zeros([self._averaging, *shape]))
             self.plot_data.append(np.zeros([*shape]))
 
@@ -197,31 +203,35 @@ class live_plot(live_plot_abs, QThread):
 
 
 class _1D_live_plot(live_plot):
-    """1D live plot fuction"""
 
     def init_plot(self):
+        self.prog_per = 0
         n_col = self.n_col
         for i in range(self.n_plots):
+            param = self.plot_params[i]
             plot_1D = pg.PlotWidget()
             plot_1D.showGrid(x=True, y=True)
-            plot_1D.setLabel('left', self.parameter_getter.labels[i], self.parameter_getter.units[i])
-            plot_1D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][0], self.parameter_getter.setpoint_units[i][0])
+            plot_1D.setLabel('left', param.label, param.unit)
+            plot_1D.setLabel('bottom', param.xlabel(0), param.xunit(0))
 
             icol = i % n_col
             irow = i // n_col
             self.top_layout.addWidget(plot_1D, irow, icol, 1, 1)
 
-            my_range = self.parameter_getter.setpoints[0][0][-1]
-            self.x_data = np.linspace(-my_range, my_range, self.plot_data[i].size)
+            xrange = np.abs(param.xrange(0)[1])
+            self.x_data = np.linspace(-xrange, xrange, self.plot_data[i].size)
 
             curve = plot_1D.plot(self.x_data, self.plot_data[i], pen=(255,0,0))
             plot_data = plot_widget_data(plot_1D, [curve])
             self.plot_widgets.append(plot_data)
 
-    def generate_buffers(self):
-        super().generate_buffers()
-        my_range = np.abs(self.parameter_getter.setpoints[0][0][-1])
-        self.x_data = np.linspace(-my_range, my_range, self.plot_data[0].size)
+    def _read_dc_voltages(self):
+        if self.gates is not None:
+            try:
+                gate_x = self.plot_params[0].setpoint_names[1]
+                self.gate_x_voltage = self.gates.get(gate_x)
+            except Exception as ex:
+                print(ex)
 
     def update_plot(self):
         if not self.plot_data_valid:
@@ -229,22 +239,24 @@ class _1D_live_plot(live_plot):
         self.set_busy(False)
         try:
             for i in range(len(self.plot_widgets)):
-                self.plot_widgets[i].plot_items[0].setData(self.x_data,self.plot_data[i])
+                y = self.plot_data[i]
+                if self.gradient:
+                    y = np.gradient(y)
+                self.plot_widgets[i].plot_items[0].setData(self.x_data, y)
+            self.prog_bar.setValue(self.prog_per)
         except:
             logger.error(f'Plotting failed', exc_info=True)
             # slow down to reduce error burst
-            time.sleep(0.5)
+            time.sleep(1.0)
 
     def run(self):
-        # fetch data here -- later ported through in update plot. Running update plot from here causes c++ to delethe the curves object for some wierd reason..
         while (self.active == True):
             try:
                 input_data = self.parameter_getter.get()
+                self._read_dc_voltages()
 
                 for i in range(self.n_plots):
                     y = input_data[i]
-                    if self.gradient == True:
-                        y = np.gradient(y)
 
                     self.buffer_data[i] = np.roll(self.buffer_data[i],-1,0)
                     if self.update_buffers == True:
@@ -257,57 +269,118 @@ class _1D_live_plot(live_plot):
                     self.average_scans = min(self.average_scans+1, self._averaging)
 
                     self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
+                self.prog_per = int(self.average_scans / self._averaging * 100)
                 self.plot_data_valid = True
             except Exception as e:
                 self.plot_data_valid = True
                 logger.error(f'Exception: {e}', exc_info=True)
                 print('frame dropped (check logging)')
                 # slow down to reduce error burst
-                time.sleep(0.5)
+                time.sleep(1.0)
 
         self.plt_finished = True
 
 class _2D_live_plot(live_plot):
-    """function that has as sole pupose generating live plots of a line trace (or mupliple if needed)"""
 
     _enhanced_contrast = False
+    _filter_background = False
+    _background_rel_sigma = 0.1
 
     def init_plot(self):
         n_col = self.n_col
         self.prog_per = 0
         self.min_max = []
         for i in range(self.n_plots):
+            param = self.plot_params[i]
             plot_2D = pg.PlotWidget()
+            plot_2D.setDefaultPadding(0.01)
             img = pg.ImageItem()
-            img.setLookupTable(lut)
+            # Note: lookup table is set via color bar
             plot_2D.addItem(img)
-            plot_2D.setLabel('left', self.parameter_getter.setpoint_labels[i][0], self.parameter_getter.setpoint_units[i][0])
-            plot_2D.setLabel('bottom', self.parameter_getter.setpoint_labels[i][1], self.parameter_getter.setpoint_units[i][1])
+            plot_2D.setLabel('left', param.xlabel(0), param.xunit(0))
+            plot_2D.setLabel('bottom', param.xlabel(1), param.xunit(1))
 
-            title = QtWidgets.QLabel(plot_2D)
-            title.setText(self.parameter_getter.names[i])
-            title.setStyleSheet("QLabel { background-color : white; color : black; }")
-            title.setGeometry(54, 2, 50, 14)
+            plot_2D.setTitle(param.label, size='10pt')
 
-            min_max = QtWidgets.QLabel(plot_2D)
-            min_max.setText(f"min:{0:4.0f} max:{0:4.0f} mV    ")
-            min_max.setStyleSheet("QLabel { background-color : white; color : black; }")
-            min_max.setGeometry(110, 2, 150, 14)
+            min_max = pg.LabelItem(parent=plot_2D.graphicsItem())
+            min_max.anchor(itemPos=(1,0), parentPos=(1,0))
             self.min_max.append(min_max)
 
             icol = i % n_col
             irow = i // n_col
             self.top_layout.addWidget(plot_2D, irow, icol, 1, 1)
 
-            range1 = self.parameter_getter.setpoints[0][1][0][-1]
-            range0 = self.parameter_getter.setpoints[0][0][-1]
+            range0 = param.xrange(0)[1] # y value
+            range1 = param.xrange(1)[1] # x value
+            shape = param.shape
             tr = QtGui.QTransform()
             tr.translate(-range1, -range0)
-            tr.scale(1/self.shape[0]*range1*2, 1/self.shape[1]*range0*2)
+            tr.scale(1/shape[1]*range1*2, 1/shape[0]*range0*2)
             img.setTransform(tr)
 
+            cursor = QtCore.Qt.CrossCursor
+            img.setCursor(cursor)
+
             plot_data = plot_widget_data(plot_2D, [img])
+            plot_data.proxy = pg.SignalProxy(img.scene().sigMouseMoved, rateLimit=10,
+                                             slot=partial(self.mouse_moved, plot_2D, i))
+            plot_data.proxy2 = pg.SignalProxy(img.scene().sigMouseClicked,
+                                              slot=partial(self.mouse_clicked, plot_2D, i))
             self.plot_widgets.append(plot_data)
+
+    def set_background_filter(self, enabled, rel_sigma):
+        self._filter_background = enabled
+        self._background_rel_sigma = rel_sigma
+        self.refresh()
+
+    def set_cross(self, enabled):
+        if enabled:
+            for pwd in self.plot_widgets:
+                crosshair_color = (100, 100, 100)
+                pwd.plot_widget.addLine(x=0, pen=crosshair_color)
+                pwd.plot_widget.addLine(y=0, pen=crosshair_color)
+
+    def set_colorbar(self, enabled):
+        if enabled:
+            for pwd in self.plot_widgets:
+                cb = pg.ColorBarItem(colorMap='viridis', interactive=False, width=14)
+                cb.setImageItem(pwd.plot_items[0], insert_in=pwd.plot_widget.plotItem)
+                pwd.color_bar = cb
+
+
+    def mouse_clicked(self, plot, index, event):
+        try:
+            click = event[0]
+            coordinates = click.scenePos()
+            if plot.sceneBoundingRect().contains(coordinates):
+                # filter on min/max
+                mouse_point = plot.plotItem.vb.mapSceneToView(coordinates)
+                x,y = mouse_point.x(), mouse_point.y()
+                iy,ix = self.plot_params[index].get_index(y,x)
+                if iy is None or ix is None:
+                    return
+                if self._on_mouse_clicked:
+                    self._on_mouse_clicked(x, y)
+        except Exception as ex:
+            print(ex)
+
+    def mouse_moved(self, plot, index, event):
+        try:
+            coordinates = event[0]
+            if plot.sceneBoundingRect().contains(coordinates):
+                # filter on min/max
+                mouse_point = plot.plotItem.vb.mapSceneToView(coordinates)
+                x,y = mouse_point.x(), mouse_point.y()
+                plot_param = self.plot_params[index]
+                iy,ix = plot_param.get_index(y,x)
+                if iy is None or ix is None:
+                    return
+                if iy is not None and ix is not None:
+                    v = self.plot_data[index][iy,ix] # TODO @@@ check with magnitude...
+                    if self._on_mouse_moved:
+                        self._on_mouse_moved(x, y, plot_param.name, v)
+        except Exception as ex:
+            print(ex)
 
     @property
     def enhanced_contrast(self):
@@ -318,29 +391,57 @@ class _2D_live_plot(live_plot):
         self._enhanced_contrast = value
         self.refresh()
 
+    def _read_dc_voltages(self):
+        if self.gates is not None:
+            try:
+                gate_x = self.plot_params[0].setpoint_names[1]
+                self.gate_x_voltage = self.gates.get(gate_x)
+            except Exception as ex:
+                print(ex)
+            try:
+                gate_y = self.plot_params[0].setpoint_names[0]
+                self.gate_y_voltage = self.gates.get(gate_y)
+            except Exception as ex:
+                print(ex)
+
     def update_plot(self):
         try:
             if not self.plot_data_valid:
                 return
             self.set_busy(False)
             for i in range(len(self.plot_widgets)):
+                pwd = self.plot_widgets[i]
+                color_bar = pwd.color_bar
                 img_item = self.plot_widgets[i].plot_items[0]
                 plot_data = self.plot_data[i]
+                if self._filter_background:
+                    sigma = self.plot_params[i].shape[0] * self._background_rel_sigma
+                    plot_data = plot_data - ndimage.gaussian_filter(plot_data, sigma, mode = 'nearest')
                 if self.gradient == 'Off':
                     if self.enhanced_contrast:
                         plot_data = compress_range(plot_data, upper=99.5, lower=0.5)
-                    mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])
-                    self.min_max[i].setText(f"min:{mn:4.0f} max:{mx:4.0f} mV  ")
-                    img_item.setLookupTable(lut)
+                    mn, mx = np.min(plot_data), np.max(plot_data)
+                    self.min_max[i].setText(f"min:{mn:4.0f}, max:{mx:4.0f} mV  ")
+                    if color_bar:
+                        color_bar.setLevels(values=(mn,mx))
+                        if img_item.lut is None:
+                            img_item.setLookupTable(color_bar.colorMap().getLookupTable())
+                    else:
+                        img_item.setLookupTable(lut)
                 elif self.gradient == 'Magnitude':
                     dx = ndimage.sobel(plot_data, axis=0, mode='nearest')
                     dy = ndimage.sobel(plot_data, axis=1, mode='nearest')
                     plot_data = np.hypot(dx, dy)
                     if self.enhanced_contrast:
                         plot_data = compress_range(plot_data, upper=99.8, lower=25)
-                    mn, mx = np.min(self.plot_data[i]), np.max(self.plot_data[i])
-                    self.min_max[i].setText(f"min:{mn:4.0f} max:{mx:4.0f} a.u.    ")
-                    img_item.setLookupTable(lut)
+                    mn, mx = np.min(plot_data), np.max(plot_data)
+                    self.min_max[i].setText(f"min:{mn:4.0f}, max:{mx:4.0f} a.u.    ")
+                    if color_bar:
+                        color_bar.setLevels(values=(mn,mx))
+                        if img_item.lut is None:
+                            img_item.setLookupTable(color_bar.colorMap().getLookupTable())
+                    else:
+                        img_item.setLookupTable(lut)
                 elif self.gradient == 'Mag & angle':
                     dx = ndimage.sobel(plot_data, axis=0, mode='nearest')
                     dy = ndimage.sobel(plot_data, axis=1, mode='nearest')
@@ -355,18 +456,25 @@ class _2D_live_plot(live_plot):
                     logger.warning(f'Unknown gradient setting {self.gradient}')
 
                 img_item.setImage(plot_data)
-                self.prog_bar.setValue(self.prog_per)
+            self.prog_bar.setValue(self.prog_per)
+            if self.gates is not None:
+                gate_x = self.plot_params[0].setpoint_names[1]
+                gate_y = self.plot_params[0].setpoint_names[0]
+                self.gate_values_label.setText(
+                        f'DC {gate_x}:{self.gate_x_voltage:6.2f} mV, '
+                        f'{gate_y}:{self.gate_y_voltage:6.2f} mV')
         except Exception as e:
             logger.error(f'Exception plotting: {e}', exc_info=True)
             # slow down to reduce error burst
-            time.sleep(0.5)
-
+            time.sleep(1.0)
 
     def run(self):
         # fetch data here -- later ported through in update plot. Running update plot from here causes c++ to delethe the curves object for some wierd reason..
         while (self.active == True):
             try:
                 input_data = self.parameter_getter.get()
+                self._read_dc_voltages()
+
                 for i in range(self.n_plots):
                     xy = input_data[i][:, :].T
 
@@ -388,54 +496,8 @@ class _2D_live_plot(live_plot):
                 self.plot_data_valid = True
                 logger.error(f'Exception: {e}', exc_info=True)
                 # slow down to reduce error burst
-                time.sleep(0.5)
+                time.sleep(1.0)
 
         self.plt_finished = True
-
-
-if __name__ == '__main__':
-    from test_UI.liveplot_only import Ui_MainWindow
-    import matplotlib
-    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
-    from PyQt5 import QtCore, QtGui, QtWidgets
-    import sys
-
-    dim = "2D"
-    # set graphical user interface
-    app = QtWidgets.QApplication([])
-    mw = QtWidgets.QMainWindow()
-    window = Ui_MainWindow()
-    window.setupUi(mw)
-    dig = fake_digitizer("fake_digitizer")
-
-
-    if dim == "1D":
-        p = construct_1D_scan_fast(gate = "test", swing = 100, n_pt=700, t_step=5, biasT_corr= False, pulse_lib=None, digitizer=dig, channels=[1,2], dig_samplerate=100e6)
-
-        plot = _1D_live_plot(app, window.frame_plots, window.grid_plots, p ,1,False)
-
-        def stop_function(*args):
-            plot.stop()
-            plot.remove()
-
-        plot.start()
-        window.Close.clicked.connect(stop_function)
-
-    if dim == "2D":
-        p = construct_2D_scan_fast("test", 100, 10, "test2", 150, 10, t_step=5, biasT_corr= False, pulse_lib=None, digitizer=dig,  channels=[1,2], dig_samplerate=100e6)
-
-        plot = _2D_live_plot(app, window.frame_plots, window.grid_plots, p ,1,False)
-
-        def stop_function(*args):
-            plot.stop()
-            plot.remove()
-
-        plot.start()
-        window.Close.clicked.connect(stop_function)
-
-
-    mw.show()
-    sys.exit(app.exec_())
-
 
 

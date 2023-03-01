@@ -3,6 +3,12 @@ All notable changes to core_tools will be documented in this file.
 
 ## \[1.4.18] - 2023-03-01
 
+- VideoMode added 'Set DC voltage' to 2D
+- VideoMode added cross in 2D
+- VideoMode added color bar in 2D
+- VideoMode added background filter in 2D
+- VideoMode added 2D plot coordinates in status bar
+- VideoMode added 'gates' to PPT notes
 - Limit dataset size to 20e6 values per parameter.
 
 
