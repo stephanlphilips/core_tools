@@ -8,6 +8,9 @@ from qcodes.utils.helpers import NumpyJSONEncoder
 
 logger = logging.getLogger(__name__)
 
+DATA_POINTS_MAX = 20_000_000
+DATASET_SIZE_WARNING = 50_000_000
+DATASET_SIZE_MAX = 200_000_000
 
 def load_by_id(exp_id):
     '''
@@ -49,7 +52,7 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
         station_snapshot = qc.Station.default.snapshot()
         snapshot = {'station': station_snapshot}
     else:
-        logger.error('No station configured')
+        logger.warning('No station configured. No snapshot will be stored.')
         snapshot = {'station': None}
 
     # intialize the buffers for the measurement
@@ -57,6 +60,16 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
         m_param.init_data_dataclass()
         ds.measurement_parameters += [m_param]
         ds.measurement_parameters_raw += m_param.to_SQL_data_structure()
+
+    total_size = 0
+    for m_param_raw in ds.measurement_parameters_raw:
+        if m_param_raw.size > DATA_POINTS_MAX:
+            raise Exception(f'Measurement with shape {m_param_raw.shape} is too big for storage')
+        total_size += m_param_raw.size
+    if total_size > DATASET_SIZE_MAX:
+        raise Exception(f'Dataset with {total_size} values is too big for storage')
+    if total_size > DATASET_SIZE_WARNING:
+        print(f'Dataset with {total_size} values is quite big for storage')
 
     snapshot['measurement'] = measurement_snapshot
 

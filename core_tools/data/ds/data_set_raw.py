@@ -55,7 +55,7 @@ class data_set_raw:
         # size in bytes
         size = 0
         for m_param in self.measurement_parameters_raw:
-            size = m_param.data_buffer.cursor*8 #(64 bit numbers)
+            size += m_param.data_buffer.cursor*8 #(64 bit numbers)
 
         return size
 

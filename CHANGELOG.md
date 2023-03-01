@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.18] - 2023-03-01
+
+- Limit dataset size to 20e6 values per parameter.
+
+
 ## \[1.4.17] - 2023-02-15
 
 - Added DC gain to gates
