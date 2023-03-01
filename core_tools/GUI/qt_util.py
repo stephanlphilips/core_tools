@@ -50,6 +50,14 @@ def qt_init():
     # application reference must be held in global scope
     global _qt_app
 
+#    print(QtCore.QCoreApplication.testAttribute(QtCore.Qt.AA_EnableHighDpiScaling))
+#    print(QtCore.QCoreApplication.testAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough))
+
+    # Set attributes for proper scaling when display scaling is not equal to 100%
+    # This should be done before QApplication is started.
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+
     ipython = get_ipython()
 
     if ipython:
@@ -58,7 +66,6 @@ def qt_init():
             # ipython.run_line_magic('gui','qt5')
             raise Exception('Configure QT5 in Spyder -> Preferences -> IPython Console -> Graphics -> Backend')
 
-        QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
         _qt_app = QtCore.QCoreApplication.instance()
         if _qt_app is None:
             logger.debug('Create Qt application')
