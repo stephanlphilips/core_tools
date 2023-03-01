@@ -17,7 +17,7 @@ from .iq_modes import iq_mode2numpy
 logger = logging.getLogger(__name__)
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
-                           dig_samplerate, dig_vmax=None, iq_mode=None, acquisition_delay_ns=500,
+                           dig_samplerate=None, dig_vmax=None, iq_mode=None, acquisition_delay_ns=500,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
     1D fast scan parameter constructor.
@@ -161,12 +161,12 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
                                     (n_pt, ), (gate, ), (tuple(voltages_sp), ),
-                                    biasT_corr, dig_samplerate, channels = channels,
+                                    biasT_corr, channels = channels,
                                     iq_mode=iq_mode, channel_map=channel_map)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels, dig_samplerate, dig_vmax=None, iq_mode=None,
+                           digitizer, channels, dig_samplerate=None, dig_vmax=None, iq_mode=None,
                            acquisition_delay_ns=500, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
@@ -337,7 +337,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
-                                    biasT_corr, dig_samplerate,
+                                    biasT_corr,
                                     channels=channels, iq_mode=iq_mode, channel_map=channel_map)
 
 
@@ -345,7 +345,7 @@ class _digitzer_scan_parameter(MultiParameter):
     """
     generator for the parameter f
     """
-    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate,
+    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr,
                  data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4], iq_mode=None, channel_map=None):
         """
         args:
@@ -357,7 +357,6 @@ class _digitzer_scan_parameter(MultiParameter):
             names (tuple<str>): name of the gate(s) that are measured.
             setpoint (tuple<np.ndarray>): array witht the setpoints of the input data
             biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
-            sample_rate (float): sample rate of the digitizer card that should be used.
             data mode (int): data mode of the digizer
             channels (list<int>): channels to measure
             iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
@@ -375,7 +374,6 @@ class _digitzer_scan_parameter(MultiParameter):
         self.pulse_lib = pulse_lib
         self.t_measure = t_measure
         self.n_rep = np.prod(shape)
-        self.sample_rate =sample_rate
         self.data_mode = data_mode
         self.channels = channels
         self.biasT_corr = biasT_corr

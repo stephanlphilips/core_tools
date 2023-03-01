@@ -14,7 +14,7 @@ class fake_digitizer(MultiParameter):
 
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
-                           dig_samplerate, dig_vmax=None, iq_mode=None, acquisition_delay_ns=None,
+                           dig_samplerate=None, dig_vmax=None, iq_mode=None, acquisition_delay_ns=None,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
     1D fast scan parameter constructor.
@@ -70,7 +70,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels, dig_samplerate, dig_vmax=None, iq_mode=None,
+                           digitizer, channels, dig_samplerate=None, dig_vmax=None, iq_mode=None,
                            acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
@@ -170,6 +170,7 @@ class dummy_digitzer_scan_parameter(MultiParameter):
         self.biasT_corr = biasT_corr
         self.shape = shape
         self.channel_names = digitizer.names
+        self.offset = 0.0
 
     def get_raw(self):
 
@@ -181,8 +182,9 @@ class dummy_digitzer_scan_parameter(MultiParameter):
 
         # get the data
         for i in range(len(data_out)):
-            data[i].flat = np.linspace(0,50, len(data_out[i].flat)) + np.random.random([len(data_out[i].flat)]) + i*2
-
+            n = len(data[i].flat)
+            data[i].flat = np.linspace(0, 50, n) + np.random.random(n)*10 + i*20
+        self.offset = (self.offset + 0.2) % 10
         # make sure that data is put in the right order.
         for i in range(len(data)):
             data[i] = data[i].reshape(self.shape)
