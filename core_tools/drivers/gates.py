@@ -41,12 +41,14 @@ class gates(qc.Instrument):
         self.dc_gain = dc_gain.copy()
 
         self._gv = dict()
-        self.v_gates = list()
+        self._real_gates = list()
+        self._virtual_gates = list()
         self._all_gate_names = list()
 
         # add gates:
         for gate_name, dac_location in self.hardware.dac_gate_map.items():
             self._all_gate_names.append(gate_name)
+            self._real_gates.append(gate_name)
             self.add_parameter(gate_name, set_cmd = partial(self._set_voltage,  gate_name),
                                get_cmd=partial(self._get_voltage,  gate_name),
                                unit = "mV")
@@ -55,7 +57,7 @@ class gates(qc.Instrument):
         for virt_gate_set in self.hardware.virtual_gates:
             virt_gate_convertor = virt_gate_set.get_view(available_gates=self._all_gate_names)
             self._all_gate_names += virt_gate_convertor.virtual_gates
-            self.v_gates += virt_gate_convertor.virtual_gates
+            self._virtual_gates += virt_gate_convertor.virtual_gates
             for v_gate_name in virt_gate_convertor.virtual_gates:
                 self.add_parameter(v_gate_name,
                                    set_cmd=partial(self._set_voltage_virt, v_gate_name, virt_gate_convertor),
@@ -68,6 +70,14 @@ class gates(qc.Instrument):
                     model='gates',
                     serial='',
                     firmware=ct_version)
+
+    @property
+    def gates(self):
+        return list(self._real_gates)
+
+    @property
+    def v_gates(self):
+        return list(self._virtual_gates)
 
     def _set_voltage(self, gate_name, voltage):
         '''
@@ -177,6 +187,12 @@ class gates(qc.Instrument):
 
         for i in range(len(names)):
             self._set_voltage(names[i], voltages[i])
+
+    def get_gate_voltages(self):
+        res = {}
+        for gate_name in self._all_gate_names:
+            res[gate_name] = f'{self.get(gate_name):.2f}'
+        return res
 
     def snapshot_base(self, update=False, params_to_skip_update=None):
         # update real and virtual gates cached values by getting them.
