@@ -183,8 +183,11 @@ class signale_handler(QtQuick.QQuickView):
             return
         try:
             self.updating = True
+            max_id = self.max_measurement_id
+            if max_id is None:
+                max_id = 0
             update, self.max_measurement_id = query_for_measurement_results.detect_new_meaurements(
-                    self.max_measurement_id,
+                    max_id,
                     project=self._data_filter.project,
                     set_up=self._data_filter.set_up,
                     sample=self._data_filter.sample)

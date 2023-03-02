@@ -4,6 +4,7 @@ All notable changes to core_tools will be documented in this file.
 ## \[1.4.19] - 2023-03-02
 
 - Fixed VideoMode DC voltage missing gates
+- Fixed data browser hangup after setting unknown sample or project
 
 ## \[1.4.18] - 2023-03-01
 
