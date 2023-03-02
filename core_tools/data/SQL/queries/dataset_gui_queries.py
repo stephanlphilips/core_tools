@@ -148,6 +148,8 @@ class query_for_measurement_results:
     @staticmethod
     def detect_new_meaurements(max_measurement_id=0, remote=False,
                                project=None, set_up=None, sample=None):
+        if max_measurement_id is None:
+            max_measurement_id = 0
         statement = "SELECT max(id) from global_measurement_overview"
         where = []
         where.append(f"id >= {max_measurement_id}")
