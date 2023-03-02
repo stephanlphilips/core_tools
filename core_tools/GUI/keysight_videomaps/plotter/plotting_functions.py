@@ -201,6 +201,18 @@ class live_plot(QThread):
             self.msg_box.accept()
             self.msg_box.close()
 
+    def _read_dc_voltage(self, gate_name):
+        if self.gates is not None:
+            try:
+                return self.gates.get(gate_name)
+            except Exception:
+                logging.debug(f'Cannot read DC gate {gate_name}')
+
+    def _format_dc_voltage(self, voltage):
+        if voltage is not None:
+            return f'{voltage:6.2f} mV'
+        else:
+            return ' - - -'
 
 class _1D_live_plot(live_plot):
 
@@ -226,12 +238,7 @@ class _1D_live_plot(live_plot):
             self.plot_widgets.append(plot_data)
 
     def _read_dc_voltages(self):
-        if self.gates is not None:
-            try:
-                gate_x = self.plot_params[0].setpoint_names[1]
-                self.gate_x_voltage = self.gates.get(gate_x)
-            except Exception as ex:
-                print(ex)
+        self.gate_x_voltage = self._read_dc_voltage(self.plot_params[0].setpoint_names[0])
 
     def update_plot(self):
         if not self.plot_data_valid:
@@ -392,17 +399,8 @@ class _2D_live_plot(live_plot):
         self.refresh()
 
     def _read_dc_voltages(self):
-        if self.gates is not None:
-            try:
-                gate_x = self.plot_params[0].setpoint_names[1]
-                self.gate_x_voltage = self.gates.get(gate_x)
-            except Exception as ex:
-                print(ex)
-            try:
-                gate_y = self.plot_params[0].setpoint_names[0]
-                self.gate_y_voltage = self.gates.get(gate_y)
-            except Exception as ex:
-                print(ex)
+        self.gate_x_voltage = self._read_dc_voltage(self.plot_params[0].setpoint_names[1])
+        self.gate_y_voltage = self._read_dc_voltage(self.plot_params[0].setpoint_names[0])
 
     def update_plot(self):
         try:
@@ -421,7 +419,7 @@ class _2D_live_plot(live_plot):
                     if self.enhanced_contrast:
                         plot_data = compress_range(plot_data, upper=99.5, lower=0.5)
                     mn, mx = np.min(plot_data), np.max(plot_data)
-                    self.min_max[i].setText(f"min:{mn:4.0f}, max:{mx:4.0f} mV  ")
+                    self.min_max[i].setText(f"min:{mn:4.0f} mV<br/>max:{mx:4.0f} mV")
                     if color_bar:
                         color_bar.setLevels(values=(mn,mx))
                         if img_item.lut is None:
@@ -435,7 +433,7 @@ class _2D_live_plot(live_plot):
                     if self.enhanced_contrast:
                         plot_data = compress_range(plot_data, upper=99.8, lower=25)
                     mn, mx = np.min(plot_data), np.max(plot_data)
-                    self.min_max[i].setText(f"min:{mn:4.0f}, max:{mx:4.0f} a.u.    ")
+                    self.min_max[i].setText(f"min:{mn:4.0f} a.u.<br/>max:{mx:4.0f} a.u.")
                     if color_bar:
                         color_bar.setLevels(values=(mn,mx))
                         if img_item.lut is None:
@@ -450,7 +448,7 @@ class _2D_live_plot(live_plot):
                     if self.enhanced_contrast:
                         mag = compress_range(mag, upper=99.8, lower=25, subtract_low=True)
                     plot_data = polar_to_rgb(mag, angle)
-                    self.min_max[i].setText('           ')
+                    self.min_max[i].setText('  ')
                     img_item.setLookupTable(None)
                 else:
                     logger.warning(f'Unknown gradient setting {self.gradient}')
@@ -460,9 +458,11 @@ class _2D_live_plot(live_plot):
             if self.gates is not None:
                 gate_x = self.plot_params[0].setpoint_names[1]
                 gate_y = self.plot_params[0].setpoint_names[0]
+                x_voltage_str = self._format_dc_voltage(self.gate_x_voltage)
+                y_voltage_str = self._format_dc_voltage(self.gate_y_voltage)
                 self.gate_values_label.setText(
-                        f'DC {gate_x}:{self.gate_x_voltage:6.2f} mV, '
-                        f'{gate_y}:{self.gate_y_voltage:6.2f} mV')
+                        f'DC {gate_x}:{x_voltage_str}, {gate_y}:{y_voltage_str}')
+
         except Exception as e:
             logger.error(f'Exception plotting: {e}', exc_info=True)
             # slow down to reduce error burst

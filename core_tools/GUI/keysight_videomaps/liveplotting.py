@@ -209,7 +209,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.statusbar.addWidget(self.gate_values_label)
         if self.gates is None:
             self.gate_values_label.setText("DC gates not known")
-        self.cursor_value_label = QtWidgets.QLabel("--, --: --- mV")
+        self.cursor_value_label = QtWidgets.QLabel(" --.-, --.-: ---.- mV")
         self.cursor_value_label.setMargin(2)
         self.cursor_value_label.setMinimumWidth(300)
         self.statusbar.addWidget(self.cursor_value_label)
@@ -551,6 +551,17 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         style = 'QLabel {background-color : #F64; }' if biasTerror > 0.05 else ''
         self.bias_T_warning_label.setStyleSheet(style)
 
+        if self.gates is not None and ndim == 2:
+            enable = True
+            if self._2D__gate1_name not in self.gates.parameters:
+                logging.warning(f'{self._2D__gate1_name} not in DC gates')
+                enable = False
+            if self._2D__gate2_name not in self.gates.parameters:
+                logging.warning(f'{self._2D__gate2_name} not in DC gates')
+                enable = False
+            self._2D_set_DC.setEnabled(enable)
+
+
     @qt_log_exception
     def _1D_start_stop(self):
         '''
@@ -854,7 +865,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             y_total = ''
         self.cursor_value_label.setText(
                 f'{self._2D__gate1_name}:{x:7.2f}{x_total} mV, '
-                f'{self._2D__gate1_name}:{y:7.2f}{y_total} mV, '
+                f'{self._2D__gate2_name}:{y:7.2f}{y_total} mV, '
                 f'{ch}:{v:7.2f} mV')
 
     @qt_log_exception

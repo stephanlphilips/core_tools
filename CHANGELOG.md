@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.19] - 2023-03-02
+
+- Fixed VideoMode DC voltage missing gates
+
 ## \[1.4.18] - 2023-03-01
 
 - VideoMode added 'Set DC voltage' to 2D
@@ -10,7 +14,6 @@ All notable changes to core_tools will be documented in this file.
 - VideoMode added 2D plot coordinates in status bar
 - VideoMode added 'gates' to PPT notes
 - Limit dataset size to 20e6 values per parameter.
-
 
 ## \[1.4.17] - 2023-02-15
 
