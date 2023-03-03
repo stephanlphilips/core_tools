@@ -49,6 +49,7 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
         self.video_mode_label.setMargin(2)
         self.statusbar.setContentsMargins(8,0,4,4)
         self.statusbar.addWidget(self.video_mode_label)
+        self.video_mode_paused = False
         self._update_video_mode_status()
 
         self.commands = []
@@ -104,17 +105,23 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def _run_command(self, command, arg_inputs):
-        self._update_video_mode_status()
-        if self.video_mode_running:
-            self._video_mode_start_stop()
-            self._show_video_mode_status('PAUSED', '#FF8')
-        self.app.processEvents()
+        try:
+            self._update_video_mode_status()
+            running = self.video_mode_running
+            if running:
+                self.video_mode_paused = True
+                self._video_mode_start_stop(running)
+                self._show_video_mode_status('PAUSED', '#FF8')
+                self.app.processEvents()
 
-        kwargs = {name:inp.text() for name,inp in arg_inputs.items()}
-        command(**kwargs)
-
-        if self.video_mode_running:
-            self._video_mode_start_stop()
+            kwargs = {name:inp.text() for name,inp in arg_inputs.items()}
+            command(**kwargs)
+        except:
+            logger.error('Failure running command', exc_info=True)
+        finally:
+            if running:
+                self.video_mode_paused = False
+                self._video_mode_start_stop(running)
 
     def _add_command(self, command):
         i = len(self.commands)
@@ -156,6 +163,8 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
             self._add_command(i, command)
 
     def _update_video_mode_status(self):
+        if self.video_mode_paused:
+            return
         if liveplotting.last_instance is None:
             self._show_video_mode_status('<unknown>', '')
             self.video_mode_running = False
@@ -175,11 +184,10 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
         self.video_mode_label.setText(f'VideoMode: {text}')
         self.video_mode_label.setStyleSheet(f'QLabel {{ background-color : {color} }}')
 
-
-    def _video_mode_start_stop(self):
-        if self.video_mode_running == '1D':
+    def _video_mode_start_stop(self, mode):
+        if mode == '1D':
             liveplotting.last_instance._1D_start_stop()
-        if self.video_mode_running == '2D':
+        if mode == '2D':
             liveplotting.last_instance._2D_start_stop()
 
 
@@ -250,6 +258,8 @@ class Function(Command):
         for name,parameter in parameters.items():
             if parameter.default is not inspect._empty:
                 defaults[name] = parameter.default
+            if parameter.annotation is inspect._empty:
+                logger.warning(f'No annotation for `{name}`, assuming string')
         defaults.update(**kwargs)
         super().__init__(command_name, parameters, defaults)
         self.func = func
