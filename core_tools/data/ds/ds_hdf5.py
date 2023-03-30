@@ -8,7 +8,9 @@ def _get_fname(uuid):
 
 def save_hdf5(ds, fname):
     xds = ds2xarray(ds)
-    xds.to_netcdf(fname, engine='h5netcdf')
+    comp = {"compression": "gzip", "compression_opts": 9}
+    encoding = {var: comp for var in list(xds.data_vars)+list(xds.coords)}
+    xds.to_netcdf(fname, engine='h5netcdf', encoding=encoding)
 
 def load_hdf5(fname):
     xs = xr.open_dataset(fname)
