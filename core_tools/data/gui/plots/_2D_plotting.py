@@ -9,6 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class _2D_plot:
     def __init__(self, ds_descr, logmode=dict()):
         '''
@@ -124,14 +125,19 @@ class _2D_plot:
             logger.error("Error in plot update", exc_info=True)
 
     def detect_log_mode(self, data):
-        args = np.argwhere(np.isfinite(data)).T[0]
-
-        if len(args) >= 3:
-            log_diff_data = np.diff(np.log(np.abs(data[args] + 1e-90)))
-            if np.isclose(log_diff_data[-1],log_diff_data[-2]):
-                return True
-
-        return False
+        ind = np.argwhere(np.isfinite(data)).T[0]
+        if len(ind) < 3:
+            # need at least 3 points to check for logarithmic axis
+            return False
+        data_finite = data[ind] + 1e-100
+        ratio = data_finite[:-1] / data_finite[1:]
+        mean_ratio = np.mean(ratio)
+        is_log = (
+                0.99999 < np.min(ratio)/np.max(ratio) < 1.00001
+                and (mean_ratio < 0.99 or mean_ratio > 1.01))
+        if is_log:
+            logger.info(f'LOG {self.ds.name}')
+        return is_log
 
     def mouseMoved(self, evt):
         try:
