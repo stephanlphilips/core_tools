@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.20] - 2023-04-04
+
+- Improved ScriptRunner
+- Enabled compression on HDF5 files
+- Fixed axis is data browser for small relative scale.
+
 ## \[1.4.19] - 2023-03-02
 
 - Fixed VideoMode DC voltage missing gates
