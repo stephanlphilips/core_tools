@@ -153,11 +153,19 @@ class dummy_digitzer_scan_parameter(MultiParameter):
             data mode (int): data mode of the digizer
             channels (list<int>): channels to measure
         """
-        super().__init__(name=digitizer.name, names = digitizer.names, shapes = tuple([shape]*len(digitizer.names)),
-                        labels = digitizer.labels, units = digitizer.units,
-                        setpoints = tuple([setpoint]*len(digitizer.names)), setpoint_names=tuple([names]*len(digitizer.names)),
-                        setpoint_labels=tuple([names]*len(digitizer.names)), setpoint_units=tuple([tuple(["mV"]*len(names))]*len(digitizer.names)),
-                        docstring='1D scan parameter for digitizer')
+        channel_names = [f'ch{ch}' for ch in channels]
+        units = ['mV'] * len(channels)
+        super().__init__(
+                name=digitizer.name,
+                names=channel_names,
+                shapes=tuple([shape]*len(channels)),
+                labels=channel_names,
+                units=units,
+                setpoints=tuple([setpoint]*len(channels)),
+                setpoint_names=tuple([names]*len(channels)),
+                setpoint_labels=tuple([names]*len(channels)),
+                setpoint_units=tuple([tuple(["mV"]*len(names))]*len(channels)),
+                docstring='scan parameter for digitizer')
 
         self.dig = digitizer
         self.my_seq = my_seq
@@ -169,7 +177,7 @@ class dummy_digitzer_scan_parameter(MultiParameter):
         self.channels = channels
         self.biasT_corr = biasT_corr
         self.shape = shape
-        self.channel_names = digitizer.names
+        self.channel_names = channel_names
         self.offset = 0.0
 
     def get_raw(self):
