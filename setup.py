@@ -14,6 +14,7 @@ setup(name="core_tools",
           'numpy >= 1.20',
       ],
     package_data={
+        "core_tools": ["py.typed"],
         "": ["*.qml"],
     },
     )
