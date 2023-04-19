@@ -4,7 +4,7 @@ import numpy as np
 
 from core_tools.data.measurement import Measurement
 from core_tools.sweeps.progressbar import progress_bar
-from pulse_lib.sequencer import sequencer
+from pulse_lib.sequencer import sequencer, index_param
 from core_tools.sweeps.sweep_utility import KILL_EXP
 from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 
@@ -66,6 +66,19 @@ class Getter(Action):
 class Function(Action):
     def __init__(self, func, *args, delay=0.0, add_dataset=False,
                  add_last_values=False, **kwargs):
+        '''
+        Adds a function to a Scan.
+        Args:
+            func: function to call
+            args: arguments for func
+            delay (float): time to wait after calling func
+            add_dataset (bool): if True calls func(*args, dataset=ds, **kwargs)
+            add_last_values (bool): if True calls func(*args, add_last_values=last_param_values, **kwargs)
+            kwargs: keyword arguments for func
+
+        Notes:
+            last parameter values are past as dictionary.
+        '''
         super().__init__(f'do {func.__name__}', delay)
         self._func = func
         self._add_dataset = add_dataset
@@ -87,6 +100,32 @@ class Function(Action):
         if self._add_last_values:
             kwargs['last_values'] = last_values
         self._func(*self._args, **kwargs)
+
+
+class SequenceFunction(Function):
+    def __init__(self, func, *args, delay=0.0,
+                 axis=None,
+                 add_dataset=False, add_last_values=False, **kwargs):
+        '''
+        Adds a function to be run after setting sequence sweep index, but before playing sequence.
+        Args:
+            func: function to call
+            args: arguments for func
+            delay (float): time to wait after calling func
+            axis (int or str): axis number or looping parameter name in sequence
+            add_dataset (bool): if True calls func(*args, dataset=ds, **kwargs)
+            add_last_values (bool): if True calls func(*args, add_last_values=last_param_values, **kwargs)
+            kwargs: keyword arguments for func
+
+        Notes:
+            last parameter values are past as dictionary.
+        '''
+        super().__init__(
+                func, *args, delay=delay, add_dataset=add_dataset,
+                add_last_values=add_last_values, **kwargs)
+        if axis is None:
+            raise ValueError('Argument axis must be specified')
+        self.axis = axis
 
 
 def _start_sequence(sequence):
@@ -139,6 +178,8 @@ class Scan:
                     print('WARNING: sequencer starting_lambda is not supported anymore')
             elif isinstance(arg, Getter):
                 self._add_getter(arg)
+            elif isinstance(arg, SequenceFunction):
+                self._insert_sequence_function(arg)
             elif isinstance(arg, Function):
                 self.actions.append(arg)
             else:
@@ -165,6 +206,21 @@ class Scan:
         self.m_params.append(getter.param)
         self.meas.register_get_parameter(getter.param, *self.set_params)
 
+    def _insert_sequence_function(self, seq_function):
+        sequence_added = False
+        for i,action in enumerate(self.actions):
+            if (isinstance(action, ArraySetter)
+                and isinstance(action.param, index_param)
+                and (action.param.dim == seq_function.axis or action.param.name == seq_function.axis)):
+                break
+            if isinstance(action, Function) and action._func == _start_sequence:
+                sequence_added = True
+        else:
+            # axis not found.
+            if not sequence_added:
+                raise Exception('SequenceFunction must be added after sequence')
+            raise Exception(f'sequence axis {seq_function.axis} not found in sequence')
+        self.actions.insert(i+1, seq_function)
 
     def run(self):
         try:
