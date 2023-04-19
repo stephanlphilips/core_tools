@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.21] - 2023-04-19
+
+- Added SequenceFunction to Scan to execute a function after setting
+  a sweep index in a pulse-lib sequence.
+
 ## \[1.4.20] - 2023-04-04
 
 - Improved ScriptRunner
