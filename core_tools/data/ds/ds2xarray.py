@@ -29,14 +29,22 @@ def _add_coord(ds, param):
     return name
 
 def _add_data_var(ds, var, dims, param_index):
-    name = var.param_name
-    if not name:
-        name = var.name
+    var_name = var.param_name
+    if not var_name:
+        # Just in case the param name is not set.
+        var_name = var.name
+    name = var_name
+    dup = 1
+    while name in ds:
+        # Duplicate variable name. Add sequence number
+        dup += 1
+        name = f'{var_name}-{dup}'
     ds[name] = (dims, var())
     ds[name].attrs = {
             'units':var.unit,
             'long_name':var.label,
             '_param_index':param_index,
+            'param_name':var_name,
             }
 
 def ds2xarray(ct_ds):

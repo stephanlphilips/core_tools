@@ -21,6 +21,10 @@ def to_raw_param(xr_param, param_id,
         nth_set = 0
         nth_dim = 0
 
+    # Use param_name from attributes, otherwise name of xarray
+    # Note: In the original dataset there can be multiple variable with the same name.
+    name = attrs.get('param_name', xr_param.name)
+
     raw_param = m_param_raw(
         param_id=param_id, # required for dependencies Could just be a number in de data set.
         nth_set=nth_set, # required for slicing / averaging
@@ -29,7 +33,7 @@ def to_raw_param(xr_param, param_id,
         setpoint=setpoint, # required for data access
         setpoint_local=False, # has no specific meaning compared to setpoint
         name_gobal='_',
-        name=xr_param.name,
+        name=name,
         label=attrs['long_name'],
         unit=attrs['units'],
         dependency=dependencies, # required for population
