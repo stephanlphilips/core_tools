@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.22] - 2023-04-25
+
+- Fixed dataset - xarray conversion and storage of HDF5 files.
+
 ## \[1.4.21] - 2023-04-19
 
 - Added SequenceFunction to Scan to execute a function after setting
