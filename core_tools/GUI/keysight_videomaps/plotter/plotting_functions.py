@@ -270,12 +270,11 @@ class _1D_live_plot(live_plot):
                         # kind of hacky place, but it works well. TODO write as try expect clause.
                         self.generate_buffers()
                         self.update_buffers = False
-                        y=np.zeros([len(self.plot_data[i])])
 
                     self.buffer_data[i][-1] = y
                     self.average_scans = min(self.average_scans+1, self._averaging)
 
-                    self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
+                    self.plot_data[i] = np.sum(self.buffer_data[i], 0)/self.average_scans
                 self.prog_per = int(self.average_scans / self._averaging * 100)
                 self.plot_data_valid = True
             except Exception as e:
@@ -483,12 +482,11 @@ class _2D_live_plot(live_plot):
                         # kind of hacky place, but it works well. TODO write as try expect clause.
                         self.generate_buffers()
                         self.update_buffers = False
-                        xy=np.zeros(self.plot_data[0].shape)
 
                     self.buffer_data[i][-1] = xy
                     self.average_scans = min(self.average_scans+1, self._averaging)
 
-                    self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
+                    self.plot_data[i] = np.sum(self.buffer_data[i], 0)/self.average_scans
 
                 self.prog_per = int(self.average_scans / self._averaging * 100)
                 self.plot_data_valid = True
