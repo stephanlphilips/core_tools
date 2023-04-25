@@ -139,7 +139,7 @@ class query_for_measurement_results:
             statement += f" and project = '{project}' "
         if name:
             statement += f" and exp_name like '%{name}%' "
-        statement += " ;"
+        statement += " order by uuid;"
 
         res = query_for_measurement_results._execute(statement, remote)
 
