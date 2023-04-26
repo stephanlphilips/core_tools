@@ -212,6 +212,9 @@ class dummy_digitzer_scan_parameter(MultiParameter):
     def restart(self):
         pass
 
+    def close(self):
+        pass
+
     def __del__(self):
         pass
 

@@ -480,6 +480,9 @@ class _digitzer_scan_parameter(MultiParameter):
             self.my_seq = None
             self.pulse_lib = None
 
+    def close(self):
+        self.stop()
+
     def __del__(self):
         if not self.my_seq is None and not self.pulse_lib is None:
             logger.warning(f'Cleanup in __del__(); Call stop()!')
