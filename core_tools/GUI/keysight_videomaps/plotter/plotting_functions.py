@@ -64,9 +64,6 @@ class plot_param:
 
 
 class live_plot(QThread):
-    active = False
-    plt_finished = True
-    update_buffers = False
 
     def __init__(self,  top_layout, parameter_getter, averaging, gradient,
                  n_col, prog_bar=None, gate_values_label=None,
@@ -95,6 +92,8 @@ class live_plot(QThread):
         self._on_mouse_clicked = on_mouse_clicked
         self.gate_x_voltage = None
         self.gate_y_voltage = None
+        self.active = False
+        self.plt_finished = True
 
         # getter for the scan.
         self.parameter_getter = parameter_getter
@@ -130,7 +129,7 @@ class live_plot(QThread):
         if self._averaging < 1:
             self._averaging = 1
 
-        self.update_buffers = True
+        self._buffers_need_resize = True
 
     @property
     def gradient(self):
@@ -146,11 +145,26 @@ class live_plot(QThread):
         self.plot_data = []
         self.plot_data_valid = False
         self.average_scans = 0
+        self._buffers_need_resize = False
 
         for i in range(self.n_plots):
-            shape = list(self.plot_params[i].shape)
-            self.buffer_data.append(np.zeros([self._averaging, *shape]))
-            self.plot_data.append(np.zeros([*shape]))
+            plot_shape = self.plot_params[i].shape
+            self.plot_data.append(np.zeros(plot_shape))
+            buffer_shape = (self._averaging, *plot_shape)
+            self.buffer_data.append(np.zeros(buffer_shape))
+
+    def _resize_buffers(self):
+        self._buffers_need_resize = False
+        self.average_scans = min(self.average_scans, self._averaging)
+
+        for i in range(self.n_plots):
+            plot_shape = self.plot_params[i].shape
+            old_buffer = self.buffer_data[i]
+            n_copy = min(self._averaging, old_buffer.shape[0])
+            new_shape = (self._averaging, *plot_shape)
+            new_buffer = np.zeros(new_shape)
+            new_buffer[:n_copy] = old_buffer[:n_copy]
+            self.buffer_data[i] = new_buffer
 
     def start(self):
         logger.info('running start function in plotting_func')
@@ -257,27 +271,24 @@ class _1D_live_plot(live_plot):
             time.sleep(1.0)
 
     def run(self):
-        while (self.active == True):
+        while self.active:
             try:
                 input_data = self.parameter_getter.get()
                 self._read_dc_voltages()
 
+                if self._buffers_need_resize:
+                    self._resize_buffers()
+
+                self.average_scans = min(self.average_scans+1, self._averaging)
                 for i in range(self.n_plots):
+                    buffer_data = self.buffer_data[i]
                     y = input_data[i]
-
-                    self.buffer_data[i] = np.roll(self.buffer_data[i],-1,0)
-                    if self.update_buffers == True:
-                        # kind of hacky place, but it works well. TODO write as try expect clause.
-                        self.generate_buffers()
-                        self.update_buffers = False
-                        y=np.zeros([len(self.plot_data[i])])
-
-                    self.buffer_data[i][-1] = y
-                    self.average_scans = min(self.average_scans+1, self._averaging)
-
-                    self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
-                self.prog_per = int(self.average_scans / self._averaging * 100)
+                    buffer_data = np.roll(buffer_data,1,0)
+                    buffer_data[0] = y
+                    self.buffer_data[i] = buffer_data
+                    self.plot_data[i] = np.sum(buffer_data, 0)/self.average_scans
                 self.plot_data_valid = True
+                self.prog_per = int(self.average_scans / self._averaging * 100)
             except Exception as e:
                 self.plot_data_valid = True
                 logger.error(f'Exception: {e}', exc_info=True)
@@ -469,29 +480,24 @@ class _2D_live_plot(live_plot):
             time.sleep(1.0)
 
     def run(self):
-        # fetch data here -- later ported through in update plot. Running update plot from here causes c++ to delethe the curves object for some wierd reason..
-        while (self.active == True):
+        while self.active:
             try:
                 input_data = self.parameter_getter.get()
                 self._read_dc_voltages()
 
+                if self._buffers_need_resize:
+                    self._resize_buffers()
+
+                self.average_scans = min(self.average_scans+1, self._averaging)
                 for i in range(self.n_plots):
+                    buffer_data = self.buffer_data[i]
                     xy = input_data[i][:, :].T
-
-                    self.buffer_data[i] = np.roll(self.buffer_data[i],-1,0)
-                    if self.update_buffers == True:
-                        # kind of hacky place, but it works well. TODO write as try expect clause.
-                        self.generate_buffers()
-                        self.update_buffers = False
-                        xy=np.zeros(self.plot_data[0].shape)
-
-                    self.buffer_data[i][-1] = xy
-                    self.average_scans = min(self.average_scans+1, self._averaging)
-
-                    self.plot_data[i] = np.sum(self.buffer_data[i], 0)/len(self.buffer_data[i])
-
-                self.prog_per = int(self.average_scans / self._averaging * 100)
+                    buffer_data = np.roll(buffer_data,1,0)
+                    buffer_data[0] = xy
+                    self.buffer_data[i] = buffer_data
+                    self.plot_data[i] = np.sum(buffer_data, 0)/self.average_scans
                 self.plot_data_valid = True
+                self.prog_per = int(self.average_scans / self._averaging * 100)
             except Exception as e:
                 self.plot_data_valid = True
                 logger.error(f'Exception: {e}', exc_info=True)
