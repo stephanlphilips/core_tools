@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- convert with: 
-   pyuic5 GUI.ui > videomode_gui.py 
+<!-- convert with:
+   pyuic5 GUI.ui > videomode_gui.py
 -->
 <ui version="4.0">
  <class>MainWindow</class>
@@ -203,10 +203,10 @@
                   <number>1</number>
                  </property>
                  <property name="minimum">
-                  <double>-1500.000000000000000</double>
+                  <double>-1000.000000000000000</double>
                  </property>
                  <property name="maximum">
-                  <double>1500.000000000000000</double>
+                  <double>1000.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -444,6 +444,9 @@
                    <property name="maximum">
                     <number>1000</number>
                    </property>
+                   <property name="minimum">
+                    <number>1</number>
+                   </property>
 				  </widget>
                  </item>
                  <item>
@@ -499,6 +502,77 @@
                 <size>
                  <width>20</width>
                  <height>5</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="_1D_set_DC">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>14</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Set DC voltage</string>
+               </property>
+               <property name="checkable">
+			    <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer>
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>3</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="_1D_copy">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>14</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Copy to clipboard</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer>
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>3</height>
                 </size>
                </property>
               </spacer>
@@ -573,7 +647,7 @@
         </item>
        </layout>
       </widget>
-	  
+
       <widget class="QWidget" name="_2D">
        <attribute name="title">
         <string>2D</string>
@@ -744,10 +818,10 @@
                   <number>2</number>
                  </property>
                  <property name="minimum">
-                  <double>-3000.000000000000000</double>
+                  <double>-1000.000000000000000</double>
                  </property>
                  <property name="maximum">
-                  <double>3000.000000000000000</double>
+                  <double>1000.000000000000000</double>
                  </property>
                  <property name="value">
                   <double>0.000000000000000</double>
@@ -774,10 +848,10 @@
                <item row="5" column="1">
                 <widget class="QDoubleSpinBox" name="_2D_V2_swing">
                  <property name="minimum">
-                  <double>-3000.000000000000000</double>
+                  <double>-1000.000000000000000</double>
                  </property>
                  <property name="maximum">
-                  <double>3000.000000000000000</double>
+                  <double>1000.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -1018,6 +1092,9 @@
                    <property name="maximum">
                     <number>1000</number>
                    </property>
+                   <property name="minimum">
+                    <number>1</number>
+                   </property>
                   </widget>
                  </item>
                  <item>
@@ -1156,6 +1233,40 @@
               </spacer>
              </item>
              <item>
+              <widget class="QPushButton" name="_2D_copy">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>14</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Copy to clipboard</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer>
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>3</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
               <widget class="QPushButton" name="_2D_ppt_save">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -1225,7 +1336,7 @@
         </item>
        </layout>
       </widget>
-	  
+
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
         <string>Settings</string>
@@ -1546,6 +1657,53 @@
              </widget>
             </item>
 
+            <item row="8" column="0">
+             <widget class="QLabel" name="label_max_V_swing">
+              <property name="text">
+               <string>Max. V swing</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="1">
+             <widget class="QSpinBox" name="_gen_max_V_swing">
+              <property name="toolTip">
+               <string>maximum voltage swing for 1D and 2D</string>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>60</width>
+                <height>24</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>5000</number>
+              </property>
+              <property name="singleStep">
+               <number>1</number>
+              </property>
+              <property name="value">
+               <number>1000</number>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="2">
+             <widget class="QLabel" name="label_max_V_swing_mV">
+              <property name="text">
+               <string>mV</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="3">
+             <widget class="QLabel" name="label_max_V_swing_detail">
+              <property name="text">
+               <string>Maximum voltage swing in 1D and 2D</string>
+              </property>
+             </widget>
+            </item>
+
             <item row="9" column="0">
              <widget class="QLabel" name="label_1D_biasT_corr">
               <property name="text">
@@ -1570,7 +1728,7 @@
               </property>
              </widget>
             </item>
-			
+
             <item row="10" column="0">
              <widget class="QLabel" name="label_2D_biasT_corr">
               <property name="text">
@@ -1595,7 +1753,7 @@
               </property>
              </widget>
             </item>
-			
+
             <item row="20" column="0">
              <widget class="QLabel" name="label_2D_cross">
               <property name="text">
@@ -1630,7 +1788,7 @@
               </property>
              </widget>
             </item>
-			
+
             <item row="25" column="0">
              <widget class="QLabel" name="label_background_sigma">
               <property name="text">

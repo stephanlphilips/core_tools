@@ -94,6 +94,8 @@ class live_plot(QThread):
         self.gate_y_voltage = None
         self.active = False
         self.plt_finished = True
+        self.clear_buffers = False
+        self._buffers_need_resize = False
 
         # getter for the scan.
         self.parameter_getter = parameter_getter
@@ -141,12 +143,11 @@ class live_plot(QThread):
         self.refresh()
 
     def generate_buffers(self):
+        self.clear_buffers = False
         self.buffer_data = []
         self.plot_data = []
         self.plot_data_valid = False
         self.average_scans = 0
-        self._buffers_need_resize = False
-
         for i in range(self.n_plots):
             plot_shape = self.plot_params[i].shape
             self.plot_data.append(np.zeros(plot_shape))
@@ -240,19 +241,59 @@ class _1D_live_plot(live_plot):
             plot_1D.setLabel('left', param.label, param.unit)
             plot_1D.setLabel('bottom', param.xlabel(0), param.xunit(0))
 
+            cursor = QtCore.Qt.CrossCursor
+            plot_1D.setCursor(cursor)
+
             icol = i % n_col
             irow = i // n_col
             self.top_layout.addWidget(plot_1D, irow, icol, 1, 1)
 
-            xrange = np.abs(param.xrange(0)[1])
+            xrange = param.xrange(0)[1]
             self.x_data = np.linspace(-xrange, xrange, self.plot_data[i].size)
 
             curve = plot_1D.plot(self.x_data, self.plot_data[i], pen=(255,0,0))
             plot_data = plot_widget_data(plot_1D, [curve])
+            plot_data.proxy = pg.SignalProxy(plot_1D.scene().sigMouseMoved, rateLimit=10,
+                                             slot=partial(self.mouse_moved, plot_1D, i))
+            plot_data.proxy2 = pg.SignalProxy(plot_1D.scene().sigMouseClicked,
+                                              slot=partial(self.mouse_clicked, plot_1D, i))
             self.plot_widgets.append(plot_data)
 
     def _read_dc_voltages(self):
         self.gate_x_voltage = self._read_dc_voltage(self.plot_params[0].setpoint_names[0])
+
+    def _get_plot_coords(self, plot, index, coordinates):
+        if plot.sceneBoundingRect().contains(coordinates):
+            # filter on min/max
+            mouse_point = plot.plotItem.vb.mapSceneToView(coordinates)
+            x = mouse_point.x()
+            ix = self.plot_params[index].get_index(x)[0]
+            if ix is not None:
+                return x, ix
+        return None, None
+
+    def mouse_clicked(self, plot, index, event):
+        try:
+            x, ix = self._get_plot_coords(plot, index, event[0].scenePos())
+            if ix is None:
+                return
+            if self._on_mouse_clicked:
+                self._on_mouse_clicked(x)
+        except Exception as ex:
+            print(ex)
+
+    def mouse_moved(self, plot, index, event):
+        try:
+            x, ix = self._get_plot_coords(plot, index, event[0])
+            if ix is None:
+                return
+            v = self.plot_data[index][ix] # TODO @@@ check with diff ...
+            if self._on_mouse_moved:
+                plot_param = self.plot_params[index]
+                self._on_mouse_moved(x, plot_param.name, v)
+        except Exception as ex:
+            print(ex)
+            print(ex.__traceback__)
 
     def update_plot(self):
         if not self.plot_data_valid:
@@ -265,6 +306,11 @@ class _1D_live_plot(live_plot):
                     y = np.gradient(y)
                 self.plot_widgets[i].plot_items[0].setData(self.x_data, y)
             self.prog_bar.setValue(self.prog_per)
+            if self.gates is not None:
+                gate_x = self.plot_params[0].setpoint_names[0]
+                x_voltage_str = self._format_dc_voltage(self.gate_x_voltage)
+                self.gate_values_label.setText(
+                        f'DC {gate_x}:{x_voltage_str}')
         except:
             logger.error(f'Plotting failed', exc_info=True)
             # slow down to reduce error burst
@@ -275,7 +321,8 @@ class _1D_live_plot(live_plot):
             try:
                 input_data = self.parameter_getter.get()
                 self._read_dc_voltages()
-
+                if self.clear_buffers:
+                    self.generate_buffers()
                 if self._buffers_need_resize:
                     self._resize_buffers()
 
@@ -365,38 +412,35 @@ class _2D_live_plot(live_plot):
                 cb.setImageItem(pwd.plot_items[0], insert_in=pwd.plot_widget.plotItem)
                 pwd.color_bar = cb
 
+    def _get_plot_coords(self, plot, index, coordinates):
+        if plot.sceneBoundingRect().contains(coordinates):
+            # filter on min/max
+            mouse_point = plot.plotItem.vb.mapSceneToView(coordinates)
+            x,y = mouse_point.x(), mouse_point.y()
+            iy,ix = self.plot_params[index].get_index(y,x)
+            if iy is not None and ix is not None:
+                return x, y, ix, iy
+        return None, None, None, None
 
     def mouse_clicked(self, plot, index, event):
         try:
-            click = event[0]
-            coordinates = click.scenePos()
-            if plot.sceneBoundingRect().contains(coordinates):
-                # filter on min/max
-                mouse_point = plot.plotItem.vb.mapSceneToView(coordinates)
-                x,y = mouse_point.x(), mouse_point.y()
-                iy,ix = self.plot_params[index].get_index(y,x)
-                if iy is None or ix is None:
-                    return
-                if self._on_mouse_clicked:
-                    self._on_mouse_clicked(x, y)
+            x, y, ix, iy = self._get_plot_coords(plot, index, event[0].scenePos())
+            if iy is None or ix is None:
+                return
+            if self._on_mouse_clicked:
+                self._on_mouse_clicked(x, y)
         except Exception as ex:
             print(ex)
 
     def mouse_moved(self, plot, index, event):
         try:
-            coordinates = event[0]
-            if plot.sceneBoundingRect().contains(coordinates):
-                # filter on min/max
-                mouse_point = plot.plotItem.vb.mapSceneToView(coordinates)
-                x,y = mouse_point.x(), mouse_point.y()
+            x, y, ix, iy = self._get_plot_coords(plot, index, event[0])
+            if iy is None or ix is None:
+                return
+            v = self.plot_data[index][iy,ix] # TODO @@@ check with magnitude...
+            if self._on_mouse_moved:
                 plot_param = self.plot_params[index]
-                iy,ix = plot_param.get_index(y,x)
-                if iy is None or ix is None:
-                    return
-                if iy is not None and ix is not None:
-                    v = self.plot_data[index][iy,ix] # TODO @@@ check with magnitude...
-                    if self._on_mouse_moved:
-                        self._on_mouse_moved(x, y, plot_param.name, v)
+                self._on_mouse_moved(x, y, plot_param.name, v)
         except Exception as ex:
             print(ex)
 
@@ -485,6 +529,8 @@ class _2D_live_plot(live_plot):
                 input_data = self.parameter_getter.get()
                 self._read_dc_voltages()
 
+                if self.clear_buffers:
+                    self.generate_buffers()
                 if self._buffers_need_resize:
                     self._resize_buffers()
 

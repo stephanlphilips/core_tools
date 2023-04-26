@@ -1,19 +1,21 @@
+import io
+import logging
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
 import pyqtgraph as pg
+
+from PyQt5 import QtCore, QtWidgets, QtGui
+
+from qcodes import MultiParameter
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
 from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
 from core_tools.GUI.keysight_videomaps.data_saver.native import CoreToolsDataSaver
-
-from dataclasses import dataclass
-from PyQt5 import QtCore, QtWidgets, QtGui
 from core_tools.GUI.keysight_videomaps.data_getter.iq_modes import iq_mode2numpy
 from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
 from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
-from qcodes import MultiParameter
 from core_tools.utility.powerpoint import addPPTslide
-import logging
 from ..qt_util import qt_log_exception
 
 logger = logging.getLogger(__name__)
@@ -100,6 +102,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'line_margin': int,
                            'bias_T_RC': float,
                            'acquisition_delay_ns': float, # Time in ns between AWG output change and digitizer acquisition start.
+                           'max_V_swing': float, # maximum voltage swing for 1D and 2D
                            'biasT_corr_1D': bool,
                            'biasT_corr_2D': bool,
                            '2D_cross': bool,
@@ -185,8 +188,14 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._1D_ppt_save.clicked.connect(lambda:self.copy_ppt())
         self._2D_ppt_save.clicked.connect(lambda:self.copy_ppt())
+
+        self._1D_copy.clicked.connect(lambda:self.copy_to_clipboard())
+        self._2D_copy.clicked.connect(lambda:self.copy_to_clipboard())
+
+        self._1D_set_DC.setEnabled(gates is not None)
+        self._1D_set_DC.clicked.connect(lambda:self._1D_set_DC_button_state())
         self._2D_set_DC.setEnabled(gates is not None)
-        self._2D_set_DC.clicked.connect(lambda:self._set_DC_button_state())
+        self._2D_set_DC.clicked.connect(lambda:self._2D_set_DC_button_state())
 
         liveplotting.last_instance = self
 
@@ -340,6 +349,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             'acquisition_delay_ns': 500,
             'n_columns': 4,
             'line_margin': 1,
+            'max_V_swing': 1000.0,
             'bias_T_RC': 100,
             'biasT_corr_1D': False,
             'biasT_corr_2D': True,
@@ -385,6 +395,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         for marker, check_box in self.marker_check_boxes.items():
             check_box.setChecked(marker in self._gen__enabled_markers)
+
+        for v_spinner in [self._1D_V_swing, self._2D_V1_swing, self._2D_V2_swing]:
+            v_spinner.setRange(-self._gen__max_V_swing, self._gen__max_V_swing)
 
         self._1D_average.valueChanged.connect(lambda:self.update_plot_properties_1D())
         self._1D_diff.stateChanged.connect(lambda:self.update_plot_properties_1D())
@@ -584,7 +597,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.current_plot._1D = _1D_live_plot(
                             self._1D_plotter_layout, self.current_param_getter._1D,
                             self._1D_average.value(), self._1D_diff.isChecked(),
-                            self._gen__n_columns, self._1D_av_progress)
+                            self._gen__n_columns, self._1D_av_progress,
+                            gates=self.gates, gate_values_label=self.gate_values_label,
+                            on_mouse_moved=self._on_mouse_moved_1D,
+                            on_mouse_clicked=self._on_mouse_clicked_1D)
                     self.start_1D.setEnabled(True)
                     self.set_metadata()
                     logger.info('Finished init currentplot and current_param')
@@ -630,10 +646,14 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                             self._2D_average.value(), self._2D_gradient.currentText(),
                             self._gen__n_columns, self._2D_av_progress,
                             gates=self.gates, gate_values_label=self.gate_values_label,
-                            on_mouse_moved=self._on_mouse_moved,
-                            on_mouse_clicked=self._on_mouse_clicked)
+                            on_mouse_moved=self._on_mouse_moved_2D,
+                            on_mouse_clicked=self._on_mouse_clicked_2D)
                     self.current_plot._2D.set_cross(self._2D__cross)
                     self.current_plot._2D.set_colorbar(self._2D__colorbar)
+                    self.current_plot._2D.set_background_filter(
+                            self._2D_filter_background.isChecked(),
+                            self._gen_background_sigma.value()
+                            )
                     self.start_2D.setEnabled(True)
                     self.set_metadata()
                     logger.info('Finished init currentplot and current_param')
@@ -714,6 +734,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.start_2D.setText("Start")
         self.cursor_value_label.setText('')
         self.gate_values_label.setText('')
+        self._gen__max_V_swing = self._gen_max_V_swing.value()
+        for v_spinner in [self._1D_V_swing, self._2D_V1_swing, self._2D_V2_swing]:
+            v_spinner.setRange(-self._gen__max_V_swing, self._gen__max_V_swing)
 
     @qt_log_exception
     def closeEvent(self, event):
@@ -813,6 +836,19 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         addPPTslide(title=title, fig=figure_hand, notes=str(notes), verbose=-1)
 
     @qt_log_exception
+    def copy_to_clipboard(self):
+        if self.vm_data_param is None:
+            return
+        if self.tab_id == 0: # 1D
+            frame = self._1D_plotter_frame
+        elif self.tab_id == 1: # 2D
+            frame = self._2D_plotter_frame
+        else:
+            return
+        QtWidgets.QApplication.clipboard().setPixmap(frame.grab())
+
+
+    @qt_log_exception
     def save_data(self):
         """
         save the data
@@ -840,7 +876,28 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.error(f'Error during save data', exc_info=True)
 
     @qt_log_exception
-    def _on_mouse_clicked(self, x, y):
+    def _on_mouse_clicked_1D(self, x):
+        if self._1D_set_DC.isChecked():
+            vx = self.current_plot._1D.gate_x_voltage + x
+            self.gates.set(self._1D__gate_name, vx)
+            msg = (f'Set {self._1D__gate_name}:{vx:6.3f} mV')
+            print(msg)
+            self.cursor_value_label.setText(msg)
+            self.current_plot._1D.clear_buffers = True
+
+    @qt_log_exception
+    def _on_mouse_moved_1D(self, x, ch, v):
+        dc_x = self.current_plot._1D.gate_x_voltage
+        if dc_x is not None:
+            x_total = f' ({dc_x+x:7.2f})'
+        else:
+            x_total = ''
+        self.cursor_value_label.setText(
+                f'{self._1D__gate_name}:{x:7.2f}{x_total} mV, '
+                f'{ch}:{v:7.2f} mV')
+
+    @qt_log_exception
+    def _on_mouse_clicked_2D(self, x, y):
         if self._2D_set_DC.isChecked():
             vx = self.current_plot._2D.gate_x_voltage + x
             vy = self.current_plot._2D.gate_y_voltage + y
@@ -849,10 +906,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             msg = (f'Set {self._2D__gate1_name}:{vx:6.3f} mV, {self._2D__gate2_name}:{vy:6.3f}')
             print(msg)
             self.cursor_value_label.setText(msg)
-            self.current_plot._2D.update_buffers = True
+            self.current_plot._2D.clear_buffers = True
 
     @qt_log_exception
-    def _on_mouse_moved(self, x, y, ch, v):
+    def _on_mouse_moved_2D(self, x, y, ch, v):
         dc_x = self.current_plot._2D.gate_x_voltage
         dc_y = self.current_plot._2D.gate_y_voltage
         if dc_x is not None:
@@ -869,7 +926,14 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 f'{ch}:{v:7.2f} mV')
 
     @qt_log_exception
-    def _set_DC_button_state(self):
+    def _1D_set_DC_button_state(self):
+        if self._1D_set_DC.isChecked():
+            self._1D_set_DC.setStyleSheet("QPushButton{ background-color: yellow }");
+        else:
+            self._1D_set_DC.setStyleSheet("");
+
+    @qt_log_exception
+    def _2D_set_DC_button_state(self):
         if self._2D_set_DC.isChecked():
             self._2D_set_DC.setStyleSheet("QPushButton{ background-color: yellow }");
         else:
