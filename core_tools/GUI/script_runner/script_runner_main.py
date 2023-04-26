@@ -52,6 +52,7 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
         self.video_mode_paused = False
         self._update_video_mode_status()
 
+        self.latest_result = None
         self.commands = []
 
         self.timer = QtCore.QTimer()
@@ -115,10 +116,12 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.app.processEvents()
 
             kwargs = {name:inp.text() for name,inp in arg_inputs.items()}
-            command(**kwargs)
-        except:
+            command_result = command(**kwargs)
+        except Exception as ex:
+            command_result = ex
             logger.error('Failure running command', exc_info=True)
         finally:
+            self.latest_result = command_result
             if running:
                 self.video_mode_paused = False
                 self._video_mode_start_stop(running)
@@ -296,6 +299,7 @@ if __name__ == "__main__":
     def sayHi(name:str, times:int=1):
         for _ in range(times):
             print(f'Hi {name}')
+        return name
 
     path  = os.path.dirname(__file__)
 
