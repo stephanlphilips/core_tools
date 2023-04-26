@@ -181,6 +181,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._flip_axes.clicked.connect(lambda:self.do_flip_axes())
         self.tabWidget.currentChanged.connect(lambda:self.tab_changed())
 
+        self._1D_reset_average.clicked.connect(lambda:self._reset_1D_average())
+        self._2D_reset_average.clicked.connect(lambda:self._reset_2D_average())
+
         self.init_defaults(pulse_lib.channels, cust_defaults)
 
         self._1D_save_data.clicked.connect(lambda:self.save_data())
@@ -874,6 +877,14 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             return data_saver.save_data(self.vm_data_param, label)
         except Exception:
             logger.error(f'Error during save data', exc_info=True)
+
+    @qt_log_exception
+    def _reset_1D_average(self):
+        self.current_plot._1D.clear_buffers = True
+
+    @qt_log_exception
+    def _reset_2D_average(self):
+        self.current_plot._2D.clear_buffers = True
 
     @qt_log_exception
     def _on_mouse_clicked_1D(self, x):

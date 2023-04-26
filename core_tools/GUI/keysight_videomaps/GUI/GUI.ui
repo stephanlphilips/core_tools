@@ -431,11 +431,38 @@
                 </widget>
                </item>
                <item row="13" column="0">
-                <widget class="QLabel" name="label_3">
-                 <property name="text">
-                  <string>Average</string>
-                 </property>
-                </widget>
+                <layout class="QHBoxLayout">
+                 <item>
+                  <widget class="QLabel" name="label_3">
+                   <property name="text">
+                    <string>Average</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer>
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Fixed</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>24</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="_1D_reset_average">
+                   <property name="text">
+                    <string>reset</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
                <item row="13" column="1">
                 <layout class="QHBoxLayout">
@@ -1078,12 +1105,40 @@
                  </property>
                 </widget>
                </item>
+
                <item row="16" column="0">
-                <widget class="QLabel" name="label_21">
-                 <property name="text">
-                  <string>Average</string>
-                 </property>
-                </widget>
+                <layout class="QHBoxLayout">
+                 <item>
+                  <widget class="QLabel" name="label_21">
+                   <property name="text">
+                    <string>Average</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer>
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Fixed</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>24</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="_2D_reset_average">
+                   <property name="text">
+                    <string>reset</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
                <item row="16" column="1">
                 <layout class="QHBoxLayout" name="horizontalLayout_4">
