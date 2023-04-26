@@ -5,6 +5,7 @@ from core_tools.data.gui.plots.unit_management import format_value_and_unit, for
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from functools import partial
+import numpy as np
 
 class check_box_descriptor():
     def __set_name__(self, owner, name):
@@ -106,7 +107,7 @@ class slider_mgr:
 class data_mgr_4_plot():
     def __init__(self, dataset_descr):
         self.ds_raw = dataset_descr
-        self.ds = None
+        self.ds = self.ds_raw
         self.properties_selector_raw = []
         self.properties_selector = []
         self.parent = None
@@ -126,26 +127,26 @@ class data_mgr_4_plot():
         self.update()
 
     def update(self):
-        properties = self.properties_selector_raw[:-1][::-1]
-
-        self.properties_selector = []
         self.ds = self.ds_raw
 
+        properties_selectors = []
+
+        properties = self.properties_selector_raw[:-1][::-1]
         for prop in properties:
             if prop.avg == True:
                 self.ds = self.ds.average(prop.name)
             elif prop.slc == True:
                 self.ds = self.ds.slice(prop.name, prop.slider_val)
             else:
-                self.properties_selector.append(prop)
+                properties_selectors.append(prop)
 
         for prop in properties:
             if self.n_dim == 1 and prop.avg == False and prop.slc == False:
                 prop._log.setEnabled(True)
             else:
                 prop._log.setEnabled(False)
-
-        self.properties_selector = self.properties_selector[::-1] + [self.properties_selector_raw[-1]]
+        if self.n_dim > 0:
+            self.properties_selector = properties_selectors[::-1] + [self.properties_selector_raw[-1]]
 
         if self.parent is not None:
             self.parent.draw_plots()
@@ -195,17 +196,9 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         self.local_parent = QtWidgets.QGridLayout()
         self.local_parent.setObjectName(m_name + "single_meas_grid")
 
-        self.generate_header(m_name)
         self.plot_data_mgr = data_mgr_4_plot(m_param)
 
-        if self.m_param.ndim >= 2:
-            self.cb_hist = QtWidgets.QCheckBox(self.geom_parent)
-            self.cb_hist.setText("Show histogram")
-            self.cb_hist.setObjectName(m_name + "_hist")
-            self.cb_hist.clicked.connect(partial(self.cb_callback, self.cb_hist, 'show_histogram'))
-        else:
-            self.cb_hist = None
-
+        # Show plot
         self.sp = QtWidgets.QCheckBox(self.geom_parent)
         self.sp.setText("")
         self.sp.setObjectName(m_name + "sp")
@@ -213,26 +206,41 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         self.sp.setChecked(True)
         self.sp.clicked.connect(partial(self.cb_callback, self.sp, 'show_plot'))
 
-        m_param_params = self.m_param.get_raw_content()
-        self.sliders = []
-        for i in range(len(m_param_params)):
-            param = m_param_params[i][0][1]
-            m_sec_property, slider = self.generate_m_section(m_name, i*2+2, param)
-            self.plot_data_mgr += m_sec_property
-            self.sliders += [slider]
-
-        m_sec_property, slider = self.generate_m_section(m_name, len(m_param_params)*2+4, self.m_param, parent=True)
-        self.plot_data_mgr += m_sec_property
-        self.sliders += [slider]
-
-        self.plot_data_mgr.set_children()
-
         self.title_layout = QtWidgets.QHBoxLayout()
         self.title_layout.addWidget(self.sp)
         self.title_layout.addWidget(self.m_param_1_title)
-        if self.cb_hist is not None:
-            self.title_layout.addWidget(self.cb_hist)
         self.addLayout(self.title_layout)
+
+        self.generate_header(m_name, self.m_param.ndim)
+        self.sliders = []
+        if self.m_param.ndim == 0:
+            self.generate_m_section(m_name, 2, self.m_param, value=True)
+            value_label = QtWidgets.QLabel(self.geom_parent)
+            value_label.setText(np.array2string(m_param()))
+            self.local_parent.addWidget(value_label, 2, 4, 1, 3)
+            space_label = QtWidgets.QLabel(self.geom_parent)
+            space_label.setText('')
+            self.local_parent.addWidget(space_label, 4, 0, 1, 1)
+        else:
+            if self.m_param.ndim >= 2:
+                self.cb_hist = QtWidgets.QCheckBox(self.geom_parent)
+                self.cb_hist.setText("Show histogram")
+                self.cb_hist.setObjectName(m_name + "_hist")
+                self.cb_hist.clicked.connect(partial(self.cb_callback, self.cb_hist, 'show_histogram'))
+                self.title_layout.addWidget(self.cb_hist)
+
+            m_param_params = self.m_param.get_raw_content()
+            for i in range(len(m_param_params)):
+                param = m_param_params[i][0][1]
+                m_sec_property, slider = self.generate_m_section(m_name, i*2+2, param)
+                self.plot_data_mgr += m_sec_property
+                self.sliders += [slider]
+
+            m_sec_property, slider = self.generate_m_section(m_name, len(m_param_params)*2+4, self.m_param, parent=True)
+            self.plot_data_mgr += m_sec_property
+            self.sliders += [slider]
+
+            self.plot_data_mgr.set_children()
 
         self.addLayout(self.local_parent)
         for i in self.sliders:
@@ -242,19 +250,7 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         setattr(self.plot_data_mgr, prop, checkbox.isChecked())
         self.plot_data_mgr.update()
 
-    def generate_header(self, m_name):
-        header_slc = QtWidgets.QLabel(self.geom_parent)
-        header_slc.setMaximumSize(QtCore.QSize(40, 16777215))
-        header_slc.setObjectName(m_name + "header_slc")
-
-        header_avg = QtWidgets.QLabel(self.geom_parent)
-        header_avg.setMaximumSize(QtCore.QSize(40, 16777215))
-        header_avg.setObjectName(m_name + "header_avg")
-
-        header_log = QtWidgets.QLabel(self.geom_parent)
-        header_log.setMaximumSize(QtCore.QSize(40, 16777215))
-        header_log.setObjectName(m_name + "header_log")
-
+    def generate_header(self, m_name, ndim):
         header_letter = QtWidgets.QLabel(self.geom_parent)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -273,18 +269,38 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         self.add_h_lines(m_name)
         self.local_parent.addWidget(header_letter, 0, 0, 1, 1)
         self.local_parent.addWidget(header_name, 0, 2, 1, 1)
-        self.local_parent.addWidget(header_avg, 0, 4, 1, 1)
-        self.local_parent.addWidget(header_slc, 0, 5, 1, 1)
-        self.local_parent.addWidget(header_log, 0, 6, 1, 1)
 
         _translate = QtCore.QCoreApplication.translate
-        header_slc.setText(_translate("MainWindow", "SLC"))
-        header_log.setText(_translate("MainWindow", "log"))
-        header_avg.setText(_translate("MainWindow", "AVG"))
+        if ndim:
+            header_slc = QtWidgets.QLabel(self.geom_parent)
+            header_slc.setMaximumSize(QtCore.QSize(40, 16777215))
+            header_slc.setObjectName(m_name + "header_slc")
+
+            header_avg = QtWidgets.QLabel(self.geom_parent)
+            header_avg.setMaximumSize(QtCore.QSize(40, 16777215))
+            header_avg.setObjectName(m_name + "header_avg")
+
+            header_log = QtWidgets.QLabel(self.geom_parent)
+            header_log.setMaximumSize(QtCore.QSize(40, 16777215))
+            header_log.setObjectName(m_name + "header_log")
+
+            header_slc.setText(_translate("MainWindow", "SLC"))
+            header_log.setText(_translate("MainWindow", "log"))
+            header_avg.setText(_translate("MainWindow", "AVG"))
+
+            self.local_parent.addWidget(header_avg, 0, 4, 1, 1)
+            self.local_parent.addWidget(header_slc, 0, 5, 1, 1)
+            self.local_parent.addWidget(header_log, 0, 6, 1, 1)
+        else:
+            header_value = QtWidgets.QLabel(self.geom_parent)
+            header_value.setMaximumSize(QtCore.QSize(40, 16777215))
+            header_value.setText('Value')
+            self.local_parent.addWidget(header_value, 0, 4, 1, 3)
+
         header_letter.setText(_translate("MainWindow", " "))
         header_name.setText(_translate("MainWindow", "name"))
 
-    def generate_m_section(self, m_name, level, param, parent=False):
+    def generate_m_section(self, m_name, level, param, parent=False, value=False):
         letter = QtWidgets.QLabel(self.geom_parent)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(10)
@@ -297,17 +313,18 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
         name.setMaximumSize(QtCore.QSize(250, 16777215))
         name.setObjectName(m_name + "name_{}".format(level))
 
-        avg = QtWidgets.QCheckBox(self.geom_parent)
-        avg.setText("")
-        avg.setObjectName(m_name + "avg_{}".format(level))
+        if not value:
+            avg = QtWidgets.QCheckBox(self.geom_parent)
+            avg.setText("")
+            avg.setObjectName(m_name + "avg_{}".format(level))
 
-        slc = QtWidgets.QCheckBox(self.geom_parent)
-        slc.setText("")
-        slc.setObjectName(m_name + "check_{}".format(level))
+            slc = QtWidgets.QCheckBox(self.geom_parent)
+            slc.setText("")
+            slc.setObjectName(m_name + "check_{}".format(level))
 
-        log = QtWidgets.QCheckBox(self.geom_parent)
-        log.setText("")
-        log.setObjectName(m_name + "x_log_{}".format(level))
+            log = QtWidgets.QCheckBox(self.geom_parent)
+            log.setText("")
+            log.setObjectName(m_name + "x_log_{}".format(level))
 
         _translate = QtCore.QCoreApplication.translate
         letter.setText(_translate("MainWindow", param.name))
@@ -315,21 +332,21 @@ class single_m_param_m_descriptor(QtWidgets.QVBoxLayout):
 
         self.local_parent.addWidget(letter, level, 0, 1, 1)
         self.local_parent.addWidget(name, level, 2, 1, 1)
-        self.local_parent.addWidget(avg, level, 4, 1, 1)
-        self.local_parent.addWidget(slc, level, 5, 1, 1)
-        self.local_parent.addWidget(log, level, 6, 1, 1)
+        if not value:
+            self.local_parent.addWidget(avg, level, 4, 1, 1)
+            self.local_parent.addWidget(slc, level, 5, 1, 1)
+            self.local_parent.addWidget(log, level, 6, 1, 1)
+            slider = slider_mgr(param.name, param,self.geom_parent)
 
         self.add_v_lines(m_name, level)
-
-        slider = slider_mgr(param.name, param,self.geom_parent)
 
         if parent:
             avg.hide()
             slc.hide()
 
-        m_param_set_prop = n_th_dimension_prop(param.name, "{} ({})".format(param.label, param.unit ), avg, slc, log, slider)
-
-        return m_param_set_prop, slider.hbox
+        if not value:
+            m_param_set_prop = n_th_dimension_prop(param.name, "{} ({})".format(param.label, param.unit ), avg, slc, log, slider)
+            return m_param_set_prop, slider.hbox
 
     def add_h_lines(self, m_name):
         l1 = self.generate_h_line(m_name + 'h_line_1')

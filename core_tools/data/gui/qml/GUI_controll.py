@@ -220,8 +220,14 @@ class signale_handler(QtQuick.QQuickView):
 
     @QtCore.pyqtSlot('QString', bool)
     def star_measurement(self, uuid, state):
-        alter_dataset.star_measurement(uuid, state)
+        try:
+            alter_dataset.star_measurement(uuid.replace('_',''), state)
+        except:
+            logging.error('Failed to start', exc_info=True)
 
     @QtCore.pyqtSlot('QString', 'QString')
     def update_name_meaurement(self, uuid, name):
-        alter_dataset.update_name(uuid, name)
+        try:
+            alter_dataset.update_name(uuid.replace('_',''), name)
+        except:
+            logging.error(f'Failed to change name to "{name}"', exc_info=True)

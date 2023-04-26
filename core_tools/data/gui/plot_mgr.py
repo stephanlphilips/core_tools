@@ -22,11 +22,20 @@ class data_plotter(QtWidgets.QMainWindow, plotter_basic_autgen.Ui_MainWindow):
 
             super(QtWidgets.QMainWindow, self).__init__()
             self.setupUi(self)
+            s = str(ds.exp_uuid)
+            uuid_str = s[:-14] + '_' + s[-14:-9] + '_' + s[-9:]
+            name = (ds.name[:40] + "...") if len(ds.name) > 40 else ds.name
+            self.setWindowTitle(f'{name}  {ds.run_timestamp:%H:%M:%S  %Y-%m-%d}  {uuid_str}')
+            self.labelName.setText(name)
+            self.labelUUID.setText(uuid_str)
+            self.labelDateTime.setText(f'{ds.run_timestamp:%Y-%m-%d %H:%M:%S}')
+            self.labelPss.setText(f'{ds.project} / {ds.set_up} / {ds.sample_name}')
+
             self.ui_box_mgr = ui_box_mgr(self.app, self.ds, self.data_plot_layout)
             # add gui for dataset selection
             for m_param_set in self.ds:
                 for m_param in m_param_set:
-                    param =m_param[1]
+                    param = m_param[1]
                     layout = single_m_param_m_descriptor(param, self.scrollAreaWidgetContents_4)
                     self.ui_box_mgr.add_m_param_plot_mgr(layout.plot_data_mgr)
                     self.data_content_layout.addLayout(layout)
