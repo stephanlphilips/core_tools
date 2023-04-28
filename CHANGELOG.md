@@ -1,6 +1,19 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.23] - 2023-04-28
+
+- VideoMode: Fixed scale when starting averaging.
+- VideoMode: Keep buffered data when changing the number of averages.
+- VideoMode: Changing sweep direction in 1D now keeps correct x-values in chart.
+- VideoMode: Set DC voltages in 1D.
+- VideoMode: Added copy to clipboard.
+- VideoMode: Added maximum voltage swing to settings.
+- VideoMode: Fixed background filter setting when uploading waveforms.
+- Databrowser: Added dataset info to window title and panel.
+- Databrowser: Fixed presentation of 0D data, a scalar.
+- Databrowser: Filter on name, keywords and starred.
+
 ## \[1.4.22] - 2023-04-25
 
 - Fixed dataset - xarray conversion and storage of HDF5 files.
