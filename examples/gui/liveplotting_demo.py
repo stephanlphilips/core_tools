@@ -111,9 +111,37 @@ settings = {
     'gen':{
         '2D_colorbar':True,
         '2D_cross':True,
+        'max_V_swing': 250,
         }
     }
-plotting = liveplotting(pulse, dig, "Virtual", settings)#, gates=gates)
+plotting = liveplotting(pulse, dig, "Virtual", settings, iq_mode='I+Q') #, gates=gates)
+
+# ALL SETTIMGS:
+#settings = {
+#    '1D': {
+#        'gate_name': 'vP1',
+#        'V_swing': 20.0,
+#        'npt': 100,
+#        't_meas': 25.0,
+#        'average': 200,
+#        },
+#    '2D': {
+#        'gate1_name': 'vP1',
+#        'V1_swing': 20.0,
+#        'gate2_name': 'vP2',
+#        'V2_swing': 10.0,
+#        'npt': 100,
+#        't_meas': 25.0,
+#        'average': 200,
+#        },
+#    'gen': {
+#        'n_columns': 2,
+#        '2D_colorbar':True,
+#        '2D_cross':True,
+#        'max_V_swing': 250,
+#        }
+#    }
+
 plotting._2D_gate2_name.setCurrentIndex(1)
 plotting._2D_t_meas.setValue(1)
 plotting._2D_V1_swing.setValue(100)
