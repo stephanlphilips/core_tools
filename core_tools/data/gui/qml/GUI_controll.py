@@ -25,6 +25,9 @@ class DataFilter:
         self.project = None
         self.set_up = None
         self.sample = None
+        self.name = None
+        self.keywords = None
+        self.starred = False
         self._project_model = project_model
         self._set_up_model = set_up_model
         self._sample_model = sample_model
@@ -74,6 +77,20 @@ class DataFilter:
             self.sample = None
         self._update_lists()
 
+    def set_name(self, name):
+        if name == '':
+            name = None
+        self.name = name
+
+    def set_keywords(self, keywords):
+        if keywords == '':
+            self.keywords = None
+        else:
+            self.keywords = [kw.strip() for kw in keywords.split(',')]
+
+    def set_starred(self, starred):
+        self.starred = starred
+
     @property
     def project_index(self):
         return self._projects.index(default(self.project, 'any'))
@@ -98,6 +115,8 @@ class signale_handler(QtQuick.QQuickView):
         self.data_overview_model = data_overview_model
 
         self.max_measurement_id =0
+        self.selected_date = None
+        self.ignore_date_selection_changes = False
         self.plots = []
 
 
@@ -126,6 +145,10 @@ class signale_handler(QtQuick.QQuickView):
         self.timer.timeout.connect(self.check_for_updates)
         self.timer.start()
 
+    @QtCore.pyqtSlot('QString')
+    def message(self, message):
+        print(message)
+
     @QtCore.pyqtSlot(bool)
     def enable_liveplotting(self, state):
         self.live_plotting_enabled = state
@@ -136,7 +159,6 @@ class signale_handler(QtQuick.QQuickView):
 
     def pro_set_sample_info_state_change_loc(self, index_project, index_set_up, index_sample):
         self._data_filter.set_indices(index_project, index_set_up, index_sample)
-
         obj = self.win.findChild(QtCore.QObject, "combobox_project")
         obj.setProperty("currentIndex", self._data_filter.project_index)
 
@@ -152,31 +174,60 @@ class signale_handler(QtQuick.QQuickView):
                 set_up=self._data_filter.set_up,
                 sample=self._data_filter.sample)
         self.update_date_model()
-        self.update_date_selection(0)
 
     def update_date_model(self):
         dates = query_for_measurement_results.get_all_dates_with_meaurements(
                 self._data_filter.project,
                 self._data_filter.set_up,
-                self._data_filter.sample)
-
+                self._data_filter.sample,
+                name=self._data_filter.name,
+                keywords=self._data_filter.keywords,
+                starred=self._data_filter.starred,
+                )
+        # avoid selected date being set to index 0.
+        self.ignore_date_selection_changes = True
         self.date_model.reset_data(dates)
+        self.ignore_date_selection_changes = False
+        if not self.selected_date:
+            index = 0 if len(dates) > 0 else -1
+        else:
+            try:
+                index = dates.index(self.selected_date)
+            except ValueError:
+                index = -1
         obj = self.win.findChild(QtCore.QObject, "date_list_view")
-        obj.setProperty("currentIndex", 0)
+        old_index = obj.property('currentIndex')
+        obj.setProperty("currentIndex", index)
+        if old_index == index or index == -1:
+            # fresh measurements
+            self.load_data_table(self.selected_date)
 
     @QtCore.pyqtSlot(int)
     def update_date_selection(self, idx):
-        date = self.date_model[idx] if self.date_model.rowCount() else None
-        self.load_data_table(date)
+        if self.ignore_date_selection_changes:
+            return
+        try:
+            date = self.date_model[idx] if self.date_model.rowCount() and idx >= 0 else None
+            self.selected_date = date
+            self.load_data_table(date)
+        except:
+            logger.error('Failed to set date', exc_info=True)
 
     def load_data_table(self, date):
-        data = query_for_measurement_results.get_results_for_date(
-                date,
-                project=self._data_filter.project,
-                set_up=self._data_filter.set_up,
-                sample=self._data_filter.sample)
-        model_data = m_result_overview(data)
-        self.data_overview_model.reset_data(model_data)
+        try:
+            data = query_for_measurement_results.get_results_for_date(
+                    date,
+                    project=self._data_filter.project,
+                    set_up=self._data_filter.set_up,
+                    sample=self._data_filter.sample,
+                    name=self._data_filter.name,
+                    keywords=self._data_filter.keywords,
+                    starred=self._data_filter.starred,
+                    )
+            model_data = m_result_overview(data)
+            self.data_overview_model.reset_data(model_data)
+        except:
+            logger.error('Failed to load datasets', exc_info=True)
 
     def check_for_updates(self):
         if self.updating:
@@ -220,10 +271,14 @@ class signale_handler(QtQuick.QQuickView):
 
     @QtCore.pyqtSlot('QString', bool)
     def star_measurement(self, uuid, state):
-        try:
-            alter_dataset.star_measurement(uuid.replace('_',''), state)
-        except:
-            logging.error('Failed to start', exc_info=True)
+        if uuid == 'filter':
+            self._data_filter.set_starred(state)
+            self.update_date_model()
+        else:
+            try:
+                alter_dataset.star_measurement(uuid.replace('_',''), state)
+            except:
+                logging.error('Failed to change starred', exc_info=True)
 
     @QtCore.pyqtSlot('QString', 'QString')
     def update_name_meaurement(self, uuid, name):
@@ -231,3 +286,13 @@ class signale_handler(QtQuick.QQuickView):
             alter_dataset.update_name(uuid.replace('_',''), name)
         except:
             logging.error(f'Failed to change name to "{name}"', exc_info=True)
+
+    @QtCore.pyqtSlot('QString')
+    def update_name_filter(self, name):
+        self._data_filter.set_name(name)
+        self.update_date_model()
+
+    @QtCore.pyqtSlot('QString')
+    def update_keywords_filter(self, keywords):
+        self._data_filter.set_keywords(keywords)
+        self.update_date_model()

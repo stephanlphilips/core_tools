@@ -77,7 +77,8 @@ class measurement_results:
 
 class query_for_measurement_results:
     @staticmethod
-    def get_results_for_date(date, sample, set_up, project, remote=False):
+    def get_results_for_date(date, sample, set_up, project, remote=False,
+                             name=None, keywords=None, starred=False):
         if date is None:
             return []
         statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords FROM global_measurement_overview "
@@ -88,13 +89,19 @@ class query_for_measurement_results:
             statement += " and set_up = '{}' ".format(set_up)
         if project is not None:
             statement += " and project = '{}' ".format(project)
+        if name:
+            statement += f" and exp_name like '%{name}%' "
+        if keywords:
+            statement += f" and keywords ?& array{keywords} "
+        if starred:
+            statement += f" and starred = {starred} "
         statement += " ;"
-
         res = query_for_measurement_results._execute(statement, remote)
         return query_for_measurement_results._to_measurement_results(res)
 
     @staticmethod
-    def get_all_dates_with_meaurements(project, set_up, sample, remote=False):
+    def get_all_dates_with_meaurements(project, set_up, sample, remote=False,
+                                       name=None, keywords=None, starred=False):
         statement = "SELECT DISTINCT date(start_time) FROM global_measurement_overview "
         statement += "where 1=1 "
         if sample is not None:
@@ -103,6 +110,12 @@ class query_for_measurement_results:
             statement += " and set_up = '{}' ".format(set_up)
         if project is not None:
             statement += " and project = '{}' ".format(project)
+        if name:
+            statement += f" and exp_name like '%{name}%' "
+        if keywords:
+            statement += f" and keywords ?& array{keywords} "
+        if starred:
+            statement += f" and starred = {starred} "
         statement += ';'
 
         res = query_for_measurement_results._execute(statement, remote)

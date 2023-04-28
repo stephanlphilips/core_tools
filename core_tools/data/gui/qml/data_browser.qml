@@ -20,40 +20,13 @@ ApplicationWindow{
     visible: true
     Material.theme: Material.Light
 
-    TabBar {
-    	id : tabBar_databrowser
-        height: 50
-        anchors.left: parent.left
-        anchors.leftMargin: 0
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.top: parent.top
-        anchors.topMargin: 0
-
-        TabButton {
-            text: qsTr("Overview")
-            anchors.top: parent.top
-            anchors.topMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-        }
-
-        TabButton {
-            text: qsTr("Search")
-            anchors.top: parent.top
-            anchors.topMargin: 0
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 0
-        }
-    }
-
     StackLayout {
         id: stackLayout
-        currentIndex: tabBar_databrowser.currentIndex
+        currentIndex: 0
         anchors.right: parent.right
         anchors.left: parent.left
         anchors.bottom: measurement_overview_state_info.top
-        anchors.top: tabBar_databrowser.bottom
+        anchors.top: parent.top
 
         Item{
         	ColumnLayout{
@@ -71,7 +44,7 @@ ApplicationWindow{
 
                     RowLayout {
                         Text {
-                            Layout.preferredWidth: 70
+                            Layout.preferredWidth: 60
                             height: 30
                             text: 'Project'
                             font.pixelSize: 16
@@ -81,7 +54,7 @@ ApplicationWindow{
                             objectName : 'combobox_project'
                             id: combobox_project
                             model : combobox_project_model
-                            Layout.preferredWidth: 250
+                            Layout.preferredWidth: 200
                             Layout.margins: 2
                             onActivated : signal_handler.pro_set_sample_info_state_change(combobox_project.currentIndex, combobox_set_up.currentIndex, combobox_sample.currentIndex);
 
@@ -94,9 +67,9 @@ ApplicationWindow{
 
                     RowLayout {
                         Text {
-                            Layout.preferredWidth: 70
+                            Layout.preferredWidth: 50
                             height: 30
-                            text: 'Set up'
+                            text: 'Setup'
                             font.pixelSize: 16
                         }
 
@@ -104,7 +77,7 @@ ApplicationWindow{
                             objectName : 'combobox_set_up'
                             id: combobox_set_up
                             model : combobox_set_up_model
-                            Layout.preferredWidth: 250
+                            Layout.preferredWidth: 150
                             Layout.margins: 2
                             onActivated : signal_handler.pro_set_sample_info_state_change(combobox_project.currentIndex, combobox_set_up.currentIndex, combobox_sample.currentIndex);
                         }
@@ -116,7 +89,7 @@ ApplicationWindow{
 
                     RowLayout {
                         Text {
-                            Layout.preferredWidth: 70
+                            Layout.preferredWidth: 60
                             height: 30
                             text: 'Sample'
                             font.pixelSize: 16
@@ -133,6 +106,116 @@ ApplicationWindow{
                         }
                     }
 
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Rectangle{
+                        width : 20
+                        height : 20
+                        Layout.leftMargin : 15
+                        Layout.topMargin : 4
+                        color : 'transparent'
+                        Star_shape{
+                            anchors.fill: parent
+                            size : 20
+                            uuid_ : 'filter'
+                            selected : false
+                        }
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    RowLayout {
+                        Rectangle {
+                            Layout.preferredWidth: 50
+                            height: 30
+                            Text {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.leftMargin: 5
+                                anchors.topMargin : 5
+                                text: 'Name'
+                                font.pixelSize: 16
+                            }
+                        }
+                        Rectangle {
+                            color : '#FFFFFF'
+                            Layout.preferredWidth: 150
+                            height: 30
+                            border.color: '#C0C0C0'
+                            border.width: 1
+                            TextInput{
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.leftMargin: 5
+                                anchors.topMargin : 5
+                                width : parent.width-2
+                                property string filter_name
+                                objectName : 'input_name'
+                                id : input_name
+                                font.pixelSize: 16
+                                text : filter_name
+                                selectByMouse : true
+                                selectedTextColor : '#FFFFFF'
+                                selectionColor : '#EC407A'
+                                onEditingFinished : {
+                                    if (filter_name != input_name.text){
+                                        signal_handler.update_name_filter(input_name.text);
+                                        filter_name = input_name.text
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    RowLayout {
+                        Rectangle {
+                            Layout.preferredWidth: 80
+                            height: 30
+                            Text {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.leftMargin: 5
+                                anchors.topMargin : 5
+                                text: 'Keywords'
+                                font.pixelSize: 16
+                            }
+                        }
+                        Rectangle {
+                            color : '#FFFFFF'
+                            Layout.preferredWidth: 280
+                            height: 30
+                            border.color: '#C0C0C0'
+                            border.width: 1
+                            TextInput{
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.leftMargin: 5
+                                anchors.topMargin : 5
+                                width : parent.width-2
+                                property string filter_keywords
+                                objectName : 'input_keywords'
+                                id : input_keywords
+                                font.pixelSize: 16
+                                text : filter_name
+                                selectByMouse : true
+                                selectedTextColor : '#FFFFFF'
+                                selectionColor : '#EC407A'
+                                onEditingFinished : {
+                                    if (filter_keywords != input_keywords.text){
+                                        signal_handler.update_keywords_filter(input_keywords.text);
+                                        filter_keywords = input_keywords.text
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                 }
 
@@ -531,259 +614,8 @@ ApplicationWindow{
                         }
                     }
                 }
-
-
 			}
         }
-
-        Item{
-        	id: search_tab
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-
-            TextField {
-                id: textField
-                height: 80
-                anchors.right: parent.right
-                anchors.rightMargin: 15
-                anchors.left: parent.left
-                anchors.leftMargin: 15
-                anchors.top: parent.top
-                anchors.topMargin: 10
-                font.pointSize: 20
-                placeholderText: qsTr("P1, P2 FROM 12/10/2020 SORT DATE")
-            }
-
-            Rectangle {
-                color: "#FFFFFFFF"
-
-                y : 100
-                width : parent.width
-                height : parent.height - 100
-                Layout.rightMargin: 10
-                radius : 5
-
-                ListView {
-                	Component{
-                        id : data_content_search_view_delegate
-
-                        Rectangle {
-                            id: row_overview
-                            height: 42
-
-                            color: "#F5F5F5"
-                            anchors.right: parent.right
-                            anchors.left: parent.left
-                            anchors.rightMargin: 10
-                            anchors.leftMargin: 10
-                            radius : 5
-                            RowLayout {
-                                id: rowLayout115
-                                width: row_overview.width
-                                height: row_overview.height
-
-                                Rectangle{
-                                    width : 20
-                                    height : 20
-                                    Layout.leftMargin : 15
-                                    Layout.topMargin : (42-20)/4
-                                    color : 'transparent'
-                                    Star_shape{
-                                        anchors.fill: parent
-                                        size : 20
-                                        uuid_ : uuid
-                                    }
-
-                                }
-
-                                Text {
-                                    id: element19
-                                    height: 42
-                                    text: id_
-                                    font.pixelSize: 16
-                                    Layout.preferredWidth: 80
-                                    Layout.leftMargin: 20
-                                }
-
-                                Text {
-                                    id: element28
-                                    text: uuid
-                                    font.pixelSize: 16
-                                    Layout.preferredWidth: 200
-                                }
-
-                                Text {
-                                    id: element29
-                                    text: date
-                                    Layout.fillWidth: false
-                                    font.pixelSize: 16
-                                    Layout.preferredWidth: 230
-                                }
-
-                                Text {
-                                    id: element30
-                                    text: name
-                                    font.pixelSize: 16
-                                }
-
-                                Item {
-                                    id: element31
-                                    width: 200
-                                    height: 42
-                                    Layout.fillWidth: true
-                                }
-
-                                Text {
-                                    id: element32
-                                    text: keywords
-                                    Layout.rightMargin: 20
-                                    font.pixelSize: 16
-                                }
-                            }
-                        }
-
-                    }
-
-                    Component{
-                        id : data_content_search_view_header
-                        Rectangle{
-                            anchors.right: parent.right
-                            anchors.left: parent.left
-
-                            height : 64+20
-
-                            Rectangle {
-                                id: data_content_search_view_header_box
-                                height: 64
-
-                                color: "#8E24AA"
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.topMargin: 10
-                                anchors.leftMargin: 10
-                                anchors.rightMargin: 10
-                                radius : 5
-                                RowLayout {
-                                    id: rowLayout
-                                    width: data_content_search_view_header_box.width
-                                    height: data_content_search_view_header_box.height
-
-                                    Rectangle{
-                                        width : 20
-                                        height : 20
-                                        Layout.leftMargin : 15
-                                        Layout.topMargin : (42-20)/4
-                                        color : 'transparent'
-                                        Star_shape{
-                                            anchors.fill: parent
-                                            size : 20
-
-                                        }
-                                    }
-
-                                    Text {
-                                        text: qsTr("ID")
-                                        color : 'white'
-                                        Layout.leftMargin: 20
-                                        Layout.preferredWidth: 80
-                                        font.pixelSize: 22
-                                    }
-
-                                    Text {
-                                        text: qsTr("UUID")
-                                        color : 'white'
-                                        Layout.preferredWidth: 200
-                                        font.pixelSize: 22
-                                    }
-
-
-                                    Text {
-                                        text: qsTr("Date")
-                                        color : 'white'
-                                        Layout.preferredWidth: 230
-                                        Layout.fillWidth: false
-                                        font.pixelSize: 22
-                                    }
-
-                                    Text {
-                                        text: qsTr("Name")
-                                        color : 'white'
-                                        font.pixelSize: 22
-                                    }
-
-
-                                    Item {
-                                        width: 200
-                                        height: data_content_search_view_header_box.height
-                                        Layout.fillWidth: true
-                                    }
-
-                                    Text {
-                                        text: qsTr("Keywords")
-                                        color : 'white'
-                                        Layout.rightMargin: 20
-                                        font.pixelSize: 22
-                                    }
-
-                                }
-                            }
-                        }
-                    }
-
-                    id: data_content_search_search_view
-                    height : parent.height
-                    width : parent.width
-                    spacing: 10
-                    clip : true
-
-                    delegate: data_content_search_view_delegate
-                    // highlight: data_content_search_view_highlight
-                    header : data_content_search_view_header
-
-                    model:ListModel {
-                        ListElement {
-                            id_: "100"
-                            uuid: "12354568912345"
-                            date: "20/11/2020 15:12"
-                            name: "1D scan"
-                            keywords: "frequency, spin probability Q1"
-                        }
-
-                        ListElement {
-                            id_: "101"
-                            uuid: "12354568912345"
-                            date: "20/11/2020 15:23"
-                            name: "SD2 calibration"
-                            keywords: "vSD2_P, vP4, SD response"
-                        }
-
-                        ListElement {
-                            id_: "102"
-                            uuid: "12354568912345"
-                            date: "20/11/2020"
-                            name: "2D scan"
-                            keywords: "frequency, MW power, spin probability Q1, spin probability Q"
-                        }
-
-                        ListElement {
-                            id_: "103"
-                            uuid: "12354568912345"
-                            date: "20/11/2020"
-                            name: "1D scan"
-                            keywords: "frequency, spin probability Q1"
-                        }
-                    }
-
-
-
-
-                }
-            }
-
-
-        }
-
     }
 
     RowLayout {
@@ -850,11 +682,12 @@ ApplicationWindow{
             onToggled : signal_handler.enable_liveplotting(enable_liveplotting.checked);
         }
     }
-
+    // move focus out of text input when clicking somewhere
     MouseArea {
         anchors.fill: parent
-        onClicked: focus = true
-        z : -5
+        onPressed: (mouse) => {
+            mouse.accepted = false
+            focus = true
+            }
     }
-
 }
