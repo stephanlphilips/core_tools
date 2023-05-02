@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.23] - 2023-05-02
+
+- VideoMode: Added stop() to liveplotting to stop video mode 1D and 2D.
+
 ## \[1.4.23] - 2023-04-28
 
 - VideoMode: Fixed scale when starting averaging.
