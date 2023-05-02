@@ -1720,7 +1720,7 @@
              </widget>
             </item>
             <item row="8" column="1">
-             <widget class="QSpinBox" name="_gen_max_V_swing">
+             <widget class="QDoubleSpinBox" name="_gen_max_V_swing">
               <property name="toolTip">
                <string>maximum voltage swing for 1D and 2D</string>
               </property>
@@ -1729,6 +1729,9 @@
                 <width>60</width>
                 <height>24</height>
                </size>
+              </property>
+              <property name="decimals">
+               <number>1</number>
               </property>
               <property name="minimum">
                <number>1</number>
