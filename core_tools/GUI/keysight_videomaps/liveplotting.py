@@ -584,41 +584,46 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         Starts/stops the data acquisition and plotting.
         '''
         if self.start_1D.text() == "Start":
-            try:
-                if self.current_plot._1D is None:
-                    logger.info('Creating 1D scan')
-                    self.get_plot_settings(1)
-                    self.start_1D.setEnabled(False)
-                    self.current_param_getter._1D = self.construct_1D_scan_fast(
-                            self._1D__gate_name, self._1D__V_swing, self._1D__npt, self._1D__t_meas*1000,
-                            self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels,
-                            acquisition_delay_ns=self._gen__acquisition_delay_ns,
-                            enabled_markers=self._gen__enabled_markers,
-                            channel_map=self._active_channel_map,
-                            pulse_gates=self._1D__offsets,
-                            line_margin=self._gen__line_margin)
-                    self.current_plot._1D = _1D_live_plot(
-                            self._1D_plotter_layout, self.current_param_getter._1D,
-                            self._1D_average.value(), self._1D_diff.isChecked(),
-                            self._gen__n_columns, self._1D_av_progress,
-                            gates=self.gates, gate_values_label=self.gate_values_label,
-                            on_mouse_moved=self._on_mouse_moved_1D,
-                            on_mouse_clicked=self._on_mouse_clicked_1D)
-                    self.start_1D.setEnabled(True)
-                    self.set_metadata()
-                    logger.info('Finished init currentplot and current_param')
-                else:
-                    self.current_param_getter._1D.restart()
-
-                self.vm_data_param = vm_data_param(self.current_param_getter._1D, self.current_plot._1D, self.metadata)
-                self.start_1D.setText("Stop")
-                self.current_plot._1D.start()
-            except Exception as e:
-                logger.error(e, exc_info=True)
-
+            self._start_1D()
         elif self.start_1D.text() == "Stop":
-            self.current_plot._1D.stop()
-            self.start_1D.setText("Start")
+            self._stop_1D()
+
+    def _start_1D(self):
+        try:
+            if self.current_plot._1D is None:
+                logger.info('Creating 1D scan')
+                self.get_plot_settings(1)
+                self.start_1D.setEnabled(False)
+                self.current_param_getter._1D = self.construct_1D_scan_fast(
+                        self._1D__gate_name, self._1D__V_swing, self._1D__npt, self._1D__t_meas*1000,
+                        self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels,
+                        acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                        enabled_markers=self._gen__enabled_markers,
+                        channel_map=self._active_channel_map,
+                        pulse_gates=self._1D__offsets,
+                        line_margin=self._gen__line_margin)
+                self.current_plot._1D = _1D_live_plot(
+                        self._1D_plotter_layout, self.current_param_getter._1D,
+                        self._1D_average.value(), self._1D_diff.isChecked(),
+                        self._gen__n_columns, self._1D_av_progress,
+                        gates=self.gates, gate_values_label=self.gate_values_label,
+                        on_mouse_moved=self._on_mouse_moved_1D,
+                        on_mouse_clicked=self._on_mouse_clicked_1D)
+                self.start_1D.setEnabled(True)
+                self.set_metadata()
+                logger.info('Finished init currentplot and current_param')
+            else:
+                self.current_param_getter._1D.restart()
+
+            self.vm_data_param = vm_data_param(self.current_param_getter._1D, self.current_plot._1D, self.metadata)
+            self.start_1D.setText("Stop")
+            self.current_plot._1D.start()
+        except Exception as e:
+            logger.error(e, exc_info=True)
+
+    def _stop_1D(self):
+        self.current_plot._1D.stop()
+        self.start_1D.setText("Start")
 
     @qt_log_exception
     def _2D_start_stop(self):
@@ -626,57 +631,68 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         Starts/stops the data acquisition and plotting.
         '''
         if self.start_2D.text() == "Start":
-            try:
-                logger.info('Starting 2D')
-                if self.current_plot._2D is None:
-                    logger.info('Creating 2D scan')
-                    self.get_plot_settings(2)
-                    self.start_2D.setEnabled(False)
-                    self.current_param_getter._2D = self.construct_2D_scan_fast(
-                            self._2D__gate1_name, self._2D__V1_swing, int(self._2D__npt),
-                            self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
-                            self._2D__t_meas*1000, self._2D__biasT_corr,
-                            self.pulse_lib, self.digitizer, self._channels,
-                            acquisition_delay_ns=self._gen__acquisition_delay_ns,
-                            enabled_markers=self._gen__enabled_markers,
-                            channel_map=self._active_channel_map,
-                            pulse_gates=self._2D__offsets,
-                            line_margin=self._gen__line_margin,
-                            )
-                    logger.info('Finished Param, now plot')
-                    self.current_plot._2D = _2D_live_plot(
-                            self._2D_plotter_layout, self.current_param_getter._2D,
-                            self._2D_average.value(), self._2D_gradient.currentText(),
-                            self._gen__n_columns, self._2D_av_progress,
-                            gates=self.gates, gate_values_label=self.gate_values_label,
-                            on_mouse_moved=self._on_mouse_moved_2D,
-                            on_mouse_clicked=self._on_mouse_clicked_2D)
-                    self.current_plot._2D.set_cross(self._2D__cross)
-                    self.current_plot._2D.set_colorbar(self._2D__colorbar)
-                    self.current_plot._2D.set_background_filter(
-                            self._2D_filter_background.isChecked(),
-                            self._gen_background_sigma.value()
-                            )
-                    self.start_2D.setEnabled(True)
-                    self.set_metadata()
-                    logger.info('Finished init currentplot and current_param')
-                else:
-                    self.current_param_getter._2D.restart()
-
-                logger.info('Defining vm_data_param')
-                self.vm_data_param = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
-
-                self.start_2D.setText("Stop")
-                logger.info('Starting the plot')
-                self.current_plot._2D.start()
-            except Exception as e:
-                logger.error(e, exc_info=True)
-
+            self._start_2D()
         elif self.start_2D.text() == "Stop":
-            logger.info('Stopping 2D')
-            self.current_plot._2D.stop()
-            self.start_2D.setText("Start")
+            self._stop_2D()
 
+    def _start_2D(self):
+        try:
+            logger.info('Starting 2D')
+            if self.current_plot._2D is None:
+                logger.info('Creating 2D scan')
+                self.get_plot_settings(2)
+                self.start_2D.setEnabled(False)
+                self.current_param_getter._2D = self.construct_2D_scan_fast(
+                        self._2D__gate1_name, self._2D__V1_swing, int(self._2D__npt),
+                        self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
+                        self._2D__t_meas*1000, self._2D__biasT_corr,
+                        self.pulse_lib, self.digitizer, self._channels,
+                        acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                        enabled_markers=self._gen__enabled_markers,
+                        channel_map=self._active_channel_map,
+                        pulse_gates=self._2D__offsets,
+                        line_margin=self._gen__line_margin,
+                        )
+                logger.info('Finished Param, now plot')
+                self.current_plot._2D = _2D_live_plot(
+                        self._2D_plotter_layout, self.current_param_getter._2D,
+                        self._2D_average.value(), self._2D_gradient.currentText(),
+                        self._gen__n_columns, self._2D_av_progress,
+                        gates=self.gates, gate_values_label=self.gate_values_label,
+                        on_mouse_moved=self._on_mouse_moved_2D,
+                        on_mouse_clicked=self._on_mouse_clicked_2D)
+                self.current_plot._2D.set_cross(self._2D__cross)
+                self.current_plot._2D.set_colorbar(self._2D__colorbar)
+                self.current_plot._2D.set_background_filter(
+                        self._2D_filter_background.isChecked(),
+                        self._gen_background_sigma.value()
+                        )
+                self.start_2D.setEnabled(True)
+                self.set_metadata()
+                logger.info('Finished init currentplot and current_param')
+            else:
+                self.current_param_getter._2D.restart()
+
+            logger.info('Defining vm_data_param')
+            self.vm_data_param = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
+
+            self.start_2D.setText("Stop")
+            logger.info('Starting the plot')
+            self.current_plot._2D.start()
+        except Exception as e:
+            logger.error(e, exc_info=True)
+
+    def _stop_2D(self):
+        logger.info('Stopping 2D')
+        self.current_plot._2D.stop()
+        self.start_2D.setText("Start")
+
+    def stop(self):
+        state = self.is_running
+        if state == '1D':
+            self._stop_1D()
+        elif state == '2D':
+            self._stop_2D()
 
     @qt_log_exception
     def update_plot_settings_1D(self):
