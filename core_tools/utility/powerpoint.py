@@ -1,15 +1,14 @@
-import numpy as np
-import pprint
 import matplotlib
 import qcodes
-import warnings
 import tempfile
+import logging
+import numpy as np
 import matplotlib.pyplot as plt
+from collections import OrderedDict
 from matplotlib.widgets import Button
-from qcodes.data.data_set import DataSet
-from qcodes.plots.pyqtgraph import QtPlot
 from PyQt5 import QtGui, QtWidgets
 
+logger = logging.getLogger(__name__)
 
 def _convert_rgb_color_to_integer(rgb_color):
     if not isinstance(rgb_color, tuple) or not all(isinstance(i, int) for i in rgb_color):
@@ -26,11 +25,13 @@ def _convert_rgb_color_to_integer(rgb_color):
     blue = rgb_color[2] << 16
     return int(red + green + blue)
 
+
 def _convert_integer_to_rgb_color(value):
     red = value & 0xFF
     green = (value >> 8) & 0xFF
     blue = (value >> 16) & 0xFF
     return (red, green, blue)
+
 
 def set_ppt_slide_background(slide, color, verbose=0):
     """ Sets the background color of PPT slide.
@@ -43,16 +44,14 @@ def set_ppt_slide_background(slide, color, verbose=0):
     ppt_color = _convert_rgb_color_to_integer(color)
     if verbose > 1:
         print('Setting PPT slide background color:')
-        print(' - Current color: {0}'.format(_convert_integer_to_rgb_color(fore_color.RGB)))
-        print(' - Setting to {0} -> {1}'.format(color, ppt_color))
+        print(f' - Current color: {_convert_integer_to_rgb_color(fore_color.RGB)}')
+        print(f' - Setting to {color} -> {ppt_color}')
 
     slide.FollowMasterBackground = 0
     fore_color.RGB = ppt_color
 
-# %%
 
-
-def _ppt_determine_image_position(ppt, figsize, fname, verbose=1):
+def _ppt_determine_image_position(ppt, figsize, fname, verbose=0):
     top = 120
 
     if figsize is not None:
@@ -68,26 +67,30 @@ def _ppt_determine_image_position(ppt, figsize, fname, verbose=1):
 
         try:
             import cv2
-            imwh = cv2.imread(fname).shape[1], cv2.imread(fname).shape[0]
+            shape = cv2.imread(fname).shape
+            imwh = shape[1], shape[0]
         except:
             imwh = None
         if imwh is not None:
             imratio = imwh[0] / imwh[1]
             slideratio = slidewh[0] / slidewh[1]
-            if verbose >= 1:
-                print(' image aspect ratio %.2f, slide aspect ratio %.2f' % (imratio, slideratio))
+            if verbose > 1:
+                print(f' image aspect ratio {imratio:.2f}, slide aspect ratio {slideratio:.2f}')
             if slideratio > imratio:
                 # wide slide, so make the image width smaller
-                print('adjust width %d->%d' % (width, height * imratio))
-                width = height * imratio
+                if verbose:
+                    print(f' adjust image width {width}->{height * imratio:.1f}')
+                width = (height * imratio)
             else:
                 # wide image, so make the image height smaller
-                print('adjust height %d->%d' % (height, width / imratio))
-                height = int(width / imratio)
+                if verbose:
+                    print(f' adjust image height {height}->{width / imratio:.1f}')
+                height = (width / imratio)
 
+        if verbose >= 2:
+            print(f' slide size: {slidewh}')
         if verbose:
-            print('slide width height: %s' % (slidewh,))
-            print('image width height: %d, %d' % (width, height))
+            print(f' image size: {width:.1f}, {height:.1f}')
     return left, top, width, height
 
 
@@ -99,7 +102,7 @@ def create_figure_ppt_callback(fig, title=None, notes=None, position=(0.9, 0.925
     Args:
         fig (int): handle to matplotlib window.
         title (None or str): title for the slide.
-        notes (None or str or DataSet): notes to add to the slide.
+        notes (None or str): notes to add to the slide.
         position (list): position specified as fraction left, right, width, height.
 
     Example:
@@ -117,7 +120,7 @@ def create_figure_ppt_callback(fig, title=None, notes=None, position=(0.9, 0.925
     plt.sca(ax)
 
     def figure_ppt_callback(event):
-        print('creating PowerPoint slide for figure %d' % fig)
+        print(f'creating PowerPoint slide for figure {fig}')
         ppt_axis.set_visible(False)
         addPPTslide(fig=fig, title=title, notes=notes)
         ppt_axis.set_visible(True)
@@ -162,7 +165,7 @@ try:
         Application = win32com.client.Dispatch("PowerPoint.Application")
 
         if verbose >= 2:
-            print('Number of open PPTs: %d.' % Application.presentations.Count)
+            print('Number of open PPTs: {Application.presentations.Count}.')
 
         try:
             ppt = Application.ActivePresentation
@@ -171,21 +174,21 @@ try:
             try:
                 ppt = Application.Presentations.Add()
             except Exception:
-                warnings.warn('Could not make connection to Powerpoint presentation.')
+                logger.warn('Could not make connection to Powerpoint presentation.')
                 return None, None
 
         if show:
             Application.Visible = True  # shows what's happening, not required, but helpful for now
 
         if verbose >= 2:
-            print('addPPTslide: presentation name: %s' % ppt.Name)
+            print('addPPTslide: presentation name: {ppt.Name}')
 
         ppLayoutTitleOnly = 11
         ppLayoutText = 2
 
         if txt is not None:
             if subtitle is None:
-                warnings.warn('please do not use the txt field any more')
+                logger.warn('please do not use the txt field any more')
                 subtitle = txt
             else:
                 raise ValueError('please do not use the txt field any more')
@@ -203,17 +206,16 @@ try:
         max_slides_count_warning = 750
         max_slides_count = 950
         if ppt.Slides.Count > max_slides_count_warning:
-            warning_message = "Your presentation has more than {} slides! \
-                Please start a new measurement logbook.".format(max_slides_count_warning)
-            warnings.warn(warning_message)
+            warning_message = f"Your presentation has more than {max_slides_count_warning} slides! " \
+                "Please start a new measurement logbook."
+            logger.warn(warning_message)
         if ppt.Slides.Count > max_slides_count:
-            error_message = "Your presentation has more than {} slides! \
-                Please start a new measurement logbook.".format(max_slides_count)
+            error_message = f"Your presentation has more than {max_slides_count} slides! " \
+                "Please start a new measurement logbook."
             raise MemoryError(error_message)
 
         if verbose:
-            print('addPPTslide: presentation name: %s, adding slide %d' %
-                  (ppt.Name, ppt.Slides.count + 1))
+            print(f'addPPTslide: presentation name: {ppt.Name}, adding slide {ppt.Slides.count + 1}')
 
         slide = ppt.Slides.Add(ppt.Slides.Count + 1, ppLayout)
 
@@ -221,16 +223,14 @@ try:
             set_ppt_slide_background(slide, background_color, verbose=verbose)
 
         if fig is None:
-            titlebox = slide.shapes.Item(1)
             mainbox = slide.shapes.Item(2)
             if maintext is None:
                 raise TypeError('maintext argument is None')
             mainbox.TextFrame.TextRange.Text = maintext
         else:
-            titlebox = slide.shapes.Item(1)
             mainbox = None
             if maintext is not None:
-                warnings.warn('maintext not implemented when figure is set')
+                logger.warn('maintext not implemented when figure is set')
 
         if title is not None:
             slide.shapes.title.textframe.textrange.text = title
@@ -255,13 +255,13 @@ try:
                 fig.save(fname)
             else:
                 if verbose:
-                    raise TypeError('figure is of an unknown type %s' % (type(fig), ))
+                    raise TypeError(f'figure is of an unknown type {type(fig)}')
             top = 120
 
-            left, top, width, height = _ppt_determine_image_position(ppt, figsize, fname, verbose=1)
+            left, top, width, height = _ppt_determine_image_position(ppt, figsize, fname)
 
             if verbose >= 2:
-                print('fname %s' % fname)
+                print(f'fname {fname}')
             slide.Shapes.AddPicture(FileName=fname, LinkToFile=False,
                                     SaveWithDocument=True, Left=left, Top=top, Width=width, Height=height)
 
@@ -273,19 +273,15 @@ try:
             subtitlebox.TextFrame.TextRange.Text = subtitle
 
         if notes is None:
-            warnings.warn(
-                'please set notes for the powerpoint slide. e.g. use the station or reshape_metadata')
-
+            logger.warn('Please set notes for the powerpoint slide.')
         if isinstance(notes, qcodes.Station):
             station = notes
             gates = getattr(station, 'gates', None)
-            notes = reshape_metadata(station, printformat='s', add_scanjob=True)
+            notes = reshape_metadata_station(station)
             if extranotes is not None:
                 notes = '\n' + extranotes + '\n' + notes
             if gates is not None:
                 notes = 'gates: ' + str(gates.allvalues()) + '\n\n' + notes
-        if isinstance(notes, DataSet):
-            notes = reshape_metadata(notes, printformat='s', add_gates=True)
 
         if notes is not None:
             if notes == '':
@@ -296,145 +292,32 @@ try:
         if activate_slide:
             idx = int(slide.SlideIndex)
             if verbose >= 2:
-                print('addPPTslide: goto slide %d' % idx)
+                print(f'addPPTslide: goto slide {idx}' )
             Application.ActiveWindow.View.GotoSlide(idx)
         return ppt, slide
 
-    def addPPT_dataset(dataset, title=None, notes=None,
-                       show=False, verbose=1, paramname='measured',
-                       printformat='fancy', customfig=None, extranotes=None, **kwargs):
-        """ Add slide based on dataset to current active Powerpoint presentation
-
-        Args:
-            dataset (DataSet): data and metadata from DataSet added to slide
-            customfig (QtPlot): custom QtPlot object to be added to
-                                slide (for dataviewer)
-            notes (string): notes added to slide
-            show (boolean): shows the powerpoint application
-            verbose (int): print additional information
-            paramname (None or str): passed to dataset.default_parameter_array
-            printformat (string): 'fancy' for nice formatting or 'dict'
-                                  for easy copy to python
-        Returns:
-            ppt: PowerPoint presentation
-            slide: PowerPoint slide
-
-        Example
-        -------
-        >>> notes = 'some additional information'
-        >>> addPPT_dataset(dataset,notes)
-        """
-        if len(dataset.arrays) < 2:
-            raise IndexError('The dataset contains less than two data arrays')
-
-        if customfig is None:
-
-            if isinstance(paramname, str):
-                if title is None:
-                    parameter_name = dataset.default_parameter_name(paramname=paramname)
-                    title = 'Parameter: %s' % parameter_name
-                temp_fig = QtPlot(dataset.default_parameter_array(
-                    paramname=paramname), show_window=False)
-            else:
-                if title is None:
-                    title = 'Parameter: %s' % (str(paramname),)
-                for idx, parameter_name in enumerate(paramname):
-                    if idx == 0:
-                        temp_fig = QtPlot(dataset.default_parameter_array(
-                            paramname=parameter_name), show_window=False)
-                    else:
-                        temp_fig.add(dataset.default_parameter_array(
-                            paramname=parameter_name))
-
-        else:
-            temp_fig = customfig
-
-        text = 'Dataset location: %s' % dataset.location
-        if notes is None:
-            try:
-                metastring = reshape_metadata(dataset,
-                                              printformat=printformat)
-            except Exception as ex:
-                metastring = 'Could not read metadata: %s' % str(ex)
-            notes = 'Dataset %s metadata:\n\n%s' % (dataset.location,
-                                                    metastring)
-            scanjob = dataset.metadata.get('scanjob', None)
-            if scanjob is not None:
-                s = pprint.pformat(scanjob)
-                notes = 'scanjob: ' + str(s) + '\n\n' + notes
-
-            gatevalues = dataset.metadata.get('allgatevalues', None)
-            if gatevalues is not None:
-                notes = 'gates: ' + str(gatevalues) + '\n\n' + notes
-
-        ppt, slide = addPPTslide(title=title, fig=temp_fig, subtitle=text,
-                                 notes=notes, show=show, verbose=verbose,
-                                 extranotes=extranotes,
-                                 **kwargs)
-        return ppt, slide
 
 except ImportError:
     def addPPTslide(title=None, fig=None, txt=None, notes=None, figsize=None,
                     subtitle=None, maintext=None, show=False, verbose=1,
                     activate_slide=True, ppLayout=None, extranotes=None, background_color=None):
         ''' Dummy implementation '''
-        warnings.warn('addPPTslide is not available on your system')
-
-    def addPPT_dataset(dataset, title=None, notes=None,
-                       show=False, verbose=1, paramname='measured',
-                       printformat='fancy', customfig=None, extranotes=None, **kwargs):
-        """ Dummy implementation """
-        warnings.warn('addPPT_dataset is not available on your system')
-
-# %%
-from collections import OrderedDict
+        logger.error('addPPTslide is not available on your system')
 
 
-def reshape_metadata(dataset, printformat='dict', add_scanjob=True, add_gates=True, verbose=0):
-    '''Reshape the metadata of a DataSet
+def reshape_metadata_station(station):
+    '''Reshape the metadata of a qcodes station
 
     Arguments:
-        dataset (DataSet or qcodes.Station): a dataset of which the metadata
-                                             will be reshaped.
-        printformat (str): can be 'dict' or 'txt','fancy' (text format)
-        add_scanjob (bool): If True, then add the scanjob at the beginning of the notes
-        add_gates (bool): If True, then add the scanjob at the beginning of the notes
+        station (qcodes.Station): a station of which the metadata will be reshaped.
     Returns:
         metadata (string): the reshaped metadata
     '''
 
-    if isinstance(dataset, qcodes.Station):
-        station = dataset
-        all_md = station.snapshot(update=False)['instruments']
-        header = None
-    else:
-        if not 'station' in dataset.metadata:
-            return 'dataset %s: no metadata available' % (str(dataset.location), )
-
-        tmp = dataset.metadata.get('station', None)
-        if tmp is None:
-            all_md = {}
-        else:
-            all_md = tmp['instruments']
-
-        header = 'dataset: %s' % dataset.location
-
-        if hasattr(dataset.io, 'base_location'):
-            header += ' (base %s)' % dataset.io.base_location
-
-    if add_gates:
-        gate_values = dataset.metadata.get('allgatevalues', None)
-
-        if gate_values is not None:
-            gate_values = dict([(key, np.around(value, 3)) for key, value in gate_values.items()])
-            header += '\ngates: ' + str(gate_values) + '\n'
-
-    scanjob = dataset.metadata.get('scanjob', None)
-    if scanjob is not None and add_scanjob:
-        s = pprint.pformat(scanjob)
-        header += '\n\nscanjob: ' + str(s) + '\n'
+    all_md = station.snapshot(update=False)['instruments']
 
     metadata = OrderedDict()
+
     # make sure the gates instrument is in front
     all_md_keys = sorted(sorted(all_md), key=lambda x: x ==
                          'gate s',  reverse=True)
@@ -458,27 +341,16 @@ def reshape_metadata(dataset, printformat='dict', add_scanjob=True, add_gates=Tr
                     metadata[x][y]['unit'] = param_md.get('unit', None)
                     metadata[x][y]['label'] = param_md.get('label', None)
             except KeyError as ex:
-                if verbose:
-                    print('failed on parameter %s / %s: %s' % (x, y, str(ex)))
+                logger.error('failed on parameter %s / %s: %s' % (x, y, str(ex)))
 
-    if printformat == 'dict':
-        ss = str(metadata).replace('(', '').replace(
-            ')', '').replace('OrderedDict', '')
-    else:  # 'txt' or 'fancy'
-        ss = ''
-        for k in metadata:
-            if verbose:
-                print('--- %s' % k)
-            s = metadata[k]
-            ss += '\n## %s:\n' % k
-            for p in s:
-                pp = s[p]
-                if verbose:
-                    print('  --- %s: %s' % (p, pp.get('value', '??')))
-                ss += '%s: %s (%s)' % (pp['name'],
-                                       pp.get('value', '?'), pp.get('unit', ''))
-                ss += '\n'
+    ss = ''
+    for k in metadata:
+        s = metadata[k]
+        ss += '\n## %s:\n' % k
+        for p in s:
+            pp = s[p]
+            ss += '%s: %s (%s)' % (pp['name'],
+                                   pp.get('value', '?'), pp.get('unit', ''))
+            ss += '\n'
 
-    if header is not None:
-        ss = header + '\n\n' + ss
     return ss

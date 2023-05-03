@@ -10,7 +10,7 @@ from qcodes.data.data_set import DataSet
 import numpy as np
 import qdarkstyle
 import logging
-from core_tools.utility.powerpoint import addPPT_dataset
+from core_tools.utility.powerpoint_qcodes import addPPT_dataset
 import os
 from qcodes.plots.pyqtgraph import QtPlot
 import pickle
