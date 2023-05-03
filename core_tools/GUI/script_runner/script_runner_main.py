@@ -1,6 +1,7 @@
 import logging
 import inspect
 import os
+from enum import Enum
 from typing import Union, Any
 from abc import ABC, abstractmethod
 
@@ -115,7 +116,10 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
                 self._show_video_mode_status('PAUSED', '#FF8')
                 self.app.processEvents()
 
-            kwargs = {name:inp.text() for name,inp in arg_inputs.items()}
+            kwargs = {
+                    name:(inp.currentText() if isinstance(inp, QtWidgets.QComboBox) else inp.text())
+                    for name,inp in arg_inputs.items()
+                    }
             command_result = command(**kwargs)
         except Exception as ex:
             command_result = ex
@@ -143,19 +147,36 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
             _label.setMinimumSize(QtCore.QSize(20, 0))
             _label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
             text = name
-            if parameter.annotation is not inspect._empty:
-                annotation = parameter.annotation
+            annotation = parameter.annotation
+            if annotation is not inspect._empty:
                 if isinstance(annotation, str):
-                    raise Exception(f"Type of argument {parameter.name} ({annotation}) cannot be converted.")
+                    raise Exception(f"Type of argument {parameter.name} ('{annotation}') cannot be converted.")
                 text = f'{name} ({annotation.__name__})'
             _label.setText(text)
             layout.addWidget(_label, i, 2*j+1, 1, 1)
 
-            _input = QtWidgets.QLineEdit(self.commands_widget)
+            if issubclass(annotation, Enum):
+                _input = QtWidgets.QComboBox(self.commands_widget)
+                for e in annotation:
+                    _input.addItem(e.name, e)
+                if name in command.defaults:
+                    default = command.defaults[name]
+                    print('default', type(default), default)
+                    if isinstance(default,str):
+                        try:
+                            # try match on value
+                            default = annotation(default)
+                        except:
+                            # try match on name
+                            default = annotation[default]
+                    print(name, default.name)
+                    _input.setCurrentText(default.name)
+            else:
+                _input = QtWidgets.QLineEdit(self.commands_widget)
+                if name in command.defaults:
+                    _input.setText(str(command.defaults[name]))
             _input.setObjectName(f"{command.name}_input_{j}")
             _input.setMinimumSize(QtCore.QSize(80, 0))
-            if name in command.defaults:
-                _input.setText(str(command.defaults[name]))
             layout.addWidget(_input, i, 2*j+2, 1, 1)
             arg_inputs[name] = _input
 
@@ -273,9 +294,11 @@ class Function(Command):
             # no type specified. Pass string.
             return value
         if isinstance(annotation, str):
-            raise Exception('Cannot convert to type specified as string')
+            raise Exception('Cannot convert to type specified as a string')
         if issubclass(annotation, bool):
             return value in [True, 1, 'True', 'true', '1']
+        if issubclass(annotation, Enum):
+            return annotation[value]
         return annotation(value)
 
     def __call__(self, **kwargs):
@@ -301,12 +324,23 @@ if __name__ == "__main__":
             print(f'Hi {name}')
         return name
 
+    class Mode(str, Enum):
+        LEFT = 'left'
+        CENTER = 'center'
+        RIGHT = 'right'
+
+    def fit(x: float, mode: Mode):
+        print(f'fit {x}, {mode}')
+
     path  = os.path.dirname(__file__)
 
     ui = ScriptRunner()
     ui.add_function(sayHi)
     ui.add_function(sayHi, name='Bob', times=3)
     ui.add_function(sayHi, 'Greet all', name='all')
+    ui.add_function(fit, 'Fit it', mode=Mode.CENTER, x=1.0)
+    ui.add_function(fit, 'Fit it', mode='center', x=1.0)
+    ui.add_function(fit, 'Fit it', mode='CENTER', x=1.0)
     ui.add_cell('Say Hi', path+'/test_script.py')
     ui.add_cell(2, path+'/test_script.py', 'Magic Button')
     ui.add_cell('Oops', path+'/test_script.py')

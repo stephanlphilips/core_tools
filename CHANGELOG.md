@@ -1,9 +1,14 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.23] - 2023-05-02
+## \[1.4.25] - 2023-05-@@@
+
+- Added Enum type annotation to script runner functions.
+
+## \[1.4.24] - 2023-05-02
 
 - VideoMode: Added stop() to liveplotting to stop video mode 1D and 2D.
+- Removed unneeded qcodes.data import
 
 ## \[1.4.23] - 2023-04-28
 
