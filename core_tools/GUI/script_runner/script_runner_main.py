@@ -161,7 +161,6 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
                     _input.addItem(e.name, e)
                 if name in command.defaults:
                     default = command.defaults[name]
-                    print('default', type(default), default)
                     if isinstance(default,str):
                         try:
                             # try match on value
@@ -169,7 +168,6 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
                         except:
                             # try match on name
                             default = annotation[default]
-                    print(name, default.name)
                     _input.setCurrentText(default.name)
             else:
                 _input = QtWidgets.QLineEdit(self.commands_widget)
