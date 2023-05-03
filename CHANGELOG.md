@@ -1,8 +1,9 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.25] - 2023-05-@@@
+## \[1.4.25] - 2023-05-03
 
+- Moved qcodes dataset dependent code to powerpoint_qcodes.py
 - Added Enum type annotation to script runner functions.
 
 ## \[1.4.24] - 2023-05-02
