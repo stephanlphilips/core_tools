@@ -613,7 +613,7 @@ class SD_DIG(Instrument):
                 properties.full_scale = full_scale
 
     def actual_acquisition_points(self, ch, t_measure, sample_rate):
-        mode = self.channel_properties[ch].acquisition_mode
+        mode = self.channel_properties[f'ch{ch}'].acquisition_mode
         # resolution in nanoseconds
         resolution = 2 if mode == MODES.NORMAL else 10
         interval = iround(1e9/sample_rate/resolution)*resolution
