@@ -112,7 +112,16 @@ settings = {
         '2D_colorbar':True,
         '2D_cross':True,
         'max_V_swing': 250,
-        }
+        },
+    '1D':{
+        'offsets':{'AWG3_1': 10.0},
+        },
+    '2D':{
+        'offsets':{
+            'AWG2_1': 12.0,
+            'AWG2_2': 1.0,
+            },
+        },
     }
 plotting = liveplotting(pulse, dig, "Virtual", settings, iq_mode='I+Q') #, gates=gates)
 
@@ -124,6 +133,7 @@ plotting = liveplotting(pulse, dig, "Virtual", settings, iq_mode='I+Q') #, gates
 #        'npt': 100,
 #        't_meas': 25.0,
 #        'average': 200,
+#        'offsets':{'AWG3_1': 10.0},
 #        },
 #    '2D': {
 #        'gate1_name': 'vP1',
@@ -133,6 +143,7 @@ plotting = liveplotting(pulse, dig, "Virtual", settings, iq_mode='I+Q') #, gates
 #        'npt': 100,
 #        't_meas': 25.0,
 #        'average': 200,
+#        'offsets':{'AWG3_1': 10.0},
 #        },
 #    'gen': {
 #        'n_columns': 2,

@@ -84,7 +84,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'npt': int,
                            't_meas': float,
                            'average': int,
-                           'diff': bool}
+                           'diff': bool,
+                           'offsets': dict[str, float]}
                         2D = {'gate1_name': str,
                            'gate2_name': str,
                            'V1_swing': float,
@@ -92,7 +93,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            'npt': int,
                            't_meas': float,
                            'average': int,
-                           'gradient': str} # 'Off', 'Magnitude', or 'Mag & angle'
+                           'gradient': str, # 'Off', 'Magnitude', or 'Mag & angle'
+                           'offsets': dict[str, float]}
                         gen = {'ch1': bool,
                            'ch2': bool,
                            'ch3': bool,
@@ -325,6 +327,15 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 cb_offset.addItem('<None>')
                 for gate in sorted(gates, key=str.lower):
                     cb_offset.addItem(gate)
+            try:
+                init_offsets = cust_defaults[dim]['offsets']
+            except KeyError:
+                continue
+            if len(init_offsets) > 3:
+                raise Exception('Only 3 offsets supported')
+            for i,(gate,value) in enumerate(init_offsets.items()):
+                getattr(self, f'_{dim}_offset{i+1}_name').setCurrentText(gate)
+                getattr(self, f'_{dim}_offset{i+1}_voltage').setValue(value)
 
         # 1D defaults
         self.defaults_1D = {
@@ -803,11 +814,13 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             metadata['measurement_type'] = '1D_sweep'
             for key in self.defaults_1D.keys():
                 metadata[key] = getattr(self,f'_1D__{key}')
+            metadata['offsets'] = self._1D__offsets
         elif self.tab_id == 1: # 2D
             metadata['measurement_type'] = '2D_sweep'
             for key in self.defaults_2D.keys():
                 metadata['measurement_type'] = '2D_sweep'
                 metadata[key] = getattr(self,f'_2D__{key}')
+            metadata['offsets'] = self._2D__offsets
 
         for key in self.defaults_gen.keys():
             metadata[key] = getattr(self,f'_gen__{key}')
