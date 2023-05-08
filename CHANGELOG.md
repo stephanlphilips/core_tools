@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.26] - 2023-05-08
+
+- VideoMode: added pulsed offsets to settings argument and metadata.
+- Fixed M3102A for configuration of time-traces.
+- Better exception handling in measurement loops.
+
 ## \[1.4.25] - 2023-05-03
 
 - Moved qcodes dataset dependent code to powerpoint_qcodes.py
