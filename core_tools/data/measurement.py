@@ -44,6 +44,7 @@ class Measurement:
         self.dataset = None
         self.name = name
         self.snapshot = dict()
+        self.void_parameters = []
 
     def register_set_parameter(self, parameter, n_points):
         '''
@@ -93,6 +94,10 @@ class Measurement:
                 [parameter.name], [parameter.label], [parameter.unit])
 
         if isinstance(parameter, qc.MultiParameter):
+            if len(parameter.names) == 0:
+                self.void_parameters.append(parameter)
+                logger.warning(f'Parameter {parameter.name} returns no data. Skipping parameter!')
+                return
             m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name,
                 list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
 
@@ -156,7 +161,10 @@ class Measurement:
     def __enter__(self):
         # generate dataset
         if len(self.m_param) == 0:
-            raise Exception('No measurement parameters specified')
+            if self.void_parameters:
+                raise Exception('Measurement parameters do not return any data.')
+            else:
+                raise Exception('No measurement parameters specified')
         self.dataset = create_new_data_set(self.name, self.snapshot, *self.m_param.values())
         if not self.silent:
             print(f'\nStarting measurement with id : {self.dataset.exp_id} - {self.name}', flush=True)
