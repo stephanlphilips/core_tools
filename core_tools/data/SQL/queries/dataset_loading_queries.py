@@ -58,7 +58,7 @@ class load_ds_queries:
             set_up = data['set_up'], project = data['project'], sample = data['sample'],
             UNIX_start_time=data['start_time'].timestamp(), UNIX_stop_time=data['stop_time'].timestamp(),
             SQL_datatable=data['exp_data_location'],snapshot=data['snapshot'], metadata=data['metadata'],
-            keywords=data['keywords'], completed=data['completed'],)
+            keywords=data['keywords'], completed=data['completed'], starred=data['starred'], )
 
         # NOTE: column sync_location is abused for migration to new format
         new_format = data['sync_location'] == 'New measurement_parameters'

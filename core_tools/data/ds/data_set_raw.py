@@ -21,14 +21,12 @@ class data_set_raw:
     UNIX_start_time : int = None
     UNIX_stop_time : int = None
 
-    uploaded_complete : bool = None
-
     snapshot : dict = None
     metadata : dict = None
     keywords : list = field(default_factory=lambda: [])
 
     completed : bool = False
-    writecount : int = 0
+    starred : bool = False
 
     def generate_keywords(self):
         set_param = []

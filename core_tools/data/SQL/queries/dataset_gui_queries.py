@@ -1,3 +1,4 @@
+from typing import List
 from dataclasses import dataclass
 
 from core_tools.data.SQL.SQL_common_commands import update_table
@@ -72,8 +73,8 @@ class measurement_results:
     project :str
     set_up : str
     sample : str
-    starred : str
-    _keywords : list = None
+    starred : bool
+    _keywords : List[str] = None
 
 class query_for_measurement_results:
     @staticmethod
@@ -130,8 +131,10 @@ class query_for_measurement_results:
                      date=None,
                      start_time=None, end_time=None,
                      project=None, set_up=None, sample=None,
+                     starred=False,
                      remote=False):
-        statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, keywords FROM global_measurement_overview "
+        statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords "\
+                    "FROM global_measurement_overview "
         statement += "WHERE 1=1 "
 
         if exp_id is not None:
@@ -152,6 +155,8 @@ class query_for_measurement_results:
             statement += f" and project = '{project}' "
         if name:
             statement += f" and exp_name like '%{name}%' "
+        if starred:
+            statement += f" and starred = {starred} "
         statement += " order by uuid;"
 
         res = query_for_measurement_results._execute(statement, remote)

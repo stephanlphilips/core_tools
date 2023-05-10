@@ -56,7 +56,6 @@ class data_descriptor: #autogenerate parameter info
 class dataset_data_description():
     unit = data_descriptor()
     label = data_descriptor()
-#    name = data_descriptor() ## overwritten by self.name in __init__
 
     def __init__(self, name, m_param_raw, m_params_raw_collection):
         '''
