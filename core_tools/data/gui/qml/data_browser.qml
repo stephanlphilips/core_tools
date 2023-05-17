@@ -672,6 +672,25 @@ ApplicationWindow{
             Layout.fillWidth: true
         }
 
+        Rectangle {
+            width: 120
+            height: 50
+            Layout.alignment: Qt.AlignLeft | Qt.AlignTop
+            Layout.preferredWidth: 120
+            color : "transparent"
+
+            Button {
+                objectName : 'close_plots'
+                id : close_plots
+                width: 120
+                height: 50
+                text: 'Close all plots'
+                font.capitalization: Font.MixedCase
+                leftPadding: 15
+                onClicked: signal_handler.close_all_plots()
+            }
+        }
+
         SwitchDelegate {
             objectName : 'enable_liveplotting'
             id: enable_liveplotting

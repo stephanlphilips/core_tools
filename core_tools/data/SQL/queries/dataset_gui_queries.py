@@ -131,7 +131,7 @@ class query_for_measurement_results:
                      date=None,
                      start_time=None, end_time=None,
                      project=None, set_up=None, sample=None,
-                     starred=False,
+                     starred=False, keywords=None,
                      remote=False):
         statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords "\
                     "FROM global_measurement_overview "
@@ -155,6 +155,8 @@ class query_for_measurement_results:
             statement += f" and project = '{project}' "
         if name:
             statement += f" and exp_name like '%{name}%' "
+        if keywords:
+            statement += f" and keywords ?& array{keywords} "
         if starred:
             statement += f" and starred = {starred} "
         statement += " order by uuid;"
