@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.27] - 2023-05-17
+
+- Added `starred` to loaded dataset.
+- Databrowser: Fixed live plotting
+- Databrowser: Added 'Close all plots' button
+
 ## \[1.4.26] - 2023-05-08
 
 - VideoMode: added pulsed offsets to settings argument and metadata.
