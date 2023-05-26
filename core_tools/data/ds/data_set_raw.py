@@ -41,9 +41,10 @@ class data_set_raw:
             else:
                 get_param += [label]
 
-        set_param = set(set_param)
-        get_param = set(get_param)
-        return list(set_param) + list(get_param)
+        # use dicts to get collection of unique values while maintaining insertion order.
+        set_param = {p:None for p in set_param}
+        get_param = {p:None for p in get_param}
+        return list(set_param.keys())[::-1] + list(get_param.keys())
 
     def sync_buffers(self):
         for m_param in self.measurement_parameters_raw:

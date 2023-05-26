@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.28] - 2023-05-26
+
+- Keep order of keywords of dataset.
+
 ## \[1.4.27] - 2023-05-17
 
 - Added `starred` to loaded dataset.
