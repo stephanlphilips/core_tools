@@ -329,7 +329,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     cb_offset.addItem(gate)
             try:
                 init_offsets = cust_defaults[dim]['offsets']
-            except KeyError:
+            except Exception:
                 continue
             if len(init_offsets) > 3:
                 raise Exception('Only 3 offsets supported')
