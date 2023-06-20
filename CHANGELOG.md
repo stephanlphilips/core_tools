@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.29] - 2023-06-20
+
+- Fixed exception thrown when starting video mode without passing default settings.
+- Fixed axis of 2D plot for incomplete dataset of scan from high to low values.
+
 ## \[1.4.28] - 2023-05-26
 
 - Keep order of keywords of dataset.
