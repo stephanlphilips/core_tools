@@ -150,7 +150,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, acquisition_delay_ns, n_lines, line_delay_pts,
                                     (n_pt, ), (gate, ), (tuple(voltages_sp), ),
-                                    biasT_corr, dig_samplerate, channels = channels, Vmax=dig_vmax, iq_mode=iq_mode,
+                                    biasT_corr, dig_samplerate, channels = channels, iq_mode=iq_mode,
                                     channel_map=channel_map)
 
 
