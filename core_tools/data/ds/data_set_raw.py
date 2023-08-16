@@ -21,14 +21,12 @@ class data_set_raw:
     UNIX_start_time : int = None
     UNIX_stop_time : int = None
 
-    uploaded_complete : bool = None
-
     snapshot : dict = None
     metadata : dict = None
     keywords : list = field(default_factory=lambda: [])
 
     completed : bool = False
-    writecount : int = 0
+    starred : bool = False
 
     def generate_keywords(self):
         set_param = []
@@ -43,9 +41,10 @@ class data_set_raw:
             else:
                 get_param += [label]
 
-        set_param = set(set_param)
-        get_param = set(get_param)
-        return list(set_param) + list(get_param)
+        # use dicts to get collection of unique values while maintaining insertion order.
+        set_param = {p:None for p in set_param}
+        get_param = {p:None for p in get_param}
+        return list(set_param.keys())[::-1] + list(get_param.keys())
 
     def sync_buffers(self):
         for m_param in self.measurement_parameters_raw:

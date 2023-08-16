@@ -85,37 +85,43 @@ class _2D_plot:
             y_limit_num = (y[y_limit[0]], y[y_limit[1]])
 
             data = self.ds()
-            data_cp = np.empty(data.shape)
-            data_cp[:,:] = np.nan
+            data_cp = np.full(data.shape, np.nan)
             x_slice = slice(x_limit[0], x_limit[1]+1)
             y_slice = slice(y_limit[0], y_limit[1]+1)
             data_cp[x_slice, y_slice] = data[x_slice, y_slice]
             data = data_cp
 
-            # X and Y seems to be swapped for image items (+ Y inverted)
-            x_scale = abs(x_limit_num[1] - x_limit_num[0])/(x_limit[1] - x_limit[0])
-            y_scale = abs(y_limit_num[1] - y_limit_num[0])/(y_limit[1] - y_limit[0])
-
             x_off_set = np.min(x[x_args])
             y_off_set = np.min(y[y_args])
 
-            # flip axis is postive to negative scan
-            if x_limit_num[0] > x_limit_num[1]:
-                data = data[::-1, :]
-            if y_limit_num[0] > y_limit_num[1]:
-                data = data[:, ::-1]
-
-            self.plot.invertY(False)
-            self.img.setImage(data.T)
+            x_scale = abs(x_limit_num[1] - x_limit_num[0])/(x_limit[1] - x_limit[0])
+            y_scale = abs(y_limit_num[1] - y_limit_num[0])/(y_limit[1] - y_limit[0])
 
             if x_scale == 0 or np.isnan(x_scale):
                 x_scale = 1
             else:
                 x_off_set -= 0.5*x_scale
+
             if y_scale == 0 or np.isnan(y_scale):
                 y_scale = 1
             else:
                 y_off_set -= 0.5*y_scale
+
+            # flip axis is postive to negative scan
+            if x_limit_num[0] > x_limit_num[1]:
+                data = data[::-1, :]
+                x_off_set -= (len(x)-x_limit[1]-1)*x_scale
+            else:
+                x_off_set -= x_limit[0]*x_scale
+            if y_limit_num[0] > y_limit_num[1]:
+                data = data[:, ::-1]
+                y_off_set -= (len(y)-y_limit[1]-1)*y_scale
+            else:
+                y_off_set -= y_limit[0]*y_scale
+
+            self.plot.invertY(False)
+            self.img.setImage(data.T)
+
             tr = QtGui.QTransform()
             tr.translate(y_off_set, x_off_set)
             tr.scale(y_scale, x_scale)

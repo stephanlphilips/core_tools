@@ -2,7 +2,7 @@ from typing import Dict, Tuple
 
 import logging
 from qcodes import MultiParameter
-from qcodes.data.data_set import DataSet
+from core_tools.data.ds.data_set_core import data_set
 
 from core_tools.sweeps.sweeps import do0D
 from core_tools.data.SQL.connect import sample_info
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class CoreToolsDataSaver(IDataSaver):
 
-    def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[DataSet, Dict[str, str]]:
+    def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[data_set, Dict[str, str]]:
         """
         Performs a measurement using core tools and writes the data to disk.
 

@@ -86,9 +86,10 @@ Then set up a database and related users:
 CREATE USER myusername WITH PASSWORD 'mypasswd';
 CREATE DATABASE "mydbname";
 GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
+\c mydbname
 GRANT CREATE ON SCHEMA public TO 'myusername'
 ```
-Note: The last line is required since release 15 of Postgresql.
+Note: The last line is required since release 15 of Postgresql. It must be executed on the new database.
 
 The default install of postgress does not allow external connections. We can adjest this by typing
 ```bash

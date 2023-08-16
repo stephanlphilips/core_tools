@@ -106,7 +106,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     for ch,v in pulse_gates.items():
         pulse_channels.append((seg[ch], v))
 
-    seg.add_HVI_marker('dig_trigger_1', acquisition_delay_ns + start_delay)
+    seg.add_HVI_variable('dig_trigger_1', acquisition_delay_ns + start_delay)
     if not biasT_corr:
         # pre-pulse to condition bias-T
         g1.add_ramp_ss(0, t_prebias, 0, vpx)
@@ -142,6 +142,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
     my_seq.set_hw_schedule(TektronixSchedule(pulse_lib))
+    my_seq.configure_digitizer = False
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
@@ -299,6 +300,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
     my_seq.set_hw_schedule(TektronixSchedule(pulse_lib))
+    my_seq.configure_digitizer = False
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
@@ -358,8 +360,8 @@ class _digitzer_scan_parameter(MultiParameter):
         self.line_delay_pts = line_delay_pts
         self._init_channels(channels, channel_map, iq_mode)
 
-        if sample_rate > 20e6:
-            sample_rate = 20e6
+        if sample_rate > 40e6:
+            sample_rate = 40e6
         # digitizer sample rate is matched to hardware value by driver
         digitizer.sample_rate(sample_rate)
         self.sample_rate = digitizer.sample_rate()

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Tuple
 
 from qcodes import MultiParameter
 from qcodes.measure import Measure

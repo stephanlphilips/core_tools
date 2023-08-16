@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from typing import List
 import datetime
 
 @dataclass
@@ -10,8 +11,8 @@ class m_result_item():
     project :str
     set_up : str
     sample : str
-    starred : str
-    _keywords : list = None
+    starred : bool
+    _keywords : List[str] = None
 
     __attr_order = ["my_id","uuid","name","date","project","set_up","sample","starred","keywords"]
     __search_key_idx = 3

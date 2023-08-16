@@ -57,19 +57,19 @@ class measurement_overview_queries:
         statement += "set_up text NOT NULL,"
         statement += "project text NOT NULL,"
         statement += "sample text NOT NULL,"
-        statement += "creasted_by text NOT NULL,"
+        statement += "creasted_by text NOT NULL," # database account used when ds was created
 
         statement += "start_time TIMESTAMP, "
         statement += "stop_time TIMESTAMP, "
 
-        statement += "exp_data_location text,"
+        statement += "exp_data_location text," # Database table name of parameter table. Older datasets. [SdS]
         statement += "snapshot BYTEA, "
         statement += "metadata BYTEA,"
         statement += "keywords JSONB, "
         statement += "starred BOOL DEFAULT False, "
 
         statement += "completed BOOL DEFAULT False, "
-        statement += "data_size int,"
+        statement += "data_size int," # Total size of data. Is written at finish.
         statement += "data_cleared BOOL DEFAULT False, "     # Note [SdS]: Column is not used
 
         statement += "data_synchronized BOOL DEFAULT False,"  # data + param table sync'd

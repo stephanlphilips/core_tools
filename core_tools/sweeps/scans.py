@@ -281,7 +281,9 @@ class Runner:
             self._loop()
         except:
             last_index = {
-                param.name:data for param,data in self._setpoints
+                param.name:data
+                for param,data in self._setpoints
+                if param is not None
                 }
             msg = f'Measurement stopped at {last_index}'
             if not silent:

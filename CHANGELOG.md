@@ -1,6 +1,37 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.29] - 2023-06-20
+
+- Fixed exception thrown when starting video mode without passing default settings.
+- Fixed axis of 2D plot for incomplete dataset of scan from high to low values.
+
+## \[1.4.28] - 2023-05-26
+
+- Keep order of keywords of dataset.
+
+## \[1.4.27] - 2023-05-17
+
+- Added `starred` to loaded dataset.
+- Databrowser: Fixed live plotting
+- Databrowser: Added 'Close all plots' button
+
+## \[1.4.26] - 2023-05-08
+
+- VideoMode: added pulsed offsets to settings argument and metadata.
+- Fixed M3102A for configuration of time-traces.
+- Better exception handling in measurement loops.
+
+## \[1.4.25] - 2023-05-03
+
+- Moved qcodes dataset dependent code to powerpoint_qcodes.py
+- Added Enum type annotation to script runner functions.
+
+## \[1.4.24] - 2023-05-02
+
+- VideoMode: Added stop() to liveplotting to stop video mode 1D and 2D.
+- Removed unneeded qcodes.data import
+
 ## \[1.4.23] - 2023-04-28
 
 - VideoMode: Fixed scale when starting averaging.

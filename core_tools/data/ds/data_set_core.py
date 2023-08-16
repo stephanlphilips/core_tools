@@ -35,6 +35,7 @@ class data_set:
     metadata = data_set_desciptor('metadata')
     snapshot = data_set_desciptor('snapshot')
     keywords = data_set_desciptor('keywords')
+    starred = data_set_desciptor('starred')
 
     run_timestamp = data_set_desciptor('UNIX_start_time', is_time=True)
     run_timestamp_raw = data_set_desciptor('UNIX_start_time')

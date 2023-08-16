@@ -247,7 +247,14 @@ class signale_handler(QtQuick.QQuickView):
                 self.update_date_model()
 
                 if self.live_plotting_enabled == True:
-                    self.plot_ds(self.data_overview_model._data[0].uuid)
+                    # NOTE: name, keywords and starred are ignored for live plotting.
+                    #       It is assumed that one want to see all new measurements
+                    #       for project/setup/sample.
+                    new_ds = query_for_measurement_results.search_query(
+                            exp_id = self.max_measurement_id)
+                    self.plot_ds(new_ds[0].uuid)
+        except Exception:
+            logging.error('Check for updates failed', exc_info=True)
         finally:
             self.updating = False
 
@@ -296,3 +303,9 @@ class signale_handler(QtQuick.QQuickView):
     def update_keywords_filter(self, keywords):
         self._data_filter.set_keywords(keywords)
         self.update_date_model()
+
+    @QtCore.pyqtSlot()
+    def close_all_plots(self):
+        for plot in self.plots:
+            plot.close()
+        self.plots = []

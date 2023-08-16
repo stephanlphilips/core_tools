@@ -91,7 +91,7 @@ class digitizer_param(MultiParameter):
         self.sw_trigger = sw_trigger
 
         if sample_rate is not None:
-            self._digitizer.sample_rate(sample_rate)
+            self.digitizer.sample_rate(sample_rate)
         # read sample rate after setting, because M4i adjusts automatically to supported rates
         self.sample_rate = self._instrument.sample_rate()
 
@@ -118,7 +118,7 @@ class digitizer_param(MultiParameter):
                 mV_range = [int(mV_range)]*self.num_ch
             try:
                 for i,ch in enumerate(channels):
-                    self._digitizer.set(f'range_channel_{ch}', mV_range[i])
+                    self.digitizer.set(f'range_channel_{ch}', mV_range[i])
             except:
                 raise Exception('Failed to set mV_ranges. Array length same as channels?')
         else:
