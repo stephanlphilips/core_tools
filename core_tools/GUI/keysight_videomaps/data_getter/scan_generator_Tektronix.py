@@ -18,7 +18,7 @@ except:
 logger = logging.getLogger(__name__)
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
-                           dig_samplerate=20e6, dig_vmax=None, iq_mode=None, acquisition_delay_ns=None,
+                           dig_samplerate=60e6, dig_vmax=None, iq_mode=None, acquisition_delay_ns=None,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
     1D fast scan parameter constructor.
@@ -156,7 +156,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels, dig_samplerate=20e6, dig_vmax=None, iq_mode=None,
+                           digitizer, channels, dig_samplerate=60e6, dig_vmax=None, iq_mode=None,
                            acquisition_delay_ns=None, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
@@ -438,7 +438,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
         for channels,frequency,phase,iq_out in self._demodulate:
             if iq_out and raw_data.dtype != complex:
-                raw_data = raw_data.astyp(complex)
+                raw_data = raw_data.astype(complex)
             t = np.arange(self.seg_size) / self.sample_rate
             channels = [self.channels.index(ch) for ch in channels]
             iq = np.exp(-1j*(2*np.pi*t*frequency+phase))
@@ -457,7 +457,7 @@ class _digitzer_scan_parameter(MultiParameter):
                     raw_data[channels[0]] = demodulated.real
                     raw_data[channels[1]] = demodulated.imag
 
-        point_data = np.zeros((len(self.channels), self.n_points))
+        point_data = np.zeros((len(self.channels), self.n_points), dtype=raw_data.dtype)
 
         samples_t_measure = self.t_measure * self.sample_rate * 1e-9
         samples_acq_delay = self.acquisition_delay_ns * self.sample_rate * 1e-9
