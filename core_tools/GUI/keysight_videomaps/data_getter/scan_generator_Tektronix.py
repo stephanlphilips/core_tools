@@ -243,7 +243,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     seg  = pulse_lib.mk_segment()
 
-    seg.add_HVI_marker('dig_trigger_1', acquisition_delay_ns + start_delay)
+    seg.add_HVI_variable('dig_trigger_1', acquisition_delay_ns + start_delay)
 
     g1 = seg[gate1]
     g2 = seg[gate2]
