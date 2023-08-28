@@ -1,7 +1,25 @@
+from dataclasses import dataclass
+from typing import List, Union
 from qcodes.instrument.parameter import MultiParameter
 import numpy as np
 import numbers
 import pyspcm
+
+
+@dataclass
+class ChannelDemodulation:
+    channels: List[int]
+    """ 1 or 2 channels to demodulate.
+    1 channel will be be demodulated to I component only.
+    2 channels will be demodulated to an I and a Q component.
+    """
+    frequency: float
+    """ Demodulation frequency """
+    phase: float
+    """ Demodulation phase """
+    start_times: Union[None, float, List[float]] = None
+    """ start time(s) of acquisition """
+
 
 class digitizer_param(MultiParameter):
     """
@@ -27,13 +45,12 @@ class digitizer_param(MultiParameter):
         average_time (bool): Average time values (removes time dimension)
         average_repetitions (bool): Average over repetitions (removes repetition dimension)
         name (Optional[str]): the local name of the whole parameter. Should be a valid
-            identifier, ie no spaces or special characters. If this parameter
-            is part of an Instrument or Station, this is how it will be
-            referenced from that parent, ie ``instrument.name`` or
-            ``instrument.parameters[name]``
+            identifier, ie no spaces or special characters.
         names (Optional[Tuple[str]]): A name for each channel returned by the digitizer.
         labels (Optional[Tuple[str]]): A label for each channel.
-        units (Optional[Tuple[str]]): The unit of measure for each channel
+        units (Optional[Tuple[str]]): The unit of measure for each channel.
+        demodulate (List[ChannelDemodulation]):
+            channel demodulation specifications. If specified, then all channels must present.
 
     Note:
         Setup related settings, such as input termination and coupling, should be set
@@ -49,7 +66,8 @@ class digitizer_param(MultiParameter):
                  channels=None, sample_rate = None, mV_range= None,
                  sw_trigger=False, start_func=None, box_averages=None,
                  average_time=False, average_repetitions=False,
-                 name=None, names=None, labels=None, units=None):
+                 name=None, names=None, labels=None, units=None,
+                 demodulate=[]):
 
         if channels is not None:
             if len(channels) not in [1,2,4]:
@@ -74,7 +92,17 @@ class digitizer_param(MultiParameter):
         if units is None:
             units = ['mV']*len(channels)
 
-        super().__init__(name=name, instrument=digitizer,
+        if demodulate:
+            # average over time when demodulating.
+            average_time = True
+            ch_set = set(channels)
+            for demodulation in demodulate:
+                for ch in demodulation.channels:
+                    ch_set.remove(ch)
+            if ch_set:
+                raise Exception('All channels must be present in demodulate specification')
+
+        super().__init__(name=name,
              names=names, labels=labels, units=units,
              shapes = ((),)*len(channels))
 
@@ -89,11 +117,12 @@ class digitizer_param(MultiParameter):
         self.n_seg = ifNone(self.n_rep, 1) * ifNone(self.n_trigger, 1)
         self.start_func = start_func
         self.sw_trigger = sw_trigger
+        self.demodulate = demodulate
 
         if sample_rate is not None:
             self.digitizer.sample_rate(sample_rate)
         # read sample rate after setting, because M4i adjusts automatically to supported rates
-        self.sample_rate = self._instrument.sample_rate()
+        self.sample_rate = self.digitizer.sample_rate()
 
         self.eff_sample_rate = self.sample_rate / box_averages if box_averages is not None else self.sample_rate
         self.seg_size = int(np.round(self.eff_sample_rate * self.t_measure))
@@ -121,9 +150,6 @@ class digitizer_param(MultiParameter):
                     self.digitizer.set(f'range_channel_{ch}', mV_range[i])
             except:
                 raise Exception('Failed to set mV_ranges. Array length same as channels?')
-        else:
-            mV_range = [self.digitizer.get(f'range_channel_{ch}') for ch in channels]
-        self.mV_range = mV_range
 
         self.derived_params = []
 
@@ -163,7 +189,7 @@ class digitizer_param(MultiParameter):
         if add_triggers:
             setp_trigger = tuple(range(1,self.n_trigger+1))
             shape = (self.n_trigger,) + shape
-            setpoints =  (setp_trigger,) + ( (setpoints,) if setpoints else () )
+            setpoints =  (setp_trigger,) + ( (setpoints*self.n_trigger,) if setpoints else () )
             sp_names = ('trigger',) + sp_names
             sp_labels = ('trigger',) + sp_labels
             sp_units = ('',) + sp_units
@@ -171,7 +197,7 @@ class digitizer_param(MultiParameter):
         if add_repetitions:
             setp_rep = tuple(range(1,self.n_rep+1))
             shape = (self.n_rep,) + shape
-            setpoints =  (setp_rep,) + ( (setpoints,) if setpoints else () )
+            setpoints =  (setp_rep,) + ( (setpoints*self.n_rep,) if setpoints else () )
             sp_names = ('N',) + sp_names
             sp_labels = ('repetitions',) + sp_labels
             sp_units = ('',) + sp_units
@@ -260,6 +286,28 @@ class digitizer_param(MultiParameter):
         # reshape and remove pretrigger
         data = np.reshape(data_raw, self.acq_shape)
         data = data[...,pretrigger:pretrigger+self.seg_size]
+
+        if self.demodulate:
+            n_triggers = ifNone(self.n_trigger, 1)
+            for demodulation in self.demodulate:
+                start_times = demodulation.start_times
+                if start_times is None:
+                    start_times = np.zeros(n_triggers)
+                elif isinstance(start_times, numbers.Number):
+                    start_times = np.full(n_triggers, start_times*1e-9)
+                else:
+                    # time in [s]
+                    start_times = np.array(start_times)*1e-9
+                t = start_times[:,None] + np.arange(self.seg_size) / self.eff_sample_rate
+                channels = [self.channels.index(ch) for ch in demodulation.channels]
+                iq = np.exp(-1j*(2*np.pi*t*demodulation.frequency+demodulation.phase))
+                if len(channels) == 1:
+                    demodulated = data[channels[0]] * iq
+                    data[channels[0]] = demodulated.real
+                else:
+                    demodulated = (data[channels[0]]+1j*data[channels[1]])*iq
+                    data[channels[0]] = demodulated.real
+                    data[channels[1]] = demodulated.imag
 
         # average
         res_volt = data
