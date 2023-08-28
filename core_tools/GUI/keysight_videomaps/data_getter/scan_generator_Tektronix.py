@@ -437,12 +437,17 @@ class _digitzer_scan_parameter(MultiParameter):
         raw_data = raw_data[:,pretrigger:]
 
         for channels,frequency,phase,iq_out in self._demodulate:
+            if iq_out and raw_data.dtype != complex:
+                raw_data = raw_data.astyp(complex)
             t = np.arange(self.seg_size) / self.sample_rate
             channels = [self.channels.index(ch) for ch in channels]
             iq = np.exp(-1j*(2*np.pi*t*frequency+phase))
             if len(channels) == 1:
                 demodulated = raw_data[channels[0]] * iq
-                raw_data[channels[0]] = demodulated.real
+                if iq_out:
+                    raw_data[channels[0]] = demodulated
+                else:
+                    raw_data[channels[0]] = demodulated.real
             else:
                 demodulated = (raw_data[channels[0]]+1j*raw_data[channels[1]])*iq
                 if iq_out:
