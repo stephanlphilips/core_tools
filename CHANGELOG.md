@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.30] - 2023-08-28
+
+- Added IQ demodulation to digitizer_param_m4i and removed link to instrument
+- Added IQ demodulation to M4i VideoMode
+
 ## \[1.4.29] - 2023-06-20
 
 - Fixed exception thrown when starting video mode without passing default settings.
