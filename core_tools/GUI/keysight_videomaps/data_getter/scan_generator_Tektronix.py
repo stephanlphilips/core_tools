@@ -360,8 +360,8 @@ class _digitzer_scan_parameter(MultiParameter):
         self.line_delay_pts = line_delay_pts
         self._init_channels(channels, channel_map, iq_mode)
 
-        if sample_rate > 40e6:
-            sample_rate = 40e6
+        if sample_rate > 60e6:
+            sample_rate = 60e6
         # digitizer sample rate is matched to hardware value by driver
         digitizer.sample_rate(sample_rate)
         self.sample_rate = digitizer.sample_rate()
@@ -369,6 +369,13 @@ class _digitzer_scan_parameter(MultiParameter):
         if self.n_ch not in [1,2,4]:
             raise Exception('Number of enabled channels on M4i must be 1, 2 or 4.')
         digitizer.enable_channels(sum([2**ch for ch in self.channels]))
+
+        # is demodulation configured in pulse-lib?
+        self._demodulate = []
+        for dig_ch in self.pulse_lib.digitizer_channels.values():
+            if dig_ch.frequency is not None:
+                self._demodulate.append(
+                        (dig_ch.channel_numbers, dig_ch.frequency, dig_ch.phase, dig_ch.iq_out))
 
         # note: force float calculation to avoid intermediate int overflow.
         self.seg_size = int(float(t_measure+acquisition_delay_ns)
@@ -420,13 +427,30 @@ class _digitzer_scan_parameter(MultiParameter):
         # play sequence
         self.my_seq.play(release=False)
 
-
         # get the data
         raw_data = self.dig.get_data()
-        pretrigger = self.dig.pretrigger_memory_size()
 
         duration = (time.perf_counter() - start)*1000
         logger.info(f'Acquired ({duration:5.1f} ms)')
+
+        pretrigger = self.dig.pretrigger_memory_size()
+        raw_data = raw_data[:,pretrigger:]
+
+        for channels,frequency,phase,iq_out in self._demodulate:
+            t = np.arange(self.seg_size) / self.sample_rate
+            channels = [self.channels.index(ch) for ch in channels]
+            iq = np.exp(-1j*(2*np.pi*t*frequency+phase))
+            if len(channels) == 1:
+                demodulated = raw_data[channels[0]] * iq
+                raw_data[channels[0]] = demodulated.real
+            else:
+                demodulated = (raw_data[channels[0]]+1j*raw_data[channels[1]])*iq
+                if iq_out:
+                    raw_data[channels[0]] = demodulated
+                    raw_data[channels[1]] = demodulated
+                else:
+                    raw_data[channels[0]] = demodulated.real
+                    raw_data[channels[1]] = demodulated.imag
 
         point_data = np.zeros((len(self.channels), self.n_points))
 
@@ -438,8 +462,8 @@ class _digitzer_scan_parameter(MultiParameter):
         for iline in range(self.n_lines):
             for ipt in range(points_per_line):
                 ix = ipt + iline * (self.line_delay_pts + points_per_line)
-                start_sample = int(pretrigger + samples_per_point*ix)
-                end_sample = int(pretrigger + samples_per_point*(ix+1) - samples_acq_delay)
+                start_sample = int(samples_per_point*ix)
+                end_sample = int(samples_per_point*(ix+1) - samples_acq_delay)
 
                 sample_data = raw_data[:,start_sample:end_sample]
                 idata = ipt + iline * points_per_line
