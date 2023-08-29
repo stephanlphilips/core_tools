@@ -434,7 +434,7 @@ class _digitzer_scan_parameter(MultiParameter):
         logger.info(f'Acquired ({duration:5.1f} ms)')
 
         pretrigger = self.dig.pretrigger_memory_size()
-        raw_data = raw_data[:,pretrigger:]
+        raw_data = raw_data[:,pretrigger:pretrigger++self.seg_size]
 
         for channels,frequency,phase,iq_out in self._demodulate:
             if iq_out and raw_data.dtype != complex:

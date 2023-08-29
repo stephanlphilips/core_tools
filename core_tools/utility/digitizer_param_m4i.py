@@ -103,7 +103,7 @@ class digitizer_param(MultiParameter):
                 raise Exception('All channels must be present in demodulate specification')
 
         super().__init__(name=name,
-             names=names, labels=labels, units=units,
+             names=tuple(names), labels=tuple(labels), units=tuple(units),
              shapes = ((),)*len(channels))
 
         self.digitizer = digitizer
@@ -236,10 +236,10 @@ class digitizer_param(MultiParameter):
         dp_shape = np.shape(func(dummy_ar))
 
         self.derived_params.append(func)
-        self.names.append(name)
+        self.names = self.names + (name,)
         self.shapes = self.shapes + (dp_shape,)
-        self.units.append(unit)
-        self.labels.append(label)
+        self.units = self.units + (unit,)
+        self.labels = self.labels + (label,)
 
         if setpoints is None:
             add_time = not self.average_time and not reduce_time
