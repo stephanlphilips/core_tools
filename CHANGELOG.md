@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.32] - 2023-08-29
+
+- Made VideoMode more robust on acquisition errors.
+
 ## \[1.4.31] - 2023-08-29
 
 - Fixed `add_derived_param()` of digitizer_param_m4i

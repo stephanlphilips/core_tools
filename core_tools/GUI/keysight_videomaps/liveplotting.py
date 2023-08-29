@@ -620,20 +620,22 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                         gates=self.gates, gate_values_label=self.gate_values_label,
                         on_mouse_moved=self._on_mouse_moved_1D,
                         on_mouse_clicked=self._on_mouse_clicked_1D)
-                self.start_1D.setEnabled(True)
                 self.set_metadata()
                 logger.info('Finished init currentplot and current_param')
             else:
                 self.current_param_getter._1D.restart()
 
             self.vm_data_param = vm_data_param(self.current_param_getter._1D, self.current_plot._1D, self.metadata)
-            self.start_1D.setText("Stop")
             self.current_plot._1D.start()
         except Exception as e:
             logger.error(e, exc_info=True)
+        finally:
+            self.start_1D.setText("Stop")
+            self.start_1D.setEnabled(True)
 
     def _stop_1D(self):
-        self.current_plot._1D.stop()
+        if self.current_plot._1D:
+            self.current_plot._1D.stop()
         self.start_1D.setText("Start")
 
     @qt_log_exception
@@ -678,7 +680,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                         self._2D_filter_background.isChecked(),
                         self._gen_background_sigma.value()
                         )
-                self.start_2D.setEnabled(True)
                 self.set_metadata()
                 logger.info('Finished init currentplot and current_param')
             else:
@@ -687,15 +688,18 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.info('Defining vm_data_param')
             self.vm_data_param = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
 
-            self.start_2D.setText("Stop")
             logger.info('Starting the plot')
             self.current_plot._2D.start()
         except Exception as e:
             logger.error(e, exc_info=True)
+        finally:
+            self.start_2D.setText("Stop")
+            self.start_2D.setEnabled(True)
 
     def _stop_2D(self):
         logger.info('Stopping 2D')
-        self.current_plot._2D.stop()
+        if self.current_plot._2D:
+            self.current_plot._2D.stop()
         self.start_2D.setText("Start")
 
     def stop(self):

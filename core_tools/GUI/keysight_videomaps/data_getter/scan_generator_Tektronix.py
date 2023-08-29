@@ -374,6 +374,18 @@ class _digitzer_scan_parameter(MultiParameter):
         self._demodulate = []
         for dig_ch in self.pulse_lib.digitizer_channels.values():
             if dig_ch.frequency is not None:
+                if len(dig_ch.channel_numbers) == 1:
+                    if dig_ch.channel_numbers[0] not in self.channels:
+                        # skip this channel
+                        continue
+                else:
+                    if ((dig_ch.channel_numbers[0] in self.channels) !=
+                        (dig_ch.channel_numbers[1] in self.channels)):
+                        raise Exception(f'Channels {dig_ch.channel_numbers} of {dig_ch.name} '
+                                        'must both be present or absent in acquisition for demodulation')
+                    if dig_ch.channel_numbers[0] not in self.channels:
+                        # skip these channels
+                        continue
                 self._demodulate.append(
                         (dig_ch.channel_numbers, dig_ch.frequency, dig_ch.phase, dig_ch.iq_out))
 
