@@ -158,37 +158,3 @@ class RF_readout_settings_queries:
     def table_name():
         sample, set_up, project = sample_info.sample, sample_info.set_up, sample_info.project
         return (set_up+project+sample+'_RF_readout_settings').replace(" ", "_").replace('-', '_')
-
-
-
-if __name__ == '__main__':
-    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
-    from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
-    import numpy as np
-    set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
-    # set_up_local_and_remote_storage('131.180.205.81', 5432, 'stephan', 'magicc', 'test',
-    #     'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
-    s = SQL_database_manager()
-    conn = s.conn_local
-    # virtual_gate_queries.generate_table(conn)
-
-    # r_gates = ['P1', 'P2', 'P3']
-    # v_gates = ['vP1', 'vP2', 'vP3']
-    # matrix = np.eye(3)
-
-    # a,b,c = virtual_gate_queries.get_virtual_gate_matrix(conn, 'test2')
-    # print(a, b, c)
-    # print(c.shape)
-
-    AWG_2_dac_ratio_queries.generate_table(conn)
-
-    gates_value_pair = {'P1':0.21, 'P2':0.21, 'P3':0.21}
-    AWG_2_dac_ratio_queries.set_AWG_2_dac_ratios(conn, 'config2', gates_value_pair)
-    ratios = AWG_2_dac_ratio_queries.get_AWG_2_dac_ratios(conn, 'config2')
-    print(ratios)
-
-
-    # RF_readout_settings_queries.generate_table(conn)
-    # RF_readout_settings_queries.set_RF_readout_settings(conn, 'src_1', 1e6, -5, 1e3)
-    # a,b,c=  RF_readout_settings_queries.get_RF_readout_settings(conn, 'src_1')
-    # print(a,b,c)

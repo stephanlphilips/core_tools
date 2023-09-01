@@ -334,28 +334,3 @@ class sync_mgr_queries:
         if content['stop_time'] is not None:
             content['stop_time'] = psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(content['stop_time'].timestamp()))
 
-if __name__ == '__main__':
-    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
-    set_up_local_storage('stephan', 'magicc', 'test', 'test_project', 'test_set_up', 'test_sample')
-    set_up_local_and_remote_storage('131.180.205.81', 5432, 'stephan', 'magicc', 'test',
-        'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
-
-    set_up_local_and_remote_storage('131.180.205.81', 5432,
-    "xld_user", "XLDspin001", "vandersypen_data",
-    'xld_measurement_pc', 'XLDspin001', 'sixdots',
-     "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
-    from core_tools.data.SQL.SQL_connection_mgr import SQL_sync_manager
-    s = SQL_sync_manager()
-
-    e = sync_mgr_queries.get_sync_items_meas_table(s)
-    # sync_mgr_queries.sync_raw_data(s,e[11049])
-
-    i = 0
-    for uuid in e:
-        print(i)
-        # sync_mgr_queries.sync_raw_data(s,uuid)
-        sync_mgr_queries.sync_table(s, uuid)
-        i+= 1
-    # # e = sync_mgr_queries.get_sync_items_raw_data(s)
-    # # print(e)
-    # sync_mgr_queries.sync_raw_data(s, e[-1])

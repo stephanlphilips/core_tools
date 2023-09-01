@@ -93,30 +93,3 @@ class _1D_plot:
             self.label.setText("x={}, y={}".format(
                 si_format(x_val, 3) + format_unit(self.ds_list[0].x.unit),
                 si_format(y_val, 3) + format_unit(self.ds_list[0].y.unit)))
-
-
-## Start Qt event loop unless running in interactive mode or using pyside.
-if __name__ == '__main__':
-    from pyqtgraph.Qt import QtGui, QtCore
-    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage, set_up_remote_storage
-    from core_tools.data.ds.data_set import load_by_id, load_by_uuid
-
-    # set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    set_up_remote_storage('131.180.205.81', 5432, 'xld_measurement_pc', 'XLDspin001', 'spin_data', "6dot", "XLD", "6D3S - SQ20-20-5-18-4")
-
-    ds = load_by_id(307)
-
-    app = QtGui.QApplication([])
-
-    logmode = {'x':True, 'y':False}
-    # 2d dataset
-
-    plot = _1D_plot([ds.m1a, ds.m1b], logmode)
-
-    win = QtGui.QMainWindow()
-    win.setCentralWidget(plot.widget)
-    win.show()
-
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()

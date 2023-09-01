@@ -33,3 +33,5 @@ ct.launch_db_sync(kill=True, close_at_exit=True)
 # Optionally change configuration without restarting console
 # ct.set_sample_info(project='Project2', sample='Magic_10x10_3', setup='Fridge_9')
 
+#from core_tools.GUI.voltage_gui.voltage_gui import voltage_plotter_pyqt
+#pq = voltage_plotter_pyqt(station.gates, 'SQ21_68')

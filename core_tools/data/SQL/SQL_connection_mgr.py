@@ -148,14 +148,3 @@ class SQL_sync_manager(SQL_database_init):
         print(message)
         logger.info(message)
 
-if __name__ == '__main__':
-    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
-    set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D2S - SQ21-XX-X-XX-X")
-    # set_up_local_and_remote_storage('131.180.205.81', 5432, 'stephan', 'magicc', 'test',
-    #     'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
-    s = SQL_database_manager()
-    print(s.conn_local)
-
-    s2 = SQL_database_manager()
-
-    print(s2)

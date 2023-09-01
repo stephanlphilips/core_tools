@@ -125,12 +125,3 @@ class SQL_dataset_creator(object):
                                         sample_info_list=sample_info_list)
 
         return ds_raw
-
-if __name__ == '__main__':
-    from core_tools.data.SQL.connector import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
-    set_up_local_storage('stephan', 'magicc', 'test', 'test_project', 'test_set_up', 'test_sample')
-    # set_up_local_and_remote_storage('131.180.205.81', 5432, 'stephan', 'magicc', 'test',
-    #     'stephan_test', 'magicc', 'spin_data_test', 'test_project', 'test_set_up', 'test_sample')
-    ds_creator = SQL_dataset_creator()
-
-    ds_creator.fetch_raw_dataset_by_Id(71)
