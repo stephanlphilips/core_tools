@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- convert with:
+   pyuic5 param_viewer_GUI_window.ui > param_viewer_GUI_window.py
+-->
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
@@ -104,13 +107,6 @@
         </property>
         <layout class="QGridLayout" name="layout_RF"/>
        </widget>
-      </widget>
-      <widget class="QWidget" name="settings">
-       <attribute name="title">
-        <string>Settings</string>
-       </attribute>
-       <layout class="QGridLayout" name="gridLayout_3">
-       </layout>
       </widget>
      </widget>
     </item>

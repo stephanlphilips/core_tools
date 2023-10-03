@@ -10,17 +10,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class param_data_obj:
-    param_parameter : any
-    gui_input_param : any
-    division : any
+    param_parameter: any
+    gui_input_param: any
+    division: any
 
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
-    """docstring for virt_gate_matrix_GUI"""
+
     def __init__(self, gates_object: Optional[object] = None,
-                 max_diff : float = 1000,
+                 max_diff: float = 1000,
                  keysight_rf: Optional[object] = None,
                  locked=False):
         self.real_gates = list()
@@ -36,9 +37,9 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             try:
                 self.gates_object = self.station.gates
-            except:
+            except AttributeError:
                 raise ValueError('`gates` must be set in qcodes.station or supplied as argument')
-        self._step_size = 1 #mV
+        self._step_size = 1  # [mV]
         instance_ready = True
 
         # set graphical user interface
@@ -53,7 +54,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         # add RF parameters
         if hasattr(self.gates_object.hardware, 'RF_source_names'):
             for src_name in self.gates_object.hardware.RF_source_names:
-                inst = getattr(station, src_name)
+                inst = getattr(self.station, src_name)
                 for RFpar in self.gates_object.hardware.RF_params:
                     param = getattr(inst, RFpar)
                     self._add_RFset(param)
@@ -85,11 +86,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self._finish_gates_GUI()
 
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(lambda:self._update_parameters())
+        self.timer.timeout.connect(lambda: self._update_parameters())
         self.timer.start(500)
 
         self.show()
-        if instance_ready == False:
+        if not instance_ready:
             self.app.exec()
 
     @qt_log_exception
@@ -97,7 +98,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.timer.stop()
 
     @qt_log_exception
-    def update_step(self, value : float):
+    def update_step(self, value: float):
         """ Update step size of the parameter GUI elements with the specified value """
         self._step_size = value
         for gate in self.real_gates:
@@ -105,15 +106,13 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         for gate in self.virtual_gates:
             gate.gui_input_param.setSingleStep(value)
 
-#        self.step_size.setValue(value)
-
     @qt_log_exception
     def _update_lock(self, locked):
         print('Locked:', locked)
         self.locked = locked
 
     @qt_log_exception
-    def _add_RFset(self, parameter : qc.Parameter):
+    def _add_RFset(self, parameter: qc.Parameter):
         ''' Add a new RF.
 
         Args:
@@ -128,7 +127,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         step_size = 0.5
         division = 1
 
-        name = name.replace('keysight_rfgen_','')
+        name = name.replace('keysight_rfgen_', '')
 
         if 'freq' in parameter.name:
             division = 1e6
@@ -151,9 +150,9 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             set_input = QtWidgets.QDoubleSpinBox(self.RFsettings)
             set_input.setObjectName(name + "_input")
             set_input.setMinimumSize(QtCore.QSize(100, 0))
-            set_input.setRange(-1e9,1e9)
+            set_input.setRange(-1e9, 1e9)
             set_input.setValue(parameter()/division)
-            set_input.valueChanged.connect(lambda:self._set_set(parameter, set_input.value, division))
+            set_input.valueChanged.connect(lambda: self._set_set(parameter, set_input.value, division))
             set_input.setKeyboardTracking(False)
             set_input.setSingleStep(step_size)
 
@@ -166,7 +165,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.rf_settings.append(param_data_obj(parameter,  set_input, division))
 
     @qt_log_exception
-    def _add_gate(self, parameter : qc.Parameter, virtual : bool):
+    def _add_gate(self, parameter: qc.Parameter, virtual: bool):
         '''
         add a new gate.
 
@@ -178,7 +177,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         i = len(self.real_gates)
         layout = self.layout_real
 
-        if virtual == True:
+        if virtual:
             i = len(self.virtual_gates)
             layout = self.layout_virtual
 
@@ -194,13 +193,16 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         layout.addWidget(gate_name, i, 0, 1, 1)
 
         voltage_input = QtWidgets.QDoubleSpinBox(self.virtualgates)
-        voltage_input.setObjectName( name + "_input")
+        voltage_input.setObjectName(name + "_input")
         voltage_input.setMinimumSize(QtCore.QSize(100, 0))
 
-        # TODO collect boundaries out of the harware
-        voltage_input.setRange(-4000,4000.0)
+        if not virtual:
+            voltage_input.setRange(-4000.0, 4000.0)
+        else:
+            # QDoubleSpinBox needs a limit. Set it high for virtual voltage
+            voltage_input.setRange(-9999.99, 9999.99)
         voltage_input.setValue(parameter())
-        voltage_input.valueChanged.connect(lambda:self._set_gate(parameter, voltage_input.value, voltage_input))
+        voltage_input.valueChanged.connect(lambda: self._set_gate(parameter, voltage_input.value, voltage_input))
         voltage_input.setKeyboardTracking(False)
         layout.addWidget(voltage_input, i, 1, 1, 1)
 
@@ -208,7 +210,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         gate_unit.setObjectName(name + "_unit")
         gate_unit.setText(_translate("MainWindow", unit))
         layout.addWidget(gate_unit, i, 2, 1, 1)
-        if virtual == False:
+        if not virtual:
             self.real_gates.append(param_data_obj(parameter,  voltage_input, 1))
         else:
             self.virtual_gates.append(param_data_obj(parameter,  voltage_input, 1))
@@ -216,14 +218,14 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     @qt_log_exception
     def _set_gate(self, gate, value, voltage_input):
         if self.locked:
-            logger.warning(f'Not changing voltage, ParameterViewer is locked!')
+            logger.warning('Not changing voltage, ParameterViewer is locked!')
             # Note value will be restored by _update_parameters
             return
 
         delta = abs(value() - gate())
         if self.max_diff is not None and delta > self.max_diff:
             logger.warning(f'Not setting {gate} to {value():.1f}mV. '
-                            f'Difference {delta:.0f} mV > {self.max_diff:.0f} mV')
+                           f'Difference {delta:.0f} mV > {self.max_diff:.0f} mV')
             return
 
         try:
@@ -235,7 +237,6 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                 gate.set(value())
         except Exception as ex:
             logger.error(f'Failed to set gate {gate} to {value()}: {ex}')
-
 
     @qt_log_exception
     def _set_set(self, setting, value, division):
@@ -253,8 +254,10 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     @qt_log_exception
     def _finish_gates_GUI(self):
 
-        for items, layout_widget in [ (self.real_gates, self.layout_real), (self.virtual_gates, self.layout_virtual),
-                              (self.rf_settings, self.layout_RF)]:
+        for items, layout_widget in [
+                (self.real_gates, self.layout_real),
+                (self.virtual_gates, self.layout_virtual),
+                (self.rf_settings, self.layout_RF)]:
             i = len(items) + 1
 
             spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
@@ -268,7 +271,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     @qt_log_exception
     def _update_parameters(self):
         '''
-        updates the values of all the gates in the parameterviewer periodically
+        updates the values of all the gates in the parameter viewer periodically
         '''
         idx = self.tab_menu.currentIndex()
 
@@ -293,49 +296,10 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                         if current_text != new_text:
                             logger.info(f'Update GUI {param.param_parameter.name} {current_text} -> {new_text}')
                             gui_input.setValue(new_value)
+                            if gui_input.text() != new_text:
+                                print(f'WARNING: {param.param_parameter.name} corrected from '
+                                      f'{new_text} to {gui_input.text()}')
                 elif isinstance(param.gui_input_param, QtWidgets.QCheckBox):
                     param.gui_input_param.setChecked(param.param_parameter())
-            except:
+            except Exception:
                 logger.error(f'Error updating {param}', exc_info=True)
-
-
-
-if __name__ == "__main__":
-    import sys
-    import qcodes as qc
-
-    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
-    set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
-    from core_tools.drivers.hardware.hardware import hardware
-    from core_tools.drivers.virtual_dac import virtual_dac
-    from core_tools.drivers.gates import gates
-
-    my_dac_1 = virtual_dac("dac_a", "virtual")
-    my_dac_2 = virtual_dac("dac_b", "virtual")
-    my_dac_3 = virtual_dac("dac_c", "virtual")
-    my_dac_4 = virtual_dac("dac_d", "virtual")
-
-    hw =  hardware()
-    hw.RF_source_names = []
-    hw.dac_gate_map = {
-        'B0': (0, 1), 'P1': (0, 2),
-        'B1': (0, 3), 'P2': (0, 4),
-        'B2': (0, 5), 'P3': (0, 6),
-        'B3': (0, 7), 'P4': (0, 8),
-        'B4': (0, 9), 'P5': (0, 10),
-        'B5': (0, 11),'P6': (0, 12),
-        'B6': (0, 13), 'S6' : (0,14,),
-        'SD1_P': (1, 1), 'SD2_P': (1, 2),
-        'SD1_B1': (1, 3), 'SD2_B1': (1, 4),
-        'SD1_B2': (1, 5), 'SD2_B2': (1, 6),}
-
-    hw.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
-    hw.virtual_gates.add('test', ['B0', 'P1', 'B1', 'P2', 'B2', 'P3', 'B3', 'P4', 'B4', 'P5', 'B5', 'P6', 'B6', 'S6', 'SD1_P', 'SD2_P', 'COMP1'])
-    hw.awg2dac_ratios.add(hw.virtual_gates.test.gates)
-
-
-    my_gates = gates("gates", hw, [my_dac_1, my_dac_2, my_dac_3, my_dac_4])
-    station=qc.Station(my_gates)
-    ui = param_viewer()
-    from core_tools.GUI.virt_gate_matrix_qml.gui_controller import virt_gate_matrix_GUI
-    # virt_gate_matrix_GUI()
