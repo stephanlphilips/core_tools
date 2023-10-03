@@ -604,7 +604,6 @@ ApplicationWindow{
                         anchors.topMargin : 10
                         font.pointSize: 12
 
-                        validator : DoubleValidator{bottom :  0 ; decimals : 2}
                         selectByMouse : true
                         selectedTextColor : '#FFFFFF'
                         selectionColor : '#EC407A'
