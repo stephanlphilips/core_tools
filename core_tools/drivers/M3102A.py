@@ -3,44 +3,21 @@ from qcodes import Instrument, MultiParameter
 from dataclasses import dataclass
 from typing import Optional
 import math
-import warnings
 import logging
 import time
 import copy
+import numpy as np
 from si_prefix import si_format
+
+import keysightSD1
+
+# import function for hvi2 downsampler FPGA image
+from keysight_fpga.sd1.dig_iq import (
+    config_channel, is_iq_image_loaded, dig_set_lo, dig_set_input_channel, dig_set_downsampler)
+
 
 logger = logging.getLogger(__name__)
 
-try:
-    import keysightSD1
-    # check whether SD1 version 2.x or 3.x
-    is_sd1_3x = 'SD_SandBoxRegister' in dir(keysightSD1)
-    if not is_sd1_3x:
-        raise Exception('Old SD1 2.x is not supported anymore by M3102A driver')
-
-    # import function for hvi2 downsampler FPGA image
-    from keysight_fpga.sd1.dig_iq import config_channel, \
-        is_iq_image_loaded, dig_set_lo, dig_set_input_channel, dig_set_downsampler
-
-except:
-    warnings.warn("\nM3102A needs Keysight AWG libraries. Please install if you need them.\n")
-
-
-
-import numpy as np
-
-def check_error(res, s=''):
-    if (type(res) is int and res < 0):
-        error = res
-        msg = f'Keysight error: {keysightSD1.SD_Error.getErrorMessage(error)} ({error}) {s}'
-        logger.error(msg)
-        raise Exception(msg)
-    return res
-
-"""
-Minimalistic qcodes driver for the Keysight digizer card (M3102A)
-Author : Stephan Philips (TuDelft)
-"""
 
 class MODES:
     """
@@ -87,19 +64,31 @@ class DATA_MODE:
     AVERAGE_CYCLES = 2
     AVERAGE_TIME_AND_CYCLES = 3
 
+
+def check_error(res, s=''):
+    if (type(res) is int and res < 0):
+        error = res
+        msg = f'Keysight error: {keysightSD1.SD_Error.getErrorMessage(error)} ({error}) {s}'
+        logger.error(msg)
+        raise Exception(msg)
+    return res
+
+
 def iround(x):
     return math.floor(x+0.5)
+
 
 class line_trace(MultiParameter):
     """
     class that defines the parameter for the measured data.
     """
+
     def __init__(self, name, instrument, inst_name, raw=False, **kwargs):
         self.my_instrument = instrument
         super().__init__(name=name,
                          instrument=instrument,
-                         names = (name +'_ch1', name +'_ch2'),
-                         shapes=((1,),(1,)),
+                         names=(name+'_ch1', name+'_ch2'),
+                         shapes=((1,), (1,)),
                          docstring='Averaged traces from digitizer',
                          **kwargs)
         self.cached_properties = dict()
@@ -111,7 +100,7 @@ class line_trace(MultiParameter):
         """
         channels = []
         for channel_property in self.my_instrument.channel_properties.values():
-            if channel_property.active == True:
+            if channel_property.active:
                 channels.append(channel_property.number)
 
         return channels
@@ -137,7 +126,6 @@ class line_trace(MultiParameter):
 
         return self.get_data()
 
-
     def _read_available(self, ch, buffer, offset):
         available = self.my_instrument.SD_AIN.DAQcounterRead(ch)
         check_error(available)
@@ -148,7 +136,7 @@ class line_trace(MultiParameter):
         length = len(buffer)
         if available + offset > length:
             logger.warning(f"ch{ch} more data points in digitizer ram ({available}+{offset}) "
-                            f"than what is being collected ({length}).")
+                           f"than what is being collected ({length}).")
             available = length - offset
 
         # Always read with a timeout to prevent infinite blocking of HW (and reboot of system).
@@ -174,10 +162,9 @@ class line_trace(MultiParameter):
 
         return n_received
 
-
     def _read_channels(self, daq_points_per_channel):
         start = time.perf_counter()
-        data_read = {channel:0 for channel in daq_points_per_channel}
+        data_read = {channel: 0 for channel in daq_points_per_channel}
 
         channels = daq_points_per_channel.keys()
         channels_to_read = list(channels)
@@ -222,8 +209,8 @@ class line_trace(MultiParameter):
         for ch in channels:
             if data_read[ch] != len(daq_points_per_channel[ch]):
                 logger.error(f"digitizer did not collect enough data points for channel {ch}; "
-                              f"requested:{len(daq_points_per_channel[ch])} received:{data_read[ch]}; "
-                              "last values are zeros.")
+                             f"requested:{len(daq_points_per_channel[ch])} received:{data_read[ch]}; "
+                             "last values are zeros.")
 
     def get_data(self):
         """
@@ -233,7 +220,7 @@ class line_trace(MultiParameter):
 
         daq_points_per_channel = {}
         for channel_property in self.my_instrument.channel_properties.values():
-            if channel_property.active == False:
+            if not channel_property.active:
                 continue
             channel = channel_property.number
             daq_cycles = channel_property.daq_cycles
@@ -242,12 +229,10 @@ class line_trace(MultiParameter):
             daq_points = daq_cycles * daq_points_per_cycle
             daq_points_per_channel[channel] = np.zeros(daq_points, np.double)
 
-
         self._read_channels(daq_points_per_channel)
 
-
         for channel_property in self.my_instrument.channel_properties.values():
-            if channel_property.active == False:
+            if not channel_property.active:
                 continue
 
             channel_data_raw = daq_points_per_channel[channel_property.number]
@@ -256,9 +241,10 @@ class line_trace(MultiParameter):
 
             if channel_property.acquisition_mode == MODES.NORMAL:
                 # reshape for [repetitions, time] and average
-                channel_data_raw = channel_data_raw.reshape([channel_property.cycles, channel_property.daq_points_per_cycle])
+                channel_data_raw = channel_data_raw.reshape(
+                    [channel_property.cycles, channel_property.daq_points_per_cycle])
                 # remove extra samples due to alignment
-                channel_data_raw = channel_data_raw[:,:channel_property.points_per_cycle]
+                channel_data_raw = channel_data_raw[:, :channel_property.points_per_cycle]
 
             elif channel_property.acquisition_mode in [MODES.IQ_DEMODULATION, MODES.IQ_INPUT_SHIFTED_IQ_OUT]:
                 # remove aligment point
@@ -267,26 +253,26 @@ class line_trace(MultiParameter):
                 # convert to array with complex values
                 channel_data_raw = channel_data_raw[::2] + 1j * channel_data_raw[1::2]
                 # reshape for [repetitions, time] and average
-                channel_data_raw = channel_data_raw.reshape([channel_property.cycles, channel_property.points_per_cycle])
+                channel_data_raw = channel_data_raw.reshape(
+                    [channel_property.cycles, channel_property.points_per_cycle])
             else:
                 # remove aligment point
                 total_points = channel_property.points_per_cycle * channel_property.cycles
                 channel_data_raw = channel_data_raw[:total_points]
                 # reshape for [repetitions, time] and average
-                channel_data_raw = channel_data_raw.reshape([channel_property.cycles, channel_property.points_per_cycle])
-
+                channel_data_raw = channel_data_raw.reshape(
+                    [channel_property.cycles, channel_property.points_per_cycle])
 
             if channel_property.data_mode == DATA_MODE.FULL:
                 data_out += (channel_data_raw, )
             elif channel_property.data_mode == DATA_MODE.AVERAGE_TIME:
-                data_out += (np.average(channel_data_raw, axis = 1), )
+                data_out += (np.average(channel_data_raw, axis=1), )
             elif channel_property.data_mode == DATA_MODE.AVERAGE_CYCLES:
-                data_out += (np.average(channel_data_raw, axis = 0), )
+                data_out += (np.average(channel_data_raw, axis=0), )
             elif channel_property.data_mode == DATA_MODE.AVERAGE_TIME_AND_CYCLES:
                 data_out += (np.average(channel_data_raw), )
 
         return data_out
-
 
     def start_digitizers(self):
         # start digizers.
@@ -304,7 +290,7 @@ class line_trace(MultiParameter):
         info_changed = False
 
         for properties in self.my_instrument.channel_properties.values():
-            if not properties.name in self.cached_properties:
+            if properties.name not in self.cached_properties:
                 self.cached_properties[properties.name] = channel_properties(properties.name, properties.number)
             cached = self.cached_properties[properties.name]
 
@@ -332,7 +318,7 @@ class line_trace(MultiParameter):
                 if properties.active:
                     self.names += (properties.name, )
                     self.labels += (f"digitizer output {properties.name}", )
-                    self.units += ("mV" , )
+                    self.units += ("mV", )
 
                     setpoint_names = tuple()
                     setpoint_labels = tuple()
@@ -349,7 +335,7 @@ class line_trace(MultiParameter):
                         setpoint_labels += ("time", )
                         setpoint_units += ("ns", )
 
-                    self.setpoint_labels +=  (setpoint_labels, )
+                    self.setpoint_labels += (setpoint_labels, )
                     self.setpoint_names += (setpoint_names, )
                     self.setpoint_units += (setpoint_units, )
 
@@ -379,33 +365,33 @@ class line_trace(MultiParameter):
 
 @dataclass
 class channel_properties:
-    name : str
-    number : int
-    active : bool = False
-    acquisition_mode : MODES = MODES.NORMAL
-    data_mode : DATA_MODE = DATA_MODE.FULL
-    points_per_cycle : int = 1
-    cycles : int = 0
-    full_scale : float = 0.0 # peak voltage; Note: Default is set in __init__
-    impedance: int = 1 # 50 Ohm
-    coupling: int = 0 # DC Coupling
-    t_measure : float = 0 #measurement time in ns of the channel
-    sample_rate : float = 500e6
+    name: str
+    number: int
+    active: bool = False
+    acquisition_mode: MODES = MODES.NORMAL
+    data_mode: DATA_MODE = DATA_MODE.FULL
+    points_per_cycle: int = 1
+    cycles: int = 0
+    full_scale: float = 0.0  # peak voltage; Note: Default is set in __init__
+    impedance: int = 1  # 50 Ohm
+    coupling: int = 0  # DC Coupling
+    t_measure: float = 0  # measurement time in ns of the channel
+    sample_rate: float = 500e6
     # daq configuration
-    prescaler : Optional[int] = None
+    prescaler: Optional[int] = None
     daq_points_per_cycle: Optional[int] = None
     daq_cycles: Optional[int] = None
     # settings of downsampler-iq FPGA image
-    downsampled_rate : Optional[float] = None
-    downsampling_factor : int = 1
-    lo_frequency : float = 0
-    lo_phase : float = 0
-    input_channel : int = 0
+    downsampled_rate: Optional[float] = None
+    downsampling_factor: int = 1
+    lo_frequency: float = 0
+    lo_phase: float = 0
+    input_channel: int = 0
 
 
 class SD_DIG(Instrument):
-    """docstring for SD_DIG"""
-    def __init__(self, name, chassis, slot, n_channels = 4):
+
+    def __init__(self, name, chassis, slot, n_channels=4):
         super().__init__(name)
         """
         init keysight digitizer
@@ -419,11 +405,12 @@ class SD_DIG(Instrument):
         NOTE: channels start for number 1! (e.g. channel 1, channel 2, channel 3, channel 4)
         """
         self.SD_AIN = keysightSD1.SD_AIN()
-        dig_name = check_error(self.SD_AIN.getProductNameBySlot(chassis, slot), f'getProductNameBySlot({chassis}, {slot})')
+        dig_name = check_error(self.SD_AIN.getProductNameBySlot(chassis, slot),
+                               f'getProductNameBySlot({chassis}, {slot})')
         check_error(self.SD_AIN.openWithSlot(dig_name, chassis, slot), 'openWithSlot')
 
         firmware_version = self.SD_AIN.getFirmwareVersion()
-        major,minor,revision = firmware_version.split('.')
+        major, minor, revision = firmware_version.split('.')
 
         if major != '02':
             raise Exception(f'KeysightSD1 driver not compatible with firmware "{firmware_version}"')
@@ -436,9 +423,9 @@ class SD_DIG(Instrument):
 
         self.add_parameter(
             'measure',
-            inst_name = self.name,
+            inst_name=self.name,
             parameter_class=line_trace,
-            raw =False
+            raw=False
             )
 
         self.channel_properties = dict()
@@ -448,7 +435,6 @@ class SD_DIG(Instrument):
             self.channel_properties[f'ch{ch}'] = properties
             # set channel defaults
             self.set_channel_properties(ch, V_range=2.0)
-
 
     def get_idn(self):
         return dict(vendor='Keysight',
@@ -460,16 +446,12 @@ class SD_DIG(Instrument):
         self.SD_AIN.close()
         super().close()
 
-    def snapshot_base(self, update = False, params_to_skip_update = None):
+    def snapshot_base(self, update=False, params_to_skip_update=None):
         param_to_skip = ['measure']
         if params_to_skip_update is not None:
             param_to_skip += params_to_skip_update
 
         return super().snapshot_base(update, params_to_skip_update=param_to_skip)
-
-    def set_aquisition_mode(self, mode):
-        logger.warning('M3102A.set_aquisition_mode is deprecated. Use M3102A.set_acquisition_mode')
-        self.set_acquisition_mode(mode)
 
     def set_acquisition_mode(self, mode):
         """
@@ -501,10 +483,8 @@ class SD_DIG(Instrument):
             properties.acquisition_mode = mode
             self.measure._generate_parameter_info()
 
-
     def get_channel_acquisition_mode(self, channel):
         return self.channel_properties[f'ch{channel}'].acquisition_mode
-
 
     def set_data_handling_mode(self, data_mode):
         """
@@ -609,7 +589,7 @@ class SD_DIG(Instrument):
             full_scale = self.SD_AIN.channelFullScale(channel)
             if abs(full_scale - properties.full_scale) > 0.01:
                 logger.warning(f'Incorrect full_scale value {properties.full_scale:5.3f}; '
-                                f'Changed to {full_scale:5.3f} V')
+                               f'Changed to {full_scale:5.3f} V')
                 properties.full_scale = full_scale
 
     def actual_acquisition_points(self, ch, t_measure, sample_rate):
@@ -634,8 +614,9 @@ class SD_DIG(Instrument):
             properties.daq_points_per_cycle = None
             properties.daq_cycles = None
 
-    def set_daq_settings(self, channel, n_cycles, t_measure, sample_rate = 500e6,
-                         DAQ_trigger_delay = 0, DAQ_trigger_mode = 1, downsampled_rate = None, power2decimation = 0):
+    def set_daq_settings(self, channel, n_cycles, t_measure, sample_rate=500e6,
+                         DAQ_trigger_delay=0, DAQ_trigger_mode=1,
+                         downsampled_rate=None, power2decimation=0):
         """
         quickset for the daq settings
 
@@ -645,7 +626,8 @@ class SD_DIG(Instrument):
             sample_rate (float) : sample rate of the channel in Sa/s
             DAQ_trigger_delay (int) : use HVI for this..
             DAQ_trigger_mode (int) : 1 for HVI see manual for other options. (2 is external trigger)
-            downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
+            downsampled_rate (float) :
+                sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
             power2decimation (int) : deprecated
         """
         if power2decimation:
@@ -660,16 +642,16 @@ class SD_DIG(Instrument):
                 logger.warning(f'ch{channel} downsampled_rate is ignored in NORMAL mode')
                 downsampled_rate = None
 
-            prescaler = max(0, int(500e6/sample_rate -1))
+            prescaler = max(0, int(500e6/sample_rate-1))
 
             # The M3102A prescaler maximum value is 4.
             if prescaler > 4:
                 raise ValueError(f'Sample rate {sample_rate} not supported.'
-                                  'M3102A frequency is limited to range [100..500] MHz')
+                                 'M3102A frequency is limited to range [100..500] MHz')
             sample_rate = 500e6/(prescaler+1)
             if properties.sample_rate != sample_rate:
-                logger.info("Effective sampling frequency is set to {}Sa/s (prescaler = {})"
-                             .format(si_format(sample_rate, precision=1), prescaler))
+                logger.info(f"Effective sampling frequency is set to {si_format(sample_rate, precision=1)}Sa/s "
+                            f"(prescaler = {prescaler})")
 
             points_per_cycle = int(t_measure*1e-9*sample_rate)
             daq_points_per_cycle = points_per_cycle
@@ -683,7 +665,7 @@ class SD_DIG(Instrument):
         else:
             if sample_rate != 500e6:
                 logger.warning(f'Sample rate is always 500 MSa/s in mode {properties.acquisition_mode}. '
-                                f'Ignoring requested {sample_rate}')
+                               f'Ignoring requested {sample_rate}')
 
             prescaler = 0
             sample_rate = 500e6
@@ -712,7 +694,6 @@ class SD_DIG(Instrument):
         # add extra points for acquisition alignment and minimum number of points
         daq_points_per_cycle = self._get_aligned_npoints(daq_points_per_cycle)
 
-
         if (properties.daq_points_per_cycle != daq_points_per_cycle
             or properties.daq_cycles != daq_cycles):
             logger.debug(f'ch{channel} config: {daq_points_per_cycle}, {daq_cycles}')
@@ -734,8 +715,7 @@ class SD_DIG(Instrument):
         properties.daq_cycles = daq_cycles
         self.measure._generate_parameter_info()
 
-
-    def set_ext_digital_trigger(self, channel, delay = 0, mode=3):
+    def set_ext_digital_trigger(self, channel, delay=0, mode=3):
         """
         Set external trigger for current channel.
         Args:
@@ -747,7 +727,7 @@ class SD_DIG(Instrument):
         # Make sure input port is enabled
         self.SD_AIN.triggerIOconfig(1)
         # set up the triggering config
-        self.SD_AIN.DAQdigitalTriggerConfig(channel, 0 , mode)
+        self.SD_AIN.DAQdigitalTriggerConfig(channel, 0, mode)
 
         # overwrite to be sure.
         properties = self.channel_properties[f'ch{channel}']
@@ -810,7 +790,6 @@ class SD_DIG(Instrument):
         """
         self.SD_AIN.DAQtriggerMultiple(daq_mask)
 
-
     ###############################
     # firmware specific functions #  Only for FPGA image firmware 2.x
     ###############################
@@ -838,7 +817,7 @@ class SD_DIG(Instrument):
         Sets demoduled I/Q input with phase shifting.
         '''
         if channel not in [1, 3]:
-            raise Exception(f'demodulated IQ input must be configured on channel 1 (=1+2) or 3 (=3+4)')
+            raise Exception('demodulated IQ input must be configured on channel 1 (=1+2) or 3 (=3+4)')
         properties = self.channel_properties[f'ch{channel}']
         mode = MODES.IQ_INPUT_SHIFTED_IQ_OUT if output_IQ else MODES.IQ_INPUT_SHIFTED_I_OUT
         properties.acquisition_mode = mode
@@ -879,12 +858,12 @@ class SD_DIG(Instrument):
         '''
         properties = self.channel_properties[f'ch{channel}']
         if properties.acquisition_mode == 0:
-            logger.warning(f'set_measurement_time_averaging() cannot be used in normal mode')
+            logger.warning('set_measurement_time_averaging() cannot be used in normal mode')
             return
 
         if properties.downsampled_rate is not None:
             # points_per_cycle cannot change without reconfiguring DAQ.
-            logger.warning(f'set_measurement_time_averaging() cannot be used when downsampling ')
+            logger.warning('set_measurement_time_averaging() cannot be used when downsampling ')
             return
 
         downsampling_factor = int(max(1, round(t_measure / 10)))
@@ -899,30 +878,24 @@ class SD_DIG(Instrument):
             dig_set_downsampler(self.SD_AIN, channel, downsampling_factor,
                                 properties.points_per_cycle)
 
-
     ###########################################################
     # automatic set function for common experimental settings #
     ###########################################################
 
-    def set_digitizer_software(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL,
-                               channels = [1,2], Vmax = None, fourchannel = False,
-                               downsampled_rate = None):
+    def set_digitizer_software(self, t_measure, cycles, sample_rate=500e6, data_mode=DATA_MODE.FULL,
+                               channels=[1, 2], downsampled_rate=None):
         """
-        quick set of minumal settings to make it work.
-
         Args:
             t_measure (float) : time to measure in ns
             cycles (int) : number of cycles
-            sample_rate (float) : sample rate you want to use (in #Samples/second). Will automatically choose the most approriate one.
+            sample_rate (float) :
+                sample rate you want to use (in #Samples/second). Will automatically choose the most approriate one.
             data_mode (int) : data mode of the digizer (output format)
             channels (list) : channels you want to measure
-            vmax (double) : maximum voltage of input (Vpeak)
-            downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
+            downsampled_rate (float) :
+                sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
         """
-        if Vmax is not None:
-            v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
-            print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
-        logger.info(f'set digitizer software')
+        logger.info('set digitizer software')
         self.set_data_handling_mode(data_mode)
 
         self.set_operating_mode(OPERATION_MODES.SOFT_TRG)
@@ -931,12 +904,9 @@ class SD_DIG(Instrument):
             self.set_daq_settings(channel, cycles, t_measure, sample_rate,
                                   downsampled_rate=downsampled_rate)
 
-
-    def set_digitizer_analog_trg(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL,
-                                 channels = [1,2], Vmax = None, downsampled_rate = None):
+    def set_digitizer_analog_trg(self, t_measure, cycles, sample_rate=500e6, data_mode=DATA_MODE.FULL,
+                                 channels=[1, 2], downsampled_rate=None):
         """
-        quick set of minumal settings to make it work.
-
         Args:
             t_measure (float) : time to measure in ns
             cycles (int) : number of cycles
@@ -944,13 +914,10 @@ class SD_DIG(Instrument):
             sample_rate (float) : sample rate you want to use (in #Samples/second)
             data_mode (int) : data mode of the digizer (output format)
             channels (list) : channels you want to measure
-            vmax (float) : maximum voltage of input (Vpeak)
-            downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
+            downsampled_rate (float) :
+                sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
         """
-        if Vmax is not None:
-            v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
-            print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
-        logger.info(f'set digitizer analog')
+        logger.info('set digitizer analog')
         self.set_data_handling_mode(data_mode)
 
         self.set_operating_mode(OPERATION_MODES.ANALOG_TRG)
@@ -960,25 +927,20 @@ class SD_DIG(Instrument):
                                   downsampled_rate=downsampled_rate)
             self.set_ext_digital_trigger(channel)
 
-
-    def set_digitizer_HVI(self, t_measure, cycles, sample_rate= 500e6, data_mode = DATA_MODE.FULL,
-                          channels = [1,2], Vmax = None, downsampled_rate = None, power2decimation = 0):
+    def set_digitizer_HVI(self, t_measure, cycles, sample_rate=500e6, data_mode=DATA_MODE.FULL,
+                          channels=[1, 2], downsampled_rate=None, power2decimation=0):
         """
-        quick set of minimal settings to make it work.
-
         Args:
             t_measure (float) : time to measure in ns
             cycles (int) : number of cycles
-            sample_rate (float) : sample rate you want to use (in #Samples/second). Will automatically choose the most approriate one.
+            sample_rate (float) :
+                sample rate you want to use (in #Samples/second). Will automatically choose the most approriate one.
             data_mode (int) : data mode of the digizer (output format)
             channels (list) : channels you want to measure
-            vmax (double) : maximum voltage of input (Vpeak)
-            downsampled_rate (float) : sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
+            downsampled_rate (float) :
+                sample rate after downsampling in Sa/s, if None then downsampled_rate = 1/t_measure
             power2decimation (int) : decimate data with 2**power2decimation
         """
-        if Vmax is not None:
-            v_ranges = [self.SD_AIN.channelFullScale(ch) for ch in channels]
-            print(f'Warning: parameter Vmax is ignored. Using {v_ranges} V')
         logger.info(f'set digitizer HVI: {t_measure}, {downsampled_rate}, {channels}')
         self.set_data_handling_mode(data_mode)
 
@@ -988,71 +950,7 @@ class SD_DIG(Instrument):
             self.set_daq_settings(channel, cycles, t_measure, sample_rate,
                                   downsampled_rate=downsampled_rate, power2decimation=power2decimation)
 
-
     def _get_aligned_npoints(self, npt):
         # add 1 point for odd sample numbers
         # SD1 3.1 requires at least 30 points.
         return max(30, (npt + 1)//2 * 2)
-
-
-if __name__ == '__main__':
-#%%
-          # load digitizer
-    # digitizer1.close()
-    digitizer1 = SD_DIG("digitizer1", chassis = 1, slot = 6)
-
-    # clear all ram (normally not needed, but just to sure)
-    digitizer1.daq_flush(1)
-    digitizer1.daq_flush(2)
-    digitizer1.daq_flush(3)
-    digitizer1.daq_flush(4)
-
-    # digitizer1.set_acquisition_mode(MODES.AVERAGE)
-
-    #%%
-    # simple example
-    digitizer1.set_digitizer_software(1e3, 10, sample_rate=500e6, data_mode=DATA_MODE.AVERAGE_TIME_AND_CYCLES, channels=[1,2], Vmax=0.25, fourchannel=False)
-    print(digitizer1.measure())
-    print(digitizer1.snapshot())
-    ####################################
-    #  settings (feel free to change)  #
-    # ####################################
-    # t_list = np.logspace(2.3, 2.7, 20)
-    # res =[]
-    # for t in t_list:
-    #     cycles = 1000
-    #     t_measure = t #e3 # ns
-    #     ####################################
-
-
-    #     # show some multiparameter properties
-    #     # print(digitizer1.measure.shapes)
-    #     # print(digitizer1.measure.setpoint_units)
-    #     # print(digitizer1.measure.setpoints)
-    #     # # measure the parameter
-    #     digitizer1.set_digitizer_software(t_measure, cycles, data_mode=DATA_MODE.FULL, channels = [1,2])
-    #     digitizer1.set_MAV_filter()
-    #     data = digitizer1.measure()
-    #     #    print(data)
-    # #    plt.clf()
-    #     #    plt.plot(data[0][:,2], 'o-')
-    #     #    plt.plot(data[0][:,3], 'o-')
-    # #    plt.plot(data[1], 'o-')
-    #     # print(data[0].shape, data[1].shape)
-
-    #     res.append(np.mean(data[1]))
-
-    # #t_list = t_list-166
-    # #res = np.array(res)/np.array(t_list)
-    # plt.figure(2)
-    # plt.clf()
-    # plt.plot(t_list, res, 'o-')
-
-    #def fit_func(x, m, q):
-    #    return x*m+q
-    #
-    #import scipy
-    #param, var = scipy.optimize.curve_fit(fit_func, t_list, res)
-    #plt.plot(np.linspace(0, max(t_list), 50), fit_func(np.linspace(0, max(t_list), 50), *param))
-    #plt.xlabel('Integration time (ns)')
-    #plt.title('Intercept: %.2f' %param[1])
