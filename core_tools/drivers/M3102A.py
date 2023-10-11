@@ -2,6 +2,7 @@
 from qcodes import Instrument, MultiParameter
 from dataclasses import dataclass
 from typing import Optional
+from packaging.version import Version
 import math
 import logging
 import time
@@ -14,9 +15,12 @@ import keysightSD1
 # import function for hvi2 downsampler FPGA image
 from keysight_fpga.sd1.dig_iq import (
     config_channel, is_iq_image_loaded, dig_set_lo, dig_set_input_channel, dig_set_downsampler)
+from keysight_fpga import __version__ as keysight_fpga_version
 
 
 logger = logging.getLogger(__name__)
+
+is_fpga_version_1_1 = Version(keysight_fpga_version) >= Version('1.1.0')
 
 
 class MODES:
@@ -234,10 +238,17 @@ class line_trace(MultiParameter):
         for channel_property in self.my_instrument.channel_properties.values():
             if not channel_property.active:
                 continue
+            if is_fpga_version_1_1:
+                # correct for digital scaling in fpga
+                fpga_scaling = channel_properties.fpga_scaling
+                if channel_property.acquisition_mode in [MODES.IQ_DEMODULATION, MODES.IQ_DEMOD_I_ONLY]:
+                    fpga_scaling *= 2.0
+            else:
+                fpga_scaling = 1.0
 
             channel_data_raw = daq_points_per_channel[channel_property.number]
             # convert 16 bit signed to mV. (inplace multiplication on numpy array is fast)
-            channel_data_raw *= channel_property.full_scale * 1000 / 32768
+            channel_data_raw *= channel_property.full_scale * 1000 / 32768 / fpga_scaling
 
             if channel_property.acquisition_mode == MODES.NORMAL:
                 # reshape for [repetitions, time] and average
@@ -330,7 +341,7 @@ class line_trace(MultiParameter):
                         setpoint_units += ("#", )
 
                     if (properties.data_mode in [DATA_MODE.FULL, DATA_MODE.AVERAGE_CYCLES]
-                        and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
+                            and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
                         setpoint_names += (f"time_ch_{properties.name}", )
                         setpoint_labels += ("time", )
                         setpoint_units += ("ns", )
@@ -348,13 +359,13 @@ class line_trace(MultiParameter):
                         setpoints += (tuple(np.linspace(1, properties.cycles, properties.cycles)), )
 
                     elif (properties.data_mode == DATA_MODE.AVERAGE_CYCLES
-                        and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
+                          and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
                         n = properties.points_per_cycle
                         shape += (n, )
                         setpoints += (tuple(np.linspace(properties.t_measure/n, properties.t_measure, n)), )
 
                     if (properties.data_mode == DATA_MODE.FULL
-                        and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
+                            and (properties.acquisition_mode == MODES.NORMAL or properties.points_per_cycle > 1)):
                         n = properties.points_per_cycle
                         shape += (n, )
                         setpoints += ((tuple(np.linspace(properties.t_measure/n, properties.t_measure, n)), ))
@@ -387,6 +398,7 @@ class channel_properties:
     lo_frequency: float = 0
     lo_phase: float = 0
     input_channel: int = 0
+    fpga_scaling: float = 1.0
 
 
 class SD_DIG(Instrument):
@@ -452,6 +464,9 @@ class SD_DIG(Instrument):
             param_to_skip += params_to_skip_update
 
         return super().snapshot_base(update, params_to_skip_update=param_to_skip)
+
+    def is_iq_image_loaded(self):
+        return is_iq_image_loaded(self.SD_AIN)
 
     def set_acquisition_mode(self, mode):
         """
@@ -592,6 +607,25 @@ class SD_DIG(Instrument):
                                f'Changed to {full_scale:5.3f} V')
                 properties.full_scale = full_scale
 
+    def set_fpga_scaling(self, channel, scaling):
+        '''
+        Sets the FPGA scaling factor for averaging acquisition modes,
+        i.e. all modes except NORMAL.
+        This enhances the digital resolution for small signals when long
+        averaging periods are used. Internally the FPGA uses a 48-bit accumulation
+        register, but it outputs only 16 bits.
+        The scaling factor multiplies the digital output value in the FPGA
+        before sending it to the PC.
+
+        Args:
+            channel (int): channel
+            scaling (float): scaling factor for output, 1.0 <= scaling <= 16.0
+        '''
+        if scaling < 1.0 or scaling > 16.0:
+            raise ValueError(f'Scaling factor ({scaling}) out of range')
+        properties = self.channel_properties[f'ch{channel}']
+        properties.fpga_scaling = scaling
+
     def actual_acquisition_points(self, ch, t_measure, sample_rate):
         mode = self.channel_properties[f'ch{ch}'].acquisition_mode
         # resolution in nanoseconds
@@ -659,7 +693,7 @@ class SD_DIG(Instrument):
             eff_t_measure = points_per_cycle * 1e9 / sample_rate
             downsampling_factor = 1
 
-            if is_iq_image_loaded(self.SD_AIN):
+            if self.is_iq_image_loaded():
                 config_channel(self.SD_AIN, channel, properties.acquisition_mode, 1, 1, input_ch=0)
 
         else:
@@ -687,15 +721,26 @@ class SD_DIG(Instrument):
             daq_cycles = 1
             config_input_channel = properties.input_channel if properties.input_channel != 0 else channel
 
-            config_channel(self.SD_AIN, channel, properties.acquisition_mode, downsampling_factor, points_per_cycle,
-                           LO_f=properties.lo_frequency, phase=properties.lo_phase,
-                           input_ch=config_input_channel)
+            if is_fpga_version_1_1:
+                fpga_scaling = properties.fpga_scaling
+                if properties.acquisition_mode in [MODES.IQ_DEMODULATION, MODES.IQ_DEMOD_I_ONLY]:
+                    # Note: a demodulated signal will have 1/2 the amplitude of the incoming signal
+                    fpga_scaling *= 2.0
+                config_channel(self.SD_AIN, channel, properties.acquisition_mode,
+                               downsampling_factor, points_per_cycle,
+                               LO_f=properties.lo_frequency, phase=properties.lo_phase,
+                               input_ch=config_input_channel, out_scaling=fpga_scaling)
+            else:
+                config_channel(self.SD_AIN, channel, properties.acquisition_mode,
+                               downsampling_factor, points_per_cycle,
+                               LO_f=properties.lo_frequency, phase=properties.lo_phase,
+                               input_ch=config_input_channel)
 
         # add extra points for acquisition alignment and minimum number of points
         daq_points_per_cycle = self._get_aligned_npoints(daq_points_per_cycle)
 
         if (properties.daq_points_per_cycle != daq_points_per_cycle
-            or properties.daq_cycles != daq_cycles):
+                or properties.daq_cycles != daq_cycles):
             logger.debug(f'ch{channel} config: {daq_points_per_cycle}, {daq_cycles}')
             check_error(self.SD_AIN.DAQconfig(channel, daq_points_per_cycle, daq_cycles,
                                               DAQ_trigger_delay, DAQ_trigger_mode), 'DAQconfig')
@@ -791,7 +836,7 @@ class SD_DIG(Instrument):
         self.SD_AIN.DAQtriggerMultiple(daq_mask)
 
     ###############################
-    # firmware specific functions #  Only for FPGA image firmware 2.x
+    # firmware specific functions #
     ###############################
 
     def set_input_channel(self, channel, input_channel):
@@ -802,11 +847,14 @@ class SD_DIG(Instrument):
             channel (int): channel to configure, i.e. the DAQ buffer.
             input_channel (int): input channel to use, i.e. the physical input.
         '''
-        if not is_iq_image_loaded(self.SD_AIN):
+        if not self.is_iq_image_loaded():
             raise Exception('IQ demodulation FPGA image not loaded')
 
+        if input_channel is None:
+            input_channel = channel
+
         properties = self.channel_properties[f'ch{channel}']
-        properties.input_channel = input_channel if input_channel is not None else channel
+        properties.input_channel = input_channel
 
         if properties.acquisition_mode == MODES.NORMAL:
             logger.warning('Input channel selection has no effect when normal mode is selected')
@@ -836,7 +884,7 @@ class SD_DIG(Instrument):
             phase (float): phase shift in degrees
             input_channel (int): input channel to use for IQ demodulation.
         '''
-        if not is_iq_image_loaded(self.SD_AIN):
+        if not self.is_iq_image_loaded():
             raise Exception('IQ demodulation FPGA image not loaded')
 
         properties = self.channel_properties[f'ch{channel}']
@@ -875,8 +923,16 @@ class SD_DIG(Instrument):
             properties.t_measure = eff_t_measure
             logger.debug(f'ch{channel} t_measure:{properties.t_measure}')
 
-            dig_set_downsampler(self.SD_AIN, channel, downsampling_factor,
-                                properties.points_per_cycle)
+            if is_fpga_version_1_1:
+                fpga_scaling = properties.fpga_scaling
+                if properties.acquisition_mode in [MODES.IQ_DEMODULATION, MODES.IQ_DEMOD_I_ONLY]:
+                    fpga_scaling *= 2.0
+                dig_set_downsampler(self.SD_AIN, channel, downsampling_factor,
+                                    properties.points_per_cycle,
+                                    out_scaling=fpga_scaling)
+            else:
+                dig_set_downsampler(self.SD_AIN, channel, downsampling_factor,
+                                    properties.points_per_cycle)
 
     ###########################################################
     # automatic set function for common experimental settings #
