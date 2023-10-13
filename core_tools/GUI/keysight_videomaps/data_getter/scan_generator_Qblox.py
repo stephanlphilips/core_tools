@@ -313,7 +313,6 @@ class _digitzer_scan_parameter(MultiParameter):
         self.Vmax = Vmax
         self._init_channels(channels, channel_map, iq_mode)
 
-
         n_out_ch = len(self.channel_names)
         super().__init__(name='fastScan', names = self.channel_names,
                         shapes = tuple([shape]*n_out_ch),
@@ -326,32 +325,30 @@ class _digitzer_scan_parameter(MultiParameter):
 
         self.channel_map = (
                 channel_map if channel_map is not None
-                else {f'ch{i}':(i, np.real) for i in channels})
+                else {f'ch{i}': (i, np.real) for i in channels})
 
         if iq_mode is not None:
             if channel_map is not None:
                 logger.warning('iq_mode is ignored when channel_map is also specified')
             elif isinstance(iq_mode, str):
-                self.channel_map = {f'ch{i}':(i, iq_mode2numpy[iq_mode]) for i in channels}
+                self.channel_map = {f'ch{i}': (i, iq_mode2numpy[iq_mode]) for i in channels}
             else:
                 for ch, mode in iq_mode.items():
                     self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
 
         self.channel_names = tuple(self.channel_map.keys())
 
-
     def get_raw(self):
 
-        logger.info(f'Play')
         start = time.perf_counter()
         # play sequence
-        self.my_seq.play(release = False)
-        logger.info(f'Idle after {(time.perf_counter()-start)*1000:3.1f} ms')
+        self.my_seq.play(release=False)
+        logger.debug(f'Play {(time.perf_counter()-start)*1000:3.1f} ms')
         raw_dict = self.my_seq.get_channel_data()
 
         # Reorder data for bias-T correction
         data = {}
-        for name,raw in raw_dict.items():
+        for name, raw in raw_dict.items():
             if self.biasT_corr:
                 raw = raw.reshape(self.shape)
                 ch_data = np.zeros(self.shape, dtype=raw.dtype)
@@ -363,19 +360,18 @@ class _digitzer_scan_parameter(MultiParameter):
 
         # post-process data
         data_out = []
-        for ch,func in self.channel_map.values():
+        for ch, func in self.channel_map.values():
             ch_data = data[ch]
             data_out.append(func(ch_data))
 
-        logger.info(f'Done')
         return tuple(data_out)
 
     def restart(self):
         pass
 
     def stop(self):
-        if not self.my_seq is None and not self.pulse_lib is None:
-            logger.info('stop: release memory')
+        if self.my_seq is not None and self.pulse_lib is not None:
+            logger.debug('stop: release memory')
             # remove pulse sequence from the AWG's memory, unload schedule and free memory.
             self.my_seq.close()
             self.my_seq = None
@@ -385,7 +381,6 @@ class _digitzer_scan_parameter(MultiParameter):
         self.stop()
 
     def __del__(self):
-        if not self.my_seq is None and not self.pulse_lib is None:
-            logger.error(f'Cleanup in __del__(); Call stop()!')
+        if self.my_seq is not None and self.pulse_lib is not None:
+            logger.warning('Cleanup in __del__(); Call stop()!')
             self.stop()
-
