@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.33] - 2023-10-19
+
+- Parameter viewer virtual gate limits set to +/- 9999.99 mV
+- Parameter viewer print warning if gate voltage is corrected by GUI limits
+- Use digitizer average output scaling to better use digital range (requires keysight-fpga v1.1+)
+- Avoid partially written hdf5 files
+
 ## \[1.4.32] - 2023-08-29
 
 - Made VideoMode more robust on acquisition errors.
