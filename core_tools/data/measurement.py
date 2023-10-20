@@ -37,6 +37,7 @@ class Measurement:
     '''
     class used to describe a measurement.
     '''
+
     def __init__(self, name, silent=False):
         self.silent = silent
         self.setpoints = dict()
@@ -62,11 +63,14 @@ class Measurement:
         setpoint_parameter_spec = None
 
         if isinstance(parameter, qc.Parameter):
-            setpoint_parameter_spec = setpoint_dataclass(id(parameter), n_points, parameter.name,
+            setpoint_parameter_spec = setpoint_dataclass(
+                id(parameter), n_points, parameter.name,
                 [parameter.name], [parameter.label], [parameter.unit])
         if isinstance(parameter, qc.MultiParameter):
-            setpoint_parameter_spec = setpoint_dataclass(id(parameter), n_points, parameter.name,
-                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
+            setpoint_parameter_spec = setpoint_dataclass(
+                id(parameter), n_points, parameter.name,
+                list(parameter.names), list(parameter.labels),
+                list(parameter.units), list(parameter.shapes))
 
         self.setpoints[setpoint_parameter_spec.id_info] = setpoint_parameter_spec
         self._add_param_snapshot(parameter)
@@ -78,11 +82,12 @@ class Measurement:
         param_id = id(parameter)
 
         if param_id in self.setpoints.keys() or param_id in self.m_param.keys():
-            raise ValueError("parameter is not unique, this parameter has already been provided to this measurement.")
+            raise ValueError("parameter is not unique, this parameter has already exists in this measurement.")
 
         for setpoint in setpoints:
             if id(setpoint) not in self.setpoints.keys():
-                raise ValueError("setpoint {} not yet defined, please define before declaring the measurement parameter.".format(setpoint))
+                raise ValueError(
+                    f"setpoint {setpoint} not yet defined. Define before declaring the measurement parameter.")
 
         m_param_parameter_spec = None
 
@@ -90,7 +95,8 @@ class Measurement:
             raise Exception(f"'{parameter}' is not a Parameter")
 
         if isinstance(parameter, qc.Parameter):
-            m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name,
+            m_param_parameter_spec = m_param_dataclass(
+                id(parameter), parameter.name,
                 [parameter.name], [parameter.label], [parameter.unit])
 
         if isinstance(parameter, qc.MultiParameter):
@@ -98,8 +104,10 @@ class Measurement:
                 self.void_parameters.append(parameter)
                 logger.warning(f'Parameter {parameter.name} returns no data. Skipping parameter!')
                 return
-            m_param_parameter_spec = m_param_dataclass(id(parameter), parameter.name,
-                list(parameter.names), list(parameter.labels), list(parameter.units), list(parameter.shapes))
+            m_param_parameter_spec = m_param_dataclass(
+                id(parameter), parameter.name,
+                list(parameter.names), list(parameter.labels),
+                list(parameter.units), list(parameter.shapes))
 
             setpoint_local_parameter_spec = None
             for i in range(len(parameter.setpoints)):
@@ -107,20 +115,25 @@ class Measurement:
                 cum_shape = tuple()
                 for j in range(len(parameter.setpoints[i])):
                     # a bit of a local hack, in setpoints, sometimes copies are made of the setpoint name
-                    # this can cause in uniquess of the keys, therefore the extra multiplications (should more or less ensure uniqueness).
-                    #cleaner solution
-                    setpoint_local_parameter_spec = setpoint_dataclass(id(parameter.setpoint_names[i][j])*10*(i+1), np.NaN,
-                        'local_var', [parameter.setpoint_names[i][j]], [parameter.setpoint_labels[i][j]],
-                        [parameter.setpoint_units[i][j]], [], [])
+                    # this can cause in uniquess of the keys, therefore the extra multiplications
+                    # (should more or less ensure uniqueness).
+                    setpoint_local_parameter_spec = setpoint_dataclass(
+                        id(parameter.setpoint_names[i][j])*10*(i+1), np.NaN,
+                        'local_var',
+                        [parameter.setpoint_names[i][j]],
+                        [parameter.setpoint_labels[i][j]],
+                        [parameter.setpoint_units[i][j]],
+                        [], [])
                     data_array = parameter.setpoints[i][j]
-                    shape = ( parameter.shapes[i][j],)
+                    shape = (parameter.shapes[i][j], )
                     cum_shape += shape
                     # qcodes setpoints (N, (N*M), ..) or simple coretools: (N, M, ...)?
                     if isinstance(data_array[0], tuple):
                         shape = cum_shape
                     setpoint_local_parameter_spec.shapes.append(shape)
                     setpoint_local_parameter_spec.generate_data_buffer()
-                    setpoint_local_parameter_spec.write_data({setpoint_local_parameter_spec.id_info : np.asarray(data_array, order='C')})
+                    setpoint_local_parameter_spec.write_data(
+                        {setpoint_local_parameter_spec.id_info: np.asarray(data_array, order='C')})
                     my_local_setpoints.append(setpoint_local_parameter_spec)
                 m_param_parameter_spec.setpoints_local.append(my_local_setpoints)
 
@@ -136,8 +149,8 @@ class Measurement:
     def _add_param_snapshot(self, param):
         try:
             self.snapshot[param.name] = param.snapshot()
-        except:
-            logger.error(f'Parameter snapshot failed', exc_info=True)
+        except Exception:
+            logger.error('Parameter snapshot failed', exc_info=True)
 
     def add_snapshot(self, name, snapshot):
         self.snapshot[name] = snapshot
@@ -150,7 +163,8 @@ class Measurement:
             *args : tuples of the parameter object submitted to the register parameter object and the get value.
         '''
         if self.dataset is None:
-            raise ValueError('Dataset not initialized! please submit measurement in the context manager (e.g. with Measurement() ')
+            raise ValueError(
+                'Dataset not initialized! Start measurement using context manager, e.g. "with Measurement():')
 
         args_dict = {}
         for arg in args:
@@ -166,12 +180,14 @@ class Measurement:
             else:
                 raise Exception('No measurement parameters specified')
         self.dataset = create_new_data_set(self.name, self.snapshot, *self.m_param.values())
+        msg = f'Starting measurement with id : {self.dataset.exp_id} - {self.name}'
+        logger.info(msg)
         if not self.silent:
-            print(f'\nStarting measurement with id : {self.dataset.exp_id} - {self.name}', flush=True)
+            print(f'\n{msg}', flush=True)
 
         return self
 
-    def  __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         # save data
         self.dataset.mark_completed()
 

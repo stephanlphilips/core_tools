@@ -116,10 +116,12 @@ class data_set:
         '''
         mark dataset complete. Stop updating the database and allow garbage collector to release memory.
         '''
-        self.__data_set_raw.completed = True
-        self.__write_to_db(True)
-        SQL_ds_creator = SQL_dataset_creator()
-        SQL_ds_creator.finish_measurement(self.__data_set_raw)
+        try:
+            self.__write_to_db(True)
+        finally:
+            self.__data_set_raw.completed = True
+            SQL_ds_creator = SQL_dataset_creator()
+            SQL_ds_creator.finish_measurement(self.__data_set_raw)
 
     def sync(self):
         '''
