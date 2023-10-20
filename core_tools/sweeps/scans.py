@@ -10,6 +10,7 @@ from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 
 logger = logging.getLogger(__name__)
 
+
 class Break(Exception):
     # TODO @@@ allow loop parameter to break to
     def __init__(self, msg, loops=None):
@@ -22,6 +23,7 @@ class Break(Exception):
         self._loops -= 1
         return self._loops > 0
 
+
 class Action:
     def __init__(self, name, delay=0.0):
         self._delay = delay
@@ -30,6 +32,7 @@ class Action:
     @property
     def delay(self):
         return self._delay
+
 
 class Setter(Action):
     def __init__(self, param, n_points, delay=0.0, resetable=True):
@@ -52,6 +55,7 @@ class Setter(Action):
 
     def __iter__(self):
         raise NotImplementedError()
+
 
 class Getter(Action):
     def __init__(self, param, delay=0.0):
@@ -208,10 +212,10 @@ class Scan:
 
     def _insert_sequence_function(self, seq_function):
         sequence_added = False
-        for i,action in enumerate(self.actions):
+        for i, action in enumerate(self.actions):
             if (isinstance(action, ArraySetter)
-                and isinstance(action.param, index_param)
-                and (action.param.dim == seq_function.axis or action.param.name == seq_function.axis)):
+                    and isinstance(action.param, index_param)
+                    and (action.param.dim == seq_function.axis or action.param.name == seq_function.axis)):
                 break
             if isinstance(action, Function) and action._func == _start_sequence:
                 sequence_added = True
@@ -237,6 +241,7 @@ class Scan:
             # Note: KILL is used by job mgmnt
             logger.warning('Measurement aborted')
         except KeyboardInterrupt:
+            logger.debug('Measurement interrupted', exc_info=True)
             logger.warning('Measurement interrupted')
             raise KeyboardInterrupt('Measurement interrupted') from None
         except Exception as ex:
@@ -246,7 +251,7 @@ class Scan:
 
         return self.meas.dataset
 
-    def put(self, priority = 1):
+    def put(self, priority=1):
         '''
         put the job in a queue.
         '''
@@ -266,7 +271,7 @@ class Runner:
         self._actions = actions
         self._n_tot = np.prod(loop_shape) if len(loop_shape) > 0 else 1
         self._n = 0
-        self._setpoints = [[None,None]]*len(loop_shape)
+        self._setpoints = [[None, None]]*len(loop_shape)
         self._m_values = {}
         self._action_duration = [0.0]*len(actions)
         self._action_cnt = [0]*len(actions)
@@ -279,10 +284,10 @@ class Runner:
         self.pbar = progress_bar(self._n_tot) if not silent else None
         try:
             self._loop()
-        except:
+        except BaseException:
             last_index = {
-                param.name:data
-                for param,data in self._setpoints
+                param.name: data
+                for param, data in self._setpoints
                 if param is not None
                 }
             msg = f'Measurement stopped at {last_index}'
@@ -299,17 +304,18 @@ class Runner:
     def _get_start_values(self):
         return [
                 (action.param, action.param())
-                if isinstance(action, Setter) and action.resetable else (None,None)
+                if isinstance(action, Setter) and action.resetable else (None, None)
                 for action in self._actions
                 ]
 
     def _reset_params(self, start_values):
-        for param,value in start_values:
+        for param, value in start_values:
             if param is not None:
                 try:
                     param(value)
-                except:
-                    logger.error(f'Failed to reset parameter {param.name}')
+                except Exception:
+                    logger.error(f'Failed to reset parameter {param.name}', exc_info=True)
+                    raise
 
     def _loop(self, iaction=0, iparam=0):
         if iaction == len(self._actions):
@@ -326,16 +332,20 @@ class Runner:
 
             if isinstance(action, Getter):
                 m_param = action.param
-                value = m_param()
-                self._m_values[m_param.name] = value
-                t_store = time.perf_counter()
-                self._measurement.add_result((m_param, value), *self._setpoints)
-                self._store_duration += time.perf_counter()-t_store
+                value = None
+                try:
+                    value = m_param()
+                    self._m_values[m_param.name] = value
+                    t_store = time.perf_counter()
+                    self._measurement.add_result((m_param, value), *self._setpoints)
+                    self._store_duration += time.perf_counter()-t_store
+                except Exception:
+                    raise Exception(f'Failure getting {m_param.name}: {value}')
 
             elif isinstance(action, Function):
                 last_values = {
-                    param.name:value
-                    for param,value in self._setpoints
+                    param.name: value
+                    for param, value in self._setpoints
                     if param is not None
                     }
                 last_values.update(self._m_values)
@@ -378,8 +388,7 @@ class Runner:
         if n % 1 == 0:
             t_actions = {
                 action.name: f'{self._action_duration[i]*1000/self._action_cnt[i]:4.1f}'
-                for i,action in enumerate(self._actions)
+                for i, action in enumerate(self._actions)
                 }
             t_store = self._store_duration*1000/n
             logger.debug(f'npt:{n} actions: {t_actions} store:{t_store:5.1f} ms')
-
