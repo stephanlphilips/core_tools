@@ -11,10 +11,12 @@ from core_tools.data.gui.data_browser_models.result_table_data_class import m_re
 
 logger = logging.getLogger(__name__)
 
+
 def if_any_to_none(arg):
     if arg == "any":
         return None
     return arg
+
 
 def default(arg, default):
     return arg if arg is not None else default
@@ -114,11 +116,10 @@ class signale_handler(QtQuick.QQuickView):
         self.date_model = date_model
         self.data_overview_model = data_overview_model
 
-        self.max_measurement_id =0
+        self.max_measurement_id = 0
         self.selected_date = None
         self.ignore_date_selection_changes = False
         self.plots = []
-
 
     def init_gui_variables(self, win):
         self.win = win
@@ -210,7 +211,7 @@ class signale_handler(QtQuick.QQuickView):
             date = self.date_model[idx] if self.date_model.rowCount() and idx >= 0 else None
             self.selected_date = date
             self.load_data_table(date)
-        except:
+        except Exception:
             logger.error('Failed to set date', exc_info=True)
 
     def load_data_table(self, date):
@@ -226,7 +227,7 @@ class signale_handler(QtQuick.QQuickView):
                     )
             model_data = m_result_overview(data)
             self.data_overview_model.reset_data(model_data)
-        except:
+        except Exception:
             logger.error('Failed to load datasets', exc_info=True)
 
     def check_for_updates(self):
@@ -234,24 +235,20 @@ class signale_handler(QtQuick.QQuickView):
             return
         try:
             self.updating = True
-            max_id = self.max_measurement_id
-            if max_id is None:
-                max_id = 0
             update, self.max_measurement_id = query_for_measurement_results.detect_new_meaurements(
-                    max_id,
+                    self.max_measurement_id,
                     project=self._data_filter.project,
                     set_up=self._data_filter.set_up,
                     sample=self._data_filter.sample)
 
-            if update==True:
+            if update and self.max_measurement_id is not None:
                 self.update_date_model()
 
-                if self.live_plotting_enabled == True:
+                if self.live_plotting_enabled:
                     # NOTE: name, keywords and starred are ignored for live plotting.
                     #       It is assumed that one want to see all new measurements
                     #       for project/setup/sample.
-                    new_ds = query_for_measurement_results.search_query(
-                            exp_id = self.max_measurement_id)
+                    new_ds = query_for_measurement_results.search_query(exp_id=self.max_measurement_id)
                     self.plot_ds(new_ds[0].uuid)
         except Exception:
             logging.error('Check for updates failed', exc_info=True)
@@ -269,7 +266,7 @@ class signale_handler(QtQuick.QQuickView):
         self.plots.append(p)
 
         for i in range(len(self.plots)-1, -1, -1):
-            if self.plots[i].alive == False:
+            if not self.plots[i].alive:
                 self.plots.pop(i)
 
     @QtCore.pyqtSlot('QString')
@@ -283,15 +280,15 @@ class signale_handler(QtQuick.QQuickView):
             self.update_date_model()
         else:
             try:
-                alter_dataset.star_measurement(uuid.replace('_',''), state)
-            except:
+                alter_dataset.star_measurement(uuid.replace('_', ''), state)
+            except Exception:
                 logging.error('Failed to change starred', exc_info=True)
 
     @QtCore.pyqtSlot('QString', 'QString')
     def update_name_meaurement(self, uuid, name):
         try:
-            alter_dataset.update_name(uuid.replace('_',''), name)
-        except:
+            alter_dataset.update_name(uuid.replace('_', ''), name)
+        except Exception:
             logging.error(f'Failed to change name to "{name}"', exc_info=True)
 
     @QtCore.pyqtSlot('QString')

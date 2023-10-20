@@ -1,38 +1,44 @@
 from typing import List
 from dataclasses import dataclass
+import datetime
 
 from core_tools.data.SQL.SQL_common_commands import update_table
 from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
 
 
-import datetime
-
 class alter_dataset:
+
     @staticmethod
     def update_name(uuid, name):
         conn = SQL_database_manager().conn_local
-        update_table(conn, 'global_measurement_overview', ('exp_name', 'table_synchronized'), (name, False), condition = ('uuid',uuid))
+        update_table(conn, 'global_measurement_overview',
+                     ('exp_name', 'table_synchronized'), (name, False),
+                     condition=('uuid', uuid))
         conn.commit()
 
     @staticmethod
     def star_measurement(uuid, state):
         conn = SQL_database_manager().conn_local
-        update_table(conn, 'global_measurement_overview', ('starred', 'table_synchronized'), (state, False), condition = ('uuid', uuid))
+        update_table(conn, 'global_measurement_overview',
+                     ('starred', 'table_synchronized'), (state, False),
+                     condition=('uuid', uuid))
         conn.commit()
 
+
 class query_for_samples():
+
     @staticmethod
-    def get_projects(set_up = None, sample = None):
+    def get_projects(set_up=None, sample=None):
         # get all projects for a selected set-up/sample (None is no selection)
         return query_for_samples.__get_x_given_yz('project', ('set_up', set_up), ('sample', sample))
 
     @staticmethod
-    def get_set_ups(project = None, sample = None):
-        #get all set ups for a selected project/sample (None is no selection)
+    def get_set_ups(project=None, sample=None):
+        # get all set ups for a selected project/sample (None is no selection)
         return query_for_samples.__get_x_given_yz('set_up', ('project', project), ('sample', sample))
 
     @staticmethod
-    def get_samples(set_up = None, project = None):
+    def get_samples(set_up=None, project=None):
         # get all samples for a selected project/set-up (None is no selection)
         return query_for_samples.__get_x_given_yz('sample', ('project', project), ('set_up', set_up))
 
@@ -53,28 +59,29 @@ class query_for_samples():
         cur = SQL_database_manager().conn_local.cursor()
         cur.execute(statement)
         res = cur.fetchall()
-        result = set(sum(res, () ))
+        result = set(sum(res, ()))
         cur.close()
 
         cur = SQL_database_manager().conn_remote.cursor()
         cur.execute(statement)
         res = cur.fetchall()
-        result |= set(sum(res, () ))
+        result |= set(sum(res, ()))
         cur.close()
         return sorted(list(result))
 
 
 @dataclass
 class measurement_results:
-    my_id : int
-    uuid : int
-    name : str
-    start_time : datetime
-    project :str
-    set_up : str
-    sample : str
-    starred : bool
-    _keywords : List[str] = None
+    my_id: int
+    uuid: int
+    name: str
+    start_time: datetime
+    project: str
+    set_up: str
+    sample: str
+    starred: bool
+    _keywords: List[str] = None
+
 
 class query_for_measurement_results:
     @staticmethod
@@ -82,8 +89,11 @@ class query_for_measurement_results:
                              name=None, keywords=None, starred=False):
         if date is None:
             return []
-        statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords FROM global_measurement_overview "
-        statement += "WHERE start_time >= '{}' and start_time < '{} '".format(date, date+ datetime.timedelta(1))
+        statement = '''
+            SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords
+            FROM global_measurement_overview
+            '''
+        statement += "WHERE start_time >= '{}' and start_time < '{} '".format(date, date+datetime.timedelta(1))
         if sample is not None:
             statement += " and sample =  '{}' ".format(sample)
         if set_up is not None:
@@ -166,13 +176,12 @@ class query_for_measurement_results:
         return query_for_measurement_results._to_measurement_results(res)
 
     @staticmethod
-    def detect_new_meaurements(max_measurement_id=0, remote=False,
+    def detect_new_meaurements(max_measurement_id=None, remote=False,
                                project=None, set_up=None, sample=None):
-        if max_measurement_id is None:
-            max_measurement_id = 0
         statement = "SELECT max(id) from global_measurement_overview"
         where = []
-        where.append(f"id >= {max_measurement_id}")
+        if max_measurement_id is not None:
+            where.append(f"id >= {max_measurement_id}")
         if sample is not None:
             where.append(f"sample =  '{sample}'")
         if set_up is not None:
@@ -186,9 +195,10 @@ class query_for_measurement_results:
         res = query_for_measurement_results._execute(statement, remote)
 
         update = False
-        if res[0][0] != max_measurement_id:
-            update =True
-            max_measurement_id = res[0][0]
+        max_id = res[0][0]
+        if max_id is not None and max_id != max_measurement_id:
+            update = True
+            max_measurement_id = max_id
 
         return update, max_measurement_id
 
@@ -207,4 +217,3 @@ class query_for_measurement_results:
         for entry in res:
             data.append(measurement_results(*entry))
         return data
-
