@@ -87,7 +87,7 @@ CREATE USER myusername WITH PASSWORD 'mypasswd';
 CREATE DATABASE "mydbname";
 GRANT ALL PRIVILEGES ON DATABASE 'mydbname' TO 'myusername';
 \c mydbname
-GRANT CREATE ON SCHEMA public TO 'myusername'
+GRANT CREATE ON SCHEMA public TO 'myusername';
 ```
 Note: The last line is required since release 15 of Postgresql. It must be executed on the new database.
 
