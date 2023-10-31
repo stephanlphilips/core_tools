@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.34] - 2023-10-31
+
+- Moved QT5 initialization check to application start. Automatically start QT5 thread when using IPython outside Spyder.
+- Fixed plotting of arbitrary dataset when there are no datasets in selection.
+- Improved logging and exception handling during measurement.
+
 ## \[1.4.33] - 2023-10-19
 
 - Parameter viewer virtual gate limits set to +/- 9999.99 mV
