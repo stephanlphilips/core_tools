@@ -2,7 +2,6 @@ import logging
 import os
 from datetime import datetime
 
-from core_tools.GUI.qt_util import qt_init
 from .config import load_configuration
 from .db_connection import (
         connect_local_db,
@@ -12,8 +11,8 @@ from .sample_info import set_sample_info
 
 logger = logging.getLogger(__name__)
 
+
 def configure(filename):
-    qt_init()
     cfg = load_configuration(filename)
     _configure_logging(cfg)
     _configure_sample(cfg)
@@ -45,6 +44,7 @@ def _generate_log_file_name():
     pid = os.getpid()
     now = datetime.now()
     return f"{now:%Y-%m-%d}({pid:06d}).log"
+
 
 def _configure_logging(cfg):
     if cfg.get('logging.disabled', False):
@@ -85,6 +85,5 @@ def _configure_logging(cfg):
     logger.info('Start logging')
     print('Logging to:', filename)
 
-    for name,level in logger_levels.items():
+    for name, level in logger_levels.items():
         logging.getLogger(name).setLevel(level)
-

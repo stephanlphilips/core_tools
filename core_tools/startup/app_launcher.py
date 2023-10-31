@@ -29,6 +29,7 @@ def launch_app(name, module_name, kill=False, close_at_exit=False):
                 creationflags=creationflags,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                close_fds=True,
                 text=True)
 
         thread = Thread(target=_echo_output, args=(proc, name))
@@ -67,8 +68,9 @@ def _echo_output(proc, name):
         d = inp.readline()
         if d == 'DISCONNECT\n':
             inp.close()
+            # print('DISCONNECTED', flush=True)
             break
         if len(d) == 0:
             break
-        print(f'{name}: ', d[:-1])
+        print(f'{name}: ', d[:-1], flush=True)
 

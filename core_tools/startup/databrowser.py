@@ -2,15 +2,19 @@ from core_tools.startup.config import get_configuration
 from core_tools.startup.db_connection import connect_local_db, connect_remote_db
 from core_tools.startup.sample_info import set_sample_info
 from core_tools.startup.app_wrapper import run_app
+from core_tools.GUI.qt_util import qt_init
+
 
 # reference to running data_browser to avoid diposal and garbage collection
 _browser_instance = None
+
 
 def databrowser_init():
     cfg = get_configuration()
     _configure_sample(cfg)
     _connect_to_db(cfg)
     print('Starting GUI...', flush=True)
+
 
 def databrowser_main():
     # this import takes some time...
@@ -22,10 +26,11 @@ def databrowser_main():
     size = cfg.get('databrowser.size')
     live_plotting = cfg.get('databrowser.live_plotting', True)
 
+    qt_init()
     _browser_instance = data_browser(
             window_location=location,
             window_size=size,
-            live_plotting_enabled = live_plotting)
+            live_plotting_enabled=live_plotting)
 
 
 def _configure_sample(cfg):

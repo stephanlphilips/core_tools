@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 
 from PyQt5 import QtCore, QtWidgets
@@ -6,13 +7,15 @@ from PyQt5 import QtCore, QtWidgets
 try:
     import IPython.lib.guisupport as gs
     from IPython import get_ipython
-except:
-    get_ipython = lambda x:None
+except Exception:
+    get_ipython = lambda: None
+
 
 logger = logging.getLogger(__name__)
 
 is_wrapped = threading.local()
 is_wrapped.val = False
+
 
 def qt_log_exception(func):
     ''' Decorator to log exceptions.
@@ -31,7 +34,7 @@ def qt_log_exception(func):
             is_wrapped.val = True
             try:
                 return func(*args, **kwargs)
-            except:
+            except Exception:
                 logger.error('Exception in GUI', exc_info=True)
                 raise
             finally:
@@ -42,6 +45,7 @@ def qt_log_exception(func):
 
 _qt_app = None
 
+
 def qt_init():
     '''Starts the QT application if not yet started.
     Most of the cases the QT backend is already started
@@ -49,6 +53,9 @@ def qt_init():
     '''
     # application reference must be held in global scope
     global _qt_app
+
+    if _qt_app is not None:
+        return
 
 #    print(QtCore.QCoreApplication.testAttribute(QtCore.Qt.AA_EnableHighDpiScaling))
 #    print(QtCore.QCoreApplication.testAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough))
@@ -62,9 +69,11 @@ def qt_init():
 
     if ipython:
         if not gs.is_event_loop_running_qt4():
-            # print('Warning Qt5 not configured for IPython console. Activating it now.')
-            # ipython.run_line_magic('gui','qt5')
-            raise Exception('Configure QT5 in Spyder -> Preferences -> IPython Console -> Graphics -> Backend')
+            if any('SPYDER' in name for name in os.environ):
+                raise Exception('Configure QT5 in Spyder -> Preferences -> IPython Console -> Graphics -> Backend')
+            else:
+                print('Warning Qt5 not configured for IPython console. Activating it now.')
+                ipython.run_line_magic('gui', 'qt5')
 
         _qt_app = QtCore.QCoreApplication.instance()
         if _qt_app is None:
@@ -75,6 +84,7 @@ def qt_init():
 
 
 _qt_message_handler_installed = False
+
 
 def _qt_message_handler(level, context, message):
     if message.startswith('QSocketNotifier: Multiple socket notifiers for same socket'):
@@ -91,6 +101,7 @@ def _qt_message_handler(level, context, message):
     else:
         log_level = logging.DEBUG
     logger.log(log_level, message)
+
 
 def install_qt_message_handler():
     global _qt_message_handler_installed
