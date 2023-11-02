@@ -1,7 +1,6 @@
 from core_tools.data.SQL.queries.dataset_creation_queries import (
         sample_info_queries,
         measurement_overview_queries,
-        data_table_queries,
         measurement_parameters_queries
         )
 from core_tools.data.SQL.queries.dataset_loading_queries import load_ds_queries
@@ -10,6 +9,7 @@ from core_tools.data.SQL.queries.dataset_sync_queries import sync_mgr_queries
 from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
 
 import time
+
 
 class SQL_dataset_creator(object):
     def __init__(self):
@@ -31,15 +31,17 @@ class SQL_dataset_creator(object):
 
             measurement_overview_queries.update_measurement(
                     self.conn, ds.exp_uuid,
-                    metadata=ds.metadata, snapshot=ds.snapshot,
-                    keywords=ds.generate_keywords())
+                    metadata=ds.metadata,
+                    snapshot=ds.snapshot,
+                    keywords=ds.generate_keywords(),
+                    table_synchronized=False)
 
             # store of the getters/setters parameters
             measurement_parameters_queries.insert_measurement_params(self.conn, ds.exp_uuid,
                                                                      ds.measurement_parameters_raw)
 
             self.conn.commit()
-        except:
+        except BaseException:
             if not self.conn.closed:
                 self.conn.rollback()
             raise
@@ -75,9 +77,16 @@ class SQL_dataset_creator(object):
         '''
         ds.UNIX_stop_time = time.time()
 
-        measurement_parameters_queries.update_cursors_in_meas_tab(self.conn, ds.exp_uuid, ds.measurement_parameters_raw)
-        measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid,
-            stop_time=ds.UNIX_stop_time, completed=True, data_size=ds.size(), data_synchronized=False)
+        measurement_parameters_queries.update_cursors_in_meas_tab(
+            self.conn, ds.exp_uuid,
+            ds.measurement_parameters_raw)
+        measurement_overview_queries.update_measurement(
+            self.conn, ds.exp_uuid,
+            stop_time=ds.UNIX_stop_time,
+            completed=True,
+            data_size=ds.size(),
+            table_synchronized=False,
+            data_synchronized=False)
 
         self.conn.commit()
 
@@ -92,7 +101,7 @@ class SQL_dataset_creator(object):
         Args:
             exp_id (int) : id of the measurment you want to get
         '''
-        if load_ds_queries.check_id(self.conn, exp_id) == False:
+        if load_ds_queries.check_id(self.conn, exp_id) is False:
             raise ValueError("The id {}, does not exist in this database.".format(exp_id))
 
         uuid = load_ds_queries.id_to_uuid(self.conn, exp_id)

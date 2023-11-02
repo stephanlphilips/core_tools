@@ -124,8 +124,8 @@ class measurement_overview_queries:
 
     def update_measurement(conn, meas_uuid,
                            stop_time=None, metadata=None, snapshot=None,
-                           keywords= None, data_size=None, data_synchronized=False,
-                           completed=False):
+                           keywords=None, data_size=None, data_synchronized=None,
+                           completed=None, table_synchronized=None):
         '''
         fill in the addional data in a record of the measurements overview table.
 
@@ -137,19 +137,31 @@ class measurement_overview_queries:
             keywords (list) : keywords describing the measurement
             completed (bool) : tell that the measurement is completed.
         '''
-        var_names = ['metadata', 'snapshot', 'keywords', 'data_size', 'data_synchronized', 'completed']
-        var_values = [
-                psycopg2.Binary(str(json.dumps(metadata)).encode('ascii')),
-                psycopg2.Binary(str(json.dumps(snapshot)).encode('ascii')),
-                psycopg2.extras.Json(keywords),
-                data_size,
-                str(data_synchronized),
-                str(completed),
-                ]
-
+        var_pairs = []
         if stop_time is not None:
-            var_names += ['stop_time']
-            var_values += [psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(stop_time))]
+            var_pairs.append(('stop_time',
+                              psycopg2.sql.SQL("TO_TIMESTAMP({})").format(psycopg2.sql.Literal(stop_time))
+                              ))
+        if metadata is not None:
+            var_pairs.append(('metadata',
+                              psycopg2.Binary(str(json.dumps(metadata)).encode('ascii'))
+                              ))
+        if snapshot is not None:
+            var_pairs.append(('snapshot',
+                              psycopg2.Binary(str(json.dumps(snapshot)).encode('ascii'))
+                              ))
+        if keywords is not None:
+            var_pairs.append(('keywords', psycopg2.extras.Json(keywords)))
+        if data_size is not None:
+            var_pairs.append(('data_size', data_size))
+        if data_synchronized is not None:
+            var_pairs.append(('data_synchronized', str(data_synchronized)))
+        if completed is not None:
+            var_pairs.append(('completed', str(completed)))
+        if table_synchronized is not None:
+            var_pairs.append(('table_synchronized', str(table_synchronized)))
+        var_names = [name for name, value in var_pairs]
+        var_values = [value for name, value in var_pairs]
 
         condition = ('uuid', meas_uuid)
         update_table(conn, measurement_overview_queries.table_name, var_names, var_values, condition)
