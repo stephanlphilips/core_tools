@@ -19,7 +19,11 @@ def save_xr_hdf5(xds, fname):
     encoding = {var: comp for var in list(xds.data_vars)+list(xds.coords)}
     tmp_file = fname + '.tmp'
     xds.to_netcdf(tmp_file, engine='h5netcdf', encoding=encoding)
-    os.rename(tmp_file, fname)
+    try:
+        os.rename(tmp_file, fname)
+    except FileExistsError:
+        os.remove(fname)
+        os.rename(tmp_file, fname)
 
 def save_hdf5(ds, fname):
     xds = ds2xarray(ds)
