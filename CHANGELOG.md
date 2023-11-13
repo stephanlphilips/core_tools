@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.35] - 2023-11-13
+
+- Fixed database synchronization. Fields 'completed', 'data_size' and 'stop_time' were often missed in sync.
+- Robust write of HDF5 data file and overwrite existing file.
+
 ## \[1.4.34] - 2023-10-31
 
 - Moved QT5 initialization check to application start. Automatically start QT5 thread when using IPython outside Spyder.
