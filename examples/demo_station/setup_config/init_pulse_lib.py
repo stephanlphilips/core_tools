@@ -59,31 +59,14 @@ def init_pulse_lib(hardware = None, *args):
     # pulse.add_channel_delay('M2',-25)
 
     # add limits on voltages for DC channel compenstation (if no limit is specified, no compensation is performed).
-    # max_c = 20
     max_c = 100
     for ch in pulse.awg_channels:
         att = pulse.awg_channels[ch].attenuation
         pulse.add_channel_compensation_limit(ch, (-max_c/att, max_c/att))
 
-
-    # set right association of the real channels with I/Q output.
-    # IQ_chan_set_1 = IQ_channel_constructor(pulse)
-    # IQ_chan_set_1.add_IQ_chan("MW_I", "I")
-    # IQ_chan_set_1.add_IQ_chan("MW_Q", "Q")
-    # # IQ_chan_set_1.add_marker("M1", 10, 10)
-    # IQ_chan_set_1.set_LO(2e9)
-    # IQ_chan_set_1.add_virtual_IQ_channel("MW_q6_1")
-    # IQ_chan_set_1.add_virtual_IQ_channel("MW_q7")
-####
-
-    IQ_chan_set_1 = IQ_channel_constructor(pulse)
-    IQ_chan_set_1.add_IQ_chan("MW_I", "I")
-    IQ_chan_set_1.add_IQ_chan("MW_Q", "Q")
-    #IQ_chan_set_1.add_marker("M1")
-    #f = station.sig_gen.frequency.get()
-    IQ_chan_set_1.set_LO(2e9)
-    IQ_chan_set_1.add_virtual_IQ_channel("MW_q7") ## plunger 1
-####
+    pulse.define_iq_channel('IQ-1', 'MW_I', 'MW_Q', marker_name='M1')
+    pulse.set_iq_lo('IQ-1', 2e9)
+    pulse.define_qubit_channel('q1', 'IQ-1')
 
     if hardware is not None:
         pulse.load_hardware(hardware)
