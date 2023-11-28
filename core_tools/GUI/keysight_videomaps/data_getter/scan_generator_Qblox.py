@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Aug  9 16:50:02 2019
-
-@author: V2
-"""
 import numpy as np
 import time
 import logging
@@ -14,9 +9,10 @@ from .iq_modes import iq_mode2numpy
 
 logger = logging.getLogger(__name__)
 
+
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
-                           digitizer=None, channels=None, dig_samplerate=None,
-                           dig_vmax=2.0, iq_mode=None, acquisition_delay_ns=100,
+                           digitizer=None, channels=None,
+                           iq_mode=None, acquisition_delay_ns=100,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
     1D fast scan parameter constructor.
@@ -28,7 +24,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
         t_step (double) : time in ns to measure per point. [ns]
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
-        digitizer : digitizer object
+        digitizer : Not used.
         channels : digitizer channels to read
         dig_samplerate : digitizer sample rate [Sa/s]
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
@@ -57,20 +53,23 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
 
     vp = swing/2
     line_margin = int(line_margin)
+    if biasT_corr and line_margin > 0:
+        print('Line margin is ignored with biasT_corr on')
+        line_margin = 0
 
     # set up timing for the scan
     acquisition_delay = max(100, acquisition_delay_ns)
     step_eff = t_step + acquisition_delay
 
     if t_step < 1000:
-        msg = f'Measurement time too short. Minimum is 1000'
+        msg = 'Measurement time too short. Minimum is 1000 ns'
         logger.error(msg)
         raise Exception(msg)
 
     n_ptx = n_pt + 2*line_margin
     vpx = vp * (n_ptx-1)/(n_pt-1)
 
-    # set up sweep voltages (get the right order, to compenstate for the biasT).
+    # set up sweep voltages (get the right order, to compensate for the biasT).
     voltages_sp = np.linspace(-vp,vp,n_pt)
     voltages_x = np.linspace(-vpx,vpx,n_ptx)
     if biasT_corr:
@@ -87,11 +86,18 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
         acq_channels = channels
 
     seg  = pulse_lib.mk_segment()
-
     g1 = seg[gate]
     pulse_channels = []
     for ch,v in pulse_gates.items():
         pulse_channels.append((seg[ch], v))
+
+    if not biasT_corr:
+        # pre-pulse to condition bias-T
+        t_prebias = n_ptx/2 * step_eff
+        g1.add_ramp_ss(0, t_prebias, 0, vpx)
+        for gp, v in pulse_channels:
+            gp.add_block(0, t_prebias, -v)
+        seg.reset_time()
 
     for i,voltage in enumerate(voltages):
         g1.add_block(0, step_eff, voltage)
@@ -106,6 +112,13 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
                 gp.add_block(step_eff, 2*step_eff, -v)
         seg.reset_time()
 
+    if not biasT_corr:
+        # post-pulse to discharge bias-T
+        g1.add_ramp_ss(0, t_prebias, -vpx, 0)
+        for gp, v in pulse_channels:
+            gp.add_block(0, t_prebias, -v)
+        seg.reset_time()
+
     end_time = seg.total_time[0]
     for marker in enabled_markers:
         marker_ch = seg[marker]
@@ -118,18 +131,16 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     # Note: set average repetitions to retrieve 1D array with channel data
     my_seq.set_acquisition(t_measure=t_step, channels=acq_channels, average_repetitions=True)
 
-    logger.info(f'Upload')
     my_seq.upload()
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
+    return _digitzer_scan_parameter(my_seq, pulse_lib, t_step,
     								(n_pt, ), (gate, ), (tuple(voltages_sp), ),
                                     biasT_corr, channels = channels,
-                                    Vmax=dig_vmax, iq_mode=iq_mode,
-                                    channel_map=channel_map)
+                                    iq_mode=iq_mode, channel_map=channel_map)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer=None, channels=None, dig_samplerate=None, dig_vmax=2.0, iq_mode=None,
+                           digitizer=None, channels=None, iq_mode=None,
                            acquisition_delay_ns=100, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
@@ -145,7 +156,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         t_step (double) : time in ns to measure per point.
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
-        digitizer_measure : digitizer object
+        digitizer : Not used.
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
@@ -175,7 +186,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     step_eff = t_step + acquisition_delay
 
     if t_step < 1000:
-        msg = f'Measurement time too short. Minimum is 1000'
+        msg = 'Measurement time too short. Minimum is 1000 ns'
         logger.error(msg)
         raise Exception(msg)
 
@@ -205,17 +216,6 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     else:
         voltages2 = voltages2_sp
 
-    start_delay = line_margin * step_eff
-    if biasT_corr:
-        # prebias: add half line with +vp2
-        prebias_pts = (n_ptx)//2
-        t_prebias = prebias_pts * step_eff
-        start_delay += t_prebias
-
-    line_delay = 2 * line_margin * step_eff
-    if add_pulse_gate_correction:
-        line_delay += n_ptx*step_eff
-
     seg  = pulse_lib.mk_segment()
 
     g1 = seg[gate1]
@@ -225,7 +225,13 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         pulse_channels.append((seg[ch], v))
 
     if biasT_corr:
+        # prebias: add half line with +vp2
+        prebias_pts = (n_ptx)//2
+        t_prebias = prebias_pts * step_eff
+        # pulse on fast gate to pre-charge bias-T
+        g1.add_block(0, t_prebias, vpx*0.35)
         # correct voltage to ensure average == 0.0 (No DC correction pulse needed at end)
+        # Note that voltage on g2 ends center of sweep, i.e. (close to) 0.0 V
         total_duration = prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
         g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
         g2.add_block(0, t_prebias, vp2)
@@ -252,6 +258,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
                 g.add_block(0, step_eff*n_ptx, -v)
             seg.reset_time()
 
+    if biasT_corr:
+        # pulses to discharge bias-T
+        # Note: g2 is already 0.0 V
+        g1.add_block(0, t_prebias, -vpx*0.35)
+        for g, v in pulse_channels:
+            g.add_block(0, t_prebias, +v)
+        seg.reset_time()
+
     end_time = seg.total_time[0]
     for marker in enabled_markers:
         marker_ch = seg[marker]
@@ -264,26 +278,22 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     # Note: set average repetitions to retrieve 1D array with channel data
     my_seq.set_acquisition(t_measure=t_step, channels=acq_channels, average_repetitions=True)
 
-    logger.info(f'Seq upload')
     my_seq.upload()
 
-    return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
+    return _digitzer_scan_parameter(my_seq, pulse_lib, t_step,
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
                                     biasT_corr,
-                                    channels=channels, Vmax=dig_vmax,
+                                    channels=channels,
                                     iq_mode=iq_mode, channel_map=channel_map)
 
 
 class _digitzer_scan_parameter(MultiParameter):
-    """
-    generator for the parameter f
-    """
-    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr,
-                 channels = [1,2,3,4], Vmax=2.0, iq_mode=None, channel_map=None):
+
+    def __init__(self, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr,
+                 channels = [1,2,3,4], iq_mode=None, channel_map=None):
         """
         args:
-            digitizer (SD_DIG) : digizer driver:
             my_seq (sequencer) : sequence of the 1D scan
             pulse_lib (pulselib): pulse library object
             t_measure (int) : time to measure per step
@@ -302,7 +312,6 @@ class _digitzer_scan_parameter(MultiParameter):
                 The default channel_map is:
                     {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
         """
-        self.dig = digitizer
         self.my_seq = my_seq
         self.pulse_lib = pulse_lib
         self.t_measure = t_measure
@@ -310,16 +319,19 @@ class _digitzer_scan_parameter(MultiParameter):
         self.channels = channels
         self.biasT_corr = biasT_corr
         self.shape = shape
-        self.Vmax = Vmax
         self._init_channels(channels, channel_map, iq_mode)
 
         n_out_ch = len(self.channel_names)
-        super().__init__(name='fastScan', names = self.channel_names,
-                        shapes = tuple([shape]*n_out_ch),
-                        labels = self.channel_names, units = tuple(['mV']*n_out_ch),
-                        setpoints = tuple([setpoint]*n_out_ch), setpoint_names=tuple([names]*n_out_ch),
-                        setpoint_labels=tuple([names]*n_out_ch), setpoint_units=(("mV",)*len(names),)*n_out_ch,
-                        docstring='Scan parameter for digitizer')
+        super().__init__(name='fastScan',
+                         names = self.channel_names,
+                         shapes = tuple([shape]*n_out_ch),
+                         labels = self.channel_names,
+                         units = tuple(['mV']*n_out_ch),
+                         setpoints = tuple([setpoint]*n_out_ch),
+                         setpoint_names=tuple([names]*n_out_ch),
+                         setpoint_labels=tuple([names]*n_out_ch),
+                         setpoint_units=(("mV",)*len(names),)*n_out_ch,
+                         docstring='Scan parameter for digitizer')
 
     def _init_channels(self, channels, channel_map, iq_mode):
 
