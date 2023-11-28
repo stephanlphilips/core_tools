@@ -55,6 +55,8 @@ class Measurement:
             parameter (qcodes parameter) : parameter to be admitted to the measurement class
             n_points (int) : number of points to be set
         '''
+        if n_points < 1:
+            raise ValueError(f'No setpoints for parameter {parameter.name}')
         param_id = id(parameter)
 
         if param_id in self.setpoints.keys() or param_id in self.m_param.keys():
@@ -130,6 +132,8 @@ class Measurement:
                     # qcodes setpoints (N, (N*M), ..) or simple coretools: (N, M, ...)?
                     if isinstance(data_array[0], tuple):
                         shape = cum_shape
+                    if len(shape) and np.prod(shape) < 1:
+                        raise ValueError(f'No setpoints for parameter {parameter.names[i]} ({j}:{shape})')
                     setpoint_local_parameter_spec.shapes.append(shape)
                     setpoint_local_parameter_spec.generate_data_buffer()
                     setpoint_local_parameter_spec.write_data(
