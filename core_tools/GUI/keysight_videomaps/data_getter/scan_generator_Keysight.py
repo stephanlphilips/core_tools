@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Aug  9 16:50:02 2019
-
-@author: V2
-"""
 import numpy as np
 import time
 import logging
@@ -16,8 +11,10 @@ from .iq_modes import iq_mode2numpy
 
 logger = logging.getLogger(__name__)
 
-def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, digitizer, channels,
-                           dig_samplerate=None, dig_vmax=None, iq_mode=None, acquisition_delay_ns=500,
+
+def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
+                           digitizer, channels,
+                           iq_mode=None, acquisition_delay_ns=500,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
     1D fast scan parameter constructor.
@@ -54,8 +51,6 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-    if dig_vmax is not None:
-        print(f'Parameter dig_vmax is deprecated.')
     logger.info(f'Construct 1D: {gate}')
 
     vp = swing/2
@@ -78,9 +73,9 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     n_ptx = n_pt + 2*line_margin
     vpx = vp * (n_ptx-1)/(n_pt-1)
 
-    # set up sweep voltages (get the right order, to compenstate for the biasT).
-    voltages_sp = np.linspace(-vp,vp,n_pt)
-    voltages_x = np.linspace(-vpx,vpx,n_ptx)
+    # set up sweep voltages (get the right order, to compensate for the biasT).
+    voltages_sp = np.linspace(-vp, vp, n_pt)
+    voltages_x = np.linspace(-vpx, vpx, n_ptx)
     if biasT_corr:
         m = (n_ptx+1)//2
         voltages = np.zeros(n_ptx)
@@ -98,23 +93,23 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         t_prebias = prebias_pts * step_eff
         start_delay += t_prebias
 
-    seg  = pulse_lib.mk_segment()
+    seg = pulse_lib.mk_segment()
     g1 = seg[gate]
     pulse_channels = []
-    for ch,v in pulse_gates.items():
+    for ch, v in pulse_gates.items():
         pulse_channels.append((seg[ch], v))
 
     if not biasT_corr:
         # pre-pulse to condition bias-T
         g1.add_ramp_ss(0, t_prebias, 0, vpx)
-        for gp,v in pulse_channels:
+        for gp, v in pulse_channels:
             gp.add_block(0, t_prebias, -v)
         seg.reset_time()
 
     for voltage in voltages:
         g1.add_block(0, step_eff, voltage)
 
-        for gp,v in pulse_channels:
+        for gp, v in pulse_channels:
             gp.add_block(0, step_eff, v)
             # compensation for pulse gates
             if biasT_corr:
@@ -124,7 +119,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     if not biasT_corr:
         # post-pulse to discharge bias-T
         g1.add_ramp_ss(0, t_prebias, -vpx, 0)
-        for gp,v in pulse_channels:
+        for gp, v in pulse_channels:
             gp.add_block(0, t_prebias, -v)
         seg.reset_time()
 
@@ -147,6 +142,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     seg.add_HVI_variable("start_delay", int(start_delay))
     seg.add_HVI_variable("line_delay", int(line_delay_pts*step_eff) if add_line_delay else 500)
     seg.add_HVI_variable("averaging", True)
+    seg.add_HVI_variable("video_mode_channels", {digitizer.name: channels})
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
@@ -156,17 +152,16 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     my_seq.sample_rate = sample_rate
     my_seq.configure_digitizer = False
 
-    logger.info(f'Upload')
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
                                     (n_pt, ), (gate, ), (tuple(voltages_sp), ),
-                                    biasT_corr, channels = channels,
+                                    biasT_corr, channels=channels,
                                     iq_mode=iq_mode, channel_map=channel_map)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels, dig_samplerate=None, dig_vmax=None, iq_mode=None,
+                           digitizer, channels, iq_mode=None,
                            acquisition_delay_ns=500, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
@@ -182,7 +177,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         t_step (double) : time in ns to measure per point.
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
-        digitizer_measure : digitizer object
+        digitizer: digitizer object
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
@@ -205,8 +200,6 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-    if dig_vmax is not None:
-        print(f'Parameter dig_vmax is deprecated.')
     logger.info(f'Construct 2D: {gate1} {gate2}')
 
     # set up timing for the scan
@@ -224,8 +217,8 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     vp1 = swing1/2
     vp2 = swing2/2
 
-    voltages1_sp = np.linspace(-vp1,vp1,n_pt1)
-    voltages2_sp = np.linspace(-vp2,vp2,n_pt2)
+    voltages1_sp = np.linspace(-vp1, vp1, n_pt1)
+    voltages2_sp = np.linspace(-vp2, vp2, n_pt2)
 
     n_ptx = n_pt1 + 2*line_margin
     vpx = vp1 * (n_ptx-1)/(n_pt1-1)
@@ -249,12 +242,12 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     if add_pulse_gate_correction:
         line_delay_pts += n_ptx
 
-    seg  = pulse_lib.mk_segment()
+    seg = pulse_lib.mk_segment()
 
     g1 = seg[gate1]
     g2 = seg[gate2]
     pulse_channels = []
-    for ch,v in pulse_gates.items():
+    for ch, v in pulse_gates.items():
         pulse_channels.append((seg[ch], v))
 
     if biasT_corr:
@@ -265,7 +258,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         total_duration = prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
         g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
         g2.add_block(0, t_prebias, vp2)
-        for g,v in pulse_channels:
+        for g, v in pulse_channels:
             g.add_block(0, t_prebias, -v)
         seg.reset_time()
 
@@ -273,7 +266,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
         g1.add_ramp_ss(0, step_eff*n_ptx, -vpx, vpx)
         g2.add_block(0, step_eff*n_ptx, v2)
-        for g,v in pulse_channels:
+        for g, v in pulse_channels:
             g.add_block(0, step_eff*n_ptx, v)
         seg.reset_time()
 
@@ -282,7 +275,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
             # sweep g1 onces more; best effect on bias-T
             # keep g2 on 0
             g1.add_ramp_ss(0, step_eff*n_ptx, -vpx, vpx)
-            for g,v in pulse_channels:
+            for g, v in pulse_channels:
                 g.add_block(0, step_eff*n_ptx, -v)
             seg.reset_time()
 
@@ -290,7 +283,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         # pulses to discharge bias-T
         # Note: g2 is already 0.0 V
         g1.add_block(0, t_prebias, -vpx*0.35)
-        for g,v in pulse_channels:
+        for g, v in pulse_channels:
             g.add_block(0, t_prebias, +v)
         seg.reset_time()
 
@@ -321,17 +314,16 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         # Wait minimum time to satisfy HVI schedule
         seg.add_HVI_variable("line_delay", 500)
     seg.add_HVI_variable("averaging", True)
+    seg.add_HVI_variable("video_mode_channels", {digitizer.name: channels})
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
-    logger.info(f'Add HVI')
     my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer,
                                               acquisition_delay_ns=acquisition_delay_ns))
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
     my_seq.configure_digitizer = False
 
-    logger.info(f'Seq upload')
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
@@ -342,11 +334,9 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
 
 class _digitzer_scan_parameter(MultiParameter):
-    """
-    generator for the parameter f
-    """
+
     def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr,
-                 data_mode = DATA_MODE.AVERAGE_TIME, channels = [1,2,3,4], iq_mode=None, channel_map=None):
+                 channels=[1, 2, 3, 4], iq_mode=None, channel_map=None):
         """
         args:
             digitizer (SD_DIG) : digizer driver:
@@ -357,7 +347,6 @@ class _digitzer_scan_parameter(MultiParameter):
             names (tuple<str>): name of the gate(s) that are measured.
             setpoint (tuple<np.ndarray>): array witht the setpoints of the input data
             biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
-            data mode (int): data mode of the digizer
             channels (list<int>): channels to measure
             iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                     complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
@@ -374,61 +363,63 @@ class _digitzer_scan_parameter(MultiParameter):
         self.pulse_lib = pulse_lib
         self.t_measure = t_measure
         self.n_rep = np.prod(shape)
-        self.data_mode = data_mode
         self.channels = channels
         self.biasT_corr = biasT_corr
         self.shape = shape
         self._init_channels(channels, channel_map, iq_mode)
 
         # clean up the digitizer before start
-        for ch in range(1,5):
+        for ch in range(1, 5):
             digitizer.daq_stop(ch)
             digitizer.daq_flush(ch)
 
         self.sample_rate = 500e6
+        self.data_mode = DATA_MODE.AVERAGE_TIME
 
-        # set digitizer for proper init
-        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
-                                   data_mode = self.data_mode, channels = self.channels)
+        # configure digitizer
+        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate=self.sample_rate,
+                                   data_mode=self.data_mode, channels=self.channels)
 
         n_out_ch = len(self.channel_names)
-        super().__init__(name=digitizer.name, names = self.channel_names,
-                        shapes = tuple([shape]*n_out_ch),
-                        labels = self.channel_names, units = tuple(['mV']*n_out_ch),
-                        setpoints = tuple([setpoint]*n_out_ch), setpoint_names=tuple([names]*n_out_ch),
-                        setpoint_labels=tuple([names]*n_out_ch), setpoint_units=(("mV",)*len(names),)*n_out_ch,
-                        docstring='Scan parameter for digitizer')
+        super().__init__(name=digitizer.name,
+                         names=self.channel_names,
+                         shapes=tuple([shape]*n_out_ch),
+                         labels=self.channel_names,
+                         units=tuple(['mV']*n_out_ch),
+                         setpoints=tuple([setpoint]*n_out_ch),
+                         setpoint_names=tuple([names]*n_out_ch),
+                         setpoint_labels=tuple([names]*n_out_ch),
+                         setpoint_units=(("mV", )*len(names), )*n_out_ch,
+                         docstring='Scan parameter for digitizer')
 
     def _init_channels(self, channels, channel_map, iq_mode):
 
         self.channel_map = (
                 channel_map if channel_map is not None
-                else {f'ch{i}':(i, np.real) for i in channels})
+                else {f'ch{i}': (i, np.real) for i in channels})
 
         if iq_mode is not None:
             if channel_map is not None:
                 logger.warning('iq_mode is ignored when channel_map is also specified')
             elif isinstance(iq_mode, str):
-                self.channel_map = {f'ch{i}':(i, iq_mode2numpy[iq_mode]) for i in channels}
+                self.channel_map = {f'ch{i}': (i, iq_mode2numpy[iq_mode]) for i in channels}
             else:
                 for ch, mode in iq_mode.items():
                     self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
 
         self.channel_names = tuple(self.channel_map.keys())
 
-
     def get_raw(self):
 
-        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate = self.sample_rate,
-                                   data_mode = self.data_mode, channels = self.channels)
+        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate=self.sample_rate,
+                                   data_mode=self.data_mode, channels=self.channels)
 
-        logger.info(f'Play')
         start = time.perf_counter()
         # play sequence
         self.my_seq.play(release=False)
-        start2 = time.perf_counter()
         self.pulse_lib.uploader.wait_until_AWG_idle()
-        logger.info(f'AWG idle after {(time.perf_counter()-start)*1000:3.1f} ms, ({(time.perf_counter()-start2)*1000:3.1f} ms)')
+        end = time.perf_counter()
+        logger.debug(f'Scan play {(end-start)*1000:3.1f} ms')
 
         # get the data
         raw = self.dig.measure()
@@ -447,19 +438,18 @@ class _digitzer_scan_parameter(MultiParameter):
 
         # post-process data
         data_out = []
-        for ch,func in self.channel_map.values():
+        for ch, func in self.channel_map.values():
             ch_data = data[self.channels.index(ch)]
             data_out.append(func(ch_data))
 
-        logger.info(f'Done')
         return tuple(data_out)
 
     def restart(self):
         pass
 
     def stop(self):
-        if not self.my_seq is None and not self.pulse_lib is None:
-            logger.info('stop: release memory')
+        if self.my_seq is not None and self.pulse_lib is not None:
+            logger.debug('stop: release memory')
             # remove pulse sequence from the AWG's memory, unload schedule and free memory.
             self.my_seq.close()
             self.my_seq = None
@@ -469,31 +459,6 @@ class _digitzer_scan_parameter(MultiParameter):
         self.stop()
 
     def __del__(self):
-        if not self.my_seq is None and not self.pulse_lib is None:
-            logger.error(f'Cleanup in __del__(); Call stop()!')
+        if self.my_seq is not None and self.pulse_lib is not None:
+            logger.warning('Cleanup in __del__(); Call stop()!')
             self.stop()
-
-if __name__ == '__main__':
-    import V2_software.drivers.M3102A as M3102A
-    from V2_software.drivers.M3102_firmware_loader import firmware_loader, M3102A_CLEAN, M3102A_AVG
-    from V2_software.pulse_lib_config.Init_pulse_lib import return_pulse_lib_debug
-    from qcodes.instrument_drivers.Keysight.SD_common.SD_AWG import SD_AWG
-
-
-    dig = M3102A.SD_DIG("digitizer1", chassis = 0, slot = 6)
-    firmware_loader(dig, M3102A_AVG)
-
-    awg1 = SD_AWG("AWG1", chassis = 0, slot = 2, channels=4, triggers=8)
-    awg2 = SD_AWG("AWG2", chassis = 0, slot = 3, channels=4, triggers=8)
-    awg3 = SD_AWG("AWG3", chassis = 0, slot = 4, channels=4, triggers=8)
-    awg4 = SD_AWG("AWG4", chassis = 0, slot = 5, channels=4, triggers=8)
-
-    pulse, vg, fs = return_pulse_lib(awg1, awg2, awg3, awg4)
-
-    param = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, pulse, dig)
-    data = param.get()
-    print(data)
-
-    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, pulse, dig)
-    data_1D = param.get()
-    print(data_1D)
