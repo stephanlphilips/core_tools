@@ -61,6 +61,9 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
 
     add_line_delay = biasT_corr and len(pulse_gates) > 0
 
+    if digitizer is None:
+        digitizer = list(pulse_lib.digitizers.values())[0]
+
     # set up timing for the scan
     step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
 
@@ -142,7 +145,16 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     seg.add_HVI_variable("start_delay", int(start_delay))
     seg.add_HVI_variable("line_delay", int(line_delay_pts*step_eff) if add_line_delay else 500)
     seg.add_HVI_variable("averaging", True)
-    seg.add_HVI_variable("video_mode_channels", {digitizer.name: channels})
+    if channels and isinstance(channels[0], str):
+        # convert to channel numbers
+        vm_channels = []
+        for ch in channels:
+            vm_channels += pulse_lib.digitizer_channels[ch].channel_numbers
+        channels = vm_channels
+    else:
+        vm_channels = channels
+
+    seg.add_HVI_variable("video_mode_channels", {digitizer.name: vm_channels})
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
@@ -201,6 +213,9 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
     logger.info(f'Construct 2D: {gate1} {gate2}')
+
+    if digitizer is None:
+        digitizer = list(pulse_lib.digitizers.values())[0]
 
     # set up timing for the scan
     step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
@@ -314,7 +329,15 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         # Wait minimum time to satisfy HVI schedule
         seg.add_HVI_variable("line_delay", 500)
     seg.add_HVI_variable("averaging", True)
-    seg.add_HVI_variable("video_mode_channels", {digitizer.name: channels})
+    if channels and isinstance(channels[0], str):
+        # convert to channel numbers
+        vm_channels = []
+        for ch in channels:
+            vm_channels += pulse_lib.digitizer_channels[ch].channel_numbers
+        channels = vm_channels
+    else:
+        vm_channels = channels
+    seg.add_HVI_variable("video_mode_channels", {digitizer.name: vm_channels})
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
@@ -394,18 +417,35 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def _init_channels(self, channels, channel_map, iq_mode):
 
+        pulse = self.pulse_lib
+        if isinstance(channels[0], str):
+            print(channels)
+            # convert to channel numbers
+            new_channels = []
+            for ch in channels:
+                new_channels += pulse.digitizer_channels[ch].channel_numbers
+            channels = new_channels
+        self.channels = channels
+
+        if channel_map:
+            if iq_mode is not None:
+                logger.warning('iq_mode is ignored when channel_map is also specified')
+            # @@@ take care of IQ input
+            for k, v in channel_map.items():
+                ch = v[0]
+                if isinstance(ch, str):
+                    channel_map[k] = (pulse.digitizer_channels[ch].channel_number, v[1])
+
+        elif iq_mode is not None:
+            if isinstance(iq_mode, str):
+                channel_map = {f'ch{i}': (i, iq_mode2numpy[iq_mode]) for i in channels}
+            else:
+                for ch, mode in iq_mode.items():
+                    channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
+
         self.channel_map = (
                 channel_map if channel_map is not None
                 else {f'ch{i}': (i, np.real) for i in channels})
-
-        if iq_mode is not None:
-            if channel_map is not None:
-                logger.warning('iq_mode is ignored when channel_map is also specified')
-            elif isinstance(iq_mode, str):
-                self.channel_map = {f'ch{i}': (i, iq_mode2numpy[iq_mode]) for i in channels}
-            else:
-                for ch, mode in iq_mode.items():
-                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
 
         self.channel_names = tuple(self.channel_map.keys())
 
