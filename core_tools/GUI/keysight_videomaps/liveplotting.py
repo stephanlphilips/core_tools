@@ -628,7 +628,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.vm_data_param = vm_data_param(self.current_param_getter._1D, self.current_plot._1D, self.metadata)
             self.current_plot._1D.start()
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(repr(e), exc_info=True)
         finally:
             self.start_1D.setText("Stop")
             self.start_1D.setEnabled(True)
@@ -691,7 +691,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.info('Starting the plot')
             self.current_plot._2D.start()
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(repr(e), exc_info=True)
         finally:
             self.start_2D.setText("Stop")
             self.start_2D.setEnabled(True)
