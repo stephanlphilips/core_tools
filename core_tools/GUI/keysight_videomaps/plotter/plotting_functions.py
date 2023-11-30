@@ -56,7 +56,7 @@ class plot_param:
         indices = []
         for i,value in enumerate(values):
             xrange = self.xrange(i)
-            index = round((value-xrange[0]) / (xrange[1]-xrange[0]) * self.shape[i])
+            index = int((value-xrange[0]) / (xrange[1]-xrange[0]) * self.shape[i])
             if index < 0 or index >= self.shape[i]:
                 index = None
             indices.append(index)
@@ -437,7 +437,7 @@ class _2D_live_plot(live_plot):
             x, y, ix, iy = self._get_plot_coords(plot, index, event[0])
             if iy is None or ix is None:
                 return
-            v = self.plot_data[index][iy,ix] # TODO @@@ check with magnitude...
+            v = self.plot_data[index][ix,iy]
             if self._on_mouse_moved:
                 plot_param = self.plot_params[index]
                 self._on_mouse_moved(x, y, plot_param.name, v)
