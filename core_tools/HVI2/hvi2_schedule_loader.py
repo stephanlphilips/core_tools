@@ -15,6 +15,7 @@ from .hvi2_schedule import Hvi2Schedule
 
 logger = logging.getLogger(__name__)
 
+
 # TODO: make scheduler into QCoDeS instrument. This solves closing and reloading issues.
 class Hvi2ScheduleLoader(HardwareSchedule):
     schedule_cache = {}
@@ -24,7 +25,8 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             Hvi2ContinuousMode,
         }
 
-    def __init__(self, pulse_lib:pulselib, script_name:str, digitizers:Union[None, SD_DIG,List[SD_DIG]]=None,
+    def __init__(self, pulse_lib: pulselib, script_name: str,
+                 digitizers: Union[None, SD_DIG, List[SD_DIG]] = None,
                  acquisition_delay_ns=None, switch_los=False, enabled_los=None):
         '''
         Args:
@@ -32,8 +34,9 @@ class Hvi2ScheduleLoader(HardwareSchedule):
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
             switch_los (bool): whether to switch LOs on/off
-            enabled_los (List[List[Tuple[str,int,int]]): per switch interval list with (awg, channel, active local oscillator).
-                          if None, then all los are switched on/off.
+            enabled_los (List[List[Tuple[str,int,int]]):
+                per switch interval list with (awg, channel, active local oscillator).
+                if None, then all los are switched on/off.
         '''
         self._pulse_lib = pulse_lib
         self._script_name = script_name
@@ -82,7 +85,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
 
     def _get_n_measurements(self, hvi_params):
         n = 0
-        while(True):
+        while True:
             if n == 0 and 'dig_wait' in hvi_params:
                 n += 1
             elif f'dig_wait_{n+1}' in hvi_params or f'dig_trigger_{n+1}' in hvi_params:
@@ -95,31 +98,39 @@ class Hvi2ScheduleLoader(HardwareSchedule):
         conf['script_name'] = self._script_name
         conf['n_waveforms'] = n_waveforms
         conf['n_triggers'] = self._get_n_measurements(hvi_params)
-#        conf['n_triggers'] = len(measurements)
+        # conf['n_triggers'] = len(measurements)
         if self._acquisition_delay_ns is not None:
             # only add if configured
             conf['acquisition_delay_ns'] = self._acquisition_delay_ns
 
         for awg_name, awg in self._pulse_lib.awg_devices.items():
             awg_conf = {}
-            awg_conf['hvi_queue_control'] = hasattr(awg, 'hvi_queue_control') and awg.hvi_queue_control
-            awg_conf['sequencer'] = hasattr(awg, 'get_sequencer')
-            # 'active_lost' is List[Typle[channel, LO]]
-            awg_conf['active_los'] = awg.active_los if hasattr(awg, 'active_los') else {}
-            # TODO: retrieve switch_los en enabled_los from measurements / resonator_channels
-            awg_conf['switch_los'] = self._switch_los
-            if self._enabled_los:
+            awg_conf['hvi_queue_control'] = getattr(awg, 'hvi_queue_control', False)
+            awg_conf['sequencer'] = hvi_params.get(f'use_awg_sequencers_{awg_name}', hasattr(awg, 'get_sequencer'))
+            # 'active_los' is List[Tuple[channel, LO]] # @@@ Tuple?
+            awg_conf['active_los'] = getattr(awg, 'active_los', {})
+            awg_conf['switch_los'] = hvi_params.get('switch_los', self._switch_los)
+            enabled_los = hvi_params.get('enabled_los', self._enabled_los)
+            if enabled_los:
                 enabled_los_awg = []
-                for i in range(conf['n_triggers']):
+                for i, enabled_los_i in enumerate(enabled_los):
                     enabled_i = []
                     enabled_los_awg.append(enabled_i)
-                    for name, ch, lo in self._enabled_los[i]:
+                    for name, ch, lo in enabled_los_i:
                         if awg_name == name:
                             enabled_i.append((ch, lo))
                 awg_conf['enabled_los'] = enabled_los_awg
             else:
                 awg_conf['enabled_los'] = None
-            awg_conf['trigger_out'] = False # correct value will be set below
+            if 'video_mode_los' in hvi_params:
+                awg_video_mode_los = []
+                for name, ch, lo in hvi_params['video_mode_los']:
+                    if awg_name == name:
+                        awg_video_mode_los.append((ch, lo))
+                awg_conf['video_mode_los'] = awg_video_mode_los
+                # @@@ DEBUG CODE @@@
+                print(f'{awg_name} video mode oscillators {awg_video_mode_los}')
+            awg_conf['trigger_out'] = False  # correct value will be set below
             conf[awg.name] = awg_conf
 
         for marker_channel in self._pulse_lib.marker_channels.values():
@@ -130,12 +141,12 @@ class Hvi2ScheduleLoader(HardwareSchedule):
 
         for dig in self._hardware.digitizers:
             dig_conf = {}
-            modes = {ch:dig.get_channel_acquisition_mode(ch) for ch in dig.active_channels}
+            modes = {ch: dig.get_channel_acquisition_mode(ch) for ch in dig.active_channels}
             dig_conf['all_ch'] = list(modes.keys())
             dig_conf['raw_ch'] = [channel for channel, mode in modes.items() if mode == 0]
             dig_conf['ds_ch'] = [channel for channel, mode in modes.items() if mode != 0]
-            dig_conf['iq_ch'] = [channel for channel, mode in modes.items() if mode in [2,3]]
-            dig_conf['sequencer'] = hasattr(dig, 'get_sequencer')
+            dig_conf['iq_ch'] = [channel for channel, mode in modes.items() if mode in [2, 3]]
+            dig_conf['sequencer'] = hvi_params.get(f'use_dig_sequencers_{dig.name}', hasattr(dig, 'get_sequencer'))
             if f'dig_trigger_channels_{dig.name}' in hvi_params:
                 dig_conf['trigger_ch'] = hvi_params[f'dig_trigger_channels_{dig.name}']
 
@@ -146,7 +157,6 @@ class Hvi2ScheduleLoader(HardwareSchedule):
                 self._schedule.unload()
             self._schedule = None
             self._configuration = conf
-
 
     def load(self):
         if not self._configuration:
@@ -191,4 +201,3 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             Hvi2ScheduleLoader.schedule_cache[script_conf] = self._schedule
 
         self._schedule = Hvi2ScheduleLoader.schedule_cache[script_conf]
-

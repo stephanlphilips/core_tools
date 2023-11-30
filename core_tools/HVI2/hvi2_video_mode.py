@@ -5,6 +5,7 @@ from core_tools.drivers.M3102A import MODES
 
 logger = logging.getLogger(__name__)
 
+
 class Hvi2VideoMode():
     verbose = True
 
@@ -27,8 +28,9 @@ class Hvi2VideoMode():
                 `awg_name`:
                     'active_los' (List[Tuple[int,int]]): pairs of (channel, LO).
                     'switch_los' (bool): whether to switch LOs on/off
-                    'enabled_los' (List[List[Tuple[int,int]]): per switch interval list with (channel, active local oscillator).
-                                  if None, then all los are switched on/off.
+                    'enabled_los' (List[List[Tuple[int,int]]):
+                        per switch interval list with (channel, active local oscillator).
+                        if None, then all los are switched on/off.
                     'hvi_queue_control' (bool): if True enables waveform queueing by hvi script.
                     'trigger_out' (bool): if True enables markers via Trigger Out channel.
         '''
@@ -52,7 +54,6 @@ class Hvi2VideoMode():
         # Minimum time for digitizer in downsampling mode is 20 ns.
         return 20 + acquisition_delay_ns
 
-
     @staticmethod
     def get_acquisition_gap(digitizer, acquisition_delay_ns=500):
         raw_mode = False
@@ -60,7 +61,6 @@ class Hvi2VideoMode():
             if digitizer.get_channel_acquisition_mode(ch) == MODES.NORMAL:
                 raw_mode = True
         return Hvi2VideoMode.__get_acquisition_gap(raw_mode, acquisition_delay_ns)
-
 
     @property
     def acquisition_gap(self):
@@ -122,7 +122,12 @@ class Hvi2VideoMode():
                     if self._module_config(awg_seq, 'hvi_queue_control'):
                         awg_seq.queueing.queue_waveforms()
                     awg_seq.start()
-                    awg_seq.wait(1000)
+                    video_mode_los = self._module_config(awg_seq, 'video_mode_los')
+                    if video_mode_los:
+                        awg_seq.lo.set_los_enabled(video_mode_los, True)
+                    else:
+                        awg_seq.wait(10)
+                    awg_seq.wait(990)
                 for dig_seq in dig_seqs:
                     all_ch = self._module_config(dig_seq, 'all_ch')
                     ds_ch = self._module_config(dig_seq, 'ds_ch')
@@ -143,7 +148,7 @@ class Hvi2VideoMode():
                         awg_seq.log.write(2)
                         los = self._module_config(awg_seq, 'active_los')
                         # phase reset of AWG and Dig must be at the same clock tick.
-                        if len(los)>0:
+                        if len(los) > 0:
                             awg_seq.lo.reset_phase(los)
                         else:
                             awg_seq.wait(10)
@@ -186,10 +191,13 @@ class Hvi2VideoMode():
                             dig_seq.wait(dig_seq['line_wait'])
 
             with sync.SyncedModules():
+                for awg_seq in awg_seqs:
+                    video_mode_los = self._module_config(awg_seq, 'video_mode_los')
+                    if video_mode_los:
+                        awg_seq.lo.set_los_enabled(video_mode_los, False)
                 self._push_data(dig_seqs)
                 for seq in all_seqs:
                     seq.stop()
-
 
     def start(self, hvi_exec, waveform_duration, n_repetitions, hvi_params):
 
@@ -218,7 +226,7 @@ class Hvi2VideoMode():
         hvi_exec.set_register(self.r_point_wait, t_wait//10)
 
         t_dig_delay = 300
-        t_till_trigger = 250 # delta with awg.trigger()
+        t_till_trigger = 250  # delta with awg.trigger()
         t_start_wait = start_delay + t_dig_delay - t_till_trigger + self._acquisition_delay
         if t_start_wait < 10:
             raise Exception(f'Start delay too short ({start_delay} ns)')
@@ -232,7 +240,5 @@ class Hvi2VideoMode():
 
         hvi_exec.start()
 
-
     def stop(self, hvi_exec):
-        logger.info(f'stop HVI')
-
+        logger.info('stop HVI')

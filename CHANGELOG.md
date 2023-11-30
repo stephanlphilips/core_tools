@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.36] - 2023-11-@@@
+
+- Added Keysight AWG oscillator control to HVI and video mode.
+- Added pre-pulses to Qblox video mode.
+- Added checks on parameter data size in dataset
+
 ## \[1.4.35] - 2023-11-13
 
 - Fixed database synchronization. Fields 'completed', 'data_size' and 'stop_time' were often missed in sync.

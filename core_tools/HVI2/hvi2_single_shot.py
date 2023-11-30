@@ -2,18 +2,20 @@ import logging
 
 from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
 
+
 logger = logging.getLogger(__name__)
 
-'''
-Single shot HVI schedule.
+StartTimeout = 500  # milliseconds
 
-The start time of this schedule is 5 to 10 ms faster for repeated starts than the original Hvi2SingleShot schedule,
-because it keeps the HVI running and uses a start flag to restart the schedule.
-The gain is bigger when more modules are being used.
-'''
-StartTimeout = 500 # milliseconds
 
 class Hvi2SingleShot():
+    '''
+    Single shot HVI schedule.
+
+    The start time of this schedule is 5 to 10 ms faster for repeated starts than the original Hvi2SingleShot schedule,
+    because it keeps the HVI running and uses a start flag to restart the schedule.
+    The gain is bigger when more modules are being used.
+    '''
     verbose = True
 
     name = "SingleShot"
@@ -38,8 +40,9 @@ class Hvi2SingleShot():
                 `awg_name`:
                     'active_los' (List[Tuple[int,int]]): pairs of (channel, LO).
                     'switch_los' (bool): whether to switch LOs on/off
-                    'enabled_los' (List[List[Tuple[int,int]]): per switch interval list with (channel, active local oscillator).
-                                  if None, then all los are switched on/off.
+                    'enabled_los' (List[List[Tuple[int,int]]):
+                        per switch interval list with (channel, active local oscillator).
+                        if None, then all los are switched on/off.
                     'hvi_queue_control' (bool): if True enables waveform queueing by hvi script.
                     'trigger_out' (bool): if True enables markers via Trigger Out channel.
                     'sequencer' (bool): if True enables quantum sequencer features.
@@ -51,10 +54,8 @@ class Hvi2SingleShot():
         self._n_starts = 0
         self._acquisition_delay = int(configuration.get('acquisition_delay_ns', 0)/10) * 10
 
-
     def _module_config(self, seq, key):
         return self._configuration[seq.engine.alias].get(key, None)
-
 
     def _wait_state_clear(self, dig_seq, **kwargs):
         dig_seq.ds.set_state_mask(**kwargs)
@@ -111,19 +112,18 @@ class Hvi2SingleShot():
                     sequencer.add_module_register(register, module_aliases=[awg.name])
 
         self.r_dig_wait = []
-        self.r_awg_los_wait = []
-        self.r_awg_los_duration = []
         for i in range(n_triggers):
             self.r_dig_wait.append(sequencer.add_module_register(f'dig_wait_{i+1}', module_type='digitizer'))
         self.r_awg_los_wait = {}
         self.r_awg_los_duration = {}
         for awg in hardware.awgs:
-            if self._configuration[awg.name]['switch_los']:
+            awg_enable_los = self._configuration[awg.name]['enable_los']
+            if awg_enable_los:
                 r_wait = []
                 r_los = []
                 self.r_awg_los_wait[awg.name] = r_wait
                 self.r_awg_los_duration[awg.name] = r_los
-                for i in range(n_triggers):
+                for i in range(len(awg_enable_los)):
                     r_wait.append(sequencer.add_module_register(f'awg_los_wait_{i+1}', module_aliases=[awg.name]))
                     r_los.append(sequencer.add_module_register(f'awg_los_duration_{i+1}', module_aliases=[awg.name]))
 
@@ -151,11 +151,11 @@ class Hvi2SingleShot():
                             los = self._module_config(awg_seq, 'active_los')
                             awg_seq.sys.clear_ticks()
                             awg_seq.log.write(1)
-                            # phase reset of AWG and Dig must be at the same clock tick.
-                            if len(los)>0:
-                                awg_seq.lo.reset_phase(los)
-                            else:
-                                awg_seq.wait(10)
+                            # # phase reset of AWG and Dig must be at the same clock tick.
+                            # if len(los) > 0:
+                            #     awg_seq.lo.reset_phase(los)
+                            # else:
+                            awg_seq.wait(10)
                             if self._module_config(awg_seq, 'hvi_queue_control'):
                                 awg_seq.queueing.queue_waveforms(n_waveforms)
                             awg_seq.start()
@@ -168,11 +168,11 @@ class Hvi2SingleShot():
 
                             dig_seq.sys.clear_ticks()
                             dig_seq.log.write(1)
-                            # phase reset of AWG and Dig must be at the same clock tick.
-                            if len(iq_ch) > 0:
-                                dig_seq.ds.control(phase_reset=iq_ch)
-                            else:
-                                dig_seq.wait(10)
+                            # # phase reset of AWG and Dig must be at the same clock tick.
+                            # if len(iq_ch) > 0:
+                            #     dig_seq.ds.control(phase_reset=iq_ch)
+                            # else:
+                            dig_seq.wait(10)
 
                             if self._module_config(dig_seq, 'sequencer'):
                                 dig_seq.qs.clear()
@@ -192,11 +192,13 @@ class Hvi2SingleShot():
                         with sync.SyncedModules():
                             for awg_seq in awg_seqs:
                                 los = self._module_config(awg_seq, 'active_los')
+
                                 awg_seq.log.write(2)
-#                                if len(los)>0:
-#                                    awg_seq.lo.reset_phase(los)
-#                                else:
-                                awg_seq.wait(10)
+                                # phase reset of AWG and Dig must be at the same clock tick.
+                                if len(los) > 0:
+                                    awg_seq.lo.reset_phase(los)
+                                else:
+                                    awg_seq.wait(10)
 
                                 if self._module_config(awg_seq, 'sequencer'):
                                     awg_seq.qs.reset_phase()
@@ -205,6 +207,7 @@ class Hvi2SingleShot():
                                     awg_seq.qs.trigger()
                                 else:
                                     awg_seq.wait(30)
+
                                 awg_seq.trigger()
                                 if self._module_config(awg_seq, 'trigger_out'):
                                     awg_seq.marker.start()
@@ -214,8 +217,7 @@ class Hvi2SingleShot():
                                 if self._module_config(awg_seq, 'switch_los'):
                                     enabled_los = self._module_config(awg_seq, 'enabled_los')
                                     # enable local oscillators
-                                    for i in range(n_triggers):
-                                        enabled_los_i = enabled_los[i] if enabled_los else los
+                                    for i, enabled_los_i in enumerate(enabled_los):
                                         awg_seq.wait(awg_seq[f'awg_los_wait_{i+1}'])
                                         # start delay of instruction after wait_register is 0!
                                         awg_seq.lo.set_los_enabled(enabled_los_i, True)
@@ -233,9 +235,13 @@ class Hvi2SingleShot():
                                     awg_seq.wait(10)
 
                             for dig_seq in dig_seqs:
-
+                                iq_ch = self._module_config(dig_seq, 'iq_ch')
+                                # # phase reset of AWG and Dig must be at the same clock tick.
                                 dig_seq.log.write(2)
-                                dig_seq.wait(10)
+                                if len(iq_ch) > 0:
+                                    dig_seq.ds.control(phase_reset=iq_ch)
+                                else:
+                                    dig_seq.wait(10)
 
                                 if self._module_config(dig_seq, 'sequencer'):
                                     dig_seq.qs.stop()
@@ -260,7 +266,6 @@ class Hvi2SingleShot():
                                     else:
                                         dig_seq.wait(10)
 
-
                     with sync.SyncedModules():
                         self._push_data(dig_seqs)
                         for seq in all_seqs:
@@ -284,32 +289,11 @@ class Hvi2SingleShot():
                         awg_seqs[0]['ticks'] += 200
                         awg_seqs[0].wait(280)
 
-    def _get_dig_trigger(self, hvi_params, i):
-        warn = self._n_starts == 1
-        try:
-            return hvi_params[f'dig_trigger_{i+1}']
-        except:
-            if warn:
-                logger.warning(f"Couldn't find HVI variable dig_trigger_{i+1}; trying dig_wait_{i+1}")
-        try:
-            return hvi_params[f'dig_wait_{i+1}']
-        except:
-            if i == 0:
-                if warn:
-                    logger.warning(f"Couldn't find HVI variable dig_wait_{i+1}; trying dig_wait")
-                return hvi_params['dig_wait']
-            else:
-                if warn:
-                    logger.warning(f"Couldn't find HVI variable dig_wait_{i+1}")
-                raise
-
-
     def _set_wait_time(self, hvi_exec, register, value_ns):
         if value_ns < 0:
             # negative value results in wait time of 40 s.
             raise Exception(f'Invalid wait time {value_ns} [{register}]')
         hvi_exec.write_register(register, int(value_ns/10))
-
 
     def start(self, hvi_exec, waveform_duration, n_repetitions, hvi_params):
         if self.started != hvi_exec.is_running():
@@ -334,11 +318,11 @@ class Hvi2SingleShot():
         hvi_exec.write_register(self.r_nrep, n_repetitions)
 
         # update digitizer measurement time
-        if 'averaging' in hvi_params and 't_measure'in hvi_params:
+        if 'averaging' in hvi_params and 't_measure' in hvi_params:
             for dig in self.hardware.digitizers:
                 ds_ch = self._configuration[dig.name]['ds_ch']
                 for ch in ds_ch:
-                        dig.set_measurement_time_averaging(ch, hvi_params['t_measure'])
+                    dig.set_measurement_time_averaging(ch, hvi_params['t_measure'])
 
         for awg in self.hardware.awgs:
             if self._configuration[awg.name]['hvi_queue_control']:
@@ -347,19 +331,20 @@ class Hvi2SingleShot():
         # add 300 ns delay to start acquiring when awg signal arrives at digitizer.
         dig_offset = 300 + self._acquisition_delay
         tot_wait = -dig_offset
-        for i in range(0, self._configuration['n_triggers']):
-            t_trigger = self._get_dig_trigger(hvi_params, i)
+        for i in range(self._configuration['n_triggers']):
+            t_trigger = hvi_params[f'dig_trigger_{i+1}']
             self._set_wait_time(hvi_exec, self.r_dig_wait[i], t_trigger - tot_wait)
-            tot_wait = t_trigger + 80 # wait: +40 ns, wait_reg: +20 ns, wait: +10 ns, ds.control: +10 ns
+            tot_wait = t_trigger + 80  # wait: +40 ns, wait_reg: +20 ns, wait: +10 ns, ds.control: +10 ns
 
         for awg in self.hardware.awgs:
-            if self._configuration[awg.name]['switch_los']:
-                tot_wait_awg = 20 # 20 ns for marker trigger, 10 ns awg trigger, -10 ns fpga_array_write
-                for i in range(0, self._configuration['n_triggers']):
+            awg_enable_los = self._configuration[awg.name]['enable_los']
+            if awg_enable_los:
+                tot_wait_awg = 20  # 20 ns for marker trigger, 10 ns awg trigger, -10 ns fpga_array_write
+                for i in range(len(awg_enable_los)):
                     t_on = hvi_params[f'awg_los_on_{i+1}']
                     t_off = hvi_params[f'awg_los_off_{i+1}']
                     self._set_wait_time(hvi_exec, self.r_awg_los_wait[awg.name][i], t_on - tot_wait_awg)
-                    tot_wait_awg = t_on + 30 # wait_reg: +30 ns, lo.set_los_enabled: +0 ns
+                    tot_wait_awg = t_on + 30  # wait_reg: +30 ns, lo.set_los_enabled: +0 ns
                     self._set_wait_time(hvi_exec, self.r_awg_los_duration[awg.name][i], t_off - tot_wait_awg)
                     tot_wait_awg = t_off + 30
             else:
@@ -379,13 +364,11 @@ class Hvi2SingleShot():
         hvi_exec.write_register(self.r_stop, 0)
         hvi_exec.write_register(self.r_start, 1)
 
-
     def stop(self, hvi_exec):
-        logger.info(f'stop HVI')
+        logger.info('stop HVI')
         if self.started != hvi_exec.is_running():
             logger.warning(f'HVI running-1: {hvi_exec.is_running()}; started: {self.started}')
         self.started = False
         hvi_exec.write_register(self.r_stop, 1)
         if self.started != hvi_exec.is_running():
             logger.warning(f'HVI running-2: {hvi_exec.is_running()}; started: {self.started}')
-
