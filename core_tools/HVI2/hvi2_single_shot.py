@@ -117,13 +117,13 @@ class Hvi2SingleShot():
         self.r_awg_los_wait = {}
         self.r_awg_los_duration = {}
         for awg in hardware.awgs:
-            awg_enable_los = self._configuration[awg.name]['enable_los']
-            if awg_enable_los:
+            awg_enabled_los = self._configuration[awg.name]['enabled_los']
+            if awg_enabled_los:
                 r_wait = []
                 r_los = []
                 self.r_awg_los_wait[awg.name] = r_wait
                 self.r_awg_los_duration[awg.name] = r_los
-                for i in range(len(awg_enable_los)):
+                for i in range(len(awg_enabled_los)):
                     r_wait.append(sequencer.add_module_register(f'awg_los_wait_{i+1}', module_aliases=[awg.name]))
                     r_los.append(sequencer.add_module_register(f'awg_los_duration_{i+1}', module_aliases=[awg.name]))
 
@@ -337,10 +337,10 @@ class Hvi2SingleShot():
             tot_wait = t_trigger + 80  # wait: +40 ns, wait_reg: +20 ns, wait: +10 ns, ds.control: +10 ns
 
         for awg in self.hardware.awgs:
-            awg_enable_los = self._configuration[awg.name]['enable_los']
-            if awg_enable_los:
-                tot_wait_awg = 20  # 20 ns for marker trigger, 10 ns awg trigger, -10 ns fpga_array_write
-                for i in range(len(awg_enable_los)):
+            awg_enabled_los = self._configuration[awg.name]['enabled_los']
+            if awg_enabled_los:
+                tot_wait_awg = 20
+                for i in range(len(awg_enabled_los)):
                     t_on = hvi_params[f'awg_los_on_{i+1}']
                     t_off = hvi_params[f'awg_los_off_{i+1}']
                     self._set_wait_time(hvi_exec, self.r_awg_los_wait[awg.name][i], t_on - tot_wait_awg)
