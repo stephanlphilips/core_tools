@@ -52,7 +52,7 @@ class Hvi2VideoMode():
         if raw_mode:
             return max(1800, acquisition_delay_ns)
         # Minimum time for digitizer in downsampling mode is 20 ns.
-        return 20 + acquisition_delay_ns
+        return max(20, acquisition_delay_ns)
 
     @staticmethod
     def get_acquisition_gap(digitizer, acquisition_delay_ns=500):
