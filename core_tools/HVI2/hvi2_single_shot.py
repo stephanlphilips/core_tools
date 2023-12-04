@@ -319,6 +319,7 @@ class Hvi2SingleShot():
 
         # update digitizer measurement time
         if 'averaging' in hvi_params and 't_measure' in hvi_params:
+            # TODO remove code. This seems not to be used anymore.
             for dig in self.hardware.digitizers:
                 ds_ch = self._configuration[dig.name]['ds_ch']
                 for ch in ds_ch:
