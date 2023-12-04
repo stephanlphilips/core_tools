@@ -1,7 +1,6 @@
-import io
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Dict, Any, Tuple, Union, Callable
 
 import numpy as np
 import pyqtgraph as pg
@@ -12,11 +11,11 @@ from qcodes import MultiParameter
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
 from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
 from core_tools.GUI.keysight_videomaps.data_saver.native import CoreToolsDataSaver
-from core_tools.GUI.keysight_videomaps.data_getter.iq_modes import iq_mode2numpy
+from core_tools.GUI.keysight_videomaps.data_getter.iq_modes import get_channel_map, get_channel_map_dig_4ch
 from core_tools.GUI.keysight_videomaps.data_getter import scan_generator_Virtual
 from core_tools.GUI.keysight_videomaps.plotter.plotting_functions import _1D_live_plot, _2D_live_plot
+from core_tools.GUI.qt_util import qt_log_exception
 from core_tools.utility.powerpoint import addPPTslide
-from ..qt_util import qt_log_exception
 
 logger = logging.getLogger(__name__)
 
@@ -42,12 +41,14 @@ def get_data_saver():
         set_data_saver(_DEFAULT_DATA_SAVER())
     return _data_saver
 
+
 def _try_get_gates():
     try:
         from qcodes import Station
         return Station.default.gates
     except:
         return None
+
 
 @dataclass
 class plot_content:
@@ -68,15 +69,17 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     """
     VideoMode GUI.
     """
-    def __init__(self, pulse_lib, digitizer, scan_type = 'Virtual', cust_defaults = None,
-                 iq_mode=None, channel_map=None, gates=None):
+    def __init__(self, pulse_lib, digitizer=None,
+                 scan_type: Optional[str] = None,
+                 cust_defaults: Optional[Dict[str, Dict[str, Any]]] = None,
+                 iq_mode: Optional[str] = None,
+                 channel_map: Dict[str, Tuple[Union[int, str], Callable[[np.ndarray], np.ndarray]]] = None,
+                 gates=None):
         '''
-        init of the class
-
         Args:
             pulse_lib (pulselib) : provide the pulse library object. This is used to generate the sequences.
-            digitizer (QCodes Instrument) : provide the digitizer driver of the card. In this case the one put in V2 software.
-            scan_type (str) : type of the scan, will point towards a certain driver for getting the data (e.g. 'Virtual', 'Keysight')
+            digitizer (QCodes Instrument) : digitizer to use. If None uses digitizers configured in pulse-lib.
+            scan_type (str) : AWG and digitizer used: 'Keysight', 'Qblox', 'Tektronix' or 'Virtual'.
             cust_defaults (dict of dicts): Dictionary to supply custom starting defaults. Any parameters/dicts that are not defined will resort to defaults.
                         Format is {'1D': dict, '2D': dict, 'gen': dict}
                         1D = {'gate_name': str,
@@ -123,13 +126,19 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 If gates is specified it can be used to change the DC voltages with a click in
                 the 2D chart. The 1D and 2D charts can also show the absolute voltages.
         '''
-        logger.info('initialising vm')
+        logger.info('initialising video mode')
         self.pulse_lib = pulse_lib
         self.digitizer = digitizer
-        self.scan_type = scan_type
         if gates is None:
             gates = _try_get_gates()
         self.gates = gates
+
+        if scan_type is None:
+            scan_type = pulse_lib._backend
+            if scan_type in ['Keysight_QS', 'M3202A']:
+                scan_type = 'Keysight'
+            elif scan_type == 'Tektronix_5014':
+                scan_type = 'Tektronix'
 
         if scan_type == 'Virtual':
             self.construct_1D_scan_fast = scan_generator_Virtual.construct_1D_scan_fast
@@ -151,6 +160,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.construct_2D_scan_fast = scan_generator_Qblox.construct_2D_scan_fast
         else:
             raise ValueError("Unsupported argument for scan type.")
+
         self.current_plot = plot_content(None, None)
         self.current_param_getter = param_getter(None, None)
         self.vm_data_param = None
@@ -254,29 +264,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.channel_map = channel_map
             return
 
-        if isinstance(iq_mode, dict):
-            for ch, mode in iq_mode.items():
-                self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
-            return
-
         if self.digitizer is None:
-            channels = [(name, name) for name in self.pulse_lib.digitizer_channels]
+            self.channel_map = get_channel_map(self.pulse_lib, iq_mode)
         else:
-            channels = [(f'ch{i}', i) for i in range(1,5)]
-
-        if iq_mode is None:
-            func = np.real
-        else:
-            func = iq_mode2numpy[iq_mode]
-
-        self.channel_map = {}
-        for name,channel in channels:
-            if isinstance(func, list):
-                for suffix,f in func:
-                    self.channel_map[name+suffix] = (channel, f)
-            else:
-                self.channel_map[name] = (channel, func)
-
+            self.channel_map = get_channel_map_dig_4ch(iq_mode)
 
     def _init_channels(self):
         # add to GUI
@@ -306,7 +297,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             check_box.setObjectName(f"check_box_marker_{m}")
             self.horizontalLayout_markers_checks.addWidget(check_box, 0, QtCore.Qt.AlignHCenter)
             self.marker_check_boxes[m] = check_box
-
 
     def init_defaults(self, gates, cust_defaults):
         '''
@@ -460,7 +450,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if gradient is not None:
             self._2D_gradient.setCurrentText(gradient)
 
-    def set_digitizer_settings(self, sample_rate=None, channels=None, dig_vmax=None):
+    def set_digitizer_settings(self, sample_rate=None, channels=None):
         if sample_rate is not None:
             if int(sample_rate/1e6) not in [100, 500]:
                 raise Exception(f'sample rate {sample_rate} is not valid. Valid values: 100, 500 MHz')
@@ -474,8 +464,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.channel_check_boxes[ch].setChecked(True)
 
             self._channels = self.get_activated_channels()
-        if dig_vmax is not None:
-            print(f'Parameter dig_vmax is deprecated. Digitizer input should be configured directly on instrument.')
 
     @qt_log_exception
     def update_plot_properties_1D(self):
@@ -587,7 +575,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 logging.warning(f'{self._2D__gate2_name} not in DC gates')
                 enable = False
             self._2D_set_DC.setEnabled(enable)
-
 
     @qt_log_exception
     def _1D_start_stop(self):
@@ -883,7 +870,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         QtWidgets.QApplication.clipboard().setPixmap(frame.grab())
 
-
     @qt_log_exception
     def save_data(self):
         """
@@ -909,7 +895,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         try:
             return data_saver.save_data(self.vm_data_param, label)
         except Exception:
-            logger.error(f'Error during save data', exc_info=True)
+            logger.error('Error during save data', exc_info=True)
 
     @qt_log_exception
     def _reset_1D_average(self):
@@ -1010,29 +996,3 @@ class vm_data_param(MultiParameter):
         current_data = self.plot.buffer_data
         av_data = [np.sum(cd, 0).T/len(cd) for cd in current_data]
         return av_data
-
-
-if __name__ == '__main__':
-    class test(object):
-        """docstring for test"""
-        def __init__(self, arg):
-            super(test, self).__init__()
-            self.channels = arg
-
-    # from V2_software.LivePlotting.data_getter.scan_generator_Virtual import construct_1D_scan_fast, construct_2D_scan_fast, fake_digitizer
-
-    # dig = fake_digitizer("fake_digitizer")
-    t= test(['P1','P2', 'P3', 'P4'])
-
-    # V2_liveplotting(t,dig)
-
-    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import fake_digitizer
-    # from V2_software.pulse_lib_config.Init_pulse_lib import return_pulse_lib
-
-    # load a virtual version of the digitizer.
-    dig = fake_digitizer("fake_digitizer")
-
-    # load the AWG library (without loading the awg's)
-    # pulse, _ = return_pulse_lib()
-
-    liveplotting(t,dig)

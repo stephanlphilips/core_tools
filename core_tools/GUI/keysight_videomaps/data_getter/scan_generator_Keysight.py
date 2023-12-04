@@ -1,19 +1,81 @@
-# -*- coding: utf-8 -*-
-import numpy as np
+from collections import defaultdict
+from typing import Dict, List, Any, Tuple, Callable, Union
 import time
 import logging
+import numpy as np
 
 from qcodes import MultiParameter
 from core_tools.drivers.M3102A import DATA_MODE
 from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
 from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
-from .iq_modes import iq_mode2numpy
+from .iq_modes import get_channel_map, get_channel_map_dig_4ch
 
 logger = logging.getLogger(__name__)
 
 
+def _get_t_step_eff(pulse, digitizer, t_step, acquisition_delay_ns, min_step_eff):
+    if digitizer is None:
+        digitizers = list(pulse.digitizers.values())
+        if not digitizers:
+            raise Exception("Digitizer not specified and not defined in pulse-lib")
+        min_gap = max(
+            Hvi2VideoMode.get_acquisition_gap(dig, acquisition_delay_ns)
+            for dig in digitizers)
+    else:
+        min_gap = Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
+    # set up timing for the scan
+    step_eff = t_step + min_gap
+
+    if step_eff < min_step_eff:
+        msg = f'Measurement time too short. Minimum is {t_step + 200-step_eff}'
+        logger.error(msg)
+        raise Exception(msg)
+
+    return step_eff
+
+
+def _create_sequence(
+        pulse_lib,
+        seg,
+        digitizer,
+        t_measure: int,
+        n_pts: int,
+        n_lines: int,
+        start_delay: int,
+        line_delay: int,
+        acquisition_delay_ns: int,
+        channel_map: Dict[str, Tuple[Union[str, int], Callable[[np.ndarray], np.ndarray]]]
+        ):
+
+    seg.add_HVI_variable("t_measure", t_measure)
+    seg.add_HVI_variable("number_of_points", n_pts)
+    seg.add_HVI_variable("number_of_lines", n_lines)
+    seg.add_HVI_variable("start_delay", start_delay)
+    seg.add_HVI_variable("line_delay", line_delay)
+
+    hvi_dig_channels = defaultdict(set)
+    if digitizer is None:
+        for ch_name, _ in channel_map.values():
+            ch_conf = pulse_lib.digitizer_channels[ch_name]
+            hvi_dig_channels[ch_conf.module_name] |= set(ch_conf.channel_numbers)
+    else:
+        for ch_num, _ in channel_map.values():
+            hvi_dig_channels[digitizer.name].add(ch_num)
+
+    seg.add_HVI_variable("video_mode_channels", {name:list(channels) for name, channels in hvi_dig_channels})
+
+    # generate the sequence and upload it.
+    my_seq = pulse_lib.mk_sequence([seg])
+    my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer,
+                                              acquisition_delay_ns=acquisition_delay_ns))
+    my_seq.n_rep = 1
+    my_seq.configure_digitizer = False
+
+    return my_seq
+
+
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels,
+                           digitizer=None, channels=None,
                            iq_mode=None, acquisition_delay_ns=500,
                            enabled_markers=[], channel_map=None, pulse_gates={}, line_margin=0):
     """
@@ -27,16 +89,14 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer : digitizer object
-        channels : digitizer channels to read
-        dig_samplerate : digitizer sample rate [Sa/s]
-        iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+        channels (list[str] or list[int]) : digitizer channels to read
+        iq_mode (optional str): for digitizer IQ channels this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
-                all channels. A dict can be used to specify selection per channel, e.g. {1:'abs', 2:'angle'}.
-                Note: channel_map is a more generic replacement for iq_mode.
+                all channels.
         acquisition_delay_ns (float):
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
-        enable_markers (List[str]): marker channels to enable during scan
+        enabled_markers (List[str]): marker channels to enable during scan
         channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
             defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
             E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
@@ -53,6 +113,12 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     """
     logger.info(f'Construct 1D: {gate}')
 
+    if channel_map is None:
+        if digitizer is None:
+            channel_map = get_channel_map(pulse_lib, iq_mode, channels)
+        else:
+            channel_map = get_channel_map_dig_4ch(iq_mode, channels)
+
     vp = swing/2
     line_margin = int(line_margin)
     if biasT_corr and line_margin > 0:
@@ -61,17 +127,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
 
     add_line_delay = biasT_corr and len(pulse_gates) > 0
 
-    if digitizer is None:
-        digitizer = list(pulse_lib.digitizers.values())[0]
-
-    # set up timing for the scan
-    step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
-
     min_step_eff = 200 if not add_line_delay else 350
-    if step_eff < min_step_eff:
-        msg = f'Measurement time too short. Minimum is {t_step + min_step_eff-step_eff}'
-        logger.error(msg)
-        raise Exception(msg)
+    step_eff = _get_t_step_eff(pulse_lib, digitizer, t_step, acquisition_delay_ns, min_step_eff)
 
     n_ptx = n_pt + 2*line_margin
     vpx = vp * (n_ptx-1)/(n_pt-1)
@@ -138,42 +195,30 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     if awg_t_step > 5 * 255:
         awg_t_step = 5 * 255
     sample_rate = 1/(awg_t_step*1e-9)
+    seg.sample_rate = sample_rate
 
-    seg.add_HVI_variable("t_measure", int(t_step))
-    seg.add_HVI_variable("number_of_points", int(n_pt) if not add_line_delay else 1)
-    seg.add_HVI_variable("number_of_lines", n_lines)
-    seg.add_HVI_variable("start_delay", int(start_delay))
-    seg.add_HVI_variable("line_delay", int(line_delay_pts*step_eff) if add_line_delay else 500)
-    seg.add_HVI_variable("averaging", True)
-    if channels and isinstance(channels[0], str):
-        # convert to channel numbers
-        vm_channels = []
-        for ch in channels:
-            vm_channels += pulse_lib.digitizer_channels[ch].channel_numbers
-        channels = vm_channels
-    else:
-        vm_channels = channels
-
-    seg.add_HVI_variable("video_mode_channels", {digitizer.name: vm_channels})
-
-    # generate the sequence and upload it.
-    my_seq = pulse_lib.mk_sequence([seg])
-    my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer,
-                                              acquisition_delay_ns=acquisition_delay_ns))
-    my_seq.n_rep = 1
-    my_seq.sample_rate = sample_rate
-    my_seq.configure_digitizer = False
+    my_seq = _create_sequence(
+        pulse_lib,
+        seg,
+        digitizer,
+        t_measure=int(t_step),
+        n_pts=int(n_pt) if not add_line_delay else 1,
+        n_lines=n_lines,
+        start_delay=int(start_delay),
+        line_delay=int(line_delay_pts*step_eff) if add_line_delay else 500,
+        acquisition_delay_ns=acquisition_delay_ns,
+        channel_map=channel_map
+        )
 
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
                                     (n_pt, ), (gate, ), (tuple(voltages_sp), ),
-                                    biasT_corr, channels=channels,
-                                    iq_mode=iq_mode, channel_map=channel_map)
+                                    biasT_corr, channel_map)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
-                           digitizer, channels, iq_mode=None,
+                           digitizer=None, channels=None, iq_mode=None,
                            acquisition_delay_ns=500, enabled_markers=[], channel_map=None,
                            pulse_gates={}, line_margin=0):
     """
@@ -190,14 +235,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         biasT_corr (bool) : correct for biasT by taking data in different order.
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer: digitizer object
-        iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
+        channels (list[str] or list[int]) : digitizer channels to read
+        iq_mode (optional str): for digitizer IQ channels this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
-                all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
-                Note: channel_map is a more generic replacement for iq_mode.
+                all channels.
         acquisition_delay_ns (float):
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
-        enable_markers (List[str]): marker channels to enable during scan
+        enabled_markers (List[str]): marker channels to enable during scan
         channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
             defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
             E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
@@ -214,16 +259,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     """
     logger.info(f'Construct 2D: {gate1} {gate2}')
 
-    if digitizer is None:
-        digitizer = list(pulse_lib.digitizers.values())[0]
+    if channel_map is None:
+        if digitizer is None:
+            channel_map = get_channel_map(pulse_lib, iq_mode, channels)
+        else:
+            channel_map = get_channel_map_dig_4ch(iq_mode, channels)
 
-    # set up timing for the scan
-    step_eff = t_step + Hvi2VideoMode.get_acquisition_gap(digitizer, acquisition_delay_ns)
-
-    if step_eff < 200:
-        msg = f'Measurement time too short. Minimum is {t_step + 200-step_eff}'
-        logger.error(msg)
-        raise Exception(msg)
+    min_step_eff = 200
+    step_eff = _get_t_step_eff(pulse_lib, digitizer, t_step, acquisition_delay_ns, min_step_eff)
 
     line_margin = int(line_margin)
     add_pulse_gate_correction = biasT_corr and len(pulse_gates) > 0
@@ -316,50 +359,42 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         awg_t_step = 5 * 250
 
     sample_rate = 1/(awg_t_step*1e-9)
+    seg.sample_rate = sample_rate
 
-    seg.add_HVI_variable("t_measure", int(t_step))
-    seg.add_HVI_variable("start_delay", int(start_delay))
     if line_delay_pts > 0:
-        seg.add_HVI_variable("number_of_points", int(n_pt1))
-        seg.add_HVI_variable("number_of_lines", int(n_pt2))
-        seg.add_HVI_variable("line_delay", int(line_delay_pts*step_eff))
+        n_pts = int(n_pt1)
+        n_lines = int(n_pt2)
+        line_delay = int(line_delay_pts*step_eff)
     else:
-        seg.add_HVI_variable("number_of_points", int(n_pt1*n_pt2))
-        seg.add_HVI_variable("number_of_lines", int(1))
-        # Wait minimum time to satisfy HVI schedule
-        seg.add_HVI_variable("line_delay", 500)
-    seg.add_HVI_variable("averaging", True)
-    if channels and isinstance(channels[0], str):
-        # convert to channel numbers
-        vm_channels = []
-        for ch in channels:
-            vm_channels += pulse_lib.digitizer_channels[ch].channel_numbers
-        channels = vm_channels
-    else:
-        vm_channels = channels
-    seg.add_HVI_variable("video_mode_channels", {digitizer.name: vm_channels})
+        n_pts = int(n_pt1*n_pt2)
+        n_lines = 1
+        # Wait minimum time to required by HVI schedule
+        line_delay = 500
 
-    # generate the sequence and upload it.
-    my_seq = pulse_lib.mk_sequence([seg])
-    my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer,
-                                              acquisition_delay_ns=acquisition_delay_ns))
-    my_seq.n_rep = 1
-    my_seq.sample_rate = sample_rate
-    my_seq.configure_digitizer = False
+    my_seq = _create_sequence(
+        pulse_lib,
+        seg,
+        digitizer,
+        t_measure=int(t_step),
+        n_pts=n_pts,
+        n_lines=n_lines,
+        start_delay=int(start_delay),
+        line_delay=line_delay,
+        acquisition_delay_ns=acquisition_delay_ns,
+        channel_map=channel_map
+        )
 
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
-                                    biasT_corr,
-                                    channels=channels, iq_mode=iq_mode, channel_map=channel_map)
+                                    biasT_corr, channel_map)
 
 
 class _digitzer_scan_parameter(MultiParameter):
 
-    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr,
-                 channels=[1, 2, 3, 4], iq_mode=None, channel_map=None):
+    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, channel_map):
         """
         args:
             digitizer (SD_DIG) : digizer driver:
@@ -370,38 +405,50 @@ class _digitzer_scan_parameter(MultiParameter):
             names (tuple<str>): name of the gate(s) that are measured.
             setpoint (tuple<np.ndarray>): array witht the setpoints of the input data
             biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
-            channels (list<int>): channels to measure
-            iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
-                    complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
-                    all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
-                    Note: channel_map is a more generic replacement for iq_mode.
+            TODO fix description
             channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
                 defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
                 E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
                 The default channel_map is:
                     {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
         """
-        self.dig = digitizer
+        self.digitizer = digitizer
         self.my_seq = my_seq
         self.pulse_lib = pulse_lib
         self.t_measure = t_measure
         self.n_rep = np.prod(shape)
-        self.channels = channels
         self.biasT_corr = biasT_corr
         self.shape = shape
-        self._init_channels(channels, channel_map, iq_mode)
+        self.channel_map = channel_map
+        self.channel_names = tuple(self.channel_map.keys())
+        self.acquisition_channels = set(ch for ch, _ in self.channel_map.values())
 
-        # clean up the digitizer before start
-        for ch in range(1, 5):
-            digitizer.daq_stop(ch)
-            digitizer.daq_flush(ch)
+        # Create dict with digitizers and used channel numbers.
+        # dict[digitizer, List[channel_numbers]]
+        self.dig_channel_nums: Dict[Any, List[int]] = defaultdict(set)
+        if digitizer is not None:
+            for ch, _ in self.channel_map.values():
+                self.dig_channel_nums[digitizer].add(ch)
+        else:
+            for ch_name, _ in self.channel_map.values():
+                ch_conf = pulse_lib.digitizer_channels[ch_name]
+                digitizer = pulse_lib.digitizers[ch_conf.module_name]
+                for ch_num in ch_conf.channel_numbers:
+                    self.dig_channel_nums[digitizer].add(ch_num)
 
-        self.sample_rate = 500e6
-        self.data_mode = DATA_MODE.AVERAGE_TIME
+        for digitizer, ch_nums in self.dig_channel_nums.items():
+            # clean up the digitizer before start
+            for ch in ch_nums:
+                digitizer.daq_stop(ch)
+                digitizer.daq_flush(ch)
 
-        # configure digitizer
-        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate=self.sample_rate,
-                                   data_mode=self.data_mode, channels=self.channels)
+            # configure digitizer
+            digitizer.set_digitizer_HVI(
+                self.t_measure,
+                int(np.prod(self.shape)),
+                sample_rate=500e6,
+                data_mode=DATA_MODE.AVERAGE_TIME,
+                channels=list(ch_nums))
 
         n_out_ch = len(self.channel_names)
         super().__init__(name=digitizer.name,
@@ -415,44 +462,21 @@ class _digitzer_scan_parameter(MultiParameter):
                          setpoint_units=(("mV", )*len(names), )*n_out_ch,
                          docstring='Scan parameter for digitizer')
 
-    def _init_channels(self, channels, channel_map, iq_mode):
-
-        pulse = self.pulse_lib
-        if isinstance(channels[0], str):
-            print(channels)
-            # convert to channel numbers
-            new_channels = []
-            for ch in channels:
-                new_channels += pulse.digitizer_channels[ch].channel_numbers
-            channels = new_channels
-        self.channels = channels
-
-        if channel_map:
-            if iq_mode is not None:
-                logger.warning('iq_mode is ignored when channel_map is also specified')
-            # @@@ take care of IQ input
-            for k, v in channel_map.items():
-                ch = v[0]
-                if isinstance(ch, str):
-                    channel_map[k] = (pulse.digitizer_channels[ch].channel_number, v[1])
-
-        elif iq_mode is not None:
-            if isinstance(iq_mode, str):
-                channel_map = {f'ch{i}': (i, iq_mode2numpy[iq_mode]) for i in channels}
-            else:
-                for ch, mode in iq_mode.items():
-                    channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
-
-        self.channel_map = (
-                channel_map if channel_map is not None
-                else {f'ch{i}': (i, np.real) for i in channels})
-
-        self.channel_names = tuple(self.channel_map.keys())
-
     def get_raw(self):
 
-        self.dig.set_digitizer_HVI(self.t_measure, int(np.prod(self.shape)), sample_rate=self.sample_rate,
-                                   data_mode=self.data_mode, channels=self.channels)
+        for digitizer, ch_nums in self.dig_channel_nums.items():
+            # clean up the digitizer before start
+            for ch in ch_nums:
+                digitizer.daq_stop(ch)
+                digitizer.daq_flush(ch)
+
+            # configure digitizer
+            digitizer.set_digitizer_HVI(
+                self.t_measure,
+                int(np.prod(self.shape)),
+                sample_rate=500e6,
+                data_mode=DATA_MODE.AVERAGE_TIME,
+                channels=list(ch_nums))
 
         start = time.perf_counter()
         # play sequence
@@ -461,25 +485,58 @@ class _digitzer_scan_parameter(MultiParameter):
         end = time.perf_counter()
         logger.debug(f'Scan play {(end-start)*1000:3.1f} ms')
 
-        # get the data
-        raw = self.dig.measure()
+        raw = {}
+        if self.digitizer is None:
+            dig_data = {}
+            for dig in self.dig_channel_nums:
+                dig_data[dig.name] = {}
+                active_channels = dig.active_channels
+                data = dig.measure.get_data()
+                for ch_num, ch_data in zip(active_channels, data):
+                    dig_data[dig.name][ch_num] = ch_data
+            for channel_name in self.acquisition_channels:
+                channel = self.digitizer_channels[channel_name]
+                dig_name = channel.module_name
+                in_ch = channel.channel_numbers
+                # Note: Digitizer FPGA returns IQ in complex value.
+                #       2 input channels are used with external IQ demodulation without processing in FPGA.
+                if len(in_ch) == 2:
+                    raw_I = dig_data[dig_name][in_ch[0]]
+                    raw_Q = dig_data[dig_name][in_ch[1]]
+                    if dig.get_channel_acquisition_mode(in_ch[0]) in [2, 3, 4, 5]:
+                        # Note: Wrong configuration! len(in_ch) should be 1
+                        # phase shift is already applied in HW. Only use data of first channel
+                        raw_ch = raw_I
+                    else:
+                        raw_ch = (raw_I + 1j * raw_Q) * np.exp(1j*channel.phase)
+                else:
+                    # this can be complex valued output with LO modulation or phase shift in digitizer (FPGA)
+                    raw_ch = dig_data[dig_name][in_ch[0]]
 
-        # Reorder data for bias-T correction
-        data = [np.zeros(self.shape, dtype=d.dtype) for d in raw]
+                if not channel.iq_out:
+                    raw_ch = raw_ch.real
 
-        for i in range(len(data)):
-            ch_data = raw[i].reshape(self.shape)
+                raw[channel_name] = raw_ch
+        else:
+            dig_data = self.digitizer.measure.get_data()
+            for i,channel_num in enumerate(sorted(self.acquisition_channels)):
+                raw[channel_num] = dig_data[i]
+
+        # Reshape and reorder data for bias-T correction
+        for name in raw:
+            ch_data = raw[name].reshape(self.shape)
             if self.biasT_corr:
-                data[i][:len(ch_data[::2])] = ch_data[::2]
-                data[i][len(ch_data[::2]):] = ch_data[1::2][::-1]
-
+                data = np.zeros(self.shape, dtype=ch_data.dtype)
+                data[:len(ch_data[::2])] = ch_data[::2]
+                data[len(ch_data[::2]):] = ch_data[1::2][::-1]
+                raw[name] = data
             else:
-                data[i] = ch_data
+                raw[name] = ch_data
 
         # post-process data
         data_out = []
         for ch, func in self.channel_map.values():
-            ch_data = data[self.channels.index(ch)]
+            ch_data = raw[ch]
             data_out.append(func(ch_data))
 
         return tuple(data_out)

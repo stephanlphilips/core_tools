@@ -5,7 +5,7 @@ import logging
 
 from qcodes import MultiParameter
 
-from .iq_modes import iq_mode2numpy
+from .iq_modes import get_channel_map
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,6 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
         pulse_lib : pulse library object, needed to make the sweep.
         digitizer : Not used.
         channels : digitizer channels to read
-        dig_samplerate : digitizer sample rate [Sa/s]
         iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
                 complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
                 all channels. A dict can be used to specify selection per channel, e.g. {1:'abs', 2:'angle'}.
@@ -50,6 +49,14 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
     logger.info(f'Construct 1D: {gate}')
+
+    if channel_map is None:
+        channel_map = get_channel_map(pulse_lib, iq_mode, channels)
+
+    if channels is None:
+        acq_channels = set(v[0] for v in channel_map.values())
+    else:
+        acq_channels = channels
 
     vp = swing/2
     line_margin = int(line_margin)
@@ -79,11 +86,6 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
         voltages[1::2] = voltages_x[m:][::-1]
     else:
         voltages = voltages_x
-
-    if channels is None:
-        acq_channels = set(v[0] for v in channel_map.values())
-    else:
-        acq_channels = channels
 
     seg  = pulse_lib.mk_segment()
     g1 = seg[gate]
@@ -135,8 +137,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
 
     return _digitzer_scan_parameter(my_seq, pulse_lib, t_step,
     								(n_pt, ), (gate, ), (tuple(voltages_sp), ),
-                                    biasT_corr, channels = channels,
-                                    iq_mode=iq_mode, channel_map=channel_map)
+                                    biasT_corr, channel_map)
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
@@ -164,7 +165,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         acquisition_delay_ns (float):
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
-        enable_markers (List[str]): marker channels to enable during scan
+        enabled_markers (List[str]): marker channels to enable during scan
         channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
             defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
             E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
@@ -181,6 +182,14 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     """
     logger.info(f'Construct 2D: {gate1} {gate2}')
 
+    if channel_map is None:
+        channel_map = get_channel_map(pulse_lib, iq_mode, channels)
+
+    if channels is None:
+        acq_channels = set(v[0] for v in channel_map.values())
+    else:
+        acq_channels = channels
+
     # set up timing for the scan
     acquisition_delay = max(100, acquisition_delay_ns)
     step_eff = t_step + acquisition_delay
@@ -189,11 +198,6 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         msg = 'Measurement time too short. Minimum is 1000 ns'
         logger.error(msg)
         raise Exception(msg)
-
-    if channels is None:
-        acq_channels = set(v[0] for v in channel_map.values())
-    else:
-        acq_channels = channels
 
     line_margin = int(line_margin)
     add_pulse_gate_correction = biasT_corr and len(pulse_gates) > 0
@@ -283,15 +287,12 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     return _digitzer_scan_parameter(my_seq, pulse_lib, t_step,
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
-                                    biasT_corr,
-                                    channels=channels,
-                                    iq_mode=iq_mode, channel_map=channel_map)
+                                    biasT_corr, channel_map)
 
 
 class _digitzer_scan_parameter(MultiParameter):
 
-    def __init__(self, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr,
-                 channels = [1,2,3,4], iq_mode=None, channel_map=None):
+    def __init__(self, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, channel_map):
         """
         args:
             my_seq (sequencer) : sequence of the 1D scan
@@ -301,12 +302,8 @@ class _digitzer_scan_parameter(MultiParameter):
             names (tuple<str>): name of the gate(s) that are measured.
             setpoint (tuple<np.ndarray>): array witht the setpoints of the input data
             biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
-            channels (list<int>): channels to measure
-            iq_mode (str or dict): when digitizer is in MODE.IQ_DEMODULATION then this parameter specifies how the
-                    complex I/Q value should be plotted: 'I', 'Q', 'abs', 'angle', 'angle_deg'. A string applies to
-                    all channels. A dict can be used to speicify selection per channel, e.g. {1:'abs', 2:'angle'}
-                    Note: channel_map is a more generic replacement for iq_mode.
-            channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
+            TODO correct channel_map description.
+            channel_map (Dict[str, Tuple(str, Callable[[np.ndarray], np.ndarray])]):
                 defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
                 E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
                 The default channel_map is:
@@ -316,10 +313,10 @@ class _digitzer_scan_parameter(MultiParameter):
         self.pulse_lib = pulse_lib
         self.t_measure = t_measure
         self.n_rep = np.prod(shape)
-        self.channels = channels
         self.biasT_corr = biasT_corr
         self.shape = shape
-        self._init_channels(channels, channel_map, iq_mode)
+        self.channel_map = channel_map
+        self.channel_names = tuple(self.channel_map.keys())
 
         n_out_ch = len(self.channel_names)
         super().__init__(name='fastScan',
@@ -333,22 +330,6 @@ class _digitzer_scan_parameter(MultiParameter):
                          setpoint_units=(("mV",)*len(names),)*n_out_ch,
                          docstring='Scan parameter for digitizer')
 
-    def _init_channels(self, channels, channel_map, iq_mode):
-
-        self.channel_map = (
-                channel_map if channel_map is not None
-                else {f'ch{i}': (i, np.real) for i in channels})
-
-        if iq_mode is not None:
-            if channel_map is not None:
-                logger.warning('iq_mode is ignored when channel_map is also specified')
-            elif isinstance(iq_mode, str):
-                self.channel_map = {f'ch{i}': (i, iq_mode2numpy[iq_mode]) for i in channels}
-            else:
-                for ch, mode in iq_mode.items():
-                    self.channel_map[f'ch{ch}'] = (ch, iq_mode2numpy[mode])
-
-        self.channel_names = tuple(self.channel_map.keys())
 
     def get_raw(self):
 
