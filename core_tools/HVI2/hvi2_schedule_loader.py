@@ -122,12 +122,11 @@ class Hvi2ScheduleLoader(HardwareSchedule):
                 awg_conf['enabled_los'] = enabled_los_awg
             else:
                 awg_conf['enabled_los'] = []
-            if 'video_mode_los' in hvi_params:
-                awg_video_mode_los = []
-                for name, ch, lo in hvi_params['video_mode_los']:
-                    if awg_name == name:
-                        awg_video_mode_los.append((ch, lo))
-                awg_conf['video_mode_los'] = awg_video_mode_los
+            awg_video_mode_los = []
+            for name, ch, lo in hvi_params.get('video_mode_los', []):
+                if awg_name == name:
+                    awg_video_mode_los.append((ch, lo))
+            awg_conf['video_mode_los'] = awg_video_mode_los
             awg_conf['trigger_out'] = False  # correct value will be set below
             conf[awg.name] = awg_conf
 

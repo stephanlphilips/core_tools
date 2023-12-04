@@ -62,7 +62,7 @@ def _create_sequence(
         for ch_num, _ in channel_map.values():
             hvi_dig_channels[digitizer.name].add(ch_num)
 
-    seg.add_HVI_variable("video_mode_channels", {name:list(channels) for name, channels in hvi_dig_channels})
+    seg.add_HVI_variable("video_mode_channels", {name:list(channels) for name, channels in hvi_dig_channels.items()})
 
     # generate the sequence and upload it.
     my_seq = pulse_lib.mk_sequence([seg])
@@ -495,7 +495,7 @@ class _digitzer_scan_parameter(MultiParameter):
                 for ch_num, ch_data in zip(active_channels, data):
                     dig_data[dig.name][ch_num] = ch_data
             for channel_name in self.acquisition_channels:
-                channel = self.digitizer_channels[channel_name]
+                channel = self.pulse_lib.digitizer_channels[channel_name]
                 dig_name = channel.module_name
                 in_ch = channel.channel_numbers
                 # Note: Digitizer FPGA returns IQ in complex value.
