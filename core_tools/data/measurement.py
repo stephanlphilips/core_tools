@@ -30,6 +30,8 @@ import numpy as np
 import copy
 import logging
 
+from .name_validation import validate_dataset_name, validate_param_name
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +48,7 @@ class Measurement:
         self.name = name
         self.snapshot = dict()
         self.void_parameters = []
+        validate_dataset_name(name)
 
     def register_set_parameter(self, parameter, n_points):
         '''
@@ -55,6 +58,7 @@ class Measurement:
             parameter (qcodes parameter) : parameter to be admitted to the measurement class
             n_points (int) : number of points to be set
         '''
+        validate_param_name(parameter.name)
         if n_points < 1:
             raise ValueError(f'No setpoints for parameter {parameter.name}')
         param_id = id(parameter)
@@ -81,6 +85,7 @@ class Measurement:
         '''
         register parameters that you want to get in a measurement
         '''
+        validate_param_name(parameter.name)
         param_id = id(parameter)
 
         if param_id in self.setpoints.keys() or param_id in self.m_param.keys():
