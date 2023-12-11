@@ -1,11 +1,15 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.36] - 2023-11-@@@
+## \[1.4.36] - 2023-12-11
 
-- Added Keysight AWG oscillator control to HVI and video mode.
-- Added pre-pulses to Qblox video mode.
+- Added data_writer() to create and store a dataset from arrays
+- Added validation of dataset name, parameter name, project name, setup name, sample name
 - Added checks on parameter data size in dataset
+- Added Keysight AWG oscillator control to HVI and video mode.
+- Video mode for Keysight uses pulse-lib digitizer channel configuration if digitizer is None in liveplotting()
+- Video mode now determines required AWG driver from pulse-lib configuration.
+- Added pre-pulses to Qblox video mode.
 
 ## \[1.4.35] - 2023-11-13
 
