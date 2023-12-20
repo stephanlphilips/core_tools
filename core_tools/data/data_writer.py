@@ -56,6 +56,7 @@ class DataWriter:
                 self._add_data(arg)
             else:
                 raise TypeError(f"Unknown argument of type {type(arg)}")
+        self._measurement.add_snapshot('data_writer', {'message': 'Data written by data writer'})
 
     def _add_axis(self, axis):
         param  = ManualParameter(axis.name, label=axis.label, unit=axis.unit)
