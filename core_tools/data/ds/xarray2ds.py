@@ -1,5 +1,3 @@
-import xarray as xr
-import numpy as np
 from datetime import datetime
 import json
 
@@ -13,7 +11,7 @@ def to_raw_param(xr_param, param_id,
     attrs = xr_param.attrs
     data = xr_param.data
     try:
-        m_param_id,nth_set = attrs['_param_index']
+        m_param_id, nth_set = attrs['_param_index']
         param_id = m_param_id
         nth_dim = -1
     except:
@@ -77,14 +75,14 @@ def xarray2ds(xr_ds):
     data_names = [name for name in xr_ds.data_vars]
     m_params = []
     # loop over data vars and coords.
-    for name,param in xr_ds.data_vars.items():
+    for name, param in xr_ds.data_vars.items():
         dependencies = [get_coord_param_id(coord_names, par_name) for par_name in param.dims]
         m_param = to_raw_param(param,
                                param_id=data_names.index(name),
                                dependencies=dependencies)
         m_params.append(m_param)
 
-    for name,param in xr_ds.coords.items():
+    for name, param in xr_ds.coords.items():
 #        dependencies = [get_coord_param_id(coord_names, par_name) for par_name in param.coords]
 #        print(name, dependencies, [n for n in param.coords])
         dependencies = []
@@ -94,8 +92,6 @@ def xarray2ds(xr_ds):
                                dependencies=dependencies)
         m_params.append(m_param)
 
-
     ds_raw.measurement_parameters_raw = m_params
 
     return data_set(ds_raw)
-
