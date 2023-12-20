@@ -47,11 +47,10 @@ def _create_sequence(
         channel_map: Dict[str, Tuple[Union[str, int], Callable[[np.ndarray], np.ndarray]]]
         ):
 
-    seg.add_HVI_variable("t_measure", t_measure)
-    seg.add_HVI_variable("number_of_points", n_pts)
-    seg.add_HVI_variable("number_of_lines", n_lines)
-    seg.add_HVI_variable("start_delay", start_delay)
-    seg.add_HVI_variable("line_delay", line_delay)
+    # generate the sequence and upload it.
+    my_seq = pulse_lib.mk_sequence([seg])
+    # TODO Force configuration of digitizer in pulse_lib.
+    my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer))
 
     hvi_dig_channels = defaultdict(set)
     if digitizer is None:
@@ -61,13 +60,18 @@ def _create_sequence(
     else:
         for ch_num, _ in channel_map.values():
             hvi_dig_channels[digitizer.name].add(ch_num)
+    video_mode_channels = {name:list(channels) for name, channels in hvi_dig_channels.items()}
 
-    seg.add_HVI_variable("video_mode_channels", {name:list(channels) for name, channels in hvi_dig_channels.items()})
+    if not hasattr(my_seq, 'schedule_params'):
+        raise Exception('Update pulse-lib to v1.7.11+')
+    my_seq.schedule_params['acquisition_delay_ns'] = acquisition_delay_ns
+    my_seq.schedule_params["t_measure"]= t_measure
+    my_seq.schedule_params["number_of_points"] = n_pts
+    my_seq.schedule_params["number_of_lines"] = n_lines
+    my_seq.schedule_params["start_delay"] = start_delay
+    my_seq.schedule_params["line_delay"] = line_delay
+    my_seq.schedule_params["video_mode_channels"] = video_mode_channels
 
-    # generate the sequence and upload it.
-    my_seq = pulse_lib.mk_sequence([seg])
-    my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer,
-                                              acquisition_delay_ns=acquisition_delay_ns))
     my_seq.n_rep = 1
     my_seq.configure_digitizer = False
 

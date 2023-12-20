@@ -98,10 +98,11 @@ class Hvi2ScheduleLoader(HardwareSchedule):
         conf['script_name'] = self._script_name
         conf['n_waveforms'] = n_waveforms
         conf['n_triggers'] = self._get_n_measurements(hvi_params)
-        # conf['n_triggers'] = len(measurements)
-        if self._acquisition_delay_ns is not None:
+
+        acquisition_delay_ns = hvi_params.get('acquisition_delay_ns', self._acquisition_delay_ns)
+        if acquisition_delay_ns is not None:
             # only add if configured
-            conf['acquisition_delay_ns'] = self._acquisition_delay_ns
+            conf['acquisition_delay_ns'] = acquisition_delay_ns
 
         for awg_name, awg in self._pulse_lib.awg_devices.items():
             awg_conf = {}
