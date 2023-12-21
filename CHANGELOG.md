@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.37] - 2024-12-21
+
+- Change segment HVI variables to sequence.schedule_params (preparation pulse-lib v1.8)
+- Fixed sample/project/setup name validation. Allow 0-9_ as first character.
+
 ## \[1.4.36] - 2023-12-11
 
 - Added data_writer() to create and store a dataset from arrays

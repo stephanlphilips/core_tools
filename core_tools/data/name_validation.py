@@ -17,8 +17,15 @@ def validate_data_identifier_value(value):
         raise Exception("Name '{value}' is too long. Max is 25")
     if '{' in value:
         raise Exception(f"Illegal name '{value}'. Did you forget the f in front of the string?")
-    if not re.match(r"^[A-Za-z][A-Za-z0-9_\-.,:()[\]* ]*$", value):
-        raise Exception(f"Invalid name {value}")
+    if not re.match(r"^[A-Za-z0-9_][A-Za-z0-9_\-.,:()[\]* ]*$", value):
+        raise Exception(f"Invalid name '{value}'")
 
 def validate_param_name(value):
-    return validate_data_identifier_value(value)
+    if len(value) < 1:
+        raise Exception(f"Name '{value}' is too short. ")
+    if len(value) > 30:
+        raise Exception("Name '{value}' is too long. Max is 25")
+    if '{' in value:
+        raise Exception(f"Illegal name '{value}'. Did you forget the f in front of the string?")
+    if not re.match(r"^[A-Za-z][A-Za-z0-9_\-.,:()[\]* ]*$", value):
+        raise Exception(f"Invalid name '{value}'")
