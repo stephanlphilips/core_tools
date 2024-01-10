@@ -1,5 +1,6 @@
 import logging
 from PyQt5 import QtCore, QtQuick
+from PyQt5.QtWidgets import QMessageBox
 
 from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote
 from core_tools.data.SQL.queries.dataset_gui_queries import (
@@ -8,6 +9,7 @@ from core_tools.data.SQL.queries.dataset_gui_queries import (
 from core_tools.data.ds.data_set import load_by_uuid
 from core_tools.data.gui.plot_mgr import data_plotter
 from core_tools.data.gui.data_browser_models.result_table_data_class import m_result_overview
+from core_tools.data.name_validation import validate_dataset_name
 
 logger = logging.getLogger(__name__)
 
@@ -286,6 +288,18 @@ class signale_handler(QtQuick.QQuickView):
 
     @QtCore.pyqtSlot('QString', 'QString')
     def update_name_meaurement(self, uuid, name):
+        try:
+            validate_dataset_name(name)
+        except Exception as ex:
+            logging.error(f"Failed to change name to '{name}': {ex}")
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText(str(ex))
+            msg.setWindowTitle("Invalid dataset name")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+            return
+
         try:
             alter_dataset.update_name(uuid.replace('_', ''), name)
         except Exception:
