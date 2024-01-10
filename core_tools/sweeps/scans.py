@@ -155,7 +155,7 @@ def sweep(parameter, data, stop=None, n_points=None, delay=0.0, resetable=True):
 
 
 class Scan:
-    def __init__(self, *args, name='', reset_param=False, silent=False):
+    def __init__(self, *args, name='', reset_param=False, silent=False, snapshot_extra=None):
         self.name = name
         self.reset_param = reset_param
         self.silent = silent
@@ -198,6 +198,12 @@ class Scan:
                 self.name += '{}D_'.format(len(self.set_params))
 
         self.meas.name = self.name
+        if snapshot_extra:
+            for key, value in snapshot_extra.items():
+                if key not in self.meas.snapshot:
+                    self.meas.add_snapshot(key, value)
+                else:
+                    raise Exception(f"Measurement snapshot already contains key {key}")
 
     def _add_setter(self, setter):
         self.meas.register_set_parameter(setter.param, setter.n_points)
