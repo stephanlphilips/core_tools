@@ -1,7 +1,14 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.37] - 2024-12-21
+## \[1.4.38] - 2024-01-10
+
+- Video mode: disabled auto SI prefix to avoid 'mmV'.
+- Improved dataset name checking.
+- Fixed warning "<gate> corrected from -0.00 to 0.00".
+- Added argument snapshot_extra to Scan.
+
+## \[1.4.37] - 2023-12-21
 
 - Change segment HVI variables to sequence.schedule_params (preparation pulse-lib v1.8)
 - Fixed sample/project/setup name validation. Allow 0-9_ as first character.
