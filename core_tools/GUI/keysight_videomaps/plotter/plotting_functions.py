@@ -237,6 +237,8 @@ class _1D_live_plot(live_plot):
         for i in range(self.n_plots):
             param = self.plot_params[i]
             plot_1D = pg.PlotWidget()
+            plot_1D.getAxis('left').enableAutoSIPrefix(enable=False)
+            plot_1D.getAxis('bottom').enableAutoSIPrefix(enable=False)
             plot_1D.showGrid(x=True, y=True)
             plot_1D.setLabel('left', param.label, param.unit)
             plot_1D.setLabel('bottom', param.xlabel(0), param.xunit(0))
@@ -362,6 +364,8 @@ class _2D_live_plot(live_plot):
             img = pg.ImageItem()
             # Note: lookup table is set via color bar
             plot_2D.addItem(img)
+            plot_2D.getAxis('left').enableAutoSIPrefix(enable=False)
+            plot_2D.getAxis('bottom').enableAutoSIPrefix(enable=False)
             plot_2D.setLabel('left', param.xlabel(0), param.xunit(0))
             plot_2D.setLabel('bottom', param.xlabel(1), param.xunit(1))
 
