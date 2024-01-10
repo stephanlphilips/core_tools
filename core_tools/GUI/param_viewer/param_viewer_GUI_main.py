@@ -200,7 +200,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             voltage_input.setRange(-4000.0, 4000.0)
         else:
             # QDoubleSpinBox needs a limit. Set it high for virtual voltage
-            voltage_input.setRange(-9999.99, 9999.99)
+            voltage_input.setRange(-99999.99, 99999.99)
         voltage_input.setValue(parameter())
         voltage_input.valueChanged.connect(lambda: self._set_gate(parameter, voltage_input.value, voltage_input))
         voltage_input.setKeyboardTracking(False)
@@ -296,7 +296,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                         if current_text != new_text:
                             logger.info(f'Update GUI {param.param_parameter.name} {current_text} -> {new_text}')
                             gui_input.setValue(new_value)
-                            if gui_input.text() != new_text:
+                            # Note: additional check on 0.0, because "-0.00 " and "0.00" are numerically equal.
+                            if gui_input.text() != new_text and float(new_text) != 0.0:
                                 print(f'WARNING: {param.param_parameter.name} corrected from '
                                       f'{new_text} to {gui_input.text()}')
                 elif isinstance(param.gui_input_param, QtWidgets.QCheckBox):
