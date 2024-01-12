@@ -82,6 +82,11 @@ class SQL_database_manager(SQL_database_init):
                 conn_local.commit()
         return SQL_database_manager.__instance
 
+    @classmethod
+    def disconnect(self):
+        if SQL_database_manager.__instance is not None:
+            SQL_database_manager.__instance._disconnect()
+
 
 class SQL_sync_manager(SQL_database_init):
     __instance = None

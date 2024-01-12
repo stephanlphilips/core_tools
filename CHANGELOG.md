@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.39] - 2024-01-12
+
+- added SQL_database_manager.disconnect() to change database connection.
+
 ## \[1.4.38] - 2024-01-10
 
 - Video mode: disabled auto SI prefix to avoid 'mmV'.
