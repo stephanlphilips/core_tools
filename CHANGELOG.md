@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.41] - 2024-01-18
+
+- Fixed backward compatibility for old data viewer.
+
 ## \[1.4.40] - 2024-01-18
 
 - Added new qt_dataviewer to plot datasets.

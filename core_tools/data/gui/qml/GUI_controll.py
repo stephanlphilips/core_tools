@@ -12,7 +12,6 @@ try:
     from qt_dataviewer import DatasetList
     use_qt_dataviewer = True
 except ImportError:
-    raise
     from core_tools.data.gui.plot_mgr import data_plotter
     use_qt_dataviewer = False
 
