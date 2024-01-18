@@ -7,7 +7,15 @@ from core_tools.data.SQL.queries.dataset_gui_queries import (
         alter_dataset, query_for_samples, query_for_measurement_results)
 
 from core_tools.data.ds.data_set import load_by_uuid
-from core_tools.data.gui.plot_mgr import data_plotter
+try:
+    from qt_dataviewer.core_tools import CoreToolsDatasetViewer
+    from qt_dataviewer import DatasetList
+    use_qt_dataviewer = True
+except ImportError:
+    raise
+    from core_tools.data.gui.plot_mgr import data_plotter
+    use_qt_dataviewer = False
+
 from core_tools.data.gui.data_browser_models.result_table_data_class import m_result_overview
 from core_tools.data.name_validation import validate_dataset_name
 
@@ -264,12 +272,20 @@ class signale_handler(QtQuick.QQuickView):
         except Exception:
             logger.error(f'Failed to load dataset {uuid}', exc_info=True)
             return
-        p = data_plotter(ds)
-        self.plots.append(p)
+        try:
+            if use_qt_dataviewer:
+                datalist = DataList(self.data_overview_model, uuid)
+                p = CoreToolsDatasetViewer(ds, datalist=datalist)
+                datalist.viewer = p
+            else:
+                p = data_plotter(ds)
+            self.plots.append(p)
 
-        for i in range(len(self.plots)-1, -1, -1):
-            if not self.plots[i].alive:
-                self.plots.pop(i)
+            for i in range(len(self.plots)-1, -1, -1):
+                if not self.plots[i].alive:
+                    self.plots.pop(i)
+        except Exception:
+            logger.error(f'Failed to show dataset {uuid}', exc_info=True)
 
     @QtCore.pyqtSlot('QString')
     def plot_ds_qml(self, uuid):
@@ -320,3 +336,48 @@ class signale_handler(QtQuick.QQuickView):
         for plot in self.plots:
             plot.close()
         self.plots = []
+
+
+if use_qt_dataviewer:
+    class DataList(DatasetList):
+        def __init__(self, data_overview_model, uuid):
+            self.data_overview_model = data_overview_model
+            self.uuid = uuid
+
+        def has_next(self):
+            # Note: data is ordered in descending order.
+            # So 'next' in time is lower index
+            index = self._get_index()
+            return index is not None and index > 0
+
+        def select_next(self):
+            index = self._get_index()
+            if index is not None and index > 0:
+                self.uuid = self.data_overview_model._data[index-1].uuid
+                self.set_ds(self.uuid)
+
+        def has_previous(self):
+            index = self._get_index()
+            return index is not None and index + 1 < len(self.data_overview_model._data)
+
+        def select_previous(self):
+            index = self._get_index()
+            if index is not None and index + 1 < len(self.data_overview_model._data):
+                self.uuid = self.data_overview_model._data[index+1].uuid
+                print('Next uuid', self.uuid)
+                self.set_ds(self.uuid)
+
+        def _get_index(self):
+            uuid = self.uuid
+            for i, row in enumerate(self.data_overview_model._data):
+                if row.uuid == uuid:
+                    return i
+            return None
+
+        def set_ds(self, uuid):
+            try:
+                ds = load_by_uuid(uuid)
+                self.viewer.set_ds(ds)
+            except Exception:
+                logger.error(f'Failed to load dataset {uuid}', exc_info=True)
+
