@@ -364,7 +364,6 @@ if use_qt_dataviewer:
             index = self._get_index()
             if index is not None and index + 1 < len(self.data_overview_model._data):
                 self.uuid = self.data_overview_model._data[index+1].uuid
-                print('Next uuid', self.uuid)
                 self.set_ds(self.uuid)
 
         def _get_index(self):
