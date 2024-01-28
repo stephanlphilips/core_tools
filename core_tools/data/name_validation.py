@@ -7,8 +7,10 @@ def validate_dataset_name(name):
         raise Exception("Dataset name is too long. Max is 100")
     if '{' in name:
         raise Exception(f"Illegal name '{name}'. Did you forget the f in front of the string?")
-    if not re.match(r"^[A-Za-z0-9_\-.,:()[\]*+&/ @=<>]*$", name):
-        raise Exception(f"Invalid dataset name '{name}'. Valid characters: A-Za-z0-9_-.,:()[]*+&/ @=<>")
+    valid_names = r"^[A-Za-z0-9_\-.,:()[\]*+&/ =@<>'%?|]*$"
+    if not re.match(valid_names, name):
+        valid_chars = valid_names[2:-3].replace("\\", "")
+        raise Exception(f"Invalid dataset name '{name}'. Valid characters: {valid_chars}")
 
 def validate_data_identifier_value(value):
     if len(value) < 1:
