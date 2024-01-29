@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.42] - 2024-01-29
+
+- Compress snapshot in HDF5 files.
+- Added 'application' to xarray / HDF5 file.
+- Added query for new measurements.
+
 ## \[1.4.41] - 2024-01-18
 
 - Fixed backward compatibility for old data viewer.
