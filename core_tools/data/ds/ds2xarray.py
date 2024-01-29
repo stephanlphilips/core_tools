@@ -75,6 +75,8 @@ def ds2xarray(ct_ds, snapshot='gzip'):
     if snapshot == 'gzip':
         snapshot_json = json.dumps(ct_ds.snapshot, cls=NumpyJSONEncoder)
         attrs['snapshot-gzip'] = np.array(bytearray(gzip.compress(bytearray(snapshot_json, 'utf-8'))))
+    elif snapshot == 'dict':
+        attrs['snapshot'] = ct_ds.snapshot
     elif snapshot == 'json':
         snapshot_json = json.dumps(ct_ds.snapshot, cls=NumpyJSONEncoder)
         attrs['snapshot'] = snapshot_json
