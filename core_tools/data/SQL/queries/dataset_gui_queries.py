@@ -116,11 +116,11 @@ class query_for_measurement_results:
         statement = "SELECT DISTINCT date(start_time) FROM global_measurement_overview "
         statement += "where 1=1 "
         if sample is not None:
-            statement += " and sample =  '{}' ".format(sample)
+            statement += f" and sample =  '{sample}' "
         if set_up is not None:
-            statement += " and set_up = '{}' ".format(set_up)
+            statement += f" and set_up = '{set_up}' "
         if project is not None:
-            statement += " and project = '{}' ".format(project)
+            statement += f" and project = '{project}' "
         if name:
             statement += f" and exp_name like '%{name}%' "
         if keywords:
@@ -201,6 +201,32 @@ class query_for_measurement_results:
             max_measurement_id = max_id
 
         return update, max_measurement_id
+
+    @staticmethod
+    def get_new_results(min_id, sample, set_up, project, remote=False,
+                        name=None, keywords=None, starred=False):
+        if min_id is None:
+            return []
+        statement = '''
+            SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords
+            FROM global_measurement_overview
+            '''
+        statement += f"WHERE id > {min_id} "
+        if sample is not None:
+            statement += f" and sample =  '{sample}' "
+        if set_up is not None:
+            statement += f" and set_up = '{set_up}' "
+        if project is not None:
+            statement += f" and project = '{project}' "
+        if name:
+            statement += f" and exp_name like '%{name}%' "
+        if keywords:
+            statement += f" and keywords ?& array{keywords} "
+        if starred:
+            statement += f" and starred = {starred} "
+        statement += " ;"
+        res = query_for_measurement_results._execute(statement, remote)
+        return query_for_measurement_results._to_measurement_results(res)
 
     @staticmethod
     def _execute(statement, remote):
