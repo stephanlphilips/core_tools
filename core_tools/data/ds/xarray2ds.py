@@ -1,4 +1,5 @@
 from datetime import datetime
+import gzip
 import json
 
 from core_tools.data.SQL.buffer_writer import buffer_reference
@@ -47,7 +48,10 @@ def get_coord_param_id(coord_names, name):
 
 def xarray2ds(xr_ds):
     attrs = xr_ds.attrs
-    snapshot = json.loads(attrs['snapshot'])
+    if 'snapshot-gzip' in attrs:
+        snapshot = json.loads(gzip.decompress(attrs['snapshot-gzip']))
+    else:
+        snapshot = json.loads(attrs['snapshot'])
     try:
         metadata = json.loads(attrs['metadata'])
     except KeyError:
@@ -68,8 +72,6 @@ def xarray2ds(xr_ds):
             keywords=attrs['keywords'],
             completed=bool(attrs['completed']),
             )
-
-    # load metadata and snapshot from file.
 
     coord_names = [name for name in xr_ds.coords]
     data_names = [name for name in xr_ds.data_vars]

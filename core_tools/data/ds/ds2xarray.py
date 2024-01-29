@@ -1,8 +1,13 @@
-import xarray as xr
-import numpy as np
+import gzip
 import json
 import string
+
+import numpy as np
+import xarray as xr
+
 from qcodes.utils.helpers import NumpyJSONEncoder
+
+from core_tools import __version__
 
 def _add_coord(ds, param):
     data = param()
@@ -47,8 +52,7 @@ def _add_data_var(ds, var, dims, param_index):
             'param_name':var_name,
             }
 
-def ds2xarray(ct_ds):
-    snapshot_json = json.dumps(ct_ds.snapshot, cls=NumpyJSONEncoder)
+def ds2xarray(ct_ds, snapshot='gzip'):
     metadata_json = json.dumps(ct_ds.metadata, cls=NumpyJSONEncoder)
 
     if len(ct_ds) == 0:
@@ -63,11 +67,17 @@ def ds2xarray(ct_ds):
         'set_up':ct_ds.set_up,
         'measurement_time':str(ct_ds.run_timestamp),
         'completed_time': str(ct_ds.completed_timestamp),
-        'snapshot': snapshot_json,
         'metadata': metadata_json,
         'keywords':ct_ds.keywords,
         'completed':int(ct_ds.completed),
+        'application': f"core-tools:{__version__}"
         }
+    if snapshot == 'gzip':
+        snapshot_json = json.dumps(ct_ds.snapshot, cls=NumpyJSONEncoder)
+        attrs['snapshot-gzip'] = np.array(bytearray(gzip.compress(bytearray(snapshot_json, 'utf-8'))))
+    elif snapshot == 'json':
+        snapshot_json = json.dumps(ct_ds.snapshot, cls=NumpyJSONEncoder)
+        attrs['snapshot'] = snapshot_json
 
     ds = xr.Dataset(attrs=attrs)
 
