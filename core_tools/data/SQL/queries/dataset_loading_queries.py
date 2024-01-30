@@ -81,13 +81,15 @@ class load_ds_queries:
                                                    order_by=("param_index", "ASC"),
                                                    dict_cursor=False)
         else:
-            return_data = select_elements_in_table(conn, table_name, var_names, dict_cursor=False)
+            return_data = select_elements_in_table(conn, table_name, var_names,
+                                                   order_by=("id", "ASC"),
+                                                   dict_cursor=False)
 
         data_raw = []
         for row in return_data:
             raw_data_row = m_param_raw(*row)
-            if np.prod(raw_data_row.shape) >= 2**28:
-                raise Exception(f"Dataset too big. Var '{raw_data_row.name}'{tuple(raw_data_row.shape)} >= 2 GB.")
+            if np.prod(raw_data_row.shape) >= 2**27:
+                raise Exception(f"Dataset too big. Var '{raw_data_row.name}'{tuple(raw_data_row.shape)} >= 1 GB.")
             raw_data_row.data_buffer = buffer_reader(conn, raw_data_row.oid, raw_data_row.shape)
             data_raw.append(raw_data_row)
 

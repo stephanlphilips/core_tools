@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.43] - 2024-01-30
+
+- Fixed PostgreSQL data limit: 1GB per field.
+
 ## \[1.4.42] - 2024-01-29
 
 - Compress snapshot in HDF5 files.
