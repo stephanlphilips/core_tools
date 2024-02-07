@@ -338,6 +338,7 @@ class signale_handler(QtQuick.QQuickView):
 
 
 if use_qt_dataviewer:
+
     class DataList(DatasetList):
         def __init__(self, data_overview_model, uuid):
             self.data_overview_model = data_overview_model
@@ -349,21 +350,9 @@ if use_qt_dataviewer:
             index = self._get_index()
             return index is not None and index > 0
 
-        def select_next(self):
-            index = self._get_index()
-            if index is not None and index > 0:
-                self.uuid = self.data_overview_model._data[index-1].uuid
-                self.set_ds(self.uuid)
-
         def has_previous(self):
             index = self._get_index()
             return index is not None and index + 1 < len(self.data_overview_model._data)
-
-        def select_previous(self):
-            index = self._get_index()
-            if index is not None and index + 1 < len(self.data_overview_model._data):
-                self.uuid = self.data_overview_model._data[index+1].uuid
-                self.set_ds(self.uuid)
 
         def _get_index(self):
             uuid = self.uuid
@@ -372,10 +361,50 @@ if use_qt_dataviewer:
                     return i
             return None
 
-        def set_ds(self, uuid):
+        def _load_ds(self, uuid):
             try:
-                ds = load_by_uuid(uuid)
-                self.viewer.set_ds(ds)
+                return load_by_uuid(uuid)
             except Exception:
                 logger.error(f'Failed to load dataset {uuid}', exc_info=True)
+                # TODO raise Exception
+                return None
+
+        def get_next(self):
+            index = self._get_index()
+            if index is not None and index > 0:
+                self.uuid = self.data_overview_model._data[index-1].uuid
+                return self._load_ds(self.uuid)
+            logger.info(f"No next data (index = {index})")
+            return None
+
+        def get_previous(self):
+            index = self._get_index()
+            if index is not None and index + 1 < len(self.data_overview_model._data):
+                self.uuid = self.data_overview_model._data[index+1].uuid
+                return self._load_ds(self.uuid)
+            logger.info(f"No previous data (index = {index})")
+            return None
+
+        # -------------------------------------
+        # OLD interface qt-dataviewer v0.2.x
+        # TODO remove after some releases.
+        def select_next(self):
+            index = self._get_index()
+            if index is not None and index > 0:
+                self.uuid = self.data_overview_model._data[index-1].uuid
+                self._set_ds(self.uuid)
+
+        def select_previous(self):
+            index = self._get_index()
+            if index is not None and index + 1 < len(self.data_overview_model._data):
+                self.uuid = self.data_overview_model._data[index+1].uuid
+                self._set_ds(self.uuid)
+
+        def _set_ds(self, uuid):
+            try:
+                ds = self._load_ds(uuid)
+                if ds is not None:
+                    self.viewer.set_ds(ds)
+            except Exception:
+                logger.error(f'Failed to set dataset {uuid}', exc_info=True)
 
