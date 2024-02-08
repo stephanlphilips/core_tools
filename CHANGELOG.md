@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.44] - 2024-02-08
+
+- Update for qt-dataviewer v0.3.0
+
 ## \[1.4.43] - 2024-01-30
 
 - Fixed PostgreSQL data limit: 1GB per field.
