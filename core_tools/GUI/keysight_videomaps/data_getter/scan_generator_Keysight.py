@@ -455,7 +455,7 @@ class _digitzer_scan_parameter(MultiParameter):
                 channels=list(ch_nums))
 
         n_out_ch = len(self.channel_names)
-        super().__init__(name=digitizer.name,
+        super().__init__(name="fast_scan",
                          names=self.channel_names,
                          shapes=tuple([shape]*n_out_ch),
                          labels=self.channel_names,
