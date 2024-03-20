@@ -146,7 +146,9 @@ class line_trace(MultiParameter):
         # Always read with a timeout to prevent infinite blocking of HW (and reboot of system).
         # Transfer rate is ~55 MSa/s. Add one second marging
         read_timeout = int((available / 50e6 + 1) * 1000)
+        start_time = time.perf_counter()
         received = self.my_instrument.SD_AIN.DAQread(ch, available, read_timeout)
+        read_duration = (time.perf_counter() - start_time) * 1000
         check_error(received)
         if isinstance(received, int) and received < 0:
             # the error has already been logged
@@ -155,9 +157,9 @@ class line_trace(MultiParameter):
         n_received = len(received)
         # logger.debug(f'DAQread ch:{ch} ready:{available} read:{n_received} offset:{offset}')
         if n_received != available:
-            if available > n_received and available - n_received < 4:
-                # It seems that M3102A only returns multiples of 4 bytes.
-                logger.warning(f'DAQread data remaining. ch:{ch} ready:{available} read:{n_received}')
+            # M3102A buffering seems to hold back 8 bytes when run is not finished
+            if read_duration >= read_timeout and 0 < available - n_received <= 8:
+                logger.info(f'DAQread not all data read after timeout. ch:{ch} ready:{available} read:{n_received}')
             else:
                 logger.error(f'DAQread failure. ch:{ch} ready:{available} read:{n_received}')
 
@@ -177,6 +179,7 @@ class line_trace(MultiParameter):
         last_read = time.perf_counter()
         has_read_timeout = False
         timeout_seconds = self.my_instrument._timeout_seconds
+        no_data_report_time = 0.5
 
         while len(channels_to_read) > 0 and not has_read_timeout and consecutive_error_count < 5:
             any_read = False
@@ -198,16 +201,18 @@ class line_trace(MultiParameter):
 
             if any_read:
                 no_data_count = 0
+                no_data_report_time = 0.5
                 last_read = time.perf_counter()
             else:
                 no_data_time = time.perf_counter() - last_read
                 no_data_count += 1
                 time.sleep(0.001)
-                # abort when no data has been received for 30 s and at least 2 checks without any data
-                # the timeout of 30 s is needed for T1 measurement of 100 ms and one flush every 256 measurements.
+                # abort when no data has been received within timeout and at least 2 checks without any data.
                 has_read_timeout = no_data_count >= 2 and (no_data_time > timeout_seconds)
-                if (no_data_time > 0.5 and no_data_count < 100) or no_data_count % 100 == 0:
+                if no_data_time > no_data_report_time:
                     logger.debug(f'no data available ({no_data_count}, {no_data_time:4.2f} s); wait...')
+                    # double time adding at most 5 seconds
+                    no_data_report_time += no_data_report_time if no_data_report_time < 5 else 5
 
         logger.info(f'channels {channels}: retrieved {data_read} points in {(time.perf_counter()-start)*1000:3.1f} ms')
         for ch in channels:
