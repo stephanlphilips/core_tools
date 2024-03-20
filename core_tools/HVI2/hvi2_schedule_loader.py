@@ -96,8 +96,13 @@ class Hvi2ScheduleLoader(HardwareSchedule):
     def set_configuration(self, hvi_params, n_waveforms):
         conf = {}
         conf['script_name'] = self._script_name
-        conf['n_waveforms'] = n_waveforms
         conf['n_triggers'] = self._get_n_measurements(hvi_params)
+
+        # If hvi queue control is not used, then do not add the information.
+        # Otherwise a new schedule will be generated when the number of waveforms changes.
+        uses_hvi_queue_control = any(getattr(awg, 'hvi_queue_control', False)
+                                     for awg in self._pulse_lib.awg_devices.values())
+        conf['n_waveforms'] = n_waveforms if uses_hvi_queue_control else -1
 
         acquisition_delay_ns = hvi_params.get('acquisition_delay_ns', self._acquisition_delay_ns)
         if acquisition_delay_ns is not None:
