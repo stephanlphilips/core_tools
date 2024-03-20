@@ -80,7 +80,7 @@ class dataclass_raw_parent:
 @dataclass
 class setpoint_dataclass(dataclass_raw_parent):
     id_info : id
-    npt : np.NaN
+    npt : np.nan
     name : str
     names : list
     labels : list

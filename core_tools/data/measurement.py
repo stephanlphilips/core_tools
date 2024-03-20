@@ -125,7 +125,7 @@ class Measurement:
                     # this can cause in uniquess of the keys, therefore the extra multiplications
                     # (should more or less ensure uniqueness).
                     setpoint_local_parameter_spec = setpoint_dataclass(
-                        id(parameter.setpoint_names[i][j])*10*(i+1), np.NaN,
+                        id(parameter.setpoint_names[i][j])*10*(i+1), np.nan,
                         'local_var',
                         [parameter.setpoint_names[i][j]],
                         [parameter.setpoint_labels[i][j]],
