@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.45] - 2024-03-21
+
+- M3202A improved logging for long measurements
+- Avoid unnecessary HVI script regeneration when number waveforms changes
+
 ## \[1.4.44] - 2024-02-08
 
 - Update for qt-dataviewer v0.3.0
