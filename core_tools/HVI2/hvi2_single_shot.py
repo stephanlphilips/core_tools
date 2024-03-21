@@ -15,6 +15,18 @@ class Hvi2SingleShot():
     The start time of this schedule is 5 to 10 ms faster for repeated starts than the original Hvi2SingleShot schedule,
     because it keeps the HVI running and uses a start flag to restart the schedule.
     The gain is bigger when more modules are being used.
+
+    Note on HVI register usage:
+        * All modules: 5 general registers (start, stop, n_rep, rep_counter, ticks)
+        * AWG: 1 duration
+        * AWG LO: 2 per trigger
+        * AWG queue control: 4
+        * Digitizer: 1 (channel state) + 1 per trigger
+
+        Max triggers digitizer: 10
+        Max triggers AWG LO: 5
+        Max triggers AWG LO + queueing: 3
+
     '''
     verbose = True
 
