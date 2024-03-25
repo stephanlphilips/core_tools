@@ -20,7 +20,7 @@ class Hvi2SingleShot():
         * All modules: 5 general registers (start, stop, n_rep, rep_counter, ticks)
         * AWG: 1 duration
         * AWG LO: 2 per trigger
-        * AWG queue control: 4
+        * AWG queue control: 4 + 1 (n_waveforms)
         * Digitizer: 1 (channel state) + 1 per trigger
 
         Max triggers digitizer: 10
