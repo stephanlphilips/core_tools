@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.46] - 2024-03-28
+
+- Significantly improved performance of gates.snapshot and parameter viewer.
+
 ## \[1.4.45] - 2024-03-21
 
 - M3202A improved logging for long measurements

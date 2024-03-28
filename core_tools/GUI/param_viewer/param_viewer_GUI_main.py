@@ -16,6 +16,7 @@ class param_data_obj:
     param_parameter: any
     gui_input_param: any
     division: any
+    name: str
 
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -162,7 +163,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         set_unit.setObjectName(name + "_unit")
         set_unit.setText(_translate("MainWindow", unit))
         layout.addWidget(set_unit, i, 2, 1, 1)
-        self.rf_settings.append(param_data_obj(parameter,  set_input, division))
+        self.rf_settings.append(param_data_obj(parameter,  set_input, division, name))
 
     @qt_log_exception
     def _add_gate(self, parameter: qc.Parameter, virtual: bool):
@@ -210,10 +211,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         gate_unit.setObjectName(name + "_unit")
         gate_unit.setText(_translate("MainWindow", unit))
         layout.addWidget(gate_unit, i, 2, 1, 1)
+        param_data = param_data_obj(parameter,  voltage_input, 1, name)
         if not virtual:
-            self.real_gates.append(param_data_obj(parameter,  voltage_input, 1))
+            self.real_gates.append(param_data)
         else:
-            self.virtual_gates.append(param_data_obj(parameter,  voltage_input, 1))
+            self.virtual_gates.append(param_data)
 
     @qt_log_exception
     def _set_gate(self, gate, value, voltage_input):
@@ -274,11 +276,12 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         updates the values of all the gates in the parameter viewer periodically
         '''
         idx = self.tab_menu.currentIndex()
-
+        all_gate_voltages = {}
         if idx == 0:
             params = self.real_gates
         elif idx == 1:
             params = self.virtual_gates
+            all_gate_voltages = self.gates_object.get_all_gate_voltages()
         elif idx == 2:
             params = self.rf_settings
         else:
@@ -290,7 +293,10 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                 gui_input = param.gui_input_param
                 if not gui_input.hasFocus():
                     if isinstance(param.gui_input_param, QtWidgets.QDoubleSpinBox):
-                        new_value = param.param_parameter()/param.division
+                        if param.name in all_gate_voltages:
+                            new_value = all_gate_voltages[param.name]/param.division
+                        else:
+                            new_value = param.param_parameter()/param.division
                         current_text = gui_input.text()
                         new_text = gui_input.textFromValue(new_value)
                         if current_text != new_text:
@@ -300,7 +306,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                             if gui_input.text() != new_text and float(new_text) != 0.0:
                                 print(f'WARNING: {param.param_parameter.name} corrected from '
                                       f'{new_text} to {gui_input.text()}')
-                elif isinstance(param.gui_input_param, QtWidgets.QCheckBox):
-                    param.gui_input_param.setChecked(param.param_parameter())
+                    elif isinstance(param.gui_input_param, QtWidgets.QCheckBox):
+                        param.gui_input_param.setChecked(param.param_parameter())
             except Exception:
                 logger.error(f'Error updating {param}', exc_info=True)
