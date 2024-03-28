@@ -67,7 +67,6 @@ class gates(qc.Instrument):
                                    set_cmd=partial(self._set_voltage_virt, v_gate_name, virt_gate_convertor),
                                    get_cmd=partial(self._get_voltage_virt, v_gate_name, virt_gate_convertor),
                                    unit="mV")
-        # @@@ add virt gate convertors to list. def get_all_voltages:
 
     def get_idn(self):
         return dict(vendor='CoreTools',
@@ -110,7 +109,6 @@ class gates(qc.Instrument):
         Args:
             gate_name (str) : name of the gate to set
         '''
-        logger.debug(f'get {gate_name}')
         voltage = self._dac_params[gate_name].cache()
         if gate_name in self.dc_gain:
             return voltage * self.dc_gain[gate_name]
@@ -149,7 +147,6 @@ class gates(qc.Instrument):
         Args:
             gate_name : name of the virtual gate
         '''
-        logger.debug(f'get {gate_name}')
         real_voltages = self._get_voltages(virt_gate_convertor.real_gates)
         virtual_voltages =  np.matmul(virt_gate_convertor.r2v_matrix, real_voltages)
 
@@ -216,7 +213,6 @@ class gates(qc.Instrument):
         return v
 
     def snapshot_base(self, update=False, params_to_skip_update=None):
-        print('snapshot', update)
         # update real and virtual gates cached values by getting them.
         self.get_all_gate_voltages()
 
