@@ -1,10 +1,15 @@
 import logging
 import time
+from dataclasses import dataclass
+from typing import List, Union
+
 import numpy as np
+from qcodes import Parameter
+
+from pulse_lib.sequencer import sequencer, index_param
 
 from core_tools.data.measurement import Measurement
 from core_tools.sweeps.progressbar import progress_bar
-from pulse_lib.sequencer import sequencer, index_param
 from core_tools.sweeps.sweep_utility import KILL_EXP
 from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 
@@ -12,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class Break(Exception):
+    """Stops a scan and closes the dataset"""
     # TODO @@@ allow loop parameter to break to
     def __init__(self, msg, loops=None):
         super().__init__(msg)
@@ -35,11 +41,13 @@ class Action:
 
 
 class Setter(Action):
-    def __init__(self, param, n_points, delay=0.0, resetable=True):
+    def __init__(self, param, n_points, delay=0.0, resetable=True,
+                 value_after: Union[None, float]=None):
         super().__init__(f'set {param.name}', delay)
         self._param = param
         self._n_points = n_points
         self._resetable = resetable
+        self._value_after = value_after
 
     @property
     def param(self):
@@ -52,6 +60,10 @@ class Setter(Action):
     @property
     def resetable(self):
         return self._resetable
+
+    @property
+    def value_after(self):
+        return self._value_after
 
     def __iter__(self):
         raise NotImplementedError()
@@ -138,8 +150,14 @@ def _start_sequence(sequence):
 
 
 class ArraySetter(Setter):
-    def __init__(self, param, data, delay=0.0, resetable=True):
-        super().__init__(param, len(data), delay, resetable)
+    def __init__(self, param, data, delay=0.0, resetable=True,
+                 value_after: Union[None, str, float]=None):
+        if isinstance(value_after, str):
+            if value_after == 'start':
+                value_after = data[0]
+            else:
+                raise Exception(f"Unknown value_after '{value_after}'")
+        super().__init__(param, len(data), delay, resetable, value_after)
         self._data = data
 
     def __iter__(self):
@@ -147,11 +165,35 @@ class ArraySetter(Setter):
             yield value
 
 
-def sweep(parameter, data, stop=None, n_points=None, delay=0.0, resetable=True):
+def sweep(parameter, data, stop=None, n_points=None, delay=0.0, resetable=True,
+          value_after: Union[None, str, float]=None,
+          endpoint=True):
+    """ Sweeps parameter over specified values.
+
+    If stop is None, then data is assumed to be an array, otherwise data is the start value.
+
+    Args:
+        parameter (Parameter): qcodes parameter to sweep.
+        data (array or float): array of values to sweep or start value of the sweep.
+        stop (None or float): stop value of the sweep (inclusive is endpoint is True).
+        n_points (int): number of points for sweep.
+        delay (float): wait time in seconds after setting the parameter.
+        resetable (bool): if True the parameter will be reset to its value before the scan.
+        value_after (None, str or float):
+            if not None it specifies the value set after the sweep before changing the value of the outer loop.
+            value_after == 'start' sets the value to the first value of the sweep.
+        endpoint (bool): if True the stop value is inclusive, otherwise it is excluded.
+    """
     if stop is not None:
         start = data
-        data = np.linspace(start, stop, n_points)
-    return ArraySetter(parameter, data, delay, resetable)
+        data = np.linspace(start, stop, n_points, endpoint=endpoint)
+    return ArraySetter(parameter, data, delay, resetable, value_after)
+
+
+@dataclass
+class _MParam:
+    param: Parameter
+    dependencies: List[Parameter]
 
 
 class Scan:
@@ -191,6 +233,8 @@ class Scan:
                 getter = Getter(arg)
                 self._add_getter(getter)
 
+        self._register_params()
+
         if name == '':
             if len(self.set_params) == 0:
                 self.name = '0D_' + self.m_params[0].name[:10]
@@ -206,15 +250,21 @@ class Scan:
                     raise Exception(f"Measurement snapshot already contains key {key}")
 
     def _add_setter(self, setter):
-        self.meas.register_set_parameter(setter.param, setter.n_points)
-        self.set_params.append(setter.param)
+        self.set_params.append(setter)
         self.actions.append(setter)
         self.loop_shape.append(setter.n_points)
 
     def _add_getter(self, getter):
         self.actions.append(getter)
-        self.m_params.append(getter.param)
-        self.meas.register_get_parameter(getter.param, *self.set_params)
+        self.m_params.append(_MParam(getter.param, [setter.param for setter in self.set_params]))
+
+    def _register_params(self):
+        for setter in self.set_params:
+            # print(setter.param.name)
+            self.meas.register_set_parameter(setter.param, setter.n_points)
+        for m_param in self.m_params:
+            # print(m_param.param.name)
+            self.meas.register_get_parameter(m_param.param, *m_param.dependencies)
 
     def _insert_sequence_function(self, seq_function):
         sequence_added = False
@@ -368,7 +418,7 @@ class Runner:
                 self._setpoints[i][1] = None
             raise
 
-    def _loop_setter(self, action, iaction, iparam):
+    def _loop_setter(self, action: Setter, iaction, iparam):
         for value in action:
             try:
                 t_start = time.perf_counter()
@@ -385,6 +435,8 @@ class Runner:
                     raise
                 # TODO @@@ fill missing data. dataset must be rectangular/box
                 # Requires current loop index and shape per m_param.
+        if action.value_after is not None:
+            action.param(action.value_after)
 
     def _inc_count(self):
         self._n += 1
