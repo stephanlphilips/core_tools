@@ -1,31 +1,56 @@
-from si_prefix import si_format
-import numpy as np
+from pyqtgraph.functions import siScale
 
-known_units = {"mA" : 1e-3, "uA" : 1e-6, "nA" : 1e-9, "pA" : 1e-12, "fA" : 1e-15,
-                    "nV" : 1e-9, "uV" : 1e-6, "mV" : 1e-3,
-                    "ns" : 1e-9, "us" : 1e-6, "ms" : 1e-3,
-                    "kHz" : 1e3, "MHz" : 1e6, "GHz" : 1e9 }
+
+_si_prefixes = {
+    "T": 1e12,
+    "G": 1e9,
+    "M": 1e6,
+    "k": 1e3,
+    "" : 1,
+    "m": 1e-3,
+    "u": 1e-6,
+    "\u03BC": 1e-6,  # mu
+    "n": 1e-9,
+    "p": 1e-12,
+    "f": 1e-15,
+    }
+_si_units = ["s", "Hz", "A", "V", "Ohm", "\u03A9", "H", "T"]
+
+_auto_si_units = {
+    prefix+unit: scale
+    for prefix, scale in _si_prefixes.items()
+    for unit in _si_units
+    }
+
 
 def fix_units(unit):
-    scaler = 1
-    if unit in known_units.keys():
-        scaler = known_units[unit]
+    try:
+        scale = _auto_si_units[unit]
+        return unit[1:], scale
+    except KeyError:
+        return unit, scale
+
+def format_value_and_unit(value, unit, precision=1):
+    d = precision
+    if unit in [None, '', '#']:
+        return f"{value:#.{d}g}"
+    try:
+        scale = _auto_si_units[unit]
+        value *= scale
         unit = unit[1:]
+        prefixscale, prefix = siScale(value)
+        value = value * prefixscale
+        unit = prefix+unit
+    except KeyError:
+        pass
+    return f"{value:#.{d}g} {unit}"
 
-    return unit, scaler
-
-def format_value_and_unit(value, unit, precision = 1):
-    unit, scaler = fix_units(unit)
-    if np.isnan(value):
-        value = 0
-    return si_format(value*scaler,precision) + unit
 
 def format_unit(unit):
     return fix_units(unit)[0]
 
+
 def return_unit_scaler(unit):
     return fix_units(unit)[1]
 
-if __name__ == '__main__':
-    s =format_value_and_unit(50, 'mV', precision = 3)
-    print(s)
+

@@ -1,8 +1,7 @@
-from core_tools.data.gui.plots.unit_management import format_value_and_unit, format_unit, return_unit_scaler
-from PyQt5 import QtCore, QtGui, QtWidgets
+from core_tools.data.gui.plots.unit_management import format_unit, return_unit_scaler
+from PyQt5 import QtCore, QtWidgets
 from si_prefix import si_format
 import pyqtgraph as pg
-import numpy as np
 
 graph_color = list()
 graph_color += [{"pen":(0,114,189), 'symbolBrush':(0,114,189), 'symbolPen':'w', "symbol":'p', "symbolSize":12}]

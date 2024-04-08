@@ -8,7 +8,6 @@ import logging
 import time
 import copy
 import numpy as np
-from si_prefix import si_format
 
 import keysightSD1
 
@@ -686,10 +685,10 @@ class SD_DIG(Instrument):
             # The M3102A prescaler maximum value is 4.
             if prescaler > 4:
                 raise ValueError(f'Sample rate {sample_rate} not supported.'
-                                 'M3102A frequency is limited to range [100..500] MHz')
+                                 'M3102A frequency is limited to range [100..500] MSa/s')
             sample_rate = 500e6/(prescaler+1)
             if properties.sample_rate != sample_rate:
-                logger.info(f"Effective sampling frequency is set to {si_format(sample_rate, precision=1)}Sa/s "
+                logger.info(f"Effective sampling frequency is set to {sample_rate/1e6} MSa/s "
                             f"(prescaler = {prescaler})")
 
             points_per_cycle = int(t_measure*1e-9*sample_rate)

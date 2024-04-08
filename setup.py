@@ -7,7 +7,7 @@ setup(name="core_tools",
     install_requires=[
           'pyqt5',
           'pyqtgraph >= 0.12.4',
-          'si-prefix', 'matplotlib', 'psycopg2',
+          'matplotlib', 'psycopg2',
           'xarray',
           'qcodes',
           'pulse_lib',
