@@ -56,7 +56,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
     if dig_vmax is not None:
-        print(f'Parameter dig_vmax is deprecated.')
+        print('Parameter dig_vmax is deprecated.')
     logger.info(f'Construct 1D: {gate}')
 
     vp = swing/2
@@ -146,7 +146,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
-    logger.info(f'Upload')
+    logger.info('Upload')
     my_seq.upload()
 
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, acquisition_delay_ns, n_lines, line_delay_pts,
@@ -196,7 +196,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
     if dig_vmax is not None:
-        print(f'Parameter dig_vmax is deprecated.')
+        print('Parameter dig_vmax is deprecated.')
     logger.info(f'Construct 2D: {gate1} {gate2}')
 
     # set up timing for the scan
@@ -256,7 +256,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         g1.add_block(0, t_prebias, vpx*0.35)
         # correct voltage to ensure average == 0.0 (No DC correction pulse needed at end)
         # Note that voltage on g2 ends center of sweep, i.e. (close to) 0.0 V
-        total_duration = prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
+        total_duration = 2 * prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
         g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
         g2.add_block(0, t_prebias, vp2)
         for g,v in pulse_channels:
@@ -304,7 +304,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
-    logger.info(f'Seq upload')
+    logger.info('Seq upload')
     my_seq.upload()
 
     n_lines = n_pt2
@@ -528,6 +528,6 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def __del__(self):
         if not self.my_seq is None and not self.pulse_lib is None:
-            logger.warning(f'Cleanup in __del__(); Call stop()!')
+            logger.warning('Cleanup in __del__(); Call stop()!')
             self.stop()
 
