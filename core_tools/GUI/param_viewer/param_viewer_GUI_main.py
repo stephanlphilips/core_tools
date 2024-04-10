@@ -281,7 +281,9 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             params = self.real_gates
         elif idx == 1:
             params = self.virtual_gates
-            all_gate_voltages = self.gates_object.get_all_gate_voltages()
+            # if supported retrieve all voltages in 1 call. That's a lot faster.
+            if hasattr(self.gates_object, "get_all_gate_voltages"):
+                all_gate_voltages = self.gates_object.get_all_gate_voltages()
         elif idx == 2:
             params = self.rf_settings
         else:
