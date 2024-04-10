@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.47] - 2024-04-@@@
+## \[1.4.47] - 2024-04-10
 
 - Added value_after to sweep in Scan to set the value of the inner loop before the next step of the outer loop.
 - Removed dependency on package si_prefix
