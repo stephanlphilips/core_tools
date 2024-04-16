@@ -58,6 +58,10 @@ class data_set_raw:
 
         return size
 
+    def close(self):
+        for m_param in self.measurement_parameters_raw:
+            m_param.data_buffer.close()
+
 @dataclass
 class m_param_raw:
     param_id : int

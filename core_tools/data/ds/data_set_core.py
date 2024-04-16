@@ -164,3 +164,6 @@ class data_set:
         output_print += "project : {}\n".format(self.project)
         output_print += "sample_name : {}\n".format(self.sample_name)
         return output_print
+
+    def close(self):
+        self.__data_set_raw.close()

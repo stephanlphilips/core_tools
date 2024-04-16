@@ -125,6 +125,8 @@ class buffer_reader(buffer_reference):
         self.buffer[self.cursor:self.cursor+data.size] = data
         self.cursor = self.cursor+data.size
 
+    def close(self):
+        self.lobject.close()
 
 
 if __name__ == '__main__':
