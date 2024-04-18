@@ -1,4 +1,4 @@
-from core_tools.data.ds.data_set_DataMgr import m_param_origanizer, dataset_data_description
+from core_tools.data.ds.data_set_DataMgr import m_param_organizer, dataset_data_description
 from core_tools.data.SQL.SQL_dataset_creator import SQL_dataset_creator
 
 import datetime
@@ -46,7 +46,7 @@ class data_set:
         self.id = None
         self.__data_set_raw = ds_raw
         self.__repr_attr_overview = []
-        self.__init_properties(m_param_origanizer(ds_raw.measurement_parameters_raw))
+        self.__init_properties(m_param_organizer(ds_raw.measurement_parameters_raw))
         self.last_commit = time.time()
 
     def __len__(self):
@@ -63,25 +63,25 @@ class data_set:
         populates the dataset with the measured parameter in the raw dataset
 
         Args:
-            data_set_content (m_param_origanizer) : m_param_raw raw objects in their mamagement object
+            data_set_content (m_param_organizer) : m_param_raw raw objects in their mamagement object
         '''
-        m_id = data_set_content.get_m_param_id()
+        m_ids = data_set_content.get_m_param_id()
 
-        for i in range(len(m_id)): #this is not pretty.
-            n_sets = len(data_set_content[m_id[i]])
+        for i, m_id in enumerate(m_ids, 1):
+            n_sets = len(data_set_content[m_id])
             repr_attr_overview = []
             for j in range(n_sets):
-                ds_descript = dataset_data_description('', data_set_content.get(m_id[i],  j), data_set_content)
+                ds_descript = dataset_data_description('', data_set_content.get(m_id,  j), data_set_content)
 
-                name = 'm' + str(i+1) + "_" + str(j+1)
+                name = 'm' + str(i) + "_" + str(j+1)
                 setattr(self, name, ds_descript)
 
                 if j == 0:
-                    setattr(self, 'm' + str(i+1), ds_descript)
+                    setattr(self, 'm' + str(i), ds_descript)
 
                 if j == 0 and n_sets==1: #consistent printing
-                    repr_attr_overview += [('m' + str(i+1), ds_descript)]
-                    ds_descript.name = 'm' + str(i+1)
+                    repr_attr_overview += [('m' + str(i), ds_descript)]
+                    ds_descript.name = 'm' + str(i)
                 else:
                     repr_attr_overview += [(name, ds_descript)]
                     ds_descript.name = name

@@ -1,8 +1,12 @@
-import numpy as np
+import logging
 import copy
 import string
 
-class m_param_origanizer():
+
+logger = logging.getLogger(__name__)
+
+
+class m_param_organizer():
     def __init__(self, m_param_raw):
         self.m_param_raw = m_param_raw
 
@@ -12,7 +16,7 @@ class m_param_origanizer():
             if i.nth_set == nth_set:
                 return i
 
-        raise ValueError('m_param with id {} and set {} not found in this data collection.'.format(key, nth_set))
+        raise ValueError(f'm_param with id {key} and set {nth_set} not found in this data collection.')
 
     def __getitem__(self, key):
         '''
@@ -28,30 +32,36 @@ class m_param_origanizer():
 
         if len(param_s) != 0:
             return param_s
-        raise ValueError('m_param with id {} not found in this data collection.'.format(key))
+        raise ValueError(f'm_param with id {key} not found in this data collection.')
 
     def get_m_param_id(self):
         '''
         get the measurement id's
         '''
-        id_s = set()
+        id_s = []
         for m_param in self.m_param_raw:
-            id_s.add(m_param.param_id_m_param)
+            if m_param.param_id_m_param in id_s:
+                logger.warning(f"Duplicate parameter in dataset {m_param.name}")
+                continue
+            id_s.append(m_param.param_id_m_param)
 
-        return list(id_s)
+        return id_s
 
     def __copy__(self):
         new_m_param = []
         for i in self.m_param_raw:
             new_m_param.append(copy.copy(i))
 
-        return m_param_origanizer(new_m_param)
+        return m_param_organizer(new_m_param)
+
 
 class data_descriptor: #autogenerate parameter info
-    def __set_name__(self, owner, name): # from python 3.6 (super handy :) )
+    def __set_name__(self, owner, name):
         self.name = name
+
     def __get__(self, obj, objtype):
         return getattr(obj.__dict__.get("_dataset_data_description__raw_data"), self.name)
+
 
 class dataset_data_description():
     unit = data_descriptor()
@@ -61,7 +71,7 @@ class dataset_data_description():
         '''
         Args:
             m_param_raw (m_param_raw) : pointer to the raw parameter to add
-            m_params_raw_collection (m_param_origanizer) : object containing a representation of all the data in the dataset
+            m_params_raw_collection (m_param_organizer) : object containing a representation of all the data in the dataset
         '''
         self.name = name # @@@ will be overwritten by data_set_core.data_set.__init_properties
         self.param_name = m_param_raw.name
@@ -216,13 +226,13 @@ class dataset_data_description():
         return self.slice(to_slice[0], to_slice[1])[tuple(args)]
 
     def __repr__(self):
-        output_print = ""
-        output_print += "| " + "{:<15}".format(self.name) + " | " + "{:<15}".format(self.label) + " | " +  "{:<8}".format(self.unit)+ " | " +  "{:<25}".format(str(self.shape)) + "|\n"
+        output_print = f"| {self.name:<15} | {self.label:<15} | {self.unit:<8} | {str(self.shape):<25}|\n"
         for i in self.__repr_attr_overview:
             for j in i:
-                dataDescription = j[1]
-                if dataDescription.ndim == 1:
-                    output_print +=  "|  " +  "{:<14}".format(j[0]) + " | " +  "{:<15}".format(dataDescription.label) + " | " +   "{:<8}".format(dataDescription.unit)+ " | " +  "{:<25}".format(str(dataDescription.shape)) + "|\n"
+                # data description
+                dd = j[1]
+                if dd.ndim == 1:
+                    output_print +=  f"|  {j[0]:<14} | {dd.label:<15} | {dd.unit:<8} | {str(dd.shape):<25}|\n"
 
         return output_print
 
@@ -237,47 +247,3 @@ class dataset_data_description():
             else:
                 dim = list(string.ascii_lowercase).index(dim) - 8
         return dim
-
-class data_set_property_intializer():
-    '''
-    mockup of dataclass for development purposes-- dont use this class.
-    '''
-    def __init__(self, m_params):
-        self.__repr_attr_overview = []
-        # m_meas_id's
-        m_id = m_params.get_m_param_id()
-
-        for i in range(len(m_id)): #this is not pretty.
-            n_sets = len(m_params[m_id[i]])
-            repr_attr_overview = []
-            for j in range(n_sets):
-                ds_descript = dataset_data_description('', m_params.get(m_id[i],  j), m_params)
-
-                name = 'm' + str(i+1) + string.ascii_lowercase[j]
-                setattr(self, name, ds_descript)
-
-                if j == 0:
-                    setattr(self, 'm' + str(i+1), ds_descript)
-
-                if j == 0 and n_sets==1: #consistent printing
-                    repr_attr_overview += [('m' + str(i+1), ds_descript)]
-                    ds_descript.name = 'm' + str(i+1)
-                else:
-                    repr_attr_overview += [(name, ds_descript)]
-                    ds_descript.name = name
-
-            self.__repr_attr_overview += [repr_attr_overview]
-
-    def __repr__(self):
-        output_print = "DataSet :: my_measurement_name\n\nid = 1256\nTrueID = 1225565471200\n\n"
-        output_print += "| idn             | label           | unit     | size                     |\n"
-        output_print += "---------------------------------------------------------------------------\n"
-        for i in self.__repr_attr_overview:
-            for j in i:
-                output_print += j[1].__repr__()
-                output_print += "\n"
-        output_print += "database : vanderyspen\n"
-        output_print += "set_up : XLD\n"
-        output_print += "project : 6dot\n"
-        output_print += "sample_name : SQ19\n"
-        return output_print

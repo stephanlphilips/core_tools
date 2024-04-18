@@ -64,7 +64,7 @@ class Measurement:
         param_id = id(parameter)
 
         if param_id in self.setpoints.keys() or param_id in self.m_param.keys():
-            raise ValueError("parameter is not unique, this parameter has already been provided to this measurement.")
+            raise ValueError(f"Duplicate parameter {parameter.name} in measurement.")
 
         setpoint_parameter_spec = None
 
@@ -89,7 +89,7 @@ class Measurement:
         param_id = id(parameter)
 
         if param_id in self.setpoints.keys() or param_id in self.m_param.keys():
-            raise ValueError("parameter is not unique, this parameter has already exists in this measurement.")
+            raise ValueError(f"Duplicate parameter {parameter.name} in measurement.")
 
         for setpoint in setpoints:
             if id(setpoint) not in self.setpoints.keys():
