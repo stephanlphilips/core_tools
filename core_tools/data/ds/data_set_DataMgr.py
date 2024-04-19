@@ -40,10 +40,9 @@ class m_param_organizer():
         '''
         id_s = []
         for m_param in self.m_param_raw:
-            if m_param.param_id_m_param in id_s:
-                logger.warning(f"Duplicate parameter in dataset {m_param.name}")
-                continue
-            id_s.append(m_param.param_id_m_param)
+            # check if this param is a measurement param or setpoint.
+            if m_param.param_id == m_param.param_id_m_param:
+                id_s.append(m_param.param_id_m_param)
 
         return id_s
 
