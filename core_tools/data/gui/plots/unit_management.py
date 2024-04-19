@@ -28,7 +28,7 @@ def fix_units(unit):
         scale = _auto_si_units[unit]
         return unit[1:], scale
     except KeyError:
-        return unit, scale
+        return unit, 1.0
 
 def format_value_and_unit(value, unit, precision=1):
     d = precision

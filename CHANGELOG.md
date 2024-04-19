@@ -1,7 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.47] - 2024-04-16
+## \[1.4.49] - 2024-04-18
+
+- Fixed order of measurement parameters in dataset.
+
+
+## \[1.4.48] - 2024-04-16
 
 - Added close to dataset to release file objects.
 
