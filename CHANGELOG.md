@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.50] - 2024-04-19
+
+- Fixed measurement parameters in dataset.
+
 ## \[1.4.49] - 2024-04-19
 
 - Added Section to Scan to make a sequence of sweeps in a scan.

@@ -40,9 +40,11 @@ class m_param_organizer():
         '''
         id_s = []
         for m_param in self.m_param_raw:
-            # check if this param is a measurement param or setpoint.
-            if m_param.param_id == m_param.param_id_m_param:
+            # check if this param is a measurement param. Add only 1 of a set.
+            if m_param.param_id == m_param.param_id_m_param and m_param.param_id not in id_s:
                 id_s.append(m_param.param_id_m_param)
+
+        print(id_s)
 
         return id_s
 
