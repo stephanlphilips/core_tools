@@ -1,12 +1,11 @@
 import logging
 from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
-from core_tools.data.measurement import Measurement
+from core_tools.data.measurement import Measurement, AbortMeasurement
 from pulse_lib.sequencer import sequencer
 
 from core_tools.sweeps.sweep_utility import (
         SequenceStartAction,
-        pulselib_2_qcodes, sweep_info, get_measure_data,
-        KILL_EXP
+        pulselib_2_qcodes, sweep_info
         )
 from core_tools.job_mgnt.job_meta import job_meta
 from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
@@ -14,7 +13,9 @@ from core_tools.job_mgnt.job_mgmt import queue_mgr, ExperimentJob
 import numpy as np
 import time
 
+
 logger = logging.getLogger(__name__)
+
 
 class scan_generic(metaclass=job_meta):
     '''
@@ -70,6 +71,7 @@ class scan_generic(metaclass=job_meta):
             if len(self.set_vars) == 0:
                 self.name = '0D_' + self.m_instr[0].name[:10]
             else:
+                print("WARNING: no name specified with scan! Please specify a name.")
                 self.name += '{}D_'.format(len(self.set_vars))
 
         for swp_info in self.set_vars:
@@ -88,7 +90,7 @@ class scan_generic(metaclass=job_meta):
             with self.meas as ds:
                 self._loop(self.set_vars, tuple(), ds)
 
-        except KILL_EXP:
+        except AbortMeasurement:
             logger.warning('Measurement aborted')
         except KeyboardInterrupt:
             logger.warning('Measurement interrupted')
@@ -115,15 +117,19 @@ class scan_generic(metaclass=job_meta):
         job = ExperimentJob(priority, self)
         queue.put(job)
 
+    def abort_measurement(self):
+        self.meas.abort()
+
     def _loop(self, set_param, to_save, dataset):
         if len(set_param) == 0:
-            if self.KILL == False:
-                for action in self.actions:
-                    action()
-                dataset.add_result(*to_save, *get_measure_data(self.m_instr))
-                self.n += 1
-            else:
-                raise KILL_EXP
+            for action in self.actions:
+                action()
+            m_data = []
+            for instr in self.m_instr:
+                m_data.append((instr, instr.get()))
+
+            dataset.add_result(*to_save, *m_data)
+            self.n += 1
         else:
             param_info = set_param[0]
             for value in param_info.values():
@@ -142,6 +148,7 @@ def do0D(*m_instr, name='', silent=False):
     '''
     return scan_generic(*m_instr, name=name, reset_param=False, silent=silent)
 
+
 def do1D(param, start, stop, n_points, delay, *m_instr, name='', reset_param=False, silent=False):
     '''
     do a 1D scan
@@ -157,6 +164,7 @@ def do1D(param, start, stop, n_points, delay, *m_instr, name='', reset_param=Fal
     '''
     m_param = sweep_info(param, start, stop, n_points, delay)
     return scan_generic(m_param, *m_instr,name=name, reset_param=reset_param, silent=silent)
+
 
 def do2D(param_1, start_1, stop_1, n_points_1, delay_1,
             param_2, start_2, stop_2, n_points_2, delay_2, *m_instr, name='',
@@ -181,111 +189,3 @@ def do2D(param_1, start_1, stop_1, n_points_1, delay_1,
     m_param_2 = sweep_info(param_2, start_2, stop_2, n_points_2, delay_2)
     return scan_generic(m_param_2, m_param_1, *m_instr,
                         name=name, reset_param=reset_param, silent=silent)
-
-if __name__ == '__main__':
-
-    import os
-    import datetime
-
-    import numpy as np
-    import scipy.optimize as opt
-    import matplotlib.pyplot as plt
-
-    import qcodes as qc
-    from qcodes.dataset.plotting import plot_dataset
-    from qcodes.dataset.data_set import load_by_run_spec
-    from qcodes.dataset.sqlite.database import initialise_or_create_database_at
-    from qcodes.dataset.experiment_container import load_or_create_experiment
-    from qcodes.tests.instrument_mocks import MockParabola
-
-    station = qc.station.Station()
-    station.add_component(MockParabola(name='MockParabola'))
-
-    class MyCounter(qc.Parameter):
-        def __init__(self, name):
-            # only name is required
-            super().__init__(name, label='Times this has been read',
-                             docstring='counts how many times get has been called '
-                                       'but can be reset to any integer >= 0 by set')
-            self._count = 0
-
-        # you must provide a get method, a set method, or both.
-        def get_raw(self):
-            self._count += 1
-            return self._count
-
-        def set_raw(self, val):
-            self._count = val
-
-    class dummy_multi_parameter_2dawg(qc.MultiParameter):
-        def __init__(self, name, label=None, unit=None):
-
-            super().__init__(name=name,
-                             instrument=None,
-                             names=("test12","test1234"),
-                             shapes=( tuple() , tuple() ),
-                             labels=( "digitzer_response",  "D2"),
-                             units=("unit1", "unit2"), )
-            self.setpoints = ( tuple(),  tuple())
-            self.setpoint_shapes = ( tuple(),   tuple())
-            self.setpoint_labels = ( ("I channel", ),   ('Q channel', ))
-            self.setpoint_units = ( ("mV", ),   ("mV", ))
-            self.setpoint_names = ( ("I_channel", ),   ("Q_channel", ))
-            self.i = 2
-        def get_raw(self):
-            self.i +=1
-            return (self.i, self.i+100)
-
-
-    import qcodes
-    from qcodes import Parameter, Station
-    from qcodes.tests.instrument_mocks import DummyInstrument
-
-    station = Station()
-    instr = DummyInstrument('instr', gates=['input', 'output', 'gain'])
-    instr.gain(42)
-    # station.add_component(p)
-    station.add_component(instr)
-
-    from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-    # set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "6D2S - SQ21-XX-X-XX-X")
-    # set_up_local_storage("xld_user", "XLDspin001", "vandersypen_data", "6dot", "XLD", "testing")
-    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-
-    now = str(datetime.datetime.now())
-    path = os.path.join(os.getcwd(), 'test.db')
-    initialise_or_create_database_at(path)
-    load_or_create_experiment('tutorial ' + now, 'no sample')
-    my_param1 = MyCounter('test_instr1')
-    my_param2 = MyCounter('test_instr2')
-    from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
-
-    x = qc.Parameter(name='x', label='Voltage_x', unit='V',
-              set_cmd=None, get_cmd=None)
-    y = qc.Parameter(name='y', label='Voltage_y', unit='V',
-              set_cmd=None, get_cmd=None)
-    timer = ElapsedTimeParameter('time')
-    my_param_multi_test =dummy_multi_parameter_2dawg('param')
-
-
-    s = sweep_info(x,10,100,10,0)
-    s.param = 5
-    # from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast,construct_2D_scan_fast, fake_digitizer
-    # param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'))
-    # param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'))
-    # data_1D = param_1D.get()
-    # do0D(param_2D).run()
-    # do1D(x, 0,5,100, 0.01, param_1D).run()
-    from core_tools.GUI.keysight_videomaps.data_getter.scan_generator_Virtual import construct_1D_scan_fast,construct_2D_scan_fast, fake_digitizer
-    param_1D = construct_1D_scan_fast("P2", 10,10,5000, True, None, fake_digitizer('test'), 2, 1e9)
-    param_2D = construct_2D_scan_fast('P2', 10, 10, 'P5', 10, 10,50000, True, None, fake_digitizer('test'), 2, 1e9)
-    # data_1D = param_1D.get()
-    # do0D(param_2D).run()
-    # ds = do0D(param_2D).run()
-    # print(ds)
-    ds =do1D(x, -100,100,100, 0.01, my_param1, param_1D, param_2D).run()
-
-    # do2D(y, 0,5,100, 0.001,x, 0,5,100, 0.0, my_param).run()
-
-    # print(ds.snapshot)
-    # print(ds.metadata)

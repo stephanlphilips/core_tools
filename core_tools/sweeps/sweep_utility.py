@@ -2,24 +2,6 @@ from dataclasses import dataclass
 from qcodes import Parameter
 import numpy as np
 
-class KILL_EXP(Exception):
-    pass
-
-def get_measure_data(m_instr):
-    '''
-    measure date for given paramters in m_instr
-
-    Args:
-        m_instr (list<qc.Parameter>) : list with parameters to be measured
-    Returns
-        my_data (list<qc.Parameter>), np.ndarray/str/float/int>)
-    '''
-    my_data = []
-    for instr in m_instr:
-        my_data.append( (instr, instr.get()))
-
-    return my_data
-
 
 FAST = "FAST"
 SLOW = "SLOW"

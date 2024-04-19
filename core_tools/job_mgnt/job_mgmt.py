@@ -18,7 +18,7 @@ class ExperimentJob:
         ExperimentJob.seq_cntr += 1
 
     def kill(self):
-        self.job.KILL = True
+        self.job.abort_measurement()
 
 # NOTE: use seq_cntr to keep insertion order for jobs with equal priority
 ExperimentJob.seq_cntr = 0
@@ -47,8 +47,7 @@ class queue_mgr():
                         job_object = self.q.get()
                         print(f'{n_jobs} items queued. Starting next job')
                         try:
-                            if job_object.job.KILL != True:
-                                job_object.job.run()
+                            job_object.job.run()
                         except Exception as e:
                             print(f'{type(e).__name__} {e} in job. Continuing with next job.')
                             print(e)
@@ -81,7 +80,7 @@ class queue_mgr():
         Args:
             job (ExperimentJob) : job object
         '''
-        job.KILL = True
+        job.kill()
 
     def killall(self):
         '''
@@ -100,61 +99,3 @@ class queue_mgr():
     @property
     def n_jobs(self):
         return self.q.qsize()
-
-
-#%%
-if __name__ == '__main__':
-    from core_tools.sweeps.sweeps import do1D, do2D
-    import os
-    import qcodes as qc
-    from qcodes.dataset.sqlite.database import initialise_or_create_database_at
-    from qcodes.dataset.experiment_container import load_or_create_experiment
-    from qcodes.instrument.specialized_parameters import ElapsedTimeParameter
-
-    # class MyCounter(qc.Parameter):
-    #     def __init__(self, name):
-    #         # only name is required
-    #         super().__init__(name, label='Times this has been read',
-    #                          docstring='counts how many times get has been called '
-    #                                    'but can be reset to any integer >= 0 by set')
-    #         self._count = 0
-
-    #     # you must provide a get method, a set method, or both.
-    #     def get_raw(self):
-    #         self._count += 1
-    #         return self._count
-
-    #     def set_raw(self, val):
-    #         self._count = val
-
-    # tutorial_db_path = os.path.join(os.getcwd(), 'linking_datasets_tutorial.db')
-    # initialise_or_create_database_at(tutorial_db_path)
-    # load_or_create_experiment('tutorial', 'no sample')
-
-    # my_param = MyCounter('test_instr')
-
-    # x = qc.Parameter(name='x', label='Voltage_x', unit='V',
-    #           set_cmd=None, get_cmd=None)
-    # y = qc.Parameter(name='y', label='Voltage_y', unit='V',
-    #           set_cmd=None, get_cmd=None)
-    # timer = ElapsedTimeParameter('time')
-
-    # scan1 = do2D(x, 0, 20, 20, 0.0, y, 0, 80, 30, 0.1, my_param)
-    # scan2 = do2D(x, 0, 20, 20, 0.0, timer, 0, 80, 30, .1, my_param)
-    # scan3 = do1D(x, 0, 100, 50, 0.1 , my_param, reset_param=True)
-
-    # q = queue_mgr()
-    # job1 = ExperimentJob(1, scan1)
-    # job2 = ExperimentJob(1, scan2)
-    # job3 = ExperimentJob(1, scan3)
-    # q.put(job1)
-    # q.put(job2)
-    # q.put(job3)
-
-    # q.killall()
-    # scan1 = do2D(x, 0, 20, 20, 0.0, y, 0, 80, 30, 0.1, my_param)
-    # scan2 = do2D(x, 0, 20, 20, 0.0, timer, 0, 80, 30, .1, my_param)
-    # job1 = ExperimentJob(1, scan1)
-    # job2 = ExperimentJob(1, scan2)
-    # q.put(job1)
-    # q.put(job2)

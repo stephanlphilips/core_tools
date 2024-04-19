@@ -35,6 +35,10 @@ from .name_validation import validate_dataset_name, validate_param_name
 logger = logging.getLogger(__name__)
 
 
+class AbortMeasurement(Exception):
+    pass
+
+
 class Measurement:
     '''
     class used to describe a measurement.
@@ -48,6 +52,7 @@ class Measurement:
         self.name = name
         self.snapshot = dict()
         self.void_parameters = []
+        self._abort_measurement = False
         validate_dataset_name(name)
 
     def register_set_parameter(self, parameter, n_points):
@@ -174,15 +179,28 @@ class Measurement:
         if self.dataset is None:
             raise ValueError(
                 'Dataset not initialized! Start measurement using context manager, e.g. "with Measurement():')
+        if self._abort_measurement:
+            raise AbortMeasurement()
 
         args_dict = {}
         for arg in args:
             args_dict[id(arg[0])] = arg[1]
 
         self.dataset.add_result(args_dict)
+        if self._abort_measurement:
+            raise AbortMeasurement()
+
+    def abort(self):
+        """Abort measurement.
+        A running measurement will be interrrupted at the next `add_result`.
+        If abort is called before the measurement is started, then it will raise the
+        AbortMeasurement exception before creating the dataset.
+        """
+        self._abort_measurement = True
 
     def __enter__(self):
-        # generate dataset
+        if self._abort_measurement:
+            raise AbortMeasurement()
         if len(self.m_param) == 0:
             if self.void_parameters:
                 raise Exception('Measurement parameters do not return any data.')
