@@ -1,10 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.49] - 2024-04-18
+## \[1.4.49] - 2024-04-19
 
+- Added Section to Scan to make a sequence of sweeps in a scan.
 - Fixed order of measurement parameters in dataset.
-
+- Fixed old dataviewer after removing si_prefix package.
 
 ## \[1.4.48] - 2024-04-16
 

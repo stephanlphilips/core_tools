@@ -1,3 +1,5 @@
+import time
+import numpy as np
 import core_tools as ct
 from core_tools.sweeps.scans import Scan, sweep, Function, Break
 import qcodes as qc
@@ -10,14 +12,19 @@ ct.launch_databrowser()
 
 station = qc.Station()
 
+# Scan.verbose = True
+
+#%%
 x = ManualParameter('x', initial_value=0)
 y = ManualParameter('y', initial_value=9)
 
 t = ElapsedTimeParameter('t')
 
 #%%
+# ct.set_sample_info('CoreTools', 'Demo', 'Magic')
 
 ds1 = Scan(
+        sweep(y, np.geomspace(1, 100, 7), delay=1.0),
         sweep(x, -20, 20, 11, delay=0.01),
         t,
         name='test_scan',
@@ -42,7 +49,8 @@ ds2 = Scan(
         sweep(y, -1, 1, 3, delay=0.2),
         Function(inner_scan),
         t,
-        reset_param=True).run()
+        reset_param=True,
+        name='outer_scan').run()
 
 
 #%%
@@ -97,7 +105,80 @@ def inner_scan_do1D():
     ds_inner2.append(ds)
 
 ds6 = Scan(
-        sweep(y, -1, 1, 3, delay=0.2),
+        sweep(y, -1, 1, 5, delay=0.2),
         Function(inner_scan_do1D),
         t,
+        name='Scan with inner scan',
         reset_param=True).run()
+
+# %%
+
+from qcodes import DelegateParameter
+
+i1 = ManualParameter('i1', initial_value=0)
+i2 = ManualParameter('i2', initial_value=0)
+v1 = ManualParameter('v1', initial_value=0)
+
+current = ManualParameter('I', initial_value=0)
+current1 = DelegateParameter('I1', current, label='I1')
+
+ds11 = Scan(
+        sweep(i1, range(1, 3)),
+        sweep(i2, range(1, 5)),
+        current,
+        sweep(v1, -500, -1100, 30),
+        current1,
+        name='Scan with delegate parameter',
+        reset_param=True).run()
+
+
+# %%
+from core_tools.sweeps.scans import Section
+from qcodes import DelegateParameter
+
+def rename(param, name):
+    return DelegateParameter(name, param, label=name)
+
+i1 = ManualParameter('i1', initial_value=0)
+i2 = ManualParameter('i2', initial_value=0)
+v1 = ManualParameter('v1', initial_value=0)
+v2 = ManualParameter('v2', initial_value=0)
+v3 = ManualParameter('v3', initial_value=0)
+meas_param = t
+
+def reset_voltage():
+    v1(0.0)
+
+ds11 = Scan(
+        sweep(i1, range(1, 16)),
+        sweep(i2, range(1, 10)),
+        Section(
+            sweep(v1, -500, -1100, 100, delay=0.001),
+            rename(meas_param, "I1"),
+        ),
+        Section(
+            sweep(v2, -500, -1100, 100, value_after='start', delay=0.01),
+            rename(meas_param, "I2"),
+        ),
+        Section(
+            sweep(v3, -500, -1100, 100, value_after='start', delay=0.01),
+            rename(meas_param, "I3"),
+        ),
+        Function(reset_voltage),
+        name='Scan with inner scan',
+        reset_param=True).run()
+
+
+ds11
+
+# %%
+from core_tools.data.ds.data_set import load_by_uuid
+
+ds12 = load_by_uuid(ds11.exp_uuid)
+
+ds12
+
+#%%
+from core_tools.data.ds.ds2xarray import ds2xarray
+dsx = ds2xarray(ds12)
+dsx

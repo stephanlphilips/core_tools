@@ -52,10 +52,10 @@ from core_tools.job_mgnt.job_mgmt import queue_mgr
 import time
 
 do2D(
-    p2, 0, 5, 6, 0.0,
-    p1, 0, -1, 3, 0.02,
+    p2, 0, 5, 11, 0.0,
+    p1, 0, -1, 6, 0.05,
     t, name='x,y->t').put()
 
-time.sleep(0.2)
+time.sleep(0.3)
 queue_mgr().killall()
 
