@@ -229,8 +229,8 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setFrame(False)
                 doubleSpinBox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
                 doubleSpinBox.setPrefix("")
-                doubleSpinBox.setMaximum(5.0)
-                doubleSpinBox.setMinimum(-5.0)
+                doubleSpinBox.setMaximum(99.999)
+                doubleSpinBox.setMinimum(-99.999)
                 doubleSpinBox.setSingleStep(0.001)
                 doubleSpinBox.setDecimals(3)
                 doubleSpinBox.setContentsMargins(0,0,0,0)
@@ -242,14 +242,6 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 update_list.append((i,j, doubleSpinBox))
                 tableWidget.setCellWidget(i, j, doubleSpinBox)
 
-
-        # make a timer to refresh the data in the plot when the matrix is changed externally.
-        refresh = lambda:self.update_v_gates(virtual_gate_set, update_list, state)
-        timer = QtCore.QTimer()
-        timer.timeout.connect(refresh)
-        timer.start(2000)
-        self.timers.append(timer)
-
         controlBar = QtWidgets.QWidget()
         barLayout = QtWidgets.QHBoxLayout(controlBar)
 
@@ -257,6 +249,10 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         directionBtn.clicked.connect(lambda:self.invert(virtual_gate_set, refresh, tableWidget, state))
         directionBtn.setMinimumSize(QtCore.QSize(150, 28))
         barLayout.addWidget(directionBtn)
+
+        barLayout.addWidget(QtWidgets.QLabel("Matrix determinant:"))
+        label_determinant = QtWidgets.QLabel()
+        barLayout.addWidget(label_determinant)
 
         if virtual_gate_set.normalization:
             normalizeBtn = QtWidgets.QPushButton('Normalize')
@@ -273,9 +269,16 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         barLayout.setContentsMargins(2, 2, 2, 2)
         gridLayout.addWidget(controlBar, 1, 0, 1, 1)
 
+        # Timer to refresh the data in the plot when the matrix is changed externally.
+        refresh = lambda:self.update_v_gates(virtual_gate_set, update_list, state, label_determinant)
+        timer = QtCore.QTimer()
+        timer.timeout.connect(refresh)
+        timer.start(2000)
+        self.timers.append(timer)
+
     def _get_link(self, virtual_gate_set, i, j, doubleSpinBox, state):
         '''
-s        Creates a lambda expression to update the matrix.
+        Creates a lambda expression to update the matrix.
         NOTES:
             Lambda cannot be used directly in a for-loop. All calls will be reduced to 1 call.
             functools.partial doesn't work properly with decorators.
@@ -302,7 +305,7 @@ s        Creates a lambda expression to update the matrix.
             self.set_color(spin_box, value)
 
     @qt_log_exception
-    def update_v_gates(self, virtual_gate_set, update_list, state):
+    def update_v_gates(self, virtual_gate_set, update_list, state, label_determinant):
         """ Update the virtual gate matrix elements
 
         Args:
@@ -315,9 +318,23 @@ s        Creates a lambda expression to update the matrix.
                 value = virtual_gate_set.get_element(i, j, v2r=state['v2r'])
                 spin_box.setValue(value)
                 self.set_color(spin_box, value)
+        determinant = np.linalg.det(virtual_gate_set.matrix)
+        if state['v2r']:
+            determinant = 1/determinant
+        label_determinant.setText(f"{determinant:6.3f}")
+        if abs(determinant) < 0.01 or abs(determinant) > 100.0:
+            label_determinant.setStyleSheet("color: red; font-weight: bold;")
+        else:
+            label_determinant.setStyleSheet("")
         self._updating = False
 
+
     def set_color(self, spin_box, value):
+        if abs(value) > 99.0:
+            spin_box.setStyleSheet("color: red; font-weight: bold;")
+            return
+        spin_box.setStyleSheet("font-weight: normal;")
+
         if not self._coloring:
             return
         if value == 0.0:
