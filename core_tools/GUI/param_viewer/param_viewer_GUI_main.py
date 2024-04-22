@@ -223,7 +223,9 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.warning('Not changing voltage, ParameterViewer is locked!')
             # Note value will be restored by _update_parameters
             return
-
+        if not voltage_input.isEnabled():
+            logger.info(f"Ignoring out of range value {gate.name}: {value()}")
+            return
         delta = abs(value() - gate())
         if self.max_diff is not None and delta > self.max_diff:
             logger.warning(f'Not setting {gate} to {value():.1f}mV. '
@@ -294,20 +296,33 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                 # do not update when a user clicks on it.
                 gui_input = param.gui_input_param
                 if not gui_input.hasFocus():
-                    if isinstance(param.gui_input_param, QtWidgets.QDoubleSpinBox):
+                    if isinstance(gui_input, QtWidgets.QDoubleSpinBox):
                         if param.name in all_gate_voltages:
                             new_value = all_gate_voltages[param.name]/param.division
                         else:
                             new_value = param.param_parameter()/param.division
-                        current_text = gui_input.text()
-                        new_text = gui_input.textFromValue(new_value)
-                        if current_text != new_text:
-                            logger.info(f'Update GUI {param.param_parameter.name} {current_text} -> {new_text}')
-                            gui_input.setValue(new_value)
-                            # Note: additional check on 0.0, because "-0.00 " and "0.00" are numerically equal.
-                            if gui_input.text() != new_text and float(new_text) != 0.0:
-                                print(f'WARNING: {param.param_parameter.name} corrected from '
-                                      f'{new_text} to {gui_input.text()}')
+
+                        if idx == 1 and (new_value < gui_input.minimum() or new_value > gui_input.maximum()):
+                            gui_input.setEnabled(False)
+                            gui_input.setStyleSheet("color : red;")
+                            new_text = gui_input.textFromValue(new_value)
+                            current_text = gui_input.text()
+                            if current_text != new_text:
+                                gui_input.setValue(new_value)
+                        else:
+                            if not gui_input.isEnabled():
+                                gui_input.setEnabled(True)
+                                gui_input.setStyleSheet("")
+
+                            current_text = gui_input.text()
+                            new_text = gui_input.textFromValue(new_value)
+                            if current_text != new_text:
+                                logger.info(f'Update GUI {param.param_parameter.name} {current_text} -> {new_text}')
+                                gui_input.setValue(new_value)
+                                # Note: additional check on 0.0, because "-0.00 " and "0.00" are numerically equal.
+                                if gui_input.text() != new_text and gui_input.valueFromText(new_text) != 0.0:
+                                    print(f'WARNING: {param.param_parameter.name} corrected from '
+                                          f'{new_text} to {gui_input.text()}')
                     elif isinstance(param.gui_input_param, QtWidgets.QCheckBox):
                         param.gui_input_param.setChecked(param.param_parameter())
             except Exception:
