@@ -271,7 +271,7 @@ class Scan:
 
         if snapshot_extra:
             for key, value in snapshot_extra.items():
-                if key not in self.meas.snapshot:
+                if key not in self._meas.snapshot:
                     self._meas.add_snapshot(key, value)
                 else:
                     raise Exception(f"Measurement snapshot already contains key {key}")
