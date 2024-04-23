@@ -44,8 +44,6 @@ class m_param_organizer():
             if m_param.param_id == m_param.param_id_m_param and m_param.param_id not in id_s:
                 id_s.append(m_param.param_id_m_param)
 
-        print(id_s)
-
         return id_s
 
     def __copy__(self):
