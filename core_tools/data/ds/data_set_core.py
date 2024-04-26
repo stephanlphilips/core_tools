@@ -112,6 +112,14 @@ class data_set:
 
         self.__write_to_db()
 
+    def skip_result(self, input_data):
+        '''
+        Adds NaN values to dataset for the size of the parameters.
+        '''
+        for m_param in self.__data_set_raw.measurement_parameters:
+            if m_param.id_info in input_data.keys():
+                m_param.skip_data(input_data)
+
     def mark_completed(self):
         '''
         mark dataset complete. Stop updating the database and allow garbage collector to release memory.

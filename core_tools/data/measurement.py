@@ -190,6 +190,21 @@ class Measurement:
         if self._abort_measurement:
             raise AbortMeasurement()
 
+    def skip_result(self, *args):
+        """Adds NaN values for measurement parameters.
+        The provided values for the measurement parameter are ignored. A single NaN value suffices to
+        add the right number of NaN values to the dataset.
+
+        Args:
+            *args : tuples of the parameter object submitted to the register parameter object and the get value.
+        """
+        if self._abort_measurement:
+            raise AbortMeasurement()
+        args_dict = {}
+        for arg in args:
+            args_dict[id(arg[0])] = arg[1]
+        self.dataset.skip_result(args_dict)
+
     def abort(self):
         """Abort measurement.
         A running measurement will be interrrupted at the next `add_result`.

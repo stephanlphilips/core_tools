@@ -136,6 +136,13 @@ class m_param_dataclass(dataclass_raw_parent):
         for setpoint in self.setpoints:
             setpoint.write_data(input_data)
 
+    def skip_data(self, input_data):
+        for shape, buffer in zip(self.shapes, self.data_buffer):
+            buffer.write(np.full(shape, np.nan))
+
+        for setpoint in self.setpoints:
+            setpoint.write_data(input_data)
+
     def to_SQL_data_structure(self):
         data_items = []
 

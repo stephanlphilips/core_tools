@@ -2,7 +2,7 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import numpy as np
 from qcodes import Parameter
@@ -18,22 +18,16 @@ logger = logging.getLogger(__name__)
 
 class Break(Exception):
     """Stops a scan and closes the dataset"""
-    # TODO @@@ allow loop parameter to break to
-    def __init__(self, msg, loops=None):
+    def __init__(self, msg, resume_at_label=None):
         super().__init__(msg)
-        self._loops = loops
-
-    def exit_loop(self):
-        if self._loops is None:
-            return True
-        self._loops -= 1
-        return self._loops > 0
+        self.resume_at_label = resume_at_label
 
 
 class Action:
-    def __init__(self, name, delay=0.0):
+    def __init__(self, name, delay=0.0, label=None):
         self._delay = delay
         self.name = name
+        self.label = label
 
     @property
     def delay(self):
@@ -42,8 +36,9 @@ class Action:
 
 class Setter(Action):
     def __init__(self, param, n_points, delay=0.0, resetable=True,
-                 value_after: Union[None, float]=None):
-        super().__init__(f'set {param.name}', delay)
+                 value_after: Union[None, float]=None,
+                 label=None):
+        super().__init__(f'set {param.name}', delay, label=label)
         self._param = param
         self._n_points = n_points
         self._resetable = resetable
@@ -70,8 +65,8 @@ class Setter(Action):
 
 
 class Getter(Action):
-    def __init__(self, param, delay=0.0):
-        super().__init__(f'get {param.name}', delay)
+    def __init__(self, param, delay=0.0, label=None):
+        super().__init__(f'get {param.name}', delay, label=label)
         self._param = param
 
     @property
@@ -80,8 +75,12 @@ class Getter(Action):
 
 
 class Function(Action):
-    def __init__(self, func, *args, delay=0.0, add_dataset=False,
-                 add_last_values=False, **kwargs):
+    def __init__(self, func, *args,
+                 delay=0.0,
+                 add_dataset=False,
+                 add_last_values=False,
+                 label=None,
+                 **kwargs):
         '''
         Adds a function to a Scan.
         Args:
@@ -90,12 +89,13 @@ class Function(Action):
             delay (float): time to wait after calling func
             add_dataset (bool): if True calls func(*args, dataset=ds, **kwargs)
             add_last_values (bool): if True calls func(*args, add_last_values=last_param_values, **kwargs)
+            label (str): Label to use for resume after break.
             kwargs: keyword arguments for func
 
         Notes:
             last parameter values are past as dictionary.
         '''
-        super().__init__(f'do {func.__name__}', delay)
+        super().__init__(f'do {func.__name__}', delay, label=label)
         self._func = func
         self._add_dataset = add_dataset
         self._add_last_values = add_last_values
@@ -121,7 +121,10 @@ class Function(Action):
 class SequenceFunction(Function):
     def __init__(self, func, *args, delay=0.0,
                  axis=None,
-                 add_dataset=False, add_last_values=False, **kwargs):
+                 add_dataset=False,
+                 add_last_values=False,
+                 label=None,
+                 **kwargs):
         '''
         Adds a function to be run after setting sequence sweep index, but before playing sequence.
         Args:
@@ -131,6 +134,7 @@ class SequenceFunction(Function):
             axis (int or str): axis number or looping parameter name in sequence
             add_dataset (bool): if True calls func(*args, dataset=ds, **kwargs)
             add_last_values (bool): if True calls func(*args, add_last_values=last_param_values, **kwargs)
+            label (str): Label to use for resume after break.
             kwargs: keyword arguments for func
 
         Notes:
@@ -145,8 +149,8 @@ class SequenceFunction(Function):
 
 
 class SequenceStart(Action):
-    def __init__(self, sequence):
-        super().__init__("play_sequence")
+    def __init__(self, sequence, label="sequence"):
+        super().__init__("play_sequence", label=label)
         self.sequence = sequence
 
     def play(self):
@@ -160,14 +164,19 @@ class SequenceStart(Action):
 
 
 class ArraySetter(Setter):
-    def __init__(self, param, data, delay=0.0, resetable=True,
-                 value_after: Union[None, str, float]=None):
+    def __init__(self, param, data,
+                 delay=0.0,
+                 resetable=True,
+                 value_after: Union[None, str, float]=None,
+                 label=None,
+                 ):
         if isinstance(value_after, str):
             if value_after == 'start':
                 value_after = data[0]
             else:
                 raise Exception(f"Unknown value_after '{value_after}'")
-        super().__init__(param, len(data), delay, resetable, value_after)
+        super().__init__(param, len(data), delay, resetable, value_after,
+                         label=label)
         self._data = data
 
     def __iter__(self):
@@ -175,9 +184,11 @@ class ArraySetter(Setter):
             yield value
 
 
-def sweep(parameter, data, stop=None, n_points=None, delay=0.0, resetable=True,
+def sweep(parameter, data, stop=None, n_points=None, delay=0.0,
+          resetable=True,
           value_after: Union[None, str, float]=None,
-          endpoint=True):
+          endpoint=True,
+          label=None):
     """ Sweeps parameter over specified values.
 
     If stop is None, then data is assumed to be an array, otherwise data is the start value.
@@ -197,7 +208,7 @@ def sweep(parameter, data, stop=None, n_points=None, delay=0.0, resetable=True,
     if stop is not None:
         start = data
         data = np.linspace(start, stop, n_points, endpoint=endpoint)
-    return ArraySetter(parameter, data, delay, resetable, value_after)
+    return ArraySetter(parameter, data, delay, resetable, value_after, label=label)
 
 
 class Section:
@@ -284,7 +295,8 @@ class Scan:
                 seq_params = arg.params
                 # Note: reverse order, because axis=0 is fastest running and must thus be last.
                 for var in seq_params[::-1]:
-                    setter = ArraySetter(var, var.values, resetable=False)
+                    setter = ArraySetter(var, var.values, resetable=False,
+                                         label=f"sequence.{var.name}")
                     self._add_setter(setter)
                 self._actions.append(SequenceStart(arg))
                 self._meas.add_snapshot('sequence', arg.metadata)
@@ -419,6 +431,8 @@ class Runner:
         self._setpoints = []
         self._m_values = {}
         self._action_stats = defaultdict(ActionStats)
+        self._resume_at_label = None
+        self._skipped_setters = set()
 
     def run(self, reset_param=False, silent=False):
         if reset_param:
@@ -465,49 +479,59 @@ class Runner:
     def _loop(self, actions: List[Action]):
         n_setters = 0
         for action in actions:
-            if isinstance(action, _Block):
-                n_setters += 1
-                self._loop_setter(action)
-                continue
+            try:
+                if isinstance(action, _Block):
+                    n_setters += 1
+                    self._loop_setter(action)
+                    continue
 
-            stats_name = action.name
-            t_start = time.perf_counter()
+                if self._skip_action(action):
+                    if isinstance(action, Getter):
+                        m_param = action.param
+                        # Add None values to dataset
+                        self._measurement.skip_result((m_param, None), *self._setpoints)
+                    continue
 
-            if isinstance(action, Getter):
-                m_param = action.param
-                value = None
-                # @@@ Set None if breaking...
-                try:
-                    value = m_param()
-                    self._m_values[m_param.name] = value
-                    t_store = time.perf_counter()
-                    self._measurement.add_result((m_param, value), *self._setpoints)
-                    store_duration = time.perf_counter() - t_store
-                    self._action_stats['store'].add_time(store_duration)
-                    t_start += store_duration
-                except Exception:
-                    raise Exception(f'Failure getting {m_param.name}: {value}')
+                stats_name = action.name
+                t_start = time.perf_counter()
 
-            elif isinstance(action, SequenceStart):
-                play_time = action.play()
-                self._action_stats['sequence play'].add_time(play_time)
-                t_start += play_time
-                stats_name = 'sequence overhead'
+                if isinstance(action, Getter):
+                    m_param = action.param
+                    value = None
+                    try:
+                        value = m_param()
+                        self._m_values[m_param.name] = value
+                        t_store = time.perf_counter()
+                        self._measurement.add_result((m_param, value), *self._setpoints)
+                        store_duration = time.perf_counter() - t_store
+                        self._action_stats['store'].add_time(store_duration)
+                        t_start += store_duration
+                    except Break:
+                        raise
+                    except Exception:
+                        raise Exception(f'Failure getting {m_param.name}: {value}')
 
-            elif isinstance(action, Function):
-                # @@@ Skip if breaking...
-                last_values = {
-                    param.name: value
-                    for param, value in self._setpoints
-                    if param is not None
-                    }
-                last_values.update(self._m_values)
-                action(self._measurement.dataset, last_values)
+                elif isinstance(action, SequenceStart):
+                    play_time = action.play()
+                    self._action_stats['sequence play'].add_time(play_time)
+                    t_start += play_time
+                    stats_name = 'sequence overhead'
 
-            if action._delay:
-                time.sleep(action._delay)
+                elif isinstance(action, Function):
+                    last_values = {
+                        param.name: value
+                        for param, value in self._setpoints
+                        if param is not None
+                        }
+                    last_values.update(self._m_values)
+                    action(self._measurement.dataset, last_values)
 
-            self._action_stats[stats_name].add_time(time.perf_counter() - t_start)
+                if action._delay:
+                    time.sleep(action._delay)
+
+                self._action_stats[stats_name].add_time(time.perf_counter() - t_start)
+            except Break as _break:
+                self._handle_break(_break)
 
         if n_setters == 0:
             self._inc_count()
@@ -518,29 +542,60 @@ class Runner:
         self._setpoints.append(setpoint)
         try:
             for value in setter:
-                try:
-                    t_start = time.perf_counter()
-                    # @@@ ElapsedTime?
-                    # if not isinstance(action.param, ElapsedTimeParameter):
-                    #     action.param(value)
-                    setter.param(value)
-                    if setter._delay:
-                        time.sleep(setter._delay)
-                    value = setter.param() # @@@ Why retrieve the value that is just written?
+                if self._skip_action(setter):
+                    # loop through actions while skipping results
+                    self._skipped_setters.add(setter)
                     setpoint[1] = value
-                    self._action_stats[setter.name].add_time(time.perf_counter()-t_start)
-                    # self._action_cnt[iaction] += 1
                     self._loop(block.actions)
-                except Break as b:
-                    if b.exit_loop():
-                        raise
-                    # TODO @@@ fill missing data. Current dataset must be rectangular/box
-                    # Requires current loop index and shape per m_param.
-                    # => set flag in runner. Do not set/get values. Use param shape to store values.
+                    continue
+                t_start = time.perf_counter()
+                # @@@ ElapsedTime?
+                # if not isinstance(action.param, ElapsedTimeParameter):
+                #     action.param(value)
+                setter.param(value)
+                if setter._delay:
+                    time.sleep(setter._delay)
+                value = setter.param() # @@@ Why retrieve the value that is just written?
+                setpoint[1] = value
+                self._action_stats[setter.name].add_time(time.perf_counter()-t_start)
+                self._loop(block.actions)
             if setter.value_after is not None:
                 setter.param(setter.value_after)
         finally:
             self._setpoints.pop()
+            self._skipped_setters.discard(setter)
+            # Note: this check is required to enable setter in outer loop!
+            self._check_resume(setter)
+
+    def _skip_action(self, action):
+        if self._resume_at_label is None:
+            return False
+        if self._resume_at_label != action.label:
+            return True
+
+        # resume_at_label == action.label => try to resume
+        self._skipped_setters.discard(action)
+
+        if len(self._skipped_setters) > 0:
+            not_set_params = [setter.param.name for setter in self._skipped_setters]
+            raise Exception(f"Cannot resume at label '{self._resume_at_label}', "
+                            f"because parameter(s) {not_set_params} is/are not set")
+        # resume with this action
+        logger.info(f"Resuming at '{action.label}' npt={self._n}")
+        self._resume_at_label = None
+        return False
+
+    def _check_resume(self, action):
+        # skip action includes a check on resume. Just ignore the returned value.
+        self._skip_action(action)
+
+    def _handle_break(self, _break):
+        setpoint = {p.name:v for p,v in self._setpoints}
+        logger.info(f"Break at {setpoint}, resume at '{_break.resume_at_label}' npt={self._n}")
+        if _break.resume_at_label is not None:
+            self._resume_at_label = _break.resume_at_label
+        else:
+            raise
 
     def _inc_count(self):
         self._n += 1
