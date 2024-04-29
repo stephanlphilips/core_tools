@@ -138,7 +138,7 @@ class m_param_dataclass(dataclass_raw_parent):
 
     def skip_data(self, input_data):
         for shape, buffer in zip(self.shapes, self.data_buffer):
-            buffer.write(np.full(shape, np.nan))
+            buffer.write(np.ravel(np.full(shape, np.nan)))
 
         for setpoint in self.setpoints:
             setpoint.write_data(input_data)
