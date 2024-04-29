@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.52] - 2024-04-29
+
+- Fixed RF generators with Keysight_QS video mode
+
 ## \[1.4.51] - 2024-04-29
 
 - Added resume after break to Scan.
