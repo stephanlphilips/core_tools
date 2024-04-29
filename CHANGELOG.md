@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.51] - 2024-04-29
+
+- Added resume after break to Scan.
+- Virtual Matrix Editor: Show matrix determinant and show matrix elements in bold and red when out of range
+- Parameter Viewer: Show virtual gate values in red and disable editing when value out of range due to matrix
+- Fixed bug in Scan of v1.4.49
+
 ## \[1.4.50] - 2024-04-19
 
 - Fixed measurement parameters in dataset.
