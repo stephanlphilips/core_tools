@@ -152,7 +152,15 @@ class Hvi2VideoMode():
                             awg_seq.lo.reset_phase(los)
                         else:
                             awg_seq.wait(10)
-                        awg_seq.wait(100)
+                        # Note: sequencers are used for RF generation to drive resonators
+                        if self._module_config(awg_seq, 'sequencer'):
+                            awg_seq.qs.reset_phase()
+                            awg_seq.qs.start()
+                            # total time since start loop: 50 ns (with QS)
+                            awg_seq.qs.trigger()
+                            awg_seq.wait(70)
+                        else:
+                            awg_seq.wait(100)
                         awg_seq.trigger()
                         if self._module_config(awg_seq, 'trigger_out'):
                             awg_seq.marker.start()
@@ -162,6 +170,12 @@ class Hvi2VideoMode():
                         awg_seq.wait(awg_seq['wave_duration'])
                         if self._module_config(awg_seq, 'trigger_out'):
                             awg_seq.marker.stop()
+                        else:
+                            awg_seq.wait(10)
+                        if self._module_config(awg_seq, 'sequencer'):
+                            awg_seq.qs.stop()
+                        else:
+                            awg_seq.wait(10)
 
                     for dig_seq in dig_seqs:
                         dig_seq.log.write(2)
