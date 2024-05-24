@@ -1,7 +1,7 @@
 from core_tools.data.gui.plots.unit_management import format_unit, return_unit_scaler
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from matplotlib.pyplot import get_cmap
+from matplotlib import colormaps
 from si_prefix import si_format
 import pyqtgraph as pg
 import numpy as np
@@ -183,12 +183,9 @@ class _2D_plot:
             logger.error('Error mouse move', exc_info=True)
 
 
-
 def get_color_map():
     numofLines = 5
-    cMapType = 'viridis'
-    colorMap = get_cmap(cMapType) # get_cmap is matplotlib object
-
+    colorMap = colormaps['viridis']
     colorList = np.linspace(0, 1, numofLines)
     lineColors = colorMap(colorList)
 
@@ -196,25 +193,3 @@ def get_color_map():
     lineColors = lineColors.astype(int)
     return pg.ColorMap(pos=np.linspace(0.0, 1.0, numofLines), color=lineColors)
 
-## Start Qt event loop unless running in interactive mode or using pyside.
-if __name__ == '__main__':
-    from pyqtgraph.Qt import QtGui, QtCore
-    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-    from core_tools.data.ds.data_set import load_by_uuid
-    import time
-    set_up_local_storage('stephan', 'magicc', 'test', 'Intel Project', 'F006', 'SQ38328342')
-    ds = load_by_uuid(1603912517622618611)
-
-    app = QtGui.QApplication([])
-
-
-    ds = ds.m1
-    plot = _2D_plot(ds)
-
-    win = QtGui.QMainWindow()
-    win.setCentralWidget(plot.widget)
-    win.show()
-
-    # import sys
-    # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-    #     QtGui.QApplication.instance().exec_()

@@ -8,13 +8,12 @@ import numpy as np
 from scipy import ndimage
 import time
 import logging
-from matplotlib import cm
+from matplotlib import colormaps
 from .colors import polar_to_rgb, compress_range
 
 logger = logging.getLogger(__name__)
 
-# Get the colormap
-colormap = cm.get_cmap("viridis")  # cm.get_cmap("CMRmap")
+colormap = colormaps["viridis"]
 colormap._init()
 lut = np.array(colormap.colors)*255 # Convert matplotlib colormap from 0-1 to 0-255 for Qt
 
