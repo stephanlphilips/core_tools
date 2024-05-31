@@ -41,11 +41,11 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
         enable_markers (List[str]): marker channels to enable during scan
-        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
-            defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
-            E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray], str)]):
+            defines new list of derived channels to display. Dictionary entries name: (channel_number, func, unit).
+            E.g. {('ch1-I':(1, np.real, 'mV'), 'ch1-Q':(1, np.imag, 'mV'), 'ch3-Amp':(3, np.abs, 'mV'), 'ch3-Phase':(3, np.angle, 'rad')}
             The default channel_map is:
-                {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+                {'ch1':(1, np.real, 'mV'), 'ch2':(2, np.real, 'mV'), 'ch3':(3, np.real, 'mV'), 'ch4':(4, np.real, 'mV')}
         pulse_gates (Dict[str, float]):
             Gates to pulse during scan with pulse voltage in mV.
             E.g. {'vP1': 10.0, 'vB2': -29.1}
@@ -183,9 +183,9 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
         enable_markers (List[str]): marker channels to enable during scan
         channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
             defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
-            E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+            E.g. {('ch1-I':(1, np.real, 'mV'), 'ch1-Q':(1, np.imag, 'mV'), 'ch3-Amp':(3, np.abs, 'mV'), 'ch3-Phase':(3, np.angle, 'rad')}
             The default channel_map is:
-                {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+                {'ch1':(1, np.real, 'mV'), 'ch2':(2, np.real, 'mV'), 'ch3':(3, np.real, 'mV'), 'ch4':(4, np.real, 'mV')}
         pulse_gates (Dict[str, float]):
             Gates to pulse during scan with pulse voltage in mV.
             E.g. {'vP1': 10.0, 'vB2': -29.1}
@@ -342,9 +342,9 @@ class _digitzer_scan_parameter(MultiParameter):
                     Note: channel_map is a more generic replacement for iq_mode.
             channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
                 defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
-                E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+                E.g. {('ch1-I':(1, np.real, 'mV'), 'ch1-Q':(1, np.imag, 'mV'), 'ch3-Amp':(3, np.abs, 'mV'), 'ch3-Phase':(3, np.angle, 'rad')}
                 The default channel_map is:
-                    {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+                    {'ch1':(1, np.real, 'mV'), 'ch2':(2, np.real, 'mV'), 'ch3':(3, np.real, 'mV'), 'ch4':(4, np.real, 'mV')}
         """
         self.dig = digitizer
         self.my_seq = my_seq

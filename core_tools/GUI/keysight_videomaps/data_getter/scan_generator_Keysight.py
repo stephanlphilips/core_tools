@@ -8,7 +8,7 @@ from qcodes import MultiParameter
 from core_tools.drivers.M3102A import DATA_MODE
 from core_tools.HVI2.hvi2_video_mode import Hvi2VideoMode
 from core_tools.HVI2.hvi2_schedule_loader import Hvi2ScheduleLoader
-from .iq_modes import get_channel_map, get_channel_map_dig_4ch
+from .iq_modes import get_channel_map, get_channel_map_dig_4ch, add_channel_map_units
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,9 @@ def _create_sequence(
     return my_seq
 
 
+# TODO: retrieve markers linked to digitizer channels.
+
+
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
                            digitizer=None, channels=None,
                            iq_mode=None, acquisition_delay_ns=500,
@@ -101,11 +104,11 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
         enabled_markers (List[str]): marker channels to enable during scan
-        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
-            defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
-            E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray], str)]):
+            defines new list of derived channels to display. Dictionary entries name: (channel_number, func, unit).
+            E.g. {('ch1-I':(1, np.real, 'mV'), 'ch1-Q':(1, np.imag, 'mV'), 'ch3-Amp':(3, np.abs, 'mV'), 'ch3-Phase':(3, np.angle, 'rad')}
             The default channel_map is:
-                {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+                {'ch1':(1, np.real, 'mV'), 'ch2':(2, np.real, 'mV'), 'ch3':(3, np.real, 'mV'), 'ch4':(4, np.real, 'mV')}
         pulse_gates (Dict[str, float]):
             Gates to pulse during scan with pulse voltage in mV.
             E.g. {'vP1': 10.0, 'vB2': -29.1}
@@ -117,11 +120,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     """
     logger.info(f'Construct 1D: {gate}')
 
-    if channel_map is None:
-        if digitizer is None:
-            channel_map = get_channel_map(pulse_lib, iq_mode, channels)
-        else:
-            channel_map = get_channel_map_dig_4ch(iq_mode, channels)
+    channel_map = _get_channel_map(pulse_lib, iq_mode, channels, channel_map, digitizer)
 
     vp = swing/2
     line_margin = int(line_margin)
@@ -247,11 +246,11 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
                 Time in ns between AWG output change and digitizer acquisition start.
                 This also increases the gap between acquisitions.
         enabled_markers (List[str]): marker channels to enable during scan
-        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
-            defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
-            E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+        channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray], str)]):
+            defines new list of derived channels to display. Dictionary entries name: (channel_number, func, unit).
+            E.g. {('ch1-I':(1, np.real, 'mV'), 'ch1-Q':(1, np.imag, 'mV'), 'ch3-Amp':(3, np.abs, 'mV'), 'ch3-Phase':(3, np.angle, 'rad')}
             The default channel_map is:
-                {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+                {'ch1':(1, np.real, 'mV'), 'ch2':(2, np.real, 'mV'), 'ch3':(3, np.real, 'mV'), 'ch4':(4, np.real, 'mV')}
         pulse_gates (Dict[str, float]):
             Gates to pulse during scan with pulse voltage in mV.
             E.g. {'vP1': 10.0, 'vB2': -29.1}
@@ -263,11 +262,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     """
     logger.info(f'Construct 2D: {gate1} {gate2}')
 
-    if channel_map is None:
-        if digitizer is None:
-            channel_map = get_channel_map(pulse_lib, iq_mode, channels)
-        else:
-            channel_map = get_channel_map_dig_4ch(iq_mode, channels)
+    channel_map = _get_channel_map(pulse_lib, iq_mode, channels, channel_map, digitizer)
 
     min_step_eff = 200
     step_eff = _get_t_step_eff(pulse_lib, digitizer, t_step, acquisition_delay_ns, min_step_eff)
@@ -396,6 +391,18 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
                                     biasT_corr, channel_map)
 
 
+def _get_channel_map(pulse_lib, iq_mode, channels, channel_map, digitizer):
+    if channel_map is None:
+        if digitizer is None:
+            channel_map = get_channel_map(pulse_lib, iq_mode, channels)
+        else:
+            channel_map = get_channel_map_dig_4ch(iq_mode, channels)
+    else:
+        # copy with units.
+        channel_map = add_channel_map_units(channel_map)
+    return channel_map
+
+
 class _digitzer_scan_parameter(MultiParameter):
 
     def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, channel_map):
@@ -409,12 +416,11 @@ class _digitzer_scan_parameter(MultiParameter):
             names (tuple<str>): name of the gate(s) that are measured.
             setpoint (tuple<np.ndarray>): array witht the setpoints of the input data
             biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
-            TODO fix description
-            channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray])]):
-                defines new list of derived channels to display. Dictionary entries name: (channel_number, func).
-                E.g. {(ch1-I':(1, np.real), 'ch1-Q':(1, np.imag), 'ch3-Amp':(3, np.abs), 'ch3-Phase':(3, np.angle)}
+            channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray, str])]):
+                defines new list of derived channels to display. Dictionary entries name: (channel_number, func, unit).
+                E.g. {('ch1-I':(1, np.real, 'mV'), 'ch1-Q':(1, np.imag, 'mV'), 'ch3-Amp':(3, np.abs, 'mV'), 'ch3-Phase':(3, np.angle, 'rad')}
                 The default channel_map is:
-                    {'ch1':(1, np.real), 'ch2':(2, np.real), 'ch3':(3, np.real), 'ch4':(4, np.real)}
+                    {'ch1':(1, np.real, 'mV'), 'ch2':(2, np.real, 'mV'), 'ch3':(3, np.real, 'mV'), 'ch4':(4, np.real, 'mV')}
         """
         self.digitizer = digitizer
         self.my_seq = my_seq
@@ -430,11 +436,13 @@ class _digitzer_scan_parameter(MultiParameter):
         # Create dict with digitizers and used channel numbers.
         # dict[digitizer, List[channel_numbers]]
         self.dig_channel_nums: Dict[Any, List[int]] = defaultdict(set)
+        channels = [ch for ch, _, _ in self.channel_map.values()]
+        units = tuple(unit for _, _, unit in self.channel_map.values())
         if digitizer is not None:
-            for ch, _ in self.channel_map.values():
+            for ch in channels:
                 self.dig_channel_nums[digitizer].add(ch)
         else:
-            for ch_name, _ in self.channel_map.values():
+            for ch_name in channels:
                 ch_conf = pulse_lib.digitizer_channels[ch_name]
                 digitizer = pulse_lib.digitizers[ch_conf.module_name]
                 for ch_num in ch_conf.channel_numbers:
@@ -459,7 +467,7 @@ class _digitzer_scan_parameter(MultiParameter):
                          names=self.channel_names,
                          shapes=tuple([shape]*n_out_ch),
                          labels=self.channel_names,
-                         units=tuple(['mV']*n_out_ch),
+                         units=units,
                          setpoints=tuple([setpoint]*n_out_ch),
                          setpoint_names=tuple([names]*n_out_ch),
                          setpoint_labels=tuple([names]*n_out_ch),
@@ -539,7 +547,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
         # post-process data
         data_out = []
-        for ch, func in self.channel_map.values():
+        for ch, func, _ in self.channel_map.values():
             ch_data = raw[ch]
             data_out.append(func(ch_data))
 
