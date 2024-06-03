@@ -53,12 +53,13 @@ def _create_sequence(
     my_seq.set_hw_schedule(Hvi2ScheduleLoader(pulse_lib, 'VideoMode', digitizer))
 
     hvi_dig_channels = defaultdict(set)
+    dig_channels = [ch for ch, _, _ in channel_map.values()]
     if digitizer is None:
-        for ch_name, _ in channel_map.values():
+        for ch_name in dig_channels:
             ch_conf = pulse_lib.digitizer_channels[ch_name]
             hvi_dig_channels[ch_conf.module_name] |= set(ch_conf.channel_numbers)
     else:
-        for ch_num, _ in channel_map.values():
+        for ch_num in dig_channels:
             hvi_dig_channels[digitizer.name].add(ch_num)
     video_mode_channels = {name:list(channels) for name, channels in hvi_dig_channels.items()}
 
@@ -431,7 +432,7 @@ class _digitzer_scan_parameter(MultiParameter):
         self.shape = shape
         self.channel_map = channel_map
         self.channel_names = tuple(self.channel_map.keys())
-        self.acquisition_channels = set(ch for ch, _ in self.channel_map.values())
+        self.acquisition_channels = set(ch for ch, _, _ in self.channel_map.values())
 
         # Create dict with digitizers and used channel numbers.
         # dict[digitizer, List[channel_numbers]]
