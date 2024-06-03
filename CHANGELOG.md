@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.53] - 2024-06-03
+
+- Fixed unit radians for phase in video mode.
+- Fixed GUI for changes in latest matplotlib release.
+
 ## \[1.4.52] - 2024-04-29
 
 - Fixed RF generators with Keysight_QS video mode
