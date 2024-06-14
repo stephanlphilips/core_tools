@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.54] - 2024-06-14
+
+- Fixed refresh of DataBrowser GUI.
+
 ## \[1.4.53] - 2024-06-03
 
 - Fixed unit radians for phase in video mode.

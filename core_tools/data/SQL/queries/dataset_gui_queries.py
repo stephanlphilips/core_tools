@@ -106,7 +106,7 @@ class query_for_measurement_results:
             statement += f" and keywords ?& array{keywords} "
         if starred:
             statement += f" and starred = {starred} "
-        statement += " ;"
+        statement += " order by uuid;"
         res = query_for_measurement_results._execute(statement, remote)
         return query_for_measurement_results._to_measurement_results(res)
 

@@ -128,6 +128,7 @@ class signale_handler(QtQuick.QQuickView):
         self.max_measurement_id = 0
         self.selected_date = None
         self.ignore_date_selection_changes = False
+        self.loaded_results = []
         self.plots = []
 
     def init_gui_variables(self, win):
@@ -234,6 +235,10 @@ class signale_handler(QtQuick.QQuickView):
                     keywords=self._data_filter.keywords,
                     starred=self._data_filter.starred,
                     )
+            if data == self.loaded_results:
+                # no changes
+                return
+            self.loaded_results = data
             model_data = m_result_overview(data)
             self.data_overview_model.reset_data(model_data)
         except Exception:
