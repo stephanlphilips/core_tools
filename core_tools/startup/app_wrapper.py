@@ -33,6 +33,7 @@ def run_app(name, app_init, app_main):
         _stop_console_output()
     try:
         app_main()
+        logger.info("Exit")
     except:
         logger.error("Fatal exception", exc_info=True)
         raise
