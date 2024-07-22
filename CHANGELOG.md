@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.55] - 2024-07-22
+
+- Fixed databrowser QML.
+- minor fixes and cleanup.
+- Added QT-Dataset Browser (qt-dataviewer >= v0.3.0)
+
 ## \[1.4.54] - 2024-06-14
 
 - Fixed refresh of DataBrowser GUI.
