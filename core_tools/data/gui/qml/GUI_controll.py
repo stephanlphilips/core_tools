@@ -380,7 +380,7 @@ if use_qt_dataviewer:
                 self.uuid = self.data_overview_model._data[index-1].uuid
                 return self._load_ds(self.uuid)
             logger.info(f"No next data (index = {index})")
-            return None
+            raise StopIteration('No more datasets') from None
 
         def get_previous(self):
             index = self._get_index()
@@ -388,7 +388,7 @@ if use_qt_dataviewer:
                 self.uuid = self.data_overview_model._data[index+1].uuid
                 return self._load_ds(self.uuid)
             logger.info(f"No previous data (index = {index})")
-            return None
+            raise StopIteration('No more datasets') from None
 
         # -------------------------------------
         # OLD interface qt-dataviewer v0.2.x
