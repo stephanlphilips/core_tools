@@ -203,7 +203,7 @@ ApplicationWindow{
                                 objectName : 'input_keywords'
                                 id : input_keywords
                                 font.pixelSize: 16
-                                text : filter_name
+                                text : filter_keywords
                                 selectByMouse : true
                                 selectedTextColor : '#FFFFFF'
                                 selectionColor : '#EC407A'
@@ -216,7 +216,6 @@ ApplicationWindow{
                             }
                         }
                     }
-
                 }
 
                 RowLayout {
