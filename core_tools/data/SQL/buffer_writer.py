@@ -35,6 +35,7 @@ class buffer_reference:
             return data.reshape(shape)
         return reshape
 
+
 class buffer_writer(buffer_reference):
     def __init__(self, SQL_conn, input_buffer):
         self.conn = SQL_conn
@@ -73,34 +74,6 @@ class buffer_writer(buffer_reference):
     def close(self):
         self.lobject.close()
 
-    '''
-    not sure if this is needed, this complicates things and makes things less clean
-    defragementation on hard drive -- TODO :: check with Sander.
-    also makes the reading of the buffer more irritating...
-    '''
-    # def __load_blocks(self, n):
-    #     '''
-    #     load empty blocks in the buffer to prevent defragmentation.
-
-    #     Args:
-    #         n (int) : number of writes to be performed
-    #     '''
-    #     if self.cursor + n > self.blocks_written:
-    #         self.lobject.seek(self.blocks_written)
-
-    #         if n > 1e6/8:
-    #             pass #write is large than the number of blocks reserved -> skip.
-    #         elif self.buffer.size - self.blocks_written <1e6/8:
-    #             scratch_data = np.full([self.buffer.size - self.blocks_written], np.nan)
-    #             self.lobject.write(scratch_data.tobytes())
-    #             self.blocks_written += scratch_data.size
-    #         else:
-    #             scratch_data = np.full([125000], np.nan)
-    #             self.lobject.write(scratch_data.tobytes())
-    #             self.blocks_written += scratch_data.size
-
-    #         # reset writing position
-    #         self.lobject.seek(self.cursor_db*8)
 
 class buffer_reader(buffer_reference):
     def __init__(self, SQL_conn, oid, shape):
@@ -127,27 +100,3 @@ class buffer_reader(buffer_reference):
 
     def close(self):
         self.lobject.close()
-
-
-if __name__ == '__main__':
-    from core_tools.data.SQL.connector import SQL_conn_info_local, SQL_conn_info_remote, sample_info, set_up_local_storage
-    import psycopg2
-
-    set_up_local_storage('stephan', 'magicc', 'test', '6dot', 'XLD2', 'SQblabla12')
-
-    conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_info_local.user,
-                    password=SQL_conn_info_local.passwd, host=SQL_conn_info_local.host, port=SQL_conn_info_local.port)
-
-    a = np.ones([100,100])
-
-    bw = buffer_writer(conn_local, a)
-
-    for i in range(100):
-        bw.write(a[i])
-        bw.sync()
-
-    print(bw.oid)
-    conn_local.commit()
-
-    br = buffer_reader(conn_local, bw.oid, a.shape)
-    print(br.data)
