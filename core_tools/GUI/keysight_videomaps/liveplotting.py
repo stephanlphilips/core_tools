@@ -73,7 +73,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                  scan_type: Optional[str] = None,
                  cust_defaults: Optional[Dict[str, Dict[str, Any]]] = None,
                  iq_mode: Optional[str] = None,
-                 channel_map: Dict[str, Tuple[Union[int, str], Callable[[np.ndarray], np.ndarray]]] = None,
+                 channel_map: Optional[Dict[str, Tuple[Union[int, str], Callable[[np.ndarray], np.ndarray]]]] = None,
                  gates=None):
         '''
         Args:
@@ -958,16 +958,16 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     @qt_log_exception
     def _1D_set_DC_button_state(self):
         if self._1D_set_DC.isChecked():
-            self._1D_set_DC.setStyleSheet("QPushButton{ background-color: yellow }");
+            self._1D_set_DC.setStyleSheet("QPushButton{ background-color: yellow }")
         else:
-            self._1D_set_DC.setStyleSheet("");
+            self._1D_set_DC.setStyleSheet("")
 
     @qt_log_exception
     def _2D_set_DC_button_state(self):
         if self._2D_set_DC.isChecked():
-            self._2D_set_DC.setStyleSheet("QPushButton{ background-color: yellow }");
+            self._2D_set_DC.setStyleSheet("QPushButton{ background-color: yellow }")
         else:
-            self._2D_set_DC.setStyleSheet("");
+            self._2D_set_DC.setStyleSheet("")
 
 
 class vm_data_param(MultiParameter):
