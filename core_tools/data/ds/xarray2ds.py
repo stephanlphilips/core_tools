@@ -61,7 +61,8 @@ def xarray2ds(xr_ds):
             exp_id=attrs['id'],
             exp_uuid=attrs['uuid'],
             exp_name=attrs['title'],
-            set_up = attrs['set_up'],
+            # Note: old incorrect attribute was 'set_up'.
+            set_up = attrs.get('setup', attrs.get('set_up')),
             project = attrs['project'],
             sample = attrs['sample_name'],
             UNIX_start_time=datetime.fromisoformat(attrs['measurement_time']).timestamp(),

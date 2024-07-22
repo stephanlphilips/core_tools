@@ -64,7 +64,8 @@ def ds2xarray(ct_ds, snapshot='gzip'):
         'id':ct_ds.exp_id,
         'sample_name':ct_ds.sample_name,
         'project':ct_ds.project,
-        'set_up':ct_ds.set_up,
+        'setup':ct_ds.set_up,
+        'set_up':ct_ds.set_up, # TODO backwards compatibility. Remove in later release.
         'measurement_time':str(ct_ds.run_timestamp),
         'completed_time': str(ct_ds.completed_timestamp),
         'metadata': metadata_json,
