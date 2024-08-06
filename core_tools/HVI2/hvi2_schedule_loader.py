@@ -149,7 +149,7 @@ class Hvi2ScheduleLoader(HardwareSchedule):
             dig_conf['raw_ch'] = [channel for channel, mode in modes.items() if mode == 0]
             dig_conf['ds_ch'] = [channel for channel, mode in modes.items() if mode != 0]
             dig_conf['iq_ch'] = [channel for channel, mode in modes.items() if mode in [2, 3]]
-            dig_conf['sequencer'] = hvi_params.get(f'use_dig_sequencers_{dig.name}', hasattr(dig, 'get_sequencer'))
+            dig_conf['sequencer'] = hvi_params.get(f'use_digitizer_sequencers_{dig.name}', hasattr(dig, 'get_sequencer'))
             if f'dig_trigger_channels_{dig.name}' in hvi_params:
                 dig_conf['trigger_ch'] = hvi_params[f'dig_trigger_channels_{dig.name}']
 
