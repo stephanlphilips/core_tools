@@ -1,6 +1,7 @@
 import logging
 import os
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 
 from .config import load_configuration
 from .db_connection import (
@@ -53,6 +54,7 @@ def _configure_logging(cfg):
     file_level = cfg.get('logging.file_level', 'INFO')
     console_level = cfg.get('logging.console_level', 'WARNING')
     logger_levels = cfg.get('logging.logger_levels', {})
+    max_age = cfg.get('logging.max_age', 90)
 
     name = _generate_log_file_name()
     file_format = '%(asctime)s | %(name)s | %(levelname)s | %(module)s | %(funcName)s:%(lineno)d | %(message)s'
@@ -83,7 +85,27 @@ def _configure_logging(cfg):
     root_logger.addHandler(file_handler)
 
     logger.info('Start logging')
-    print('Logging to:', filename)
+
+    old_files = []
+    pattern = re.compile("\d{4}-\d{2}-\d{2}\(\d{6,}\)\.log(\.\d{4}-\d{2}-\d{2})?")
+    expiry_time = (datetime.now() - timedelta(max_age)).timestamp()
+    for entry in os.scandir(path):
+        if (entry.is_file()
+            and pattern.match(entry.name)
+            and entry.stat().st_mtime < expiry_time):
+                old_files.append(entry.name)
+
+    if old_files:
+        print(f"Deleting {len(old_files)} log files older than {max_age} days")
+        logger.info(f"Deleting {len(old_files)} log files older than {max_age} days")
+    for name in old_files:
+        try:
+            os.remove(os.path.join(path, name))
+            logging.debug(f"Removed {name}")
+        except Exception as ex:
+            logging.info(f"Failed to removed {name}: {type(ex)}:{ex}")
+
+    print(f'Logging to: "{filename}" with level {file_level}')
 
     for name, level in logger_levels.items():
         logging.getLogger(name).setLevel(level)
