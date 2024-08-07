@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.56] - 2024-08-07
+
+- Fixed disabling digitizer sequencer functionality in Keysight_QS
+- Automatically remove log-files older than "max_age" days (default: 90)
+
 ## \[1.4.55] - 2024-07-22
 
 - Fixed databrowser QML.
