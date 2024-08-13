@@ -56,17 +56,22 @@ class query_for_samples():
         else:
             statement += ";"
 
-        cur = SQL_database_manager().conn_local.cursor()
+        con = SQL_database_manager().conn_local
+        cur = con.cursor()
         cur.execute(statement)
         res = cur.fetchall()
         result = set(sum(res, ()))
         cur.close()
+        con.commit()
 
-        cur = SQL_database_manager().conn_remote.cursor()
+
+        con = SQL_database_manager().conn_remote
+        cur = con.cursor()
         cur.execute(statement)
         res = cur.fetchall()
         result |= set(sum(res, ()))
         cur.close()
+        con.commit()
         return sorted(list(result))
 
 
@@ -235,6 +240,7 @@ class query_for_measurement_results:
         cur.execute(statement)
         res = cur.fetchall()
         cur.close()
+        connection.commit()
         return res
 
     @staticmethod
