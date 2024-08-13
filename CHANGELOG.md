@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.57] - 2024-08-13
+
+- Fixed race conditions with db synchronization.
+- Added get_idn to D5a.
+
 ## \[1.4.56] - 2024-08-07
 
 - Fixed disabling digitizer sequencer functionality in Keysight_QS
