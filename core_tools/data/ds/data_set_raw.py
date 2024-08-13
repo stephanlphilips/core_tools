@@ -27,6 +27,7 @@ class data_set_raw:
 
     completed : bool = False
     starred : bool = False
+    data_update_count : int = 0
 
     def generate_keywords(self):
         set_param = []

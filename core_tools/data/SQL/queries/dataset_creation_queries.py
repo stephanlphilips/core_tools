@@ -71,6 +71,7 @@ class measurement_overview_queries:
         statement += "completed BOOL DEFAULT False, "
         statement += "data_size int," # Total size of data. Is written at finish.
         statement += "data_cleared BOOL DEFAULT False, "     # Note [SdS]: Column is not used
+        statement += "data_update_count int DEFAULT 0, " # number of times the data has been updated on local client
 
         statement += "data_synchronized BOOL DEFAULT False,"  # data + param table sync'd
         statement += "table_synchronized BOOL DEFAULT False," # global_measurements_overview sync'd
@@ -84,6 +85,13 @@ class measurement_overview_queries:
         statement += "CREATE INDEX IF NOT EXISTS data_synced_index ON {} USING BTREE (data_synchronized);".format(measurement_overview_queries.table_name)
         statement += "CREATE INDEX IF NOT EXISTS table_synced_index ON {} USING BTREE (table_synchronized);".format(measurement_overview_queries.table_name)
 
+        execute_statement(conn, statement)
+
+    @staticmethod
+    def update_local_table(conn):
+        # Only do this on local database. 
+        # The update of the table on the remote database takes very long and afterwards other clients with old SW crash.
+        statement = "ALTER TABLE global_measurement_overview ADD COLUMN IF NOT EXISTS data_update_count int DEFAULT 0;"
         execute_statement(conn, statement)
 
     @staticmethod
@@ -125,7 +133,8 @@ class measurement_overview_queries:
     def update_measurement(conn, meas_uuid,
                            stop_time=None, metadata=None, snapshot=None,
                            keywords=None, data_size=None, data_synchronized=None,
-                           completed=None, table_synchronized=None):
+                           completed=None, table_synchronized=None,
+                           data_update_count=None,):
         '''
         fill in the addional data in a record of the measurements overview table.
 
@@ -136,6 +145,7 @@ class measurement_overview_queries:
             snapshot (dict) : snapshot of the exprimental set up
             keywords (list) : keywords describing the measurement
             completed (bool) : tell that the measurement is completed.
+            data_update_count (int) : data update count
         '''
         var_pairs = []
         if stop_time is not None:
@@ -160,6 +170,8 @@ class measurement_overview_queries:
             var_pairs.append(('completed', str(completed)))
         if table_synchronized is not None:
             var_pairs.append(('table_synchronized', str(table_synchronized)))
+        if data_update_count is not None:
+            var_pairs.append(('data_update_count', data_update_count))
         var_names = [name for name, value in var_pairs]
         var_values = [value for name, value in var_pairs]
 

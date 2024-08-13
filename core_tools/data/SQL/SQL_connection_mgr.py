@@ -72,20 +72,33 @@ class SQL_database_manager(SQL_database_init):
                 SQL_database_manager.__instance = None
                 raise
 
-            if not db_mgr.SQL_conn_info_local.readonly:
-                conn_local = db_mgr.conn_local
-                sample_info_queries.generate_table(conn_local)
-                sample_info_queries.add_sample(conn_local)
+            if (not db_mgr.SQL_conn_info_local.readonly
+                and SQL_conn_info_local.host == "localhost"):
+                    conn_local = db_mgr.conn_local
+                    sample_info_queries.generate_table(conn_local)
+                    sample_info_queries.add_sample(conn_local)
 
-                measurement_overview_queries.generate_table(conn_local)
-                measurement_parameters_queries.generate_table(conn_local)
-                conn_local.commit()
+                    measurement_overview_queries.generate_table(conn_local)
+                    measurement_overview_queries.update_local_table(conn_local)
+                    measurement_parameters_queries.generate_table(conn_local)
+                    conn_local.commit()
         return SQL_database_manager.__instance
 
     @classmethod
-    def disconnect(self):
+    def disconnect(cls):
         if SQL_database_manager.__instance is not None:
             SQL_database_manager.__instance._disconnect()
+
+    def init_server(self):
+        if SQL_conn_info_remote.host == "localhost":
+            raise Exception("Remote server not configured")
+        conn = self.conn_remote
+        sample_info_queries.generate_table(conn)
+
+        measurement_overview_queries.generate_table(conn)
+        # measurement_overview_queries.update_local_table(conn)
+        measurement_parameters_queries.generate_table(conn)
+        conn.commit()
 
 
 class SQL_sync_manager(SQL_database_init):
@@ -129,14 +142,13 @@ class SQL_sync_manager(SQL_database_init):
             sample_info_list = sync_mgr_queries.get_sample_info_list(self.conn_remote)
             uuid_update_list = sync_mgr_queries.get_sync_items_raw_data(self)
 
-
             for i in range(len(uuid_update_list)):
                 uuid = uuid_update_list[i]
                 self.log(f'updating raw data {i} of {len(uuid_update_list)}')
                 sync_mgr_queries.sync_raw_data(self, uuid)
 
             if len(uuid_update_list) == 0:
-                self.log(f'no raw data to update')
+                self.log('no raw data to update')
 
             uuid_update_list = sync_mgr_queries.get_sync_items_meas_table(self)
 
@@ -145,7 +157,7 @@ class SQL_sync_manager(SQL_database_init):
                 self.log(f'updating table entry {i} of {len(uuid_update_list)}')
                 sync_mgr_queries.sync_table(self, uuid, sample_info_list=sample_info_list)
             if len(uuid_update_list) == 0:
-                self.log(f'no entries to update')
+                self.log('no entries to update')
 
             time.sleep(2)
 

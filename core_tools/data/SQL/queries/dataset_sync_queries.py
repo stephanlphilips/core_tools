@@ -1,9 +1,15 @@
+import logging
+
 from core_tools.data.SQL.SQL_common_commands import execute_statement, execute_query
 from core_tools.data.SQL.SQL_common_commands import select_elements_in_table, insert_row_in_table, update_table
 from core_tools.data.SQL.queries.dataset_creation_queries import data_table_queries, sample_info_queries
 
 import psycopg2, json
 import numpy as np
+
+
+logger = logging.getLogger(__name__)
+
 
 class sync_mgr_queries:
     @staticmethod
@@ -68,31 +74,35 @@ class sync_mgr_queries:
 
         # check if uuid exists
         entry_exists = select_elements_in_table(conn_dest, "global_measurement_overview",
-            ('uuid', ), where=("uuid",uuid), dict_cursor=False)
+            ('uuid', ), where=("uuid", uuid), dict_cursor=False)
 
         source_content = select_elements_in_table(conn_src, "global_measurement_overview",
             ('*', ), where=("uuid",uuid), dict_cursor=True)[0]
         sync_mgr_queries.convert_SQL_raw_table_entry_to_python(source_content)
 
         del source_content['id']
+        try:
+            del source_content['data_update_count']
+        except KeyError:
+            pass
         source_content['table_synchronized'] = True
-
+        source_content['completed'] = source_content['completed'] and source_content['data_synchronized']
 
         if len(entry_exists) == 0:
-            print('create measurement row', uuid)
+            logger.info(f'create measurement entry {uuid}')
             if sample_info_list:
                 sample_info = (source_content['project'],
                                source_content['set_up'],
                                source_content['sample'])
                 if sample_info not in sample_info_list:
-                    print('add sample info:', sample_info)
+                    logger.info(f'add sample info: {sample_info}')
                     sample_info_queries.add_sample(conn_dest, *sample_info)
                     sample_info_list.append(sample_info)
 
             insert_row_in_table(conn_dest, 'global_measurement_overview',
                 tuple(source_content.keys()), tuple(source_content.values()))
         else:
-            print('update measurement row', uuid)
+            logger.info(f'update measurement entry {uuid}')
             dest_content = select_elements_in_table(conn_dest, "global_measurement_overview",
                 ('*', ), where=("uuid",uuid), dict_cursor=True)[0]
             sync_mgr_queries.convert_SQL_raw_table_entry_to_python(dest_content)
@@ -102,16 +112,18 @@ class sync_mgr_queries:
             content_to_update = dict()
 
             for key in dest_content.keys():
-                if source_content[key] != dest_content[key]:
+                # NOTE: destination can have a newer database scheme with columns unknown by source.
+                if key in source_content and source_content[key] != dest_content[key]:
                     content_to_update[key] = source_content[key]
 
             update_table(conn_dest, 'global_measurement_overview',
                 content_to_update.keys(), content_to_update.values(),
                 condition=("uuid",uuid))
 
-        update_table(sync_agent.conn_local, 'global_measurement_overview',
-                ('table_synchronized', ), (True, ),
-                condition=("uuid",uuid))
+        if source_content['data_synchronized']:
+            update_table(sync_agent.conn_local, 'global_measurement_overview',
+                    ('table_synchronized', ), (True, ),
+                    condition=("uuid",uuid))
 
         conn_src.commit()
         conn_dest.commit()
@@ -138,11 +150,18 @@ class sync_mgr_queries:
             conn_src = sync_agent.conn_local
             conn_dest = sync_agent.conn_remote
 
-        raw_data_table_name, sync_location = select_elements_in_table(conn_src,
-            'global_measurement_overview',
-            ('exp_data_location', 'sync_location'),
-            where=("uuid", uuid),
-            dict_cursor=False)[0]
+        if to_local:
+            raw_data_table_name, sync_location = select_elements_in_table(conn_src,
+                'global_measurement_overview',
+                ('exp_data_location', 'sync_location'),
+                where=("uuid", uuid),
+                dict_cursor=False)[0]
+        else:
+            raw_data_table_name, sync_location, data_update_count = select_elements_in_table(conn_src,
+                'global_measurement_overview',
+                ('exp_data_location', 'sync_location', 'data_update_count'),
+                where=("uuid", uuid),
+                dict_cursor=False)[0]
 
         # NOTE: column sync_location is abused for migration to new format
         new_format = sync_location == 'New measurement_parameters'
@@ -154,9 +173,12 @@ class sync_mgr_queries:
             sync_mgr_queries._sync_raw_data_table_old(conn_src, conn_dest, raw_data_table_name)
             sync_mgr_queries._sync_raw_data_lobj_old(conn_src, conn_dest, raw_data_table_name)
 
+        conditions = [("uuid", uuid)]
+        if not to_local:
+            conditions.append(("data_update_count", data_update_count))
         update_table(sync_agent.conn_local, 'global_measurement_overview',
                 ('data_synchronized', ), (True, ),
-                condition=("uuid",uuid))
+                conditions=conditions)
         sync_agent.conn_local.commit()
 
     @staticmethod
@@ -210,7 +232,7 @@ class sync_mgr_queries:
                 where=('exp_uuid', exp_uuid),
                 order_by=('param_index', ''))
 
-        print('update large object', exp_uuid)
+        logger.info(f'update large object {exp_uuid}')
         for i in range(len(res_src)):
             dest_cursor = res_dest[i]['write_cursor']
             src_cursor = res_src[i]['write_cursor']

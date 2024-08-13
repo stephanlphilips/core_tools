@@ -55,7 +55,10 @@ class SQL_dataset_creator(object):
         '''
         measurement_parameters_queries.update_cursors_in_meas_tab(self.conn, ds.exp_uuid,
                                                                   ds.measurement_parameters_raw)
-        measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid, data_synchronized=False)
+        ds.data_update_count += 1
+        measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid,
+                                                        data_synchronized=False,
+                                                        data_update_count=ds.data_update_count)
         self.conn.commit()
 
     def is_completed(self, exp_uuid):

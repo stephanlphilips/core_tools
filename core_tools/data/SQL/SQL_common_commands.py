@@ -88,7 +88,8 @@ def insert_row_in_table(conn, table_name, var_names, var_values, returning=None,
         return execute_query(conn, statement + sql.SQL(custom_statement), placeholders=placeholders)
 
 
-def update_table(conn, table_name, var_names, var_values, condition=None):
+def update_table(conn, table_name, var_names, var_values, condition=None,
+                 conditions=None):
     '''
     generate statement for updating an existing stable
 
@@ -97,7 +98,8 @@ def update_table(conn, table_name, var_names, var_values, condition=None):
         table_name (str) : name of the table to update
         var_names (tuple<str>) : variable names of the table
         var_values (tuple<str>) : values corresponding to the variable names
-        condition (str) : condition for the update (e.g. 'id = 5')
+        condition (tuple<str, any>) : condition for the update (e.g. ('id', 5))
+        conditions (list(tuple<str, any>)) : conditiosn for the update (e.g. [('id', 5), ('version', 10)] )
     '''
 
     statement = sql.SQL("UPDATE {} SET ").format(sql.SQL(table_name))
@@ -110,6 +112,12 @@ def update_table(conn, table_name, var_names, var_values, condition=None):
 
     if condition is not None:
         statement += sql.SQL("WHERE {0} = {1} ").format(sql.Identifier(condition[0]), sql.Literal(condition[1]))
+
+    if conditions is not None and len(conditions) > 0:
+        condition = conditions[0]
+        statement += sql.SQL("WHERE {0} = {1} ").format(sql.Identifier(condition[0]), sql.Literal(condition[1]))
+        for condition in conditions[1:]:
+            statement += sql.SQL("AND {0} = {1} ").format(sql.Identifier(condition[0]), sql.Literal(condition[1]))
 
     return execute_statement(conn, statement, placeholders=names_values.placeholders)
 
