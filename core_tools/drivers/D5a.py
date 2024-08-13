@@ -103,6 +103,12 @@ class D5a(Instrument):
                                vals=Enum(*self._span_set_map.keys()),
                                docstring='Change the output span of the DAC. This command also updates the validator.')
 
+    def get_idn(self):
+        return dict(vendor='QuTech',
+                    model='D5a',
+                    serial='',
+                    firmware='')
+
     def set_dac_unit(self, unit: str) -> None:
         """Set the unit of dac parameters"""
         allowed_values = Enum('mV', 'V')
@@ -122,7 +128,7 @@ class D5a(Instrument):
 
     def _get_dac(self, dac):
         return self.voltage_cache[dac]
-    
+
     def __get_dac(self, dac):
         return self._gain * self.d5a.voltages[dac]
 
