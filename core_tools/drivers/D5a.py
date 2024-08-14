@@ -54,7 +54,16 @@ class D5a(Instrument):
         """
         super().__init__(name, **kwargs)
 
-        self.d5a = D5a_module(spi_rack, module, reset_voltages=reset_voltages)
+        try:
+            self.d5a = D5a_module(spi_rack, module, reset_voltages=reset_voltages)
+        except ValueError as ex:
+            # A Value error on D5a with a message starting with "Span " is
+            # almost always caused by swapped COM port numbers of 2 SPI racks.
+            # An attempt is made to access a D5a module where there is none.
+            if str(ex).startswith("Span "):
+                raise Exception("Error reading D5a module. Check COM port numbers")
+            raise
+
         self._number_dacs = number_dacs
 
         self._span_set_map = {
