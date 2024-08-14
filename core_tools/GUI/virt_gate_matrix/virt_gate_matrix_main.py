@@ -40,6 +40,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
 
         super(QtWidgets.QMainWindow, self).__init__()
         self.setupUi(self)
+        self.setWindowTitle("Virtual Matrix Editor")
 
         gates = self._awg_attenuation.keys()
 
