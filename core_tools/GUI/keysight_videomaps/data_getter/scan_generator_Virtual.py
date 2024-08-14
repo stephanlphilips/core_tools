@@ -1,5 +1,7 @@
 import time
 import numpy as np
+from collections.abc import Sequence
+from typing import Any, Dict, Optional
 from qcodes import MultiParameter
 
 class fake_digitizer(MultiParameter):
@@ -65,8 +67,29 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     else:
         voltages = voltages_sp
 
+    parameters = dict(
+            gate=gate,
+            swing=dict(label="swing", value=swing, unit="mV"),
+            n_pt=n_pt,
+            t_measure=dict(label="t_measure", value=t_step, unit="ns"),
+            biasT_corr=biasT_corr,
+            iq_mode=iq_mode,
+            acquisition_delay=dict(
+                label="acquisition_delay",
+                value=acquisition_delay_ns,
+                unit="ns"),
+            enabled_markers=enabled_markers,
+            pulse_gates={
+                name: dict(label=name, value=value, unit="mV")
+                for name, value in pulse_gates
+                },
+            line_margin=line_margin,
+            )
+
+
     return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step, (n_pt, ), (gate, ),
-                                         ( tuple(voltages_sp), ), biasT_corr, 500e6)
+                                         ( tuple(voltages_sp), ), biasT_corr,
+                                         snapshot_extra={"parameters": parameters})
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
@@ -126,19 +149,42 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     else:
         voltages2 = voltages2_sp
 
+    parameters = dict(
+            gate1=gate1,
+            swing1=dict(label="swing1", value=swing1, unit="mV"),
+            n_pt1=n_pt1,
+            gate2=gate2,
+            swing2=dict(label="swing2", value=swing2, unit="mV"),
+            n_pt2=n_pt2,
+            t_measure=dict(label="t_measure", value=t_step, unit="ns"),
+            biasT_corr=biasT_corr,
+            iq_mode=iq_mode,
+            acquisition_delay=dict(
+                label="acquisition_delay",
+                value=acquisition_delay_ns,
+                unit="ns"),
+            enabled_markers=enabled_markers,
+            pulse_gates={
+                name: dict(label=name, value=value, unit="mV")
+                for name, value in pulse_gates
+                },
+            line_margin=line_margin,
+            )
+
     # Note: setpoints are in qcodes order
     return dummy_digitzer_scan_parameter(digitizer, None, pulse_lib, t_step,
                                          (n_pt2, n_pt1), (gate2, gate1),
                                          (tuple(voltages2_sp), (tuple(voltages1),)*n_pt2),
-                                         biasT_corr, 500e6)
+                                         biasT_corr,
+                                         snapshot_extra={"parameters": parameters})
 
 
 class dummy_digitzer_scan_parameter(MultiParameter):
     """
     generator for the parameter f
     """
-    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, sample_rate,
-                 data_mode = 0, channels = [1,2]):
+    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, snapshot_extra,
+                 channels = [1,2]):
         """
         args:
             digitizer (SD_DIG) : digizer driver:
@@ -149,8 +195,7 @@ class dummy_digitzer_scan_parameter(MultiParameter):
             names (tuple<str>): name of the gate(s) that are measured.
             setpoint (tuple<np.ndarray>): array witht the setpoints of the input data
             biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
-            sample_rate (float): sample rate of the digitizer card that should be used.
-            data mode (int): data mode of the digizer
+            snapshot_extra (dict<str, any>): snapshot
             channels (list<int>): channels to measure
         """
         channel_names = [f'ch{ch}' for ch in channels]
@@ -172,13 +217,20 @@ class dummy_digitzer_scan_parameter(MultiParameter):
         self.pulse_lib = pulse_lib
         self.t_measure = t_measure
         self.n_rep = np.prod(shape)
-        self.sample_rate =sample_rate
-        self.data_mode = data_mode
         self.channels = channels
         self.biasT_corr = biasT_corr
         self.shape = shape
         self.channel_names = channel_names
         self.offset = 0.0
+        self._snapshot_extra = snapshot_extra
+
+    def snapshot_base(self,
+                      update: Optional[bool] = True,
+                      params_to_skip_update: Optional[Sequence[str]] = None
+                      ) -> Dict[Any, Any]:
+        snapshot = super().snapshot_base(update, params_to_skip_update)
+        snapshot.update(self._snapshot_extra)
+        return snapshot
 
     def get_raw(self):
 

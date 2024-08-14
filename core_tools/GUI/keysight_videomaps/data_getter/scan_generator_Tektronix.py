@@ -8,6 +8,8 @@ from qcodes import MultiParameter
 import numpy as np
 import time
 import logging
+from collections.abc import Sequence
+from typing import Any, Dict, Optional
 
 from pulse_lib.schedule.tektronix_schedule import TektronixSchedule
 try:
@@ -149,10 +151,30 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     logger.info('Upload')
     my_seq.upload()
 
+    parameters = dict(
+            gate=gate,
+            swing=dict(label="swing", value=swing, unit="mV"),
+            n_pt=n_pt,
+            t_measure=dict(label="t_measure", value=t_step, unit="ns"),
+            biasT_corr=biasT_corr,
+            iq_mode=iq_mode,
+            acquisition_delay=dict(
+                label="acquisition_delay",
+                value=acquisition_delay_ns,
+                unit="ns"),
+            enabled_markers=enabled_markers,
+            pulse_gates={
+                name: dict(label=name, value=value, unit="mV")
+                for name, value in pulse_gates
+                },
+            line_margin=line_margin,
+            )
+
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, acquisition_delay_ns, n_lines, line_delay_pts,
                                     (n_pt, ), (gate, ), (tuple(voltages_sp), ),
-                                    biasT_corr, dig_samplerate, channels = channels, iq_mode=iq_mode,
-                                    channel_map=channel_map)
+                                    biasT_corr, dig_samplerate, channels=channels, iq_mode=iq_mode,
+                                    channel_map=channel_map,
+                                    snapshot_extra={"parameters": parameters})
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
@@ -307,12 +329,36 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     logger.info('Seq upload')
     my_seq.upload()
 
+    parameters = dict(
+            gate1=gate1,
+            swing1=dict(label="swing1", value=swing1, unit="mV"),
+            n_pt1=n_pt1,
+            gate2=gate2,
+            swing2=dict(label="swing2", value=swing2, unit="mV"),
+            n_pt2=n_pt2,
+            t_measure=dict(label="t_measure", value=t_step, unit="ns"),
+            biasT_corr=biasT_corr,
+            iq_mode=iq_mode,
+            acquisition_delay=dict(
+                label="acquisition_delay",
+                value=acquisition_delay_ns,
+                unit="ns"),
+            enabled_markers=enabled_markers,
+            pulse_gates={
+                name: dict(label=name, value=value, unit="mV")
+                for name, value in pulse_gates
+                },
+            line_margin=line_margin,
+            )
+
     n_lines = n_pt2
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step, acquisition_delay_ns, n_lines, line_delay_pts,
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
                                     biasT_corr, dig_samplerate,
-                                    channels=channels, iq_mode=iq_mode, channel_map=channel_map)
+                                    channels=channels, iq_mode=iq_mode,
+                                    channel_map=channel_map,
+                                    snapshot_extra={"parameters": parameters})
 
 
 class _digitzer_scan_parameter(MultiParameter):
@@ -322,7 +368,7 @@ class _digitzer_scan_parameter(MultiParameter):
     def __init__(self, digitizer, my_seq, pulse_lib, t_measure, acquisition_delay_ns,
                  n_lines, line_delay_pts,
                  shape, names, setpoint, biasT_corr, sample_rate,
-                 channels = [1,2,3,4], iq_mode=None, channel_map=None):
+                 channels = [1,2,3,4], iq_mode=None, channel_map=None, snapshot_extra=None):
         """
         args:
             digitizer (M4i) : Spectrum M4i digitizer driver:
@@ -345,6 +391,7 @@ class _digitzer_scan_parameter(MultiParameter):
                 E.g. {('ch1-I':(1, np.real, 'mV'), 'ch1-Q':(1, np.imag, 'mV'), 'ch3-Amp':(3, np.abs, 'mV'), 'ch3-Phase':(3, np.angle, 'rad')}
                 The default channel_map is:
                     {'ch1':(1, np.real, 'mV'), 'ch2':(2, np.real, 'mV'), 'ch3':(3, np.real, 'mV'), 'ch4':(4, np.real, 'mV')}
+            snapshot_extra (dict<str, any>): snapshot
         """
         self.dig = digitizer
         self.my_seq = my_seq
@@ -359,6 +406,16 @@ class _digitzer_scan_parameter(MultiParameter):
         self.n_lines = n_lines
         self.line_delay_pts = line_delay_pts
         self._init_channels(channels, channel_map, iq_mode)
+
+        channel_map_snapshot = {}
+        for name, mapping in self.channel_map.items():
+            channel_map_snapshot[name] = {
+                "channel": mapping[0],
+                "func": getattr(mapping[1], "__name__", str(mapping[1])),
+                "unit": mapping[2],
+                }
+        snapshot_extra["parameters"]["channel_map"] = channel_map_snapshot
+        self._snapshot_extra = snapshot_extra
 
         if sample_rate > 60e6:
             sample_rate = 60e6
@@ -510,6 +567,14 @@ class _digitzer_scan_parameter(MultiParameter):
         duration = (time.perf_counter() - start)*1000
         logger.info(f'Done ({duration:5.1f} ms)')
         return tuple(data_out)
+
+    def snapshot_base(self,
+                      update: Optional[bool] = True,
+                      params_to_skip_update: Optional[Sequence[str]] = None
+                      ) -> Dict[Any, Any]:
+        snapshot = super().snapshot_base(update, params_to_skip_update)
+        snapshot.update(self._snapshot_extra)
+        return snapshot
 
     def restart(self):
         self.dig.trigger_or_mask(pyspcm.SPC_TMASK_EXT0)

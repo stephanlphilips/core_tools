@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Dict, List, Any, Tuple, Callable, Union
+from collections.abc import Sequence
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import time
 import logging
 import numpy as np
@@ -216,9 +217,29 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
 
     my_seq.upload()
 
+    parameters = dict(
+            gate=gate,
+            swing=dict(label="swing", value=swing, unit="mV"),
+            n_pt=n_pt,
+            t_measure=dict(label="t_measure", value=t_step, unit="ns"),
+            biasT_corr=biasT_corr,
+            iq_mode=iq_mode,
+            acquisition_delay=dict(
+                label="acquisition_delay",
+                value=acquisition_delay_ns,
+                unit="ns"),
+            enabled_markers=enabled_markers,
+            pulse_gates={
+                name: dict(label=name, value=value, unit="mV")
+                for name, value in pulse_gates
+                },
+            line_margin=line_margin,
+            )
+
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
                                     (n_pt, ), (gate, ), (tuple(voltages_sp), ),
-                                    biasT_corr, channel_map)
+                                    biasT_corr, channel_map,
+                                    snapshot_extra={"parameters": parameters})
 
 
 def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, biasT_corr, pulse_lib,
@@ -386,10 +407,33 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
 
     my_seq.upload()
 
+    parameters = dict(
+            gate1=gate1,
+            swing1=dict(label="swing1", value=swing1, unit="mV"),
+            n_pt1=n_pt1,
+            gate2=gate2,
+            swing2=dict(label="swing2", value=swing2, unit="mV"),
+            n_pt2=n_pt2,
+            t_measure=dict(label="t_measure", value=t_step, unit="ns"),
+            biasT_corr=biasT_corr,
+            iq_mode=iq_mode,
+            acquisition_delay=dict(
+                label="acquisition_delay",
+                value=acquisition_delay_ns,
+                unit="ns"),
+            enabled_markers=enabled_markers,
+            pulse_gates={
+                name: dict(label=name, value=value, unit="mV")
+                for name, value in pulse_gates
+                },
+            line_margin=line_margin,
+            )
+
     return _digitzer_scan_parameter(digitizer, my_seq, pulse_lib, t_step,
                                     (n_pt2, n_pt1), (gate2, gate1),
                                     (tuple(voltages2_sp), (tuple(voltages1_sp),)*n_pt2),
-                                    biasT_corr, channel_map)
+                                    biasT_corr, channel_map,
+                                    snapshot_extra={"parameters": parameters})
 
 
 def _get_channel_map(pulse_lib, iq_mode, channels, channel_map, digitizer):
@@ -406,7 +450,8 @@ def _get_channel_map(pulse_lib, iq_mode, channels, channel_map, digitizer):
 
 class _digitzer_scan_parameter(MultiParameter):
 
-    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint, biasT_corr, channel_map):
+    def __init__(self, digitizer, my_seq, pulse_lib, t_measure, shape, names, setpoint,
+                 biasT_corr, channel_map, snapshot_extra):
         """
         args:
             digitizer (SD_DIG) : digizer driver:
@@ -415,13 +460,14 @@ class _digitzer_scan_parameter(MultiParameter):
             t_measure (int) : time to measure per step
             shape (tuple<int>): expected output shape
             names (tuple<str>): name of the gate(s) that are measured.
-            setpoint (tuple<np.ndarray>): array witht the setpoints of the input data
+            setpoint (tuple<np.ndarray>): array with the setpoints of the input data
             biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
-            channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray, str])]):
+            channel_map (Dict[str, Tuple(int, Callable[[np.ndarray], np.ndarray], str)]):
                 defines new list of derived channels to display. Dictionary entries name: (channel_number, func, unit).
                 E.g. {('ch1-I':(1, np.real, 'mV'), 'ch1-Q':(1, np.imag, 'mV'), 'ch3-Amp':(3, np.abs, 'mV'), 'ch3-Phase':(3, np.angle, 'rad')}
                 The default channel_map is:
                     {'ch1':(1, np.real, 'mV'), 'ch2':(2, np.real, 'mV'), 'ch3':(3, np.real, 'mV'), 'ch4':(4, np.real, 'mV')}
+            snapshot_extra (dict<str, any>): snapshot
         """
         self.digitizer = digitizer
         self.my_seq = my_seq
@@ -433,6 +479,16 @@ class _digitzer_scan_parameter(MultiParameter):
         self.channel_map = channel_map
         self.channel_names = tuple(self.channel_map.keys())
         self.acquisition_channels = set(ch for ch, _, _ in self.channel_map.values())
+
+        channel_map_snapshot = {}
+        for name, mapping in channel_map.items():
+            channel_map_snapshot[name] = {
+                "channel": mapping[0],
+                "func": getattr(mapping[1], "__name__", str(mapping[1])),
+                "unit": mapping[2],
+                }
+        snapshot_extra["parameters"]["channel_map"] = channel_map_snapshot
+        self._snapshot_extra = snapshot_extra
 
         # Create dict with digitizers and used channel numbers.
         # dict[digitizer, List[channel_numbers]]
@@ -553,6 +609,14 @@ class _digitzer_scan_parameter(MultiParameter):
             data_out.append(func(ch_data))
 
         return tuple(data_out)
+
+    def snapshot_base(self,
+                      update: Optional[bool] = True,
+                      params_to_skip_update: Optional[Sequence[str]] = None
+                      ) -> Dict[Any, Any]:
+        snapshot = super().snapshot_base(update, params_to_skip_update)
+        snapshot.update(self._snapshot_extra)
+        return snapshot
 
     def restart(self):
         pass
