@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, Tuple, Union, Callable
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 import pyqtgraph as pg
@@ -163,7 +164,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.current_plot = plot_content(None, None)
         self.current_param_getter = param_getter(None, None)
-        self.vm_data_param = None
+        self.vm_data_param_1D = None
+        self.vm_data_param_2D = None
         instance_ready = True
 
         # set graphical user interface
@@ -220,6 +222,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.app.exec()
 
     def setupUI2(self):
+        self.setWindowTitle("Video Mode")
         self.statusbar.setContentsMargins(8,0,4,4)
         self.bias_T_warning_label = QtWidgets.QLabel("")
         self.bias_T_warning_label.setMargin(2)
@@ -612,7 +615,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 self.current_param_getter._1D.restart()
 
-            self.vm_data_param = vm_data_param(self.current_param_getter._1D, self.current_plot._1D, self.metadata)
+            self.vm_data_param_1D = vm_data_param(self.current_param_getter._1D, self.current_plot._1D, self.metadata)
             self.current_plot._1D.start()
         except Exception as e:
             logger.error(repr(e), exc_info=True)
@@ -672,8 +675,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 self.current_param_getter._2D.restart()
 
-            logger.info('Defining vm_data_param')
-            self.vm_data_param = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
+            self.vm_data_param_2D = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
 
             logger.info('Starting the plot')
             self.current_plot._2D.start()
@@ -818,6 +820,14 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.metadata = metadata
 
+    @property
+    def vm_data_param(self):
+        if self.tab_id == 0: # 1D
+            return self.vm_data_param_1D
+        if self.tab_id == 1: # 2D
+            return self.vm_data_param_2D
+        return None
+
     @qt_log_exception
     def copy_ppt(self, inp_title = ''):
         """
@@ -827,9 +837,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             print('no data to plot')
             return
 
-        _, dataset_metadata = self.save_data()
+        _, dataset_descriptor = self.save_data()
         notes = self.metadata.copy()
-        notes.update(dataset_metadata)
+        notes.update(dataset_descriptor)
         if self.gates:
             try:
                 notes['gates'] = self.gates.get_gate_voltages()
@@ -885,8 +895,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         elif self.tab_id == 1: # 2D
             label = self._2D__gate1_name + '_vs_' + self._2D__gate2_name
         else:
-            raise RuntimeError(f"Attempting to save data, but liveplotting could not determine whether 1D or 2D is "
-                               f"selected (self.tab_id=={self.tab_id}).")
+            raise Exception(f"Cannot save data from tab {self.tab_id}")
 
         self.vm_data_param.update_metadata()
         self.metadata['average'] = self.vm_data_param.plot.average_scans
@@ -981,8 +990,9 @@ class vm_data_param(MultiParameter):
         setpoint_names = param.setpoint_names
         setpoint_labels = param.setpoint_labels
         setpoint_units = param.setpoint_units
+        self.param = param
         self.plot = plot
-        super().__init__(name='vm_data_parameter', instrument=None,
+        super().__init__(name='video_mode_data', instrument=None,
              names=names, labels=labels, units=units,
              shapes=shapes, setpoints=setpoints, setpoint_names=setpoint_names,
              setpoint_labels=setpoint_labels, setpoint_units=setpoint_units,
@@ -991,6 +1001,13 @@ class vm_data_param(MultiParameter):
     def update_metadata(self):
         self.load_metadata({'average':self.plot.average_scans})
 
+    def snapshot_base(self,
+                      update: Optional[bool] = True,
+                      params_to_skip_update: Optional[Sequence[str]] = None
+                      ) -> Dict[Any, Any]:
+        snapshot = super().snapshot_base(update, params_to_skip_update)
+        snapshot["parameters"] = self.param.snapshot().get("parameters", {})
+        return snapshot
 
     def get_raw(self):
         current_data = self.plot.buffer_data
