@@ -228,6 +228,7 @@ class live_plot(QThread):
         else:
             return ' - - -'
 
+
 class _1D_live_plot(live_plot):
 
     def init_plot(self):
@@ -313,7 +314,7 @@ class _1D_live_plot(live_plot):
                 self.gate_values_label.setText(
                         f'DC {gate_x}:{x_voltage_str}')
         except:
-            logger.error(f'Plotting failed', exc_info=True)
+            logger.error('Plotting failed', exc_info=True)
             # slow down to reduce error burst
             time.sleep(1.0)
 
@@ -345,6 +346,7 @@ class _1D_live_plot(live_plot):
                 time.sleep(1.0)
 
         self.plt_finished = True
+
 
 class _2D_live_plot(live_plot):
 
