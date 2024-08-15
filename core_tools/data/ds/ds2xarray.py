@@ -9,7 +9,7 @@ from qcodes.utils.helpers import NumpyJSONEncoder
 
 from core_tools import __version__
 
-def _add_coord(ds, param):
+def _add_coord(ds, param, added_dims):
     data = param()
     attrs = {
             'units':param.unit,
@@ -21,8 +21,9 @@ def _add_coord(ds, param):
     name = param_name
     if not name:
         name = param.name
-    while name in ds.coords:
-        if (np.array_equal(data , ds.coords[name].data, equal_nan=True)
+    while name in ds.coords or name in added_dims:
+        if (name not in added_dims
+            and np.array_equal(data , ds.coords[name].data, equal_nan=True)
             and attrs == ds.coords[name].attrs):
             # coord already added and identical
             return name
@@ -92,18 +93,18 @@ def ds2xarray(ct_ds, snapshot='gzip'):
             if param.ndim <= 2:
                 if param.ndim > 0:
                     coord = param.x
-                    dim_name = _add_coord(ds, coord)
+                    dim_name = _add_coord(ds, coord, dims)
                     dims.append(dim_name)
                 if param.ndim > 1:
                     coord = param.y
-                    dim_name = _add_coord(ds, coord)
+                    dim_name = _add_coord(ds, coord, dims)
                     dims.append(dim_name)
             else:
                 for i in range(param.ndim):
                     dim_name  = string.ascii_lowercase[8+i]
 
                     coord = getattr(param, dim_name)
-                    dim_name = _add_coord(ds, coord)
+                    dim_name = _add_coord(ds, coord, dims)
                     dims.append(dim_name)
 
             _add_data_var(ds, param, dims, param_index)
