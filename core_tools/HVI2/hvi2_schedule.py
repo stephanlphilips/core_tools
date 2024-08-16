@@ -91,7 +91,7 @@ class Hvi2Schedule(HardwareSchedule):
 
     def load(self):
         if self._is_loaded:
-            logger.info(f'HVI2 schedule already loaded')
+            logger.debug('HVI2 schedule already loaded')
             return
 
         self.hardware.release_schedule()
@@ -105,11 +105,11 @@ class Hvi2Schedule(HardwareSchedule):
         self._might_be_loaded = True
         self.hvi_exec.load()
         if self.hvi_exec.is_running():
-            logger.warning(f'HVI running after load; attempting to stop HVI and modules')
+            logger.warning('HVI running after load; attempting to stop HVI and modules')
             self.hvi_exec.stop()
             self.reconfigure_modules()
             if self.hvi_exec.is_running():
-                logger.eror(f'Still Running after stop')
+                logger.eror('Still Running after stop')
         self._is_loaded = True
 
     def unload(self):

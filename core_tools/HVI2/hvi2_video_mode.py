@@ -255,4 +255,4 @@ class Hvi2VideoMode():
         hvi_exec.start()
 
     def stop(self, hvi_exec):
-        logger.info('stop HVI')
+        logger.debug('stop HVI')

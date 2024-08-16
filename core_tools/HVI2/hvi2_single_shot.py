@@ -321,7 +321,7 @@ class Hvi2SingleShot():
             if sys_ticks > StartTimeout - 50:
                 self.stop(hvi_exec)
         if not self.started:
-            logger.info('start hvi')
+            logger.debug('start hvi')
             hvi_exec.start()
             self.started = True
 
@@ -378,7 +378,7 @@ class Hvi2SingleShot():
         hvi_exec.write_register(self.r_start, 1)
 
     def stop(self, hvi_exec):
-        logger.info('stop HVI')
+        logger.debug('stop HVI')
         if self.started != hvi_exec.is_running():
             logger.warning(f'HVI running-1: {hvi_exec.is_running()}; started: {self.started}')
         self.started = False
