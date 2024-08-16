@@ -213,7 +213,7 @@ class line_trace(MultiParameter):
                     # double time adding at most 5 seconds
                     no_data_report_time += no_data_report_time if no_data_report_time < 5 else 5
 
-        logger.info(f'channels {channels}: retrieved {data_read} points in {(time.perf_counter()-start)*1000:3.1f} ms')
+        logger.debug(f'channels {channels}: retrieved {data_read} points in {(time.perf_counter()-start)*1000:3.1f} ms')
         for ch in channels:
             if data_read[ch] != len(daq_points_per_channel[ch]):
                 logger.error(f"digitizer did not collect enough data points for channel {ch}; "
