@@ -148,7 +148,7 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib, dig
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
-    logger.info('Upload')
+    logger.debug('Upload')
     my_seq.upload()
 
     parameters = dict(
@@ -326,7 +326,7 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     my_seq.n_rep = 1
     my_seq.sample_rate = sample_rate
 
-    logger.info('Seq upload')
+    logger.debug('Seq upload')
     my_seq.upload()
 
     parameters = dict(
@@ -492,7 +492,7 @@ class _digitzer_scan_parameter(MultiParameter):
 
     def get_raw(self):
         start = time.perf_counter()
-        logger.info('Play')
+        logger.debug('Play')
         # play sequence
         self.my_seq.play(release=False)
 
@@ -500,7 +500,7 @@ class _digitzer_scan_parameter(MultiParameter):
         raw_data = self.dig.get_data()
 
         duration = (time.perf_counter() - start)*1000
-        logger.info(f'Acquired ({duration:5.1f} ms)')
+        logger.debug(f'Acquired ({duration:5.1f} ms)')
 
         pretrigger = self.dig.pretrigger_memory_size()
         raw_data = raw_data[:,pretrigger:pretrigger++self.seg_size]
@@ -543,7 +543,7 @@ class _digitzer_scan_parameter(MultiParameter):
                 idata = ipt + iline * points_per_line
                 point_data[:,idata] = np.mean(sample_data, axis=1) * 1000
         duration = (time.perf_counter() - start)*1000
-        logger.info(f'Averaged ({duration:5.1f} ms)')
+        logger.debug(f'Averaged ({duration:5.1f} ms)')
 
 
         # Reorder data for bias-T correction
