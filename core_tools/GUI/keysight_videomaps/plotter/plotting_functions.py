@@ -167,7 +167,6 @@ class live_plot(QThread):
             self.buffer_data[i] = new_buffer
 
     def start(self):
-        logger.info('running start function in plotting_func')
         self.active = True
         self.plt_finished = False
         self.timer.setSingleShot(False)
@@ -353,6 +352,8 @@ class _2D_live_plot(live_plot):
     _enhanced_contrast = False
     _filter_background = False
     _background_rel_sigma = 0.1
+    _filter_noise = False
+    _noise_sigma = 1.0
 
     def init_plot(self):
         n_col = self.n_col
@@ -401,6 +402,11 @@ class _2D_live_plot(live_plot):
     def set_background_filter(self, enabled, rel_sigma):
         self._filter_background = enabled
         self._background_rel_sigma = rel_sigma
+        self.refresh()
+
+    def set_noise_filter(self, enabled, rel_sigma):
+        self._filter_noise = enabled
+        self._noise_sigma = rel_sigma
         self.refresh()
 
     def set_cross(self, enabled):
@@ -475,6 +481,8 @@ class _2D_live_plot(live_plot):
                 if self._filter_background:
                     sigma = self.plot_params[i].shape[0] * self._background_rel_sigma
                     plot_data = plot_data - ndimage.gaussian_filter(plot_data, sigma, mode = 'nearest')
+                if self._filter_noise:
+                    plot_data = ndimage.gaussian_filter(plot_data, self._noise_sigma, mode = 'nearest')
                 if self.gradient == 'Off':
                     if self.enhanced_contrast:
                         plot_data = compress_range(plot_data, upper=99.5, lower=0.5)

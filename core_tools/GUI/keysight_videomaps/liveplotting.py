@@ -66,6 +66,8 @@ class param_getter:
 class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     # class variable to keep the last instance alive and retrievable by other components.
     last_instance = None
+    _all_instances = []
+    auto_stop_other = True
 
     """
     VideoMode GUI.
@@ -75,7 +77,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                  cust_defaults: Optional[Dict[str, Dict[str, Any]]] = None,
                  iq_mode: Optional[str] = None,
                  channel_map: Optional[Dict[str, Tuple[Union[int, str], Callable[[np.ndarray], np.ndarray]]]] = None,
-                 gates=None):
+                 gates=None,
+                 n_pulse_gates=5):
         '''
         Args:
             pulse_lib (pulselib) : provide the pulse library object. This is used to generate the sequences.
@@ -98,6 +101,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                            't_meas': float,
                            'average': int,
                            'gradient': str, # 'Off', 'Magnitude', or 'Mag & angle'
+                           'filter_background': bool,
+                           'background_sigma': float,
+                           'filter_noise': bool,
+                           'noise_sigma': float,
                            'offsets': dict[str, float]}
                         gen = {'ch1': bool,
                            'ch2': bool,
@@ -126,6 +133,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 Optional gates object with real and virtual DC gate values.
                 If gates is specified it can be used to change the DC voltages with a click in
                 the 2D chart. The 1D and 2D charts can also show the absolute voltages.
+            n_pulse_gates (int): number of pulse_gates to show in GUI.
         '''
         logger.info('initialising video mode')
         self.pulse_lib = pulse_lib
@@ -133,6 +141,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         if gates is None:
             gates = _try_get_gates()
         self.gates = gates
+        if n_pulse_gates > 15:
+            raise Exception("Maximum number of pulse gates is 15")
+        self.n_pulse_gates = n_pulse_gates
 
         if scan_type is None:
             scan_type = pulse_lib._backend
@@ -215,6 +226,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._2D_set_DC.clicked.connect(lambda:self._2D_set_DC_button_state())
 
         liveplotting.last_instance = self
+        liveplotting._all_instances.append(self)
 
         self.show()
         if instance_ready == False:
@@ -241,6 +253,39 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cursor_value_label.setMinimumWidth(300)
         self.statusbar.addWidget(self.cursor_value_label)
 
+        self._1D_offset_gate_voltages = []
+        self._2D_offset_gate_voltages = []
+        for dim in ['1D', '2D']:
+            frame = getattr(self, f"frame_{dim}")
+            layout = getattr(self, f"formLayout_{dim}")
+            offset_gate_voltages = getattr(self, f"_{dim}_offset_gate_voltages")
+            for i in range(self.n_pulse_gates):
+                cb_gate = QtWidgets.QComboBox(frame)
+                sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+                sizePolicy.setHorizontalStretch(0)
+                sizePolicy.setVerticalStretch(0)
+                cb_gate.setSizePolicy(sizePolicy)
+                cb_gate.setMinimumSize(QtCore.QSize(107, 0))
+                layout.setWidget(11+i, QtWidgets.QFormLayout.LabelRole, cb_gate)
+
+                box_voltage = QtWidgets.QDoubleSpinBox(frame)
+                box_voltage.setMinimum(-1000.0)
+                box_voltage.setMaximum(1000.0)
+                layout.setWidget(11+i, QtWidgets.QFormLayout.FieldRole, box_voltage)
+
+                offset_gate_voltages.append((cb_gate, box_voltage))
+
+        self._shortcut_reload = QtWidgets.QShortcut(QtGui.QKeySequence("F5"), self)
+        self._shortcut_reload.activated.connect(self._reload)
+        self._shortcut_stop = QtWidgets.QShortcut(QtGui.QKeySequence("Esc"), self)
+        self._shortcut_stop.activated.connect(self.stop)
+        self._shortcut_save = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+S"), self)
+        self._shortcut_save.activated.connect(self.save_data)
+        self._shortcut_copy = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+C"), self)
+        self._shortcut_copy.activated.connect(self.copy_to_clipboard)
+        self._shortcut_copy = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+P"), self)
+        self._shortcut_copy.activated.connect(self.copy_ppt)
+
     @property
     def tab_id(self):
         return self.tabWidget.currentIndex()
@@ -255,10 +300,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             return False
 
     def turn_off(self):
-        if self.is_running == '1D':
-            self._1D_start_stop()
-        elif self.is_running == '2D':
-            self._2D_start_stop()
+        self.stop()
 
     def _set_channel_map(self, channel_map, iq_mode):
         if channel_map is not None:
@@ -315,20 +357,23 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self._2D_gate2_name.addItem(str(i))
 
         for dim in ['1D', '2D']:
-            for i in [1,2,3]:
-                cb_offset = getattr(self, f'_{dim}_offset{i}_name')
-                cb_offset.addItem('<None>')
+            offset_gate_voltages = getattr(self, f"_{dim}_offset_gate_voltages")
+            for i in range(self.n_pulse_gates):
+                cb_gate, box_voltage = offset_gate_voltages[i]
+                cb_gate.addItem('<None>')
                 for gate in sorted(gates, key=str.lower):
-                    cb_offset.addItem(gate)
+                    cb_gate.addItem(gate)
             try:
                 init_offsets = cust_defaults[dim]['offsets']
             except Exception:
                 continue
-            if len(init_offsets) > 3:
-                raise Exception('Only 3 offsets supported')
+            if len(init_offsets) > self.n_pulse_gates:
+                raise Exception(f'Only {self.n_pulse_gates} offsets configured. '
+                                'Specify larger n_pulse_gates')
             for i,(gate,value) in enumerate(init_offsets.items()):
-                getattr(self, f'_{dim}_offset{i+1}_name').setCurrentText(gate)
-                getattr(self, f'_{dim}_offset{i+1}_voltage').setValue(value)
+                cb_gate, box_voltage = offset_gate_voltages[i]
+                cb_gate.setCurrentText(gate)
+                box_voltage.setValue(value)
 
         # 1D defaults
         self.defaults_1D = {
@@ -350,6 +395,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             'average': 1,
             'gradient': 'Off',
             'filter_background': False,
+            'background_sigma': 0.2,
+            'filter_noise': False,
+            'noise_sigma': 1.0,
             }
 
         self.defaults_gen = {
@@ -362,7 +410,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             'biasT_corr_2D': True,
             '2D_cross': False,
             '2D_colorbar': False,
-            'background_sigma': 0.2,
             'enabled_markers': [],
             }
 
@@ -412,6 +459,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._2D_average.valueChanged.connect(lambda:self.update_plot_properties_2D())
         self._2D_gradient.currentTextChanged.connect(lambda:self.update_plot_properties_2D())
         self._2D_filter_background.stateChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_background_sigma.valueChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_filter_noise.stateChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_noise_sigma.valueChanged.connect(lambda:self.update_plot_properties_2D())
 
         self._channels = self.get_activated_channels()
 
@@ -490,20 +540,29 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_plot._2D.gradient = self._2D_gradient.currentText()
             self.current_plot._2D.set_background_filter(
                     self._2D_filter_background.isChecked(),
-                    self._gen_background_sigma.value()
+                    self._2D_background_sigma.value()
+                    )
+            self.current_plot._2D.set_noise_filter(
+                    self._2D_filter_noise.isChecked(),
+                    self._2D_noise_sigma.value()
                     )
             # store for metadata
             self._2D__average = self._2D_average.value()
             self._2D__gradient = self._2D_gradient.currentText()
             self._2D__filter_background = self._2D_filter_background.isChecked()
-            self._gen__background_sigma = self._gen_background_sigma.value()
+            self._2D__background_sigma = self._2D_background_sigma.value()
+            self._2D__filter_noise = self._2D_filter_noise.isChecked()
+            self._2D__noise_sigma = self._2D_noise_sigma.value()
 
     @qt_log_exception
-    def get_offsets(self, dimension='1D'):
+    def get_offsets(self, dim: str):
         offsets = {}
+        offset_gate_voltages = getattr(self, f"_{dim}_offset_gate_voltages")
+        for i in range(self.n_pulse_gates):
+            cb_gate, box_voltage = offset_gate_voltages[i]
         for i in range(1,4):
-            gate = getattr(self, f'_{dimension}_offset{i}_name').currentText()
-            voltage = getattr(self, f'_{dimension}_offset{i}_voltage').value()
+            gate = cb_gate.currentText()
+            voltage = box_voltage.value()
             if gate != '<None>' and voltage != 0.0:
                 offsets[gate] = voltage
 
@@ -591,8 +650,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def _start_1D(self):
         try:
+            logger.info('Starting 1D')
+            self._stop_other()
             if self.current_plot._1D is None:
-                logger.info('Creating 1D scan')
+                logger.debug('Creating 1D scan')
                 self.get_plot_settings(1)
                 self.start_1D.setEnabled(False)
                 self.current_param_getter._1D = self.construct_1D_scan_fast(
@@ -611,7 +672,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                         on_mouse_moved=self._on_mouse_moved_1D,
                         on_mouse_clicked=self._on_mouse_clicked_1D)
                 self.set_metadata()
-                logger.info('Finished init currentplot and current_param')
+                logger.debug('Finished init currentplot and current_param')
             else:
                 self.current_param_getter._1D.restart()
 
@@ -625,6 +686,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def _stop_1D(self):
         if self.current_plot._1D:
+            logger.info('Stopping 1D')
             self.current_plot._1D.stop()
         self.start_1D.setText("Start")
 
@@ -641,8 +703,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     def _start_2D(self):
         try:
             logger.info('Starting 2D')
+            self._stop_other()
             if self.current_plot._2D is None:
-                logger.info('Creating 2D scan')
+                logger.debug('Creating 2D scan')
                 self.get_plot_settings(2)
                 self.start_2D.setEnabled(False)
                 self.current_param_getter._2D = self.construct_2D_scan_fast(
@@ -656,7 +719,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                         pulse_gates=self._2D__offsets,
                         line_margin=self._gen__line_margin,
                         )
-                logger.info('Finished Param, now plot')
+                logger.debug('Finished Param, now plot')
                 self.current_plot._2D = _2D_live_plot(
                         self._2D_plotter_layout, self.current_param_getter._2D,
                         self._2D_average.value(), self._2D_gradient.currentText(),
@@ -668,16 +731,20 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.current_plot._2D.set_colorbar(self._2D__colorbar)
                 self.current_plot._2D.set_background_filter(
                         self._2D_filter_background.isChecked(),
-                        self._gen_background_sigma.value()
+                        self._2D_background_sigma.value()
+                        )
+                self.current_plot._2D.set_noise_filter(
+                        self._2D_filter_noise.isChecked(),
+                        self._2D_noise_sigma.value()
                         )
                 self.set_metadata()
-                logger.info('Finished init currentplot and current_param')
+                logger.debug('Finished init currentplot and current_param')
             else:
                 self.current_param_getter._2D.restart()
 
             self.vm_data_param_2D = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
 
-            logger.info('Starting the plot')
+            logger.debug('Starting the plot')
             self.current_plot._2D.start()
         except Exception as e:
             logger.error(repr(e), exc_info=True)
@@ -686,8 +753,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self.start_2D.setEnabled(True)
 
     def _stop_2D(self):
-        logger.info('Stopping 2D')
         if self.current_plot._2D:
+            logger.info('Stopping 2D')
             self.current_plot._2D.stop()
         self.start_2D.setText("Start")
 
@@ -697,6 +764,37 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self._stop_1D()
         elif state == '2D':
             self._stop_2D()
+
+    def _stop_other(self):
+        if not liveplotting.auto_stop_other:
+            return
+        liveplotting.stop_all(exclude=self)
+
+    @staticmethod
+    def stop_all(exclude=None):
+        for gui in liveplotting._all_instances:
+            if gui == exclude:
+                continue
+            try:
+                if gui.is_running:
+                    logger.info("Stopping other Video Mode GUI")
+                    gui.stop()
+            except Exception:
+                logger.error("Failure stopping other Video Mode GUI",
+                             exc_info=True)
+
+    @staticmethod
+    def is_any_running():
+        for gui in liveplotting._all_instances:
+            if gui.is_running:
+                return True
+        return False
+
+    def _reload(self):
+        if self.tab_id == 0: # 1D
+            self.update_plot_settings_1D()
+        elif self.tab_id == 1: # 2D
+            self.update_plot_settings_2D()
 
     @qt_log_exception
     def update_plot_settings_1D(self):
@@ -749,12 +847,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def tab_changed(self):
-        if self.current_plot._1D is not None:
-            self.current_plot._1D.stop()
-            self.start_1D.setText("Start")
-        if self.current_plot._2D is not None:
-            self.current_plot._2D.stop()
-            self.start_2D.setText("Start")
+        self.stop()
         self.cursor_value_label.setText('')
         self.gate_values_label.setText('')
         self._gen__max_V_swing = self._gen_max_V_swing.value()
@@ -789,6 +882,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if liveplotting.last_instance == self:
             liveplotting.last_instance = None
+        try:
+            liveplotting._all_instances.remove(self)
+        except ValueError:
+            logger.error("Oops! Error in liveplotting administration")
         logger.info('Window closed')
 
     @qt_log_exception

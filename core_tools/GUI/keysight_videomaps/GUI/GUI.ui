@@ -39,6 +39,18 @@
     </size>
    </property>
    <layout class="QGridLayout" name="gridLayout_8">
+    <property name="leftMargin">
+     <number>4</number>
+    </property>
+    <property name="topMargin">
+     <number>4</number>
+    </property>
+    <property name="rightMargin">
+     <number>4</number>
+    </property>
+    <property name="bottomMargin">
+     <number>4</number>
+    </property>
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabWidget">
       <property name="tabPosition">
@@ -47,13 +59,26 @@
       <property name="currentIndex">
        <number>1</number>
       </property>
+
       <widget class="QWidget" name="_1D">
        <attribute name="title">
         <string>1D</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item row="0" column="1">
-         <widget class="QFrame" name="frame">
+         <widget class="QFrame" name="frame_1D">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -82,25 +107,7 @@
               <enum>QLayout::SetDefaultConstraint</enum>
              </property>
              <item>
-              <widget class="QPushButton" name="start_1D">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>14</pointsize>
-                </font>
-               </property>
-               <property name="text">
-                <string>Start</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <layout class="QFormLayout" name="formLayout">
+              <layout class="QFormLayout" name="formLayout_1D">
                <property name="labelAlignment">
                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
                </property>
@@ -123,38 +130,23 @@
                 <number>0</number>
                </property>
                <item row="0" column="0" colspan="2">
-                <widget class="QLabel" name="_1D_scan_settings">
+                <widget class="QPushButton" name="start_1D">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>24</height>
-                  </size>
-                 </property>
                  <property name="font">
                   <font>
-                   <pointsize>12</pointsize>
+                   <pointsize>14</pointsize>
                   </font>
                  </property>
-                 <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
-                 </property>
                  <property name="text">
-                  <string>Scan settings</string>
+                  <string>Start</string>
                  </property>
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                 <property name="wordWrap">
-                  <bool>false</bool>
-                 </property>
-                 <property name="margin">
-                  <number>0</number>
+                 <property name="toolTip">
+                  <string>Start (F5)</string>
                  </property>
                 </widget>
                </item>
@@ -253,117 +245,52 @@
                  </property>
                 </widget>
                </item>
-               <item row="5" column="0" colspan="2">
-                <widget class="QLabel" name="label_DC_offsets1D">
-                 <property name="text">
-                  <string>Pulsed offsets</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="0">
-                <widget class="QComboBox" name="_1D_offset1_name">
-                 <property name="enabled">
-                  <bool>true</bool>
-                 </property>
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>107</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="1">
-                <widget class="QDoubleSpinBox" name="_1D_offset1_voltage">
-                 <property name="minimum">
-                  <double>-1000.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>1000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="0">
-                <widget class="QComboBox" name="_1D_offset2_name">
-                 <property name="enabled">
-                  <bool>true</bool>
-                 </property>
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>107</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="1">
-                <widget class="QDoubleSpinBox" name="_1D_offset2_voltage">
-                 <property name="minimum">
-                  <double>-1000.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>1000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
                <item row="8" column="0">
-                <widget class="QComboBox" name="_1D_offset3_name">
-                 <property name="enabled">
-                  <bool>true</bool>
-                 </property>
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>107</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="8" column="1">
-                <widget class="QDoubleSpinBox" name="_1D_offset3_voltage">
-                 <property name="minimum">
-                  <double>-1000.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>1000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="9" column="0">
                 <spacer>
                  <property name="orientation">
-                  <enum>Qt::Vertical</enum>
+                  <enum>Qt::Horizontal</enum>
                  </property>
                  <property name="sizeType">
-                  <enum>QSizePolicy::MinimumExpanding</enum>
+                  <enum>QSizePolicy::Fixed</enum>
                  </property>
-                 <property name="maximumSize" stdset="0">
+                 <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
+                   <width>24</width>
                    <height>8</height>
                   </size>
                  </property>
                 </spacer>
                </item>
-               <item row="10" column="0" colspan="2">
+               <item row="9" column="0" colspan="2">
+                <widget class="QLabel" name="label_DC_offsets1D">
+                 <property name="alignment">
+                  <set>Qt::AlignHCenter</set>
+                 </property>
+                 <property name="text">
+                  <string>Pulsed offsets</string>
+                 </property>
+                </widget>
+               </item>
+
+               <!--  rows 11 to 29 are reserved for pulsed offsets -->
+
+               <item row="30" column="0">
+                <spacer>
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>24</width>
+                   <height>8</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="31" column="0" colspan="2">
                 <widget class="QPushButton" name="_1D_update_plot">
                  <property name="font">
                   <font>
@@ -373,9 +300,12 @@
                  <property name="text">
                   <string>Upload waveform</string>
                  </property>
+                 <property name="toolTip">
+                  <string>Upload waveforms (F5)</string>
+                 </property>
                 </widget>
                </item>
-               <item row="11" column="0">
+               <item row="32" column="0">
                 <spacer>
                  <property name="orientation">
                   <enum>Qt::Vertical</enum>
@@ -391,46 +321,8 @@
                  </property>
                 </spacer>
                </item>
-               <item row="12" column="0" colspan="2">
-                <widget class="QLabel" name="label_8">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>24</height>
-                  </size>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <pointsize>12</pointsize>
-                  </font>
-                 </property>
-                 <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
-                 </property>
-                 <property name="frameShadow">
-                  <enum>QFrame::Plain</enum>
-                 </property>
-                 <property name="text">
-                  <string notr="true">Post-processing</string>
-                 </property>
-                 <property name="textFormat">
-                  <enum>Qt::AutoText</enum>
-                 </property>
-                 <property name="scaledContents">
-                  <bool>false</bool>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-               <item row="13" column="0">
+
+               <item row="33" column="0">
                 <layout class="QHBoxLayout">
                  <item>
                   <widget class="QLabel" name="label_3">
@@ -464,7 +356,7 @@
                  </item>
                 </layout>
                </item>
-               <item row="13" column="1">
+               <item row="33" column="1">
                 <layout class="QHBoxLayout">
                  <item>
                   <widget class="QSpinBox" name="_1D_average">
@@ -501,14 +393,14 @@
                  </item>
                 </layout>
                </item>
-               <item row="14" column="0">
+               <item row="34" column="0">
                 <widget class="QLabel" name="label_7">
                  <property name="text">
                   <string>Differentiate</string>
                  </property>
                 </widget>
                </item>
-               <item row="14" column="1">
+               <item row="34" column="1">
                 <widget class="QCheckBox" name="_1D_diff">
                  <property name="text">
                   <string/>
@@ -584,7 +476,10 @@
                 </font>
                </property>
                <property name="text">
-                <string>Copy to clipboard</string>
+                <string>Copy</string>
+               </property>
+               <property name="toolTip">
+                <string>Copy image to clipboard (Ctrl+C)</string>
                </property>
               </widget>
              </item>
@@ -620,6 +515,9 @@
                <property name="text">
                 <string>Copy to PPT</string>
                </property>
+               <property name="toolTip">
+                <string>Copy image + metadata to PowerPoint (Ctrl+P)</string>
+               </property>
               </widget>
              </item>
              <item>
@@ -654,6 +552,9 @@
                <property name="text">
                 <string>Save Data</string>
                </property>
+               <property name="toolTip">
+                <string>Save dataset  (Ctrl+S)</string>
+               </property>
               </widget>
              </item>
             </layout>
@@ -680,8 +581,20 @@
         <string>2D</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_9">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item row="0" column="0">
-         <widget class="QFrame" name="frame_3">
+         <widget class="QFrame" name="frame_2D">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -710,25 +623,7 @@
               <enum>QLayout::SetDefaultConstraint</enum>
              </property>
              <item>
-              <widget class="QPushButton" name="start_2D">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>14</pointsize>
-                </font>
-               </property>
-               <property name="text">
-                <string>Start</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <layout class="QFormLayout" name="formLayout_3">
+              <layout class="QFormLayout" name="formLayout_2D">
                <property name="labelAlignment">
                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
                </property>
@@ -751,63 +646,35 @@
                 <number>0</number>
                </property>
                <item row="0" column="0" colspan="2">
-                <widget class="QLabel" name="_1D_scan_settings_3">
+                <widget class="QPushButton" name="start_2D">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>24</height>
-                  </size>
-                 </property>
                  <property name="font">
                   <font>
-                   <pointsize>12</pointsize>
+                   <pointsize>14</pointsize>
                   </font>
                  </property>
-                 <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
-                 </property>
                  <property name="text">
-                  <string>Scan settings</string>
+                  <string>Start</string>
                  </property>
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                 <property name="wordWrap">
-                  <bool>false</bool>
-                 </property>
-                 <property name="margin">
-                  <number>0</number>
+                 <property name="toolTip">
+                  <string>Start (F5)</string>
                  </property>
                 </widget>
                </item>
+
                <item row="1" column="0">
-                <widget class="QLabel" name="label_26">
-                 <property name="text">
-                  <string>Flip axes</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QPushButton" name="_flip_axes">
-                 <property name="text">
-                  <string>Flip axes</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
                 <widget class="QLabel" name="_1D_gate_name_label_3">
                  <property name="text">
                   <string>x-axis</string>
                  </property>
                 </widget>
                </item>
-               <item row="2" column="1">
+               <item row="1" column="1">
                 <widget class="QComboBox" name="_2D_gate1_name">
                  <property name="enabled">
                   <bool>true</bool>
@@ -826,14 +693,14 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="0">
+               <item row="2" column="0">
                 <widget class="QLabel" name="label_17">
                  <property name="text">
                   <string>V Swing x (mV)</string>
                  </property>
                 </widget>
                </item>
-               <item row="3" column="1">
+               <item row="2" column="1">
                 <widget class="QDoubleSpinBox" name="_2D_V1_swing">
                  <property name="minimumSize">
                   <size>
@@ -855,24 +722,24 @@
                  </property>
                 </widget>
                </item>
-               <item row="4" column="0">
+               <item row="3" column="0">
                 <widget class="QLabel" name="label_24">
                  <property name="text">
                   <string>y-axis</string>
                  </property>
                 </widget>
                </item>
-               <item row="4" column="1">
+               <item row="3" column="1">
                 <widget class="QComboBox" name="_2D_gate2_name"/>
                </item>
-               <item row="5" column="0">
+               <item row="4" column="0">
                 <widget class="QLabel" name="label_25">
                  <property name="text">
                   <string>V Swing y (mV)</string>
                  </property>
                 </widget>
                </item>
-               <item row="5" column="1">
+               <item row="4" column="1">
                 <widget class="QDoubleSpinBox" name="_2D_V2_swing">
                  <property name="minimum">
                   <double>-1000.000000000000000</double>
@@ -882,6 +749,7 @@
                  </property>
                 </widget>
                </item>
+
                <item row="6" column="0">
                 <widget class="QLabel" name="label_18">
                  <property name="text">
@@ -928,117 +796,68 @@
                  </property>
                 </widget>
                </item>
-               <item row="8" column="0" colspan="2">
-                <widget class="QLabel" name="label_DC_offsets2D">
+
+               <item row="8" column="1">
+                <widget class="QPushButton" name="_flip_axes">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
                  <property name="text">
-                  <string>Pulsed offsets</string>
+                  <string>Flip X &lt;-&gt; Y</string>
                  </property>
                 </widget>
                </item>
+
                <item row="9" column="0">
-                <widget class="QComboBox" name="_2D_offset1_name">
-                 <property name="enabled">
-                  <bool>true</bool>
-                 </property>
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>107</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="9" column="1">
-                <widget class="QDoubleSpinBox" name="_2D_offset1_voltage">
-                 <property name="minimum">
-                  <double>-1000.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>1000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="10" column="0">
-                <widget class="QComboBox" name="_2D_offset2_name">
-                 <property name="enabled">
-                  <bool>true</bool>
-                 </property>
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>107</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="10" column="1">
-                <widget class="QDoubleSpinBox" name="_2D_offset2_voltage">
-                 <property name="minimum">
-                  <double>-1000.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>1000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="11" column="0">
-                <widget class="QComboBox" name="_2D_offset3_name">
-                 <property name="enabled">
-                  <bool>true</bool>
-                 </property>
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>107</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item row="11" column="1">
-                <widget class="QDoubleSpinBox" name="_2D_offset3_voltage">
-                 <property name="minimum">
-                  <double>-1000.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>1000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="12" column="0">
                 <spacer>
                  <property name="orientation">
-                  <enum>Qt::Vertical</enum>
+                  <enum>Qt::Horizontal</enum>
                  </property>
                  <property name="sizeType">
-                  <enum>QSizePolicy::MinimumExpanding</enum>
+                  <enum>QSizePolicy::Fixed</enum>
                  </property>
-                 <property name="maximumSize" stdset="0">
+                 <property name="sizeHint" stdset="0">
                   <size>
-                   <width>20</width>
+                   <width>24</width>
                    <height>8</height>
                   </size>
                  </property>
                 </spacer>
                </item>
-               <item row="13" column="0" colspan="2">
+
+               <item row="10" column="0" colspan="2">
+                <widget class="QLabel" name="label_DC_offsets2D">
+                 <property name="alignment">
+                  <set>Qt::AlignHCenter</set>
+                 </property>
+                 <property name="text">
+                  <string>Pulsed offsets</string>
+                 </property>
+                </widget>
+               </item>
+
+               <!--  rows 11 to 29 are reserved for pulsed offsets -->
+
+               <item row="30" column="0">
+                <spacer>
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>24</width>
+                   <height>8</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="31" column="0" colspan="2">
                 <widget class="QPushButton" name="_2D_update_plot">
                  <property name="font">
                   <font>
@@ -1048,9 +867,12 @@
                  <property name="text">
                   <string>Upload waveform</string>
                  </property>
+                 <property name="toolTip">
+                  <string>Upload waveforms (F5)</string>
+                 </property>
                 </widget>
                </item>
-               <item row="14" column="0">
+               <item row="32" column="0">
                 <spacer>
                  <property name="orientation">
                   <enum>Qt::Vertical</enum>
@@ -1066,47 +888,9 @@
                  </property>
                 </spacer>
                </item>
-               <item row="15" column="0" colspan="2">
-                <widget class="QLabel" name="label_20">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>24</height>
-                  </size>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <pointsize>12</pointsize>
-                  </font>
-                 </property>
-                 <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
-                 </property>
-                 <property name="frameShadow">
-                  <enum>QFrame::Plain</enum>
-                 </property>
-                 <property name="text">
-                  <string notr="true">Post-processing</string>
-                 </property>
-                 <property name="textFormat">
-                  <enum>Qt::AutoText</enum>
-                 </property>
-                 <property name="scaledContents">
-                  <bool>false</bool>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
 
-               <item row="16" column="0">
+
+               <item row="33" column="0">
                 <layout class="QHBoxLayout">
                  <item>
                   <widget class="QLabel" name="label_21">
@@ -1140,7 +924,7 @@
                  </item>
                 </layout>
                </item>
-               <item row="16" column="1">
+               <item row="33" column="1">
                 <layout class="QHBoxLayout" name="horizontalLayout_4">
                  <item>
                   <widget class="QSpinBox" name="_2D_average">
@@ -1162,7 +946,7 @@
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
-                     <width>5</width>
+                     <width>6</width>
                      <height>20</height>
                     </size>
                    </property>
@@ -1177,14 +961,141 @@
                  </item>
                 </layout>
                </item>
-               <item row="17" column="0">
+
+               <item row="34" column="0">
+                <widget class="QLabel" name="label_background_filter">
+                 <property name="text">
+                  <string>Filter background</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="34" column="1">
+                <layout class="QHBoxLayout" name="horizontalLayout_background">
+                  <item>
+                    <widget class="QDoubleSpinBox" name="_2D_background_sigma">
+                    <property name="toolTip">
+                      <string>sigma for Gaussian background filter relative to image size</string>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>46</width>
+                       <height>24</height>
+                      </size>
+                     </property>
+                     <property name="decimals">
+                      <number>2</number>
+                     </property>
+                     <property name="minimum">
+                      <double>0.05</double>
+                     </property>
+                     <property name="maximum">
+                      <double>1.0</double>
+                     </property>
+                     <property name="value">
+                      <double>0.2</double>
+                     </property>
+                     <property name="singleStep">
+                      <double>0.05</double>
+                     </property>
+                    </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>6</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                    <widget class="QCheckBox" name="_2D_filter_background">
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                  </item>
+                </layout>
+               </item>
+
+               <item row="35" column="0">
+                <widget class="QLabel" name="label_noise_filter">
+                 <property name="text">
+                  <string>Filter noise / low pass</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="35" column="1">
+                <layout class="QHBoxLayout" name="horizontalLayout_noise">
+                  <item>
+                    <widget class="QDoubleSpinBox" name="_2D_noise_sigma">
+                    <property name="toolTip">
+                      <string>sigma for Gaussian noise filter in pixels</string>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>46</width>
+                       <height>24</height>
+                      </size>
+                     </property>
+                     <property name="decimals">
+                      <number>1</number>
+                     </property>
+                     <property name="minimum">
+                      <double>0.2</double>
+                     </property>
+                     <property name="maximum">
+                      <double>10</double>
+                     </property>
+                     <property name="value">
+                      <double>1.0</double>
+                     </property>
+                     <property name="singleStep">
+                      <double>0.2</double>
+                     </property>
+                    </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>6</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                    <widget class="QCheckBox" name="_2D_filter_noise">
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                  </item>
+                </layout>
+               </item>
+
+               <item row="36" column="0">
                 <widget class="QLabel" name="label_23">
                  <property name="text">
                   <string>Gradient</string>
                  </property>
                 </widget>
                </item>
-               <item row="17" column="1">
+               <item row="36" column="1">
                 <widget class="QComboBox" name="_2D_gradient">
                  <property name="enabled">
                   <bool>true</bool>
@@ -1218,22 +1129,10 @@
                 </item>
                 </widget>
                </item>
-               <item row="18" column="0">
-                <widget class="QLabel" name="label_background_filter">
-                 <property name="text">
-                  <string>Filter background</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="18" column="1">
-                <widget class="QCheckBox" name="_2D_filter_background">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
+
               </layout>
              </item>
+
              <item>
               <spacer name="verticalSpacer_9">
                <property name="orientation">
@@ -1301,7 +1200,10 @@
                 </font>
                </property>
                <property name="text">
-                <string>Copy to clipboard</string>
+                <string>Copy</string>
+               </property>
+               <property name="toolTip">
+                <string>Copy image to clipboard (Ctrl+C)</string>
                </property>
               </widget>
              </item>
@@ -1337,6 +1239,9 @@
                <property name="text">
                 <string>Copy to PPT</string>
                </property>
+               <property name="toolTip">
+                <string>Copy image + metadata to PowerPoint (Ctrl+P)</string>
+               </property>
               </widget>
              </item>
              <item>
@@ -1371,6 +1276,9 @@
                <property name="text">
                 <string>Save Data</string>
                </property>
+               <property name="toolTip">
+                <string>Save dataset  (Ctrl+S)</string>
+               </property>
               </widget>
              </item>
             </layout>
@@ -1378,6 +1286,7 @@
           </layout>
          </widget>
         </item>
+
         <item row="0" column="1">
          <widget class="QFrame" name="_2D_plotter_frame">
           <property name="frameShape">
@@ -1843,49 +1752,6 @@
               </property>
               <property name="checked">
                <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-
-            <item row="25" column="0">
-             <widget class="QLabel" name="label_background_sigma">
-              <property name="text">
-               <string>Background filter sigma</string>
-              </property>
-             </widget>
-            </item>
-            <item row="25" column="1">
-             <widget class="QDoubleSpinBox" name="_gen_background_sigma">
-              <property name="toolTip">
-               <string>sigma for Gaussian background filter</string>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>60</width>
-                <height>24</height>
-               </size>
-              </property>
-              <property name="decimals">
-               <number>2</number>
-              </property>
-              <property name="minimum">
-               <double>0.05</double>
-              </property>
-              <property name="maximum">
-               <double>1.0</double>
-              </property>
-              <property name="value">
-               <double>0.2</double>
-              </property>
-              <property name="singleStep">
-               <double>0.05</double>
-              </property>
-             </widget>
-            </item>
-            <item row="25" column="3">
-             <widget class="QLabel" name="label_background_sigma_detail">
-              <property name="text">
-               <string>Sigma of Gaussian high-pass filter relative to image size</string>
               </property>
              </widget>
             </item>
