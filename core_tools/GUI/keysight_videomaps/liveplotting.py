@@ -199,6 +199,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._init_channels()
         self._init_markers(pulse_lib)
         self.init_defaults(pulse_lib.channels, cust_defaults)
+        self._update_timer = QtCore.QTimer(self)
+        self._update_timer.timeout.connect(self._update_active_state)
+        self._update_timer.start(200)
 
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
@@ -708,6 +711,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.info('Stopping 1D')
             self._run_state = "Idle"
             self._set_icon(self._1D_play, "play.png")
+            self._set_icon(self._1D_step, "image.png")
             self.current_plot._1D.stop()
 
     def _prepare_2D_scan(self):
@@ -772,6 +776,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.info('Stopping 2D')
             self.current_plot._2D.stop()
             self._set_icon(self._2D_play, "play.png")
+            self._set_icon(self._2D_step, "image.png")
             self._run_state = "Idle"
 
     def stop(self):
@@ -783,11 +788,12 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def _step_1D(self):
-        raise NotImplementedError()
-        # @@@ What to do if step pressed during play? and vice-versa?
         try:
             self._prepare_1D_scan()
-            self.current_plot._1D.step()
+            self.current_plot._1D.start(single_step=True)
+            # Note: plot goes to not active state when ready
+            # If play is pressed before ready, then it becomes playing...
+            self._set_icon(self._1D_step, "capturing.png")
             self._run_state = "1D"
         except Exception as e:
             logger.error(repr(e), exc_info=True)
@@ -795,13 +801,29 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def _step_2D(self):
-        raise NotImplementedError()
+        try:
+            self._prepare_2D_scan()
+            self.current_plot._2D.start(single_step=True)
+            # Note: plot goes to not active state when ready
+            # If play is pressed before ready, then it becomes playing...
+            self._set_icon(self._2D_step, "capturing.png")
+            self._run_state = "2D"
+        except Exception as e:
+            logger.error(repr(e), exc_info=True)
+            self._stop_1D()
 
     def _step(self):
         if self.tab_id == 0: # 1D
             self._step_1D()
         elif self.tab_id == 1: # 2D
             self._step_2D()
+
+    def _update_active_state(self):
+        state = self.is_running
+        if state == '1D' and not self.current_plot._1D.active:
+            self._stop_1D()
+        elif state == '2D' and not self.current_plot._2D.active:
+            self._stop_2D()
 
     def _stop_other(self):
         if not liveplotting.auto_stop_other:
@@ -895,6 +917,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         overload the Qt close funtion. Make sure that all references in memory are fully gone,
         so the memory on the AWG is properly released.
         """
+        self._update_timer.stop()
         if self.current_plot._1D is not None:
             self.current_plot._1D.stop()
             self.current_plot._1D.remove()
@@ -1040,11 +1063,11 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def _reset_1D_average(self):
-        self.current_plot._1D.clear_buffers = True # @@@@ change!
+        self.current_plot._1D.clear_buffers()
 
     @qt_log_exception
     def _reset_2D_average(self):
-        self.current_plot._2D.clear_buffers = True # @@@@ change!
+        self.current_plot._2D.clear_buffers()
 
     @qt_log_exception
     def _on_mouse_clicked_1D(self, x):

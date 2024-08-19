@@ -93,8 +93,9 @@ class live_plot(QThread):
         self.gate_y_voltage = None
         self.active = False
         self.plt_finished = True
-        self.clear_buffers = False
+        self._clear_buffers = False
         self._buffers_need_resize = False
+        self._stepping = False
 
         # getter for the scan.
         self.parameter_getter = parameter_getter
@@ -109,13 +110,15 @@ class live_plot(QThread):
         self.set_busy(True)
 
         # generate the buffers needed for the plotting and construct the plots.
-        self.generate_buffers()
+        self.create_buffers()
         self.init_plot()
 
         # make a updater to plot periodically plot what is in the buffer.
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_plot)
 
+    def clear_buffers(self):
+        self._clear_buffers = True
 
     @property
     def averaging(self):
@@ -141,8 +144,7 @@ class live_plot(QThread):
         self._gradient = value
         self.refresh()
 
-    def generate_buffers(self):
-        self.clear_buffers = False
+    def create_buffers(self):
         self.buffer_data = []
         self.plot_data = []
         self.plot_data_valid = False
@@ -166,7 +168,10 @@ class live_plot(QThread):
             new_buffer[:n_copy] = old_buffer[:n_copy]
             self.buffer_data[i] = new_buffer
 
-    def start(self):
+    def start(self, single_step=False):
+        self._stepping = single_step
+        if single_step:
+            self._clear_buffers = True
         self.active = True
         self.plt_finished = False
         self.timer.setSingleShot(False)
@@ -323,8 +328,10 @@ class _1D_live_plot(live_plot):
             try:
                 input_data = self.parameter_getter.get()
                 self._read_dc_voltages()
-                if self.clear_buffers:
-                    self.generate_buffers()
+                if self._clear_buffers:
+                    self._clear_buffers = False
+                    self.plot_data_valid = False
+                    self.average_scans = 0
                 if self._buffers_need_resize:
                     self._resize_buffers()
 
@@ -335,9 +342,12 @@ class _1D_live_plot(live_plot):
                     buffer_data = np.roll(buffer_data,1,0)
                     buffer_data[0] = y
                     self.buffer_data[i] = buffer_data
-                    self.plot_data[i] = np.sum(buffer_data, 0)/self.average_scans
+                    self.plot_data[i] = np.sum(buffer_data[:self.average_scans], 0)/self.average_scans
                 self.plot_data_valid = True
                 self.prog_per = int(self.average_scans / self._averaging * 100)
+                if self._stepping and (self.average_scans == self._averaging):
+                    logging.info("Step complete")
+                    self.active = False
             except Exception as e:
                 self.plot_data_valid = True
                 logger.error(f'Exception: {e}', exc_info=True)
@@ -478,7 +488,7 @@ class _2D_live_plot(live_plot):
                 pwd = self.plot_widgets[i]
                 color_bar = pwd.color_bar
                 img_item = self.plot_widgets[i].plot_items[0]
-                plot_data = self.plot_data[i] # @@@@ empty when clicking reset !! There is a race condition
+                plot_data = self.plot_data[i]
                 if self._filter_background:
                     sigma = self.plot_params[i].shape[0] * self._background_rel_sigma
                     plot_data = plot_data - ndimage.gaussian_filter(plot_data, sigma, mode = 'nearest')
@@ -543,8 +553,10 @@ class _2D_live_plot(live_plot):
                 input_data = self.parameter_getter.get()
                 self._read_dc_voltages()
 
-                if self.clear_buffers:
-                    self.generate_buffers()
+                if self._clear_buffers:
+                    self._clear_buffers = False
+                    self.plot_data_valid = False
+                    self.average_scans = 0
                 if self._buffers_need_resize:
                     self._resize_buffers()
 
@@ -555,9 +567,12 @@ class _2D_live_plot(live_plot):
                     buffer_data = np.roll(buffer_data,1,0)
                     buffer_data[0] = xy
                     self.buffer_data[i] = buffer_data
-                    self.plot_data[i] = np.sum(buffer_data, 0)/self.average_scans
+                    self.plot_data[i] = np.sum(buffer_data[:self.average_scans], 0)/self.average_scans
                 self.plot_data_valid = True
                 self.prog_per = int(self.average_scans / self._averaging * 100)
+                if self._stepping and (self.average_scans == self._averaging):
+                    logging.info("Step complete")
+                    self.active = False
             except Exception as e:
                 self.plot_data_valid = True
                 logger.error(f'Exception: {e}', exc_info=True)
