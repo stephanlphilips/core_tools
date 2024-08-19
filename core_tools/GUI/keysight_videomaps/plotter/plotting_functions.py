@@ -178,6 +178,7 @@ class live_plot(QThread):
 
     def stop(self):
         self.active = False
+        self.set_busy(False)
 
         while self.plt_finished != True:
             time.sleep(0.01) # 10 ms interval to make sure gil releases.
@@ -206,7 +207,7 @@ class live_plot(QThread):
         if show:
             msg = QtWidgets.QMessageBox()
             msg.setWindowTitle("Busy")
-            msg.setText("Loading waveforms and HVI2 schedule")
+            msg.setText("Loading waveforms and instrument program")
             msg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
             msg.show()
             self.msg_box = msg
@@ -477,7 +478,7 @@ class _2D_live_plot(live_plot):
                 pwd = self.plot_widgets[i]
                 color_bar = pwd.color_bar
                 img_item = self.plot_widgets[i].plot_items[0]
-                plot_data = self.plot_data[i]
+                plot_data = self.plot_data[i] # @@@@ empty when clicking reset !! There is a race condition
                 if self._filter_background:
                     sigma = self.plot_params[i].shape[0] * self._background_rel_sigma
                     plot_data = plot_data - ndimage.gaussian_filter(plot_data, sigma, mode = 'nearest')

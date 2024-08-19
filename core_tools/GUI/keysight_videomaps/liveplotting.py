@@ -1,4 +1,5 @@
 import logging
+import os
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Tuple, Union
@@ -9,6 +10,7 @@ import pyqtgraph as pg
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from qcodes import MultiParameter
+import core_tools.GUI.keysight_videomaps.GUI as gui_module
 from core_tools.GUI.keysight_videomaps.GUI.videomode_gui import Ui_MainWindow
 from core_tools.GUI.keysight_videomaps.data_saver import IDataSaver
 from core_tools.GUI.keysight_videomaps.data_saver.native import CoreToolsDataSaver
@@ -177,6 +179,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self.current_param_getter = param_getter(None, None)
         self.vm_data_param_1D = None
         self.vm_data_param_2D = None
+        self._run_state = "Idle"
         instance_ready = True
 
         # set graphical user interface
@@ -195,35 +198,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._set_channel_map(channel_map, iq_mode)
         self._init_channels()
         self._init_markers(pulse_lib)
+        self.init_defaults(pulse_lib.channels, cust_defaults)
 
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
-
-        self.start_1D.clicked.connect(lambda:self._1D_start_stop())
-        self.start_2D.clicked.connect(lambda:self._2D_start_stop())
-        self._1D_update_plot.clicked.connect(lambda:self.update_plot_settings_1D())
-        self._2D_update_plot.clicked.connect(lambda:self.update_plot_settings_2D())
-        self._flip_axes.clicked.connect(lambda:self.do_flip_axes())
-        self.tabWidget.currentChanged.connect(lambda:self.tab_changed())
-
-        self._1D_reset_average.clicked.connect(lambda:self._reset_1D_average())
-        self._2D_reset_average.clicked.connect(lambda:self._reset_2D_average())
-
-        self.init_defaults(pulse_lib.channels, cust_defaults)
-
-        self._1D_save_data.clicked.connect(lambda:self.save_data())
-        self._2D_save_data.clicked.connect(lambda:self.save_data())
-
-        self._1D_ppt_save.clicked.connect(lambda:self.copy_ppt())
-        self._2D_ppt_save.clicked.connect(lambda:self.copy_ppt())
-
-        self._1D_copy.clicked.connect(lambda:self.copy_to_clipboard())
-        self._2D_copy.clicked.connect(lambda:self.copy_to_clipboard())
-
-        self._1D_set_DC.setEnabled(gates is not None)
-        self._1D_set_DC.clicked.connect(lambda:self._1D_set_DC_button_state())
-        self._2D_set_DC.setEnabled(gates is not None)
-        self._2D_set_DC.clicked.connect(lambda:self._2D_set_DC_button_state())
 
         liveplotting.last_instance = self
         liveplotting._all_instances.append(self)
@@ -275,10 +253,50 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
                 offset_gate_voltages.append((cb_gate, box_voltage))
 
+        self._1D_average.valueChanged.connect(lambda:self.update_plot_properties_1D())
+        self._1D_diff.stateChanged.connect(lambda:self.update_plot_properties_1D())
+
+        self._2D_average.valueChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_gradient.currentTextChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_filter_background.stateChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_background_sigma.valueChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_filter_noise.stateChanged.connect(lambda:self.update_plot_properties_2D())
+        self._2D_noise_sigma.valueChanged.connect(lambda:self.update_plot_properties_2D())
+
+        self._1D_play.clicked.connect(lambda:self._start_1D())
+        self._2D_play.clicked.connect(lambda:self._start_2D())
+        self._1D_pause.clicked.connect(lambda:self._stop_1D())
+        self._2D_pause.clicked.connect(lambda:self._stop_2D())
+        self._1D_step.clicked.connect(lambda:self._step_1D())
+        self._2D_step.clicked.connect(lambda:self._step_2D())
+        self._1D_reload.clicked.connect(lambda:self.update_plot_settings_1D())
+        self._2D_reload.clicked.connect(lambda:self.update_plot_settings_2D())
+        self._flip_axes.clicked.connect(lambda:self.do_flip_axes())
+        self.tabWidget.currentChanged.connect(lambda:self.tab_changed())
+
+        self._1D_reset_average.clicked.connect(lambda:self._reset_1D_average())
+        self._2D_reset_average.clicked.connect(lambda:self._reset_2D_average())
+
+        self._1D_save_data.clicked.connect(lambda:self.save_data())
+        self._2D_save_data.clicked.connect(lambda:self.save_data())
+
+        self._1D_ppt_save.clicked.connect(lambda:self.copy_ppt())
+        self._2D_ppt_save.clicked.connect(lambda:self.copy_ppt())
+
+        self._1D_copy.clicked.connect(lambda:self.copy_to_clipboard())
+        self._2D_copy.clicked.connect(lambda:self.copy_to_clipboard())
+
+        self._1D_set_DC.setEnabled(self.gates is not None)
+        self._1D_set_DC.clicked.connect(lambda:self._1D_set_DC_button_state())
+        self._2D_set_DC.setEnabled(self.gates is not None)
+        self._2D_set_DC.clicked.connect(lambda:self._2D_set_DC_button_state())
+
         self._shortcut_reload = QtWidgets.QShortcut(QtGui.QKeySequence("F5"), self)
         self._shortcut_reload.activated.connect(self._reload)
         self._shortcut_stop = QtWidgets.QShortcut(QtGui.QKeySequence("Esc"), self)
         self._shortcut_stop.activated.connect(self.stop)
+        self._shortcut_step = QtWidgets.QShortcut(QtGui.QKeySequence("F9"), self)
+        self._shortcut_step.activated.connect(self._step)
         self._shortcut_save = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+S"), self)
         self._shortcut_save.activated.connect(self.save_data)
         self._shortcut_copy = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+C"), self)
@@ -286,18 +304,37 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._shortcut_copy = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+P"), self)
         self._shortcut_copy.activated.connect(self.copy_ppt)
 
+        self._set_icon(self._1D_play, "play.png")
+        self._set_icon(self._1D_pause, "pause.png")
+        self._set_icon(self._1D_reload, "refresh.png")
+        self._set_icon(self._1D_step, "image.png")
+        self._set_icon(self._1D_copy, "copy.png")
+        self._set_icon(self._1D_ppt_save, "presentation.png")
+        self._set_icon(self._1D_save_data, "save.png")
+
+        self._set_icon(self._2D_play, "play.png")
+        self._set_icon(self._2D_pause, "pause.png")
+        self._set_icon(self._2D_reload, "refresh.png")
+        self._set_icon(self._2D_step, "image.png")
+        self._set_icon(self._2D_copy, "copy.png")
+        self._set_icon(self._2D_ppt_save, "presentation.png")
+        self._set_icon(self._2D_save_data, "save.png")
+
+        self._1D_av_progress.setAlignment(QtCore.Qt.AlignCenter)
+        self._2D_av_progress.setAlignment(QtCore.Qt.AlignCenter)
+
+    def _set_icon(self, button, name):
+        icon_path = os.path.dirname(gui_module.__file__)
+        button.setIcon(QtGui.QIcon(os.path.join(icon_path, name)))
+        button.setIconSize(QtCore.QSize(24, 24))
+
     @property
     def tab_id(self):
         return self.tabWidget.currentIndex()
 
     @property
     def is_running(self):
-        if self.start_1D.text() == 'Stop':
-            return '1D'
-        elif self.start_2D.text() == 'Stop':
-            return '2D'
-        else:
-            return False
+        return self._run_state if self._run_state != "Idle" else False
 
     def turn_off(self):
         self.stop()
@@ -358,8 +395,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         for dim in ['1D', '2D']:
             offset_gate_voltages = getattr(self, f"_{dim}_offset_gate_voltages")
-            for i in range(self.n_pulse_gates):
-                cb_gate, box_voltage = offset_gate_voltages[i]
+            for cb_gate, box_voltage in offset_gate_voltages:
                 cb_gate.addItem('<None>')
                 for gate in sorted(gates, key=str.lower):
                     cb_gate.addItem(gate)
@@ -367,10 +403,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 init_offsets = cust_defaults[dim]['offsets']
             except Exception:
                 continue
-            if len(init_offsets) > self.n_pulse_gates:
-                raise Exception(f'Only {self.n_pulse_gates} offsets configured. '
+            if len(init_offsets) >= len(offset_gate_voltages):
+                raise Exception(f'Only {len(offset_gate_voltages)} offsets configured. '
                                 'Specify larger n_pulse_gates')
-            for i,(gate,value) in enumerate(init_offsets.items()):
+            for i, (gate, value) in enumerate(init_offsets.items()):
                 cb_gate, box_voltage = offset_gate_voltages[i]
                 cb_gate.setCurrentText(gate)
                 box_voltage.setValue(value)
@@ -453,16 +489,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         for v_spinner in [self._1D_V_swing, self._2D_V1_swing, self._2D_V2_swing]:
             v_spinner.setRange(-self._gen__max_V_swing, self._gen__max_V_swing)
 
-        self._1D_average.valueChanged.connect(lambda:self.update_plot_properties_1D())
-        self._1D_diff.stateChanged.connect(lambda:self.update_plot_properties_1D())
-
-        self._2D_average.valueChanged.connect(lambda:self.update_plot_properties_2D())
-        self._2D_gradient.currentTextChanged.connect(lambda:self.update_plot_properties_2D())
-        self._2D_filter_background.stateChanged.connect(lambda:self.update_plot_properties_2D())
-        self._2D_background_sigma.valueChanged.connect(lambda:self.update_plot_properties_2D())
-        self._2D_filter_noise.stateChanged.connect(lambda:self.update_plot_properties_2D())
-        self._2D_noise_sigma.valueChanged.connect(lambda:self.update_plot_properties_2D())
-
         self._channels = self.get_activated_channels()
 
     def set_1D_settings(self, gate=None, vswing=None, npt=None, t_meas=None, biasT_corr=None,
@@ -505,9 +531,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def set_digitizer_settings(self, sample_rate=None, channels=None):
         if sample_rate is not None:
-            if int(sample_rate/1e6) not in [100, 500]:
-                raise Exception(f'sample rate {sample_rate} is not valid. Valid values: 100, 500 MHz')
-            self._gen_sample_rate.setCurrentText(str(int(sample_rate/1e6)))
+            logger.warning("Argument sample_rate is not used anymore")
 
         if channels is not None:
             for check_box in self.channel_check_boxes.values():
@@ -558,9 +582,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     def get_offsets(self, dim: str):
         offsets = {}
         offset_gate_voltages = getattr(self, f"_{dim}_offset_gate_voltages")
-        for i in range(self.n_pulse_gates):
-            cb_gate, box_voltage = offset_gate_voltages[i]
-        for i in range(1,4):
+        for cb_gate, box_voltage in offset_gate_voltages:
             gate = cb_gate.currentText()
             voltage = box_voltage.value()
             if gate != '<None>' and voltage != 0.0:
@@ -638,125 +660,119 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 enable = False
             self._2D_set_DC.setEnabled(enable)
 
-    @qt_log_exception
-    def _1D_start_stop(self):
-        '''
-        Starts/stops the data acquisition and plotting.
-        '''
-        if self.start_1D.text() == "Start":
-            self._start_1D()
-        elif self.start_1D.text() == "Stop":
-            self._stop_1D()
+    def _prepare_1D_scan(self):
+        logger.info('Starting 1D')
+        self._stop_other()
+        if self.current_plot._1D is None: # @@@@ or anything changed...
+            logger.debug('Creating 1D scan')
+            self.get_plot_settings(1)
+            self.current_param_getter._1D = self.construct_1D_scan_fast(
+                    self._1D__gate_name, self._1D__V_swing, self._1D__npt, self._1D__t_meas*1000,
+                    self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels,
+                    acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                    enabled_markers=self._gen__enabled_markers,
+                    channel_map=self._active_channel_map,
+                    pulse_gates=self._1D__offsets,
+                    line_margin=self._gen__line_margin)
+            self.current_plot._1D = _1D_live_plot(
+                    self._1D_plotter_layout, self.current_param_getter._1D,
+                    self._1D_average.value(), self._1D_diff.isChecked(),
+                    self._gen__n_columns, self._1D_av_progress,
+                    gates=self.gates, gate_values_label=self.gate_values_label,
+                    on_mouse_moved=self._on_mouse_moved_1D,
+                    on_mouse_clicked=self._on_mouse_clicked_1D)
+            self.set_metadata()
+            logger.debug('Finished init currentplot and current_param')
+        else:
+            self.current_param_getter._1D.restart()
 
+        self.vm_data_param_1D = vm_data_param(self.current_param_getter._1D, self.current_plot._1D, self.metadata)
+
+    @qt_log_exception
     def _start_1D(self):
         try:
-            logger.info('Starting 1D')
-            self._stop_other()
-            if self.current_plot._1D is None:
-                logger.debug('Creating 1D scan')
-                self.get_plot_settings(1)
-                self.start_1D.setEnabled(False)
-                self.current_param_getter._1D = self.construct_1D_scan_fast(
-                        self._1D__gate_name, self._1D__V_swing, self._1D__npt, self._1D__t_meas*1000,
-                        self._1D__biasT_corr, self.pulse_lib, self.digitizer, self._channels,
-                        acquisition_delay_ns=self._gen__acquisition_delay_ns,
-                        enabled_markers=self._gen__enabled_markers,
-                        channel_map=self._active_channel_map,
-                        pulse_gates=self._1D__offsets,
-                        line_margin=self._gen__line_margin)
-                self.current_plot._1D = _1D_live_plot(
-                        self._1D_plotter_layout, self.current_param_getter._1D,
-                        self._1D_average.value(), self._1D_diff.isChecked(),
-                        self._gen__n_columns, self._1D_av_progress,
-                        gates=self.gates, gate_values_label=self.gate_values_label,
-                        on_mouse_moved=self._on_mouse_moved_1D,
-                        on_mouse_clicked=self._on_mouse_clicked_1D)
-                self.set_metadata()
-                logger.debug('Finished init currentplot and current_param')
-            else:
-                self.current_param_getter._1D.restart()
-
-            self.vm_data_param_1D = vm_data_param(self.current_param_getter._1D, self.current_plot._1D, self.metadata)
+            self._1D_play.setEnabled(False)
+            self._prepare_1D_scan()
             self.current_plot._1D.start()
+            self._run_state = "1D"
+            self._set_icon(self._1D_play, r"playing.png")
         except Exception as e:
             logger.error(repr(e), exc_info=True)
+            self._stop_1D()
         finally:
-            self.start_1D.setText("Stop")
-            self.start_1D.setEnabled(True)
+            self._1D_play.setEnabled(True)
 
+    @qt_log_exception
     def _stop_1D(self):
         if self.current_plot._1D:
             logger.info('Stopping 1D')
+            self._run_state = "Idle"
+            self._set_icon(self._1D_play, "play.png")
             self.current_plot._1D.stop()
-        self.start_1D.setText("Start")
+
+    def _prepare_2D_scan(self):
+        logger.info('Prepare 2D scan')
+        self._stop_other()
+        if self.current_plot._2D is None:
+            logger.debug('Creating 2D scan')
+            self.get_plot_settings(2)
+            self.current_param_getter._2D = self.construct_2D_scan_fast(
+                    self._2D__gate1_name, self._2D__V1_swing, int(self._2D__npt),
+                    self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
+                    self._2D__t_meas*1000, self._2D__biasT_corr,
+                    self.pulse_lib, self.digitizer, self._channels,
+                    acquisition_delay_ns=self._gen__acquisition_delay_ns,
+                    enabled_markers=self._gen__enabled_markers,
+                    channel_map=self._active_channel_map,
+                    pulse_gates=self._2D__offsets,
+                    line_margin=self._gen__line_margin,
+                    )
+            self.current_plot._2D = _2D_live_plot(
+                    self._2D_plotter_layout, self.current_param_getter._2D,
+                    self._2D_average.value(), self._2D_gradient.currentText(),
+                    self._gen__n_columns, self._2D_av_progress,
+                    gates=self.gates, gate_values_label=self.gate_values_label,
+                    on_mouse_moved=self._on_mouse_moved_2D,
+                    on_mouse_clicked=self._on_mouse_clicked_2D)
+            self.current_plot._2D.set_cross(self._2D__cross)
+            self.current_plot._2D.set_colorbar(self._2D__colorbar)
+            self.current_plot._2D.set_background_filter(
+                    self._2D_filter_background.isChecked(),
+                    self._2D_background_sigma.value()
+                    )
+            self.current_plot._2D.set_noise_filter(
+                    self._2D_filter_noise.isChecked(),
+                    self._2D_noise_sigma.value()
+                    )
+            self.set_metadata()
+            logger.debug('Finished init currentplot and current_param')
+        else:
+            self.current_param_getter._2D.restart()
+
+        self.vm_data_param_2D = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
 
     @qt_log_exception
-    def _2D_start_stop(self):
-        '''
-        Starts/stops the data acquisition and plotting.
-        '''
-        if self.start_2D.text() == "Start":
-            self._start_2D()
-        elif self.start_2D.text() == "Stop":
-            self._stop_2D()
-
     def _start_2D(self):
         try:
-            logger.info('Starting 2D')
-            self._stop_other()
-            if self.current_plot._2D is None:
-                logger.debug('Creating 2D scan')
-                self.get_plot_settings(2)
-                self.start_2D.setEnabled(False)
-                self.current_param_getter._2D = self.construct_2D_scan_fast(
-                        self._2D__gate1_name, self._2D__V1_swing, int(self._2D__npt),
-                        self._2D__gate2_name, self._2D__V2_swing, int(self._2D__npt),
-                        self._2D__t_meas*1000, self._2D__biasT_corr,
-                        self.pulse_lib, self.digitizer, self._channels,
-                        acquisition_delay_ns=self._gen__acquisition_delay_ns,
-                        enabled_markers=self._gen__enabled_markers,
-                        channel_map=self._active_channel_map,
-                        pulse_gates=self._2D__offsets,
-                        line_margin=self._gen__line_margin,
-                        )
-                logger.debug('Finished Param, now plot')
-                self.current_plot._2D = _2D_live_plot(
-                        self._2D_plotter_layout, self.current_param_getter._2D,
-                        self._2D_average.value(), self._2D_gradient.currentText(),
-                        self._gen__n_columns, self._2D_av_progress,
-                        gates=self.gates, gate_values_label=self.gate_values_label,
-                        on_mouse_moved=self._on_mouse_moved_2D,
-                        on_mouse_clicked=self._on_mouse_clicked_2D)
-                self.current_plot._2D.set_cross(self._2D__cross)
-                self.current_plot._2D.set_colorbar(self._2D__colorbar)
-                self.current_plot._2D.set_background_filter(
-                        self._2D_filter_background.isChecked(),
-                        self._2D_background_sigma.value()
-                        )
-                self.current_plot._2D.set_noise_filter(
-                        self._2D_filter_noise.isChecked(),
-                        self._2D_noise_sigma.value()
-                        )
-                self.set_metadata()
-                logger.debug('Finished init currentplot and current_param')
-            else:
-                self.current_param_getter._2D.restart()
-
-            self.vm_data_param_2D = vm_data_param(self.current_param_getter._2D, self.current_plot._2D, self.metadata)
-
+            self._2D_play.setEnabled(False)
+            self._prepare_2D_scan()
             logger.debug('Starting the plot')
             self.current_plot._2D.start()
+            self._run_state = "2D"
+            self._set_icon(self._2D_play, r"playing.png")
         except Exception as e:
             logger.error(repr(e), exc_info=True)
+            self._stop_2D()
         finally:
-            self.start_2D.setText("Stop")
-            self.start_2D.setEnabled(True)
+            self._2D_play.setEnabled(True)
 
+    @qt_log_exception
     def _stop_2D(self):
         if self.current_plot._2D:
             logger.info('Stopping 2D')
             self.current_plot._2D.stop()
-        self.start_2D.setText("Start")
+            self._set_icon(self._2D_play, "play.png")
+            self._run_state = "Idle"
 
     def stop(self):
         state = self.is_running
@@ -764,6 +780,28 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self._stop_1D()
         elif state == '2D':
             self._stop_2D()
+
+    @qt_log_exception
+    def _step_1D(self):
+        raise NotImplementedError()
+        # @@@ What to do if step pressed during play? and vice-versa?
+        try:
+            self._prepare_1D_scan()
+            self.current_plot._1D.step()
+            self._run_state = "1D"
+        except Exception as e:
+            logger.error(repr(e), exc_info=True)
+            self._stop_1D()
+
+    @qt_log_exception
+    def _step_2D(self):
+        raise NotImplementedError()
+
+    def _step(self):
+        if self.tab_id == 0: # 1D
+            self._step_1D()
+        elif self.tab_id == 1: # 2D
+            self._step_2D()
 
     def _stop_other(self):
         if not liveplotting.auto_stop_other:
@@ -780,8 +818,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     logger.info("Stopping other Video Mode GUI")
                     gui.stop()
             except Exception:
-                logger.error("Failure stopping other Video Mode GUI",
-                             exc_info=True)
+                logger.error("Failure stopping other Video Mode GUI", exc_info=True)
 
     @staticmethod
     def is_any_running():
@@ -809,8 +846,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.current_param_getter._1D.stop()
                 self.current_param_getter._1D = None
 
-            self.start_1D.setText("Start")
-            self._1D_start_stop()
+            self._start_1D()
         except:
             logger.error('Update plot failed', exc_info=True)
 
@@ -827,8 +863,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.current_param_getter._2D.stop()
                 self.current_param_getter._2D = None
 
-            self.start_2D.setText("Start")
-            self._2D_start_stop()
+            self._start_2D()
         except:
             logger.error('Update plot failed', exc_info=True)
 
@@ -842,7 +877,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._2D_gate2_name.setCurrentText(old_x_axis)
         self._2D_V1_swing.setValue(old_y_swing)
         self._2D_V2_swing.setValue(old_x_swing)
-        if self.start_2D.text() == "Stop":
+        if self._run_state == "2D":
             self.update_plot_settings_2D()
 
     @qt_log_exception
@@ -1005,11 +1040,11 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def _reset_1D_average(self):
-        self.current_plot._1D.clear_buffers = True
+        self.current_plot._1D.clear_buffers = True # @@@@ change!
 
     @qt_log_exception
     def _reset_2D_average(self):
-        self.current_plot._2D.clear_buffers = True
+        self.current_plot._2D.clear_buffers = True # @@@@ change!
 
     @qt_log_exception
     def _on_mouse_clicked_1D(self, x):
