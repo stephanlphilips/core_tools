@@ -177,6 +177,8 @@ class Hvi2SingleShot():
                             all_ch = self._module_config(dig_seq, 'all_ch')
                             ds_ch = self._module_config(dig_seq, 'ds_ch')
                             iq_ch = self._module_config(dig_seq, 'iq_ch')
+                            if len(all_ch) == 0:
+                                break
 
                             dig_seq.sys.clear_ticks()
                             dig_seq.log.write(1)
@@ -248,6 +250,9 @@ class Hvi2SingleShot():
 
                             for dig_seq in dig_seqs:
                                 iq_ch = self._module_config(dig_seq, 'iq_ch')
+                                all_ch = self._module_config(dig_seq, 'all_ch')
+                                if len(all_ch) == 0:
+                                    break
                                 # # phase reset of AWG and Dig must be at the same clock tick.
                                 dig_seq.log.write(2)
                                 if len(iq_ch) > 0:
