@@ -126,7 +126,7 @@ class SQL_dataset_creator(object):
             conn = SQL_database_manager().conn_remote
             sync = sync2local
         else:
-            raise ValueError("the uuid {}, does not exist in the local/remote database.".format(exp_uuid))
+            raise ValueError(f"the uuid {exp_uuid}, does not exist in the local/remote database.")
 
         ds_raw = load_ds_queries.get_dataset_raw(conn, exp_uuid)
         if sync:
