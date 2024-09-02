@@ -1,6 +1,24 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.58] - 2024-09-04
+
+- Improved error message in case COM port number change is likely cause of error.
+- Set proper GUI window titles.
+- Fixed Mac OS installation.
+- Added scan arguments to fast-scan parameter snapshots.
+- Added scan arguments to video mode snapshot.
+- Video Mode improvements:
+  - Fixed saving of wrong data when switching tabs before pressing Save.
+  - Added shortcut keys F5, Esc, Ctrl+S, Ctrl+C, Ctrl+P.
+  - Increased number of pulse gates and made it configurable.
+  - Added noise filter in 2D (Gaussian low pass).
+  - Added static methods liveplotting.stop_all and liveplotting.is_any_running
+  - Automatic stop of other running video mode gui.
+  - Added icons on buttons.
+- Reduced amount of logging on info level.
+- HVI2 (Keysight): Fixed error with multiple digitizers and not all channels active
+
 ## \[1.4.57] - 2024-08-13
 
 - Fixed race conditions with db synchronization.
