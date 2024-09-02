@@ -196,7 +196,7 @@ class sync_mgr_queries:
                 dict_cursor=False)[0][0]
 
         if n_row_src != n_row_dest:
-            print('update parameters', exp_uuid)
+            logger.info(f'update parameters {exp_uuid}')
             remove_old_params = f"DELETE FROM measurement_parameters WHERE exp_uuid={exp_uuid}"
             execute_statement(conn_dest, remove_old_params)
 
@@ -241,25 +241,24 @@ class sync_mgr_queries:
             src_lobject = conn_src.lobject(src_oid,'rb')
             dest_lobject = conn_dest.lobject(dest_oid,'wb')
 
+            if src_cursor*8 - dest_cursor*8 > 2_000_000:
+                logger.info(f'large data block to upload: {(src_cursor*8-dest_cursor*8)*1e-9}GB')
+
             while (dest_cursor != src_cursor):
                 src_lobject.seek(dest_cursor*8)
                 dest_lobject.seek(dest_cursor*8)
-                if src_cursor*8 - dest_cursor*8 < 2_000_000:
-                    mybuffer = np.frombuffer(src_lobject.read(src_cursor*8-dest_cursor*8))
-                    dest_cursor = src_cursor
-                else:
-                    print(f'large dataset, {(src_cursor*8-dest_cursor*8)*1e-9}GB')
-                    mybuffer = np.frombuffer(src_lobject.read(2_000_000))
-                    dest_cursor += int(2_000_000/8)
+                chunk = min(src_cursor*8 - dest_cursor*8, 2_000_000)
+                mybuffer = np.frombuffer(src_lobject.read(chunk))
                 dest_lobject.write(mybuffer.tobytes())
+                dest_cursor += chunk//8
 
             dest_lobject.close()
             src_lobject.close()
 
             update_table(
                     conn_dest, 'measurement_parameters',
-                    ('write_cursor',), (src_cursor,),
-                    condition=('oid',dest_oid))
+                    ('write_cursor', ), (src_cursor, ),
+                    condition=('oid', dest_oid))
 
         conn_dest.commit()
 
