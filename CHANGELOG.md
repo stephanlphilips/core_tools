@@ -1,7 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.58] - 2024-09-04
+## \[1.4.59] - 2024-09-09
+
+- Added sqdl_query, sqdl_logout, load_uuids_parallel
+
+## \[1.4.58] - 2024-09-02
 
 - Improved error message in case COM port number change is likely cause of error.
 - Set proper GUI window titles.
