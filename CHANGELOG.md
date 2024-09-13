@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.60] - 2024-09-13
+
+- Added download_hdf5, download_hdf5_parallel for sQDL.
+- Huge performance improvement virtual gate matrix GUI.
+
 ## \[1.4.59] - 2024-09-09
 
 - Added sqdl_query, sqdl_logout, load_uuids_parallel
