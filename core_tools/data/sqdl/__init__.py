@@ -5,4 +5,6 @@ from .sqdl_reader import (
     load_by_uuid,
     load_uuids_parallel,
     sqdl_query,
+    download_hdf5,
+    download_hdf5_parallel,
     )

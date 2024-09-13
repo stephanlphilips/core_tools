@@ -1,9 +1,12 @@
+from functools import partial
 import io
+import os
+import shutil
 import requests
 import xarray as xr
 from datetime import datetime
 from dataclasses import dataclass
-from multiprocessing.pool import ThreadPool
+from concurrent.futures import ThreadPoolExecutor
 
 from tqdm import tqdm
 from sqdl_client.client import QDLClient
@@ -70,6 +73,25 @@ class DatasetReader:
         resp = self.s3_session.request("GET", url)
         with io.BytesIO(resp.content) as fp:
             return xr.load_dataset(fp)
+
+    def download_hdf5_by_uid(self, uid: str, download_dir: str):
+        sqdl_ds = self.scope.retrieve_dataset_from_uid(uid)
+        sqdl_files = sqdl_ds.files
+        for file in sqdl_files:
+            if file.name.endswith('.hdf5'):
+                break
+        else:
+            raise Exception(f"HDF5 file for uid '{uid}' not found")
+        if not file.has_data:
+            raise Exception(f"HDF5 file for uid '{file.name}' is not uploaded")
+        url = file.presigned_url
+        return self.download_hdf5_from_url(url, download_dir, file.name)
+
+    def download_hdf5_from_url(self, url: str, download_dir: str, file_name: str):
+        resp = self.s3_session.request("GET", url)
+        with io.BytesIO(resp.content) as fsrc:
+            with open(os.path.join(download_dir, file_name), "wb") as fdst:
+                shutil.copyfileobj(fsrc, fdst)
 
     def query_datasets(
             self,
@@ -181,6 +203,28 @@ def load_by_uuid(uuid: str | int):
 
 def load_uuids_parallel(uuids: list[int | str], print_progress=True):
     iterator = tqdm(uuids) if print_progress else uuids
-    with ThreadPool() as pool:
-        return list(pool.map(load_by_uuid, iterator))
+    with ThreadPoolExecutor() as executor:
+        return list(executor.map(load_by_uuid, iterator))
 
+
+def download_hdf5(uuid: str | int, download_dir: str):
+    reader = _get_dataset_reader()
+    if reader.scope is None:
+        raise Exception("sQDL connection must be configured with init_sqdl(scope_name)")
+    reader.download_hdf5_by_uid(uuid, download_dir)
+
+
+def download_hdf5_parallel(
+        uuids: list[str | int],
+        download_dir: str,
+        print_progress=True):
+    reader = _get_dataset_reader()
+    if reader.scope is None:
+        raise Exception("sQDL connection must be configured with init_sqdl(scope_name)")
+    iterator = tqdm(uuids) if print_progress else uuids
+    with ThreadPoolExecutor() as executor:
+        return list(
+            executor.map(
+                partial(reader.download_hdf5_by_uid, download_dir=download_dir),
+                iterator)
+            )
