@@ -175,6 +175,9 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         Args:
             virtual_gate_set (virtual_gate) : virtual gate object where to fetch the data from
         '''
+        n_real = len(virtual_gate_set.real_gate_names)
+        n_virtual = len(virtual_gate_set.virtual_gate_names)
+
         Virtual_gates_matrix = QtWidgets.QWidget()
         # Virtual_gates_matrix.setObjectName("Virtual_gates_matrix")
         gridLayout = QtWidgets.QGridLayout(Virtual_gates_matrix)
@@ -192,9 +195,9 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         font = QtGui.QFont()
         font.setPointSize(11)
         tableWidget.setFont(font)
-        tableWidget.setColumnCount(len(virtual_gate_set.virtual_gate_names))
+        tableWidget.setColumnCount(n_virtual)
         tableWidget.setObjectName("virtgates")
-        tableWidget.setRowCount(len(virtual_gate_set.real_gate_names))
+        tableWidget.setRowCount(n_real)
         for i,name in enumerate(virtual_gate_set.virtual_gate_names):
             item = QtWidgets.QTableWidgetItem()
             tableWidget.setHorizontalHeaderItem(i, item)
@@ -211,10 +214,13 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         tableWidget.verticalHeader().setDefaultSectionSize(20)
         gridLayout.addWidget(tableWidget, 0, 0, 1, 1)
 
-        state = {'v2r':True}
+        state = {
+            'v2r': True,
+            'displayed': np.zeros((n_real, n_virtual)),
+            }
         update_list = []
-        for i in range(len(virtual_gate_set.real_gate_names)):
-            for j in range(len(virtual_gate_set.virtual_gate_names)):
+        for i in range(n_real):
+            for j in range(n_virtual):
                 doubleSpinBox = QtWidgets.QDoubleSpinBox()
                 sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
                 sizePolicy.setHorizontalStretch(0)
@@ -240,7 +246,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
                 doubleSpinBox.setObjectName("doubleSpinBox")
                 doubleSpinBox.valueChanged.connect(self._get_link(virtual_gate_set, i, j,
                                                                   doubleSpinBox, state))
-                update_list.append((i,j, doubleSpinBox))
+                update_list.append((i, j, doubleSpinBox))
                 tableWidget.setCellWidget(i, j, doubleSpinBox)
 
         controlBar = QtWidgets.QWidget()
@@ -274,7 +280,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         refresh = lambda:self.update_v_gates(virtual_gate_set, update_list, state, label_determinant)
         timer = QtCore.QTimer()
         timer.timeout.connect(refresh)
-        timer.start(2000)
+        timer.start(1000)
         self.timers.append(timer)
 
     def _get_link(self, virtual_gate_set, i, j, doubleSpinBox, state):
@@ -312,13 +318,20 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         Args:
             matrix: Array with new values
             update_list: List with GUI boxes
+            state: 'v2r' = True means virtual-to-real, else real-to-virtual
         """
         self._updating = True
-        for i,j, spin_box in update_list:
-            if not spin_box.hasFocus():
-                value = virtual_gate_set.get_element(i, j, v2r=state['v2r'])
-                spin_box.setValue(value)
-                self.set_color(spin_box, value)
+
+        displayed_matrix = state['displayed']
+
+        for i, j, spin_box in update_list:
+            value = virtual_gate_set.get_element(i, j, v2r=state['v2r'])
+            if value != displayed_matrix[i, j]:
+                if not spin_box.hasFocus():
+                    spin_box.setValue(value)
+                    displayed_matrix[i, j] = value
+                    self.set_color(spin_box, value)
+
         determinant = np.linalg.det(virtual_gate_set.matrix)
         if state['v2r']:
             determinant = 1/determinant
@@ -328,7 +341,6 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             label_determinant.setStyleSheet("")
         self._updating = False
-
 
     def set_color(self, spin_box, value):
         if abs(value) > 99.0:
@@ -356,16 +368,16 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
     def invert(self, virtual_gate_set, refresh, tableWidget, state):
         state['v2r'] = not state['v2r']
         if state['v2r']:
-            for i,name in enumerate(virtual_gate_set.virtual_gate_names):
+            for i, name in enumerate(virtual_gate_set.virtual_gate_names):
                 tableWidget.horizontalHeaderItem(i).setText(name)
 
-            for i,name in enumerate(virtual_gate_set.real_gate_names):
+            for i, name in enumerate(virtual_gate_set.real_gate_names):
                 tableWidget.verticalHeaderItem(i).setText(name)
         else:
-            for i,name in enumerate(virtual_gate_set.real_gate_names):
+            for i, name in enumerate(virtual_gate_set.real_gate_names):
                 tableWidget.horizontalHeaderItem(i).setText(name)
 
-            for i,name in enumerate(virtual_gate_set.virtual_gate_names):
+            for i, name in enumerate(virtual_gate_set.virtual_gate_names):
                 tableWidget.verticalHeaderItem(i).setText(name)
         refresh()
 
