@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.61]
+
+- Fix pulse_gates in VideoMode
+
 ## \[1.4.60] - 2024-09-13
 
 - Added download_hdf5, download_hdf5_parallel for sQDL.
