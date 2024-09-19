@@ -462,11 +462,18 @@ class Runner:
         return {k: str(v) for k, v in self._action_stats.items()}
 
     def _get_start_values(self):
-        return [
-                (setter.param, setter.param())
-                for setter in self._set_params
-                if setter.resetable
-                ]
+        result = []
+        for setter in self._set_params:
+            if setter.resetable:
+                reset_value = setter.param()
+                if reset_value is None:
+                    raise Exception(
+                        f"Parameter '{setter.param.name}' does not have a value "
+                        "and thus cannot be reset after the scan. "
+                        "Set its value before starting the scan."
+                        )
+                result.append((setter.param, reset_value))
+        return result
 
     def _reset_params(self, start_values):
         for param, value in start_values:
