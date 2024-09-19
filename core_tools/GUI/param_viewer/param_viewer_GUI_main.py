@@ -32,6 +32,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
         self.max_diff = max_diff
         self.keysight_rf = keysight_rf
         self.locked = locked
+        self._last_gui_values = {}
 
         if gates_object:
             self.gates_object = gates_object
@@ -221,7 +222,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     def _set_gate(self, gate, value, voltage_input):
         if self.locked:
             logger.warning('Not changing voltage, ParameterViewer is locked!')
-            # Note value will be restored by _update_parameters
+            voltage_input.setValue(gate.get())
             return
         if not voltage_input.isEnabled():
             logger.info(f"Ignoring out of range value {gate.name}: {value()}")
@@ -293,15 +294,21 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
         for param in params:
             try:
+                name = param.name
+                if name in all_gate_voltages:
+                    new_value = all_gate_voltages[name]/param.division
+                else:
+                    new_value = param.param_parameter()/param.division
+
+                old_value = self._last_gui_values.get(name, None)
+
+                if old_value == new_value:
+                    continue
+
                 # do not update when a user clicks on it.
                 gui_input = param.gui_input_param
                 if not gui_input.hasFocus():
                     if isinstance(gui_input, QtWidgets.QDoubleSpinBox):
-                        if param.name in all_gate_voltages:
-                            new_value = all_gate_voltages[param.name]/param.division
-                        else:
-                            new_value = param.param_parameter()/param.division
-
                         if idx == 1 and (new_value < gui_input.minimum() or new_value > gui_input.maximum()):
                             gui_input.setEnabled(False)
                             gui_input.setStyleSheet("color : red;")
@@ -323,7 +330,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
                                 if gui_input.text() != new_text and gui_input.valueFromText(new_text) != 0.0:
                                     print(f'WARNING: {param.param_parameter.name} corrected from '
                                           f'{new_text} to {gui_input.text()}')
-                    elif isinstance(param.gui_input_param, QtWidgets.QCheckBox):
-                        param.gui_input_param.setChecked(param.param_parameter())
+                    elif isinstance(gui_input, QtWidgets.QCheckBox):
+                        gui_input.setChecked(bool(new_value))
+                    self._last_gui_values[name] = new_value
             except Exception:
                 logger.error(f'Error updating {param}', exc_info=True)
