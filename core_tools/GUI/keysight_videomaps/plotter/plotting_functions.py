@@ -22,6 +22,7 @@ class plot_widget_data:
     plot_widget: pg.PlotWidget # widget.
     plot_items: list # line in the plot.
     color_bar: any = None
+    cross: tuple[any] = None
 
 class plot_param:
     def __init__(self, multi_parameter, i):
@@ -421,11 +422,19 @@ class _2D_live_plot(live_plot):
         self.refresh()
 
     def set_cross(self, enabled):
-        if enabled:
-            for pwd in self.plot_widgets:
-                crosshair_color = (100, 100, 100)
-                pwd.plot_widget.addLine(x=0, pen=crosshair_color)
-                pwd.plot_widget.addLine(y=0, pen=crosshair_color)
+        for pwd in self.plot_widgets:
+            if enabled:
+                if pwd.cross is None:
+                    crosshair_color = (100, 100, 100)
+                    vline = pwd.plot_widget.addLine(x=0, pen=crosshair_color)
+                    hline = pwd.plot_widget.addLine(y=0, pen=crosshair_color)
+                    pwd.cross = (hline, vline)
+            else:
+                if pwd.cross is not None:
+                    hline, vline = pwd.cross
+                    pwd.plot_widget.removeItem(vline)
+                    pwd.plot_widget.removeItem(hline)
+                    pwd.cross = None
 
     def set_colorbar(self, enabled):
         if enabled:

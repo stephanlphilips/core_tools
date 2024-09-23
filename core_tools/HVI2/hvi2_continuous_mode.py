@@ -19,9 +19,6 @@ class Hvi2ContinuousMode():
         Args:
             configuration (Dict[str,Any]):
                 'n_waveforms' (int): number of waveforms per channel (only applies when hvi_queue_control=True)
-                'acquisition_delay_ns' (int):
-                    Time in ns between AWG output change and digitizer acquisition start.
-                    This also increases the gap between acquisitions.
                 'digitizer_name':
                     'all_ch' (List[int]): all channels
                     'raw_ch' (List[int]): channels in raw mode

@@ -1,7 +1,6 @@
 import logging
 
 from keysight_fpga.qcodes.M3202A_fpga import FpgaAwgQueueingExtension
-from core_tools.drivers.M3102A import MODES
 
 logger = logging.getLogger(__name__)
 
@@ -10,16 +9,13 @@ class Hvi2VideoMode():
     verbose = True
 
     name = "VideoMode"
-    ''' Name of the script (class varriable) '''
+    ''' Name of the script (class variable) '''
 
     def __init__(self, configuration):
         '''
         Args:
             configuration (Dict[str,Any]):
                 'n_waveforms' (int): number of waveforms per channel (only applies when hvi_queue_control=True)
-                'acquisition_delay_ns' (int):
-                    Time in ns between AWG output change and digitizer acquisition start.
-                    This also increases the gap between acquisitions.
                 'digitizer_name':
                     'all_ch' (List[int]): all channels
                     'raw_ch' (List[int]): channels in raw mode
@@ -35,39 +31,17 @@ class Hvi2VideoMode():
                     'trigger_out' (bool): if True enables markers via Trigger Out channel.
         '''
         self._configuration = configuration.copy()
-        # default acquisition delay: 500 ns
-        self._acquisition_delay = int(configuration.get('acquisition_delay_ns', 500)/10) * 10
-
-        raw_mode = False
-        for value in configuration.values():
-            # minimum is 1800 ns when there is at least one raw_ch.
-            if isinstance(value, dict) and 'raw_ch' in value and len(value['raw_ch']) > 0:
-                raw_mode = True
-        self._acquisition_gap = Hvi2VideoMode.__get_acquisition_gap(raw_mode, self._acquisition_delay)
-
-        self.started = False
 
     @staticmethod
-    def __get_acquisition_gap(raw_mode, acquisition_delay_ns):
-        if raw_mode:
-            return max(1800, acquisition_delay_ns)
+    def get_minimum_acquisition_delay(raw_mode: bool):
+        """Returns minimum time between acquisition end and next start.
+
+        Args:
+            raw_mode: whether any channel is in raw mode.
+        """
+        # Minimum is 1800 ns in raw mode.
         # Minimum time for digitizer in downsampling mode is 20 ns.
-        return max(20, acquisition_delay_ns)
-
-    @staticmethod
-    def get_acquisition_gap(digitizer, acquisition_delay_ns=500):
-        raw_mode = False
-        for ch in digitizer.active_channels:
-            if digitizer.get_channel_acquisition_mode(ch) == MODES.NORMAL:
-                raw_mode = True
-        return Hvi2VideoMode.__get_acquisition_gap(raw_mode, acquisition_delay_ns)
-
-    @property
-    def acquisition_gap(self):
-        '''
-        Time in ns between consecutive acquisition traces.
-        '''
-        return self._acquisition_gap
+        return 1800 if raw_mode else 20
 
     def _module_config(self, seq, key):
         return self._configuration[seq.engine.alias][key]
@@ -223,7 +197,7 @@ class Hvi2VideoMode():
         start_delay = int(hvi_params.get('start_delay', 0))
         n_points = hvi_params['number_of_points']
         n_lines = hvi_params.get('number_of_lines', 1)
-        t_measure = int(hvi_params['t_measure'])
+        acquisition_period = int(hvi_params['acquisition_period'])
         line_delay = int(hvi_params.get('line_delay', 400))
 
         hvi_exec.set_register(self.r_nrep, n_repetitions)
@@ -234,14 +208,14 @@ class Hvi2VideoMode():
 
         # subtract the time needed for the repeat loop
         t_point_loop = 170
-        t_wait = t_measure + self.acquisition_gap - t_point_loop
+        t_wait = acquisition_period - t_point_loop
         if t_wait < 10:
-            raise Exception(f'Minimum t_measure is {10+t_point_loop-self.acquisition_gap} ns')
+            raise Exception(f'Minimum acquisition_period is {10+t_point_loop} ns')
         hvi_exec.set_register(self.r_point_wait, t_wait//10)
 
         t_dig_delay = 300
         t_till_trigger = 250  # delta with awg.trigger()
-        t_start_wait = start_delay + t_dig_delay - t_till_trigger + self._acquisition_delay
+        t_start_wait = start_delay + t_dig_delay - t_till_trigger
         if t_start_wait < 10:
             raise Exception(f'Start delay too short ({start_delay} ns)')
         hvi_exec.set_register(self.r_start_wait, t_start_wait//10)

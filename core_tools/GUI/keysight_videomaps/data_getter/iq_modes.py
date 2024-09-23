@@ -18,7 +18,7 @@ iq_mode2numpy = {
 
 
 # TODO: Add to pulse-lib
-def get_channel_map(pulse, iq_mode: str, channels: Optional[List[str]] = None):
+def get_channel_map(pulse, iq_mode: str | None, channels: Optional[List[str]] = None):
     if iq_mode is None:
         iq_mode = 'I'
     iq_func = iq_mode2numpy[iq_mode]
@@ -39,7 +39,7 @@ def get_channel_map(pulse, iq_mode: str, channels: Optional[List[str]] = None):
     return channel_map
 
 
-def get_channel_map_dig_4ch(iq_mode: str, channel_numbers: Optional[List[int]] = None):
+def get_channel_map_dig_4ch(iq_mode: str | None, channel_numbers: Optional[List[int]] = None):
     # Old Keysight and Tektronix code.
     if iq_mode is None:
         iq_mode = 'I'
@@ -50,9 +50,9 @@ def get_channel_map_dig_4ch(iq_mode: str, channel_numbers: Optional[List[int]] =
     channels = [(f'ch{i}', i) for i in channel_numbers]
 
     channel_map = {}
-    for name, channel in channels:
+    for name, channel_num in channels:
         for suffix, f, unit in iq_func:
-            channel_map[name+suffix] = (channel, f, unit)
+            channel_map[name+suffix] = (channel_num, f, unit)
 
     return channel_map
 
