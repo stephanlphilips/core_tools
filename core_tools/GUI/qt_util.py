@@ -13,6 +13,7 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
+
 is_wrapped = threading.local()
 is_wrapped.val = False
 
@@ -46,7 +47,7 @@ def qt_log_exception(func):
 _qt_app = None
 
 
-def qt_init():
+def qt_init() -> bool:
     '''Starts the QT application if not yet started.
     Most of the cases the QT backend is already started
     by IPython, but sometimes it is not.
@@ -55,7 +56,7 @@ def qt_init():
     global _qt_app
 
     if _qt_app is not None:
-        return
+        return True
 
 #    print(QtCore.QCoreApplication.testAttribute(QtCore.Qt.AA_EnableHighDpiScaling))
 #    print(QtCore.QCoreApplication.testAttribute(QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough))
@@ -70,17 +71,24 @@ def qt_init():
     if ipython:
         if not gs.is_event_loop_running_qt4():
             if any('SPYDER' in name for name in os.environ):
-                raise Exception('Configure QT5 in Spyder -> Preferences -> IPython Console -> Graphics -> Backend')
+                logger.error("Qt5 not configured in Spyder")
+                raise Exception('Configure Qt5 in Spyder -> Preferences -> IPython Console -> Graphics -> Backend')
             else:
+                logger.warning("Qt5 not configured for IPython console. Activating it now")
                 print('Warning Qt5 not configured for IPython console. Activating it now.')
                 ipython.run_line_magic('gui', 'qt5')
 
         _qt_app = QtCore.QCoreApplication.instance()
         if _qt_app is None:
-            logger.debug('Create Qt application')
+            logger.info('Create Qt application event processor')
             _qt_app = QtWidgets.QApplication([])
         else:
             logger.debug('Qt application already created')
+        return _qt_app is not None
+    else:
+        _qt_app = QtCore.QCoreApplication.instance()
+        logger.debug(f"No IPython. QtApplication running = {_qt_app is not None}")
+        return _qt_app is not None
 
 
 _qt_message_handler_installed = False
