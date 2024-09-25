@@ -1099,7 +1099,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
     def _on_mouse_clicked_2D(self, x, y):
         if self._2D_set_DC.isChecked():
             vx = self._plot2D.gate_x_voltage + x
-            vy = self._plot._2D.gate_y_voltage + y
+            vy = self._plot2D.gate_y_voltage + y
             self.gates.set(self._2D__gate1_name, vx)
             self.gates.set(self._2D__gate2_name, vy)
             msg = (f'Set {self._2D__gate1_name}:{vx:6.3f} mV, {self._2D__gate2_name}:{vy:6.3f}')

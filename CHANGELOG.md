@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.64] - 2024-09-26
+
+- Fix Set DC voltages in Video Mode (broken in v1.4.63)
+
 ## \[1.4.63] - 2024-09-25
 
 - Refactored VideoMode to allow simple external scan generator.
