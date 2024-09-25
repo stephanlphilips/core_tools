@@ -65,13 +65,10 @@ def _configure_logging(cfg, app_name):
     path = os.path.expanduser(path)
     filename = cfg.get(f'{app_name}.logging.file_name', f'{app_name}.log')
     file_level = cfg.get(f'{app_name}.logging.file_level', 'INFO')
-    file_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    file_format = '%(asctime)s | %(name)s | %(levelname)s | %(module)s | %(funcName)s:%(lineno)d | %(message)s'
     os.makedirs(path, exist_ok=True)
     file = os.path.join(path, filename)
     print('Logging to: ', file)
-#    logging.basicConfig(filename=file, filemode='w',
-#                        format=,
-#                        level = getattr(logging, level))
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
