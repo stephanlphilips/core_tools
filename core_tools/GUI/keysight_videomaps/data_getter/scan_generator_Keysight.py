@@ -39,12 +39,10 @@ class KeysightFastScanParameter(FastScanParameterBase):
 
         super().__init__(scan_config)
 
-        self.acquisition_channels = set(ch for ch, _, _ in self.channel_map.values())
-
         # Create dict with digitizers and used channel numbers.
         # dict[digitizer, List[channel_numbers]]
         self.dig_channel_nums: dict[any, list[int]] = defaultdict(set)
-        channels = [ch for ch, _, _ in self.channel_map.values()]
+        channels = [ch for ch, _, _ in scan_config.channel_map.values()]
         if digitizer is not None:
             for ch in channels:
                 self.dig_channel_nums[digitizer].add(ch)
@@ -55,6 +53,7 @@ class KeysightFastScanParameter(FastScanParameterBase):
                 for ch_num in ch_conf.channel_numbers:
                     self.dig_channel_nums[digitizer].add(ch_num)
 
+        self.acquisition_channels = set(channels)
         self._configure_digitizer()
 
     def _configure_digitizer(self):
@@ -396,11 +395,11 @@ class FastScanGenerator(FastScanGeneratorBase):
                 ch_conf = self.pulse_lib.digitizer_channels[ch_name]
                 digitizer = self.pulse_lib.digitizers[ch_conf.module_name]
                 for ch_num in ch_conf.channel_numbers:
-                    if digitizer.channel_properties[ch_num].acquisition_mode == MODES.NORMAL:
+                    if digitizer.get_channel_acquisition_mode(ch_num) == MODES.NORMAL:
                         raw_mode = True
         else:
             for ch_num in dig_channels:
-                if digitizer.channel_properties[ch_num].acquisition_mode == MODES.NORMAL:
+                if digitizer.get_channel_acquisition_mode(ch_num) == MODES.NORMAL:
                     raw_mode = True
 
         min_gap = Hvi2VideoMode.get_minimum_acquisition_delay(raw_mode)
