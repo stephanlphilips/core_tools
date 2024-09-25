@@ -1,7 +1,17 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
-## \[1.4.61]
+## \[1.4.63] - 2024-09-25
+
+- Refactored VideoMode to allow simple external scan generator.
+- Fixed database locking due to synchronization manager
+
+## \[1.4.62] - 2024-09-19
+
+- Performance improvement ParameterViewer.
+- Improved Scan and combi_parameter for better reset.
+
+## \[1.4.61] - 2024-09-17
 
 - Fix pulse_gates in VideoMode
 
