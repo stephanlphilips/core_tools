@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 # reference to running data_browser to avoid diposal and garbage collection
 _browser_instance = None
 
+
 def run_app(name, app_init, app_main):
     '''
     Starts databrowser.
@@ -20,8 +21,10 @@ def run_app(name, app_init, app_main):
         print('usage: <app> config-file [--detached]')
 
     config_file = sys.argv[1]
-    if nargs > 1:
+    if nargs > 2:
         detached = sys.argv[2] == '--detached'
+    else:
+        detached = False
     cfg = load_configuration(config_file)
 
     _configure_logging(cfg, name)
