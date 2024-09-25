@@ -3,7 +3,7 @@ from core_tools.GUI.keysight_videomaps.data_saver.qcodes import QCodesDataSaver
 from core_tools.GUI.qt_util import qt_init
 
 from pulse_lib.base_pulse import pulselib
-from .scan_generator_Keysight_shuttling import ShuttlingScanGenerator, ShuttlingSequence
+from scan_generator_Keysight_shuttling import ShuttlingScanGeneratorKeysight, ShuttlingSequence
 
 def create_pulse_lib(awg_channels, dig_channels):
     pulse = pulselib()
@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     pulse = create_pulse_lib(
         [f"P{i}" for i in range(1, 9)],
-        [f"SD{i}_P" for i in range(1, 3)],
+        [f"SD{i}" for i in range(1, 3)],
         )
 
     defaults = {
@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     v_setpoints = {}
     v_setpoints["read"] = {
-        "SD1_P": 10.0
+        "P8": 10.0
         }
 
     for step in range(4):
@@ -69,14 +69,14 @@ if __name__ == '__main__':
     shuttling_sequence = ShuttlingSequence(
             v_setpoints,
             sequence=sequence,
-            t_shuttle_steps=100,
+            t_shuttle_step=100,
             scan_point="scan",
             t_scan=200,
             read_point="read",
             t_resolution=100)
 
-    scan_generator = ShuttlingScanGenerator(pulse, shuttling_sequence)
-    scan_generator.plot_first = True
+    scan_generator = ShuttlingScanGeneratorKeysight(pulse, shuttling_sequence)
+    # scan_generator.plot_first = True
 
     # Start the liveplotting
     plotting = liveplotting.liveplotting(

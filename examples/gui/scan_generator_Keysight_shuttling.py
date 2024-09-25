@@ -56,8 +56,6 @@ class ShuttlingSequence:
         if 0.0001 < (t_scan / t_resolution) % 1 < 0.9999:
             raise Exception(f"t_scan ({t_scan}) should be multiple of t_resolution ({t_resolution})")
 
-        self._sequence: list[str] = []
-
     def setpoints_loop(self):
         for point in self._sequence:
             if point == self._read_point:
@@ -90,21 +88,23 @@ class _CompensationCalculator:
         limits = self._compensation_limits
         # Divide charge by maximum negative and positive voltage to get duration.
         # Get maximum duration over all gates.
-        duration = np.max([
-            [charge/limits[gate][0] for gate, charge in self._charges.items()],
-            [charge/limits[gate][1] for gate, charge in self._charges.items()],
-            ])
+        duration = np.max(
+            [1.0] +
+            [charge/limits[gate][0] for gate, charge in self._charges.items() if gate in limits] +
+            [charge/limits[gate][1] for gate, charge in self._charges.items() if gate in limits]
+            )
         duration = np.ceil(duration / self._time_resolution) * self._time_resolution
         return duration, {
-            gate: charge / duration
+            gate: -charge / duration
             for gate, charge in self._charges.items()
+            if gate in limits
             }
 
     def reset(self):
         self._charges = defaultdict(float)
 
 
-class ShuttlingScanGenerator(FastScanGeneratorBase):
+class ShuttlingScanGeneratorKeysight(FastScanGeneratorBase):
 
     # TODO: retrieve markers linked to digitizer channels.
 
@@ -113,7 +113,8 @@ class ShuttlingScanGenerator(FastScanGeneratorBase):
             pulse_lib,
             shuttling_sequence: ShuttlingSequence,
             ):
-        super().__init__(pulse_lib)
+        super().__init__()
+        self.set_pulse_lib(pulse_lib)
         self.shuttling_sequence = shuttling_sequence
         self._set_compensation_limits()
         self.plot_first = False
@@ -121,6 +122,8 @@ class ShuttlingScanGenerator(FastScanGeneratorBase):
     def _set_compensation_limits(self):
         self._compensation_limits = {}
         for channel_name, awg_channel in self._pulse_lib.awg_channels.items():
+            if awg_channel.compensation_limits == (0, 0):
+                continue
             # convert AWG level to device level.
             self._compensation_limits[channel_name] = (
                 awg_channel.compensation_limits[0] * awg_channel.attenuation,
@@ -203,7 +206,10 @@ class ShuttlingScanGenerator(FastScanGeneratorBase):
                 seg.reset_time()
 
             t_compensate, v_compensate = compensation.get_compensation_pulses()
+            compensation.reset()
             seg.add_block(0, t_compensate, list(v_compensate.keys()), list(v_compensate.values()))
+            seg.reset_time()
+            t += t_compensate
 
         n_lines = 1
 
@@ -213,6 +219,9 @@ class ShuttlingScanGenerator(FastScanGeneratorBase):
             marker_ch.reset_time(0)
             marker_ch.add_marker(0, end_time)
 
+        if self.plot_first:
+            seg.plot()
+
         my_seq = self._create_sequence(
             seg,
             acquisition_period=int(loop_period),
@@ -221,9 +230,6 @@ class ShuttlingScanGenerator(FastScanGeneratorBase):
             start_delay=int(start_delay),
             line_delay=500, # minimum value
             )
-
-        if self.plot_first:
-            my_seq.plot()
 
         my_seq.upload()
 
@@ -310,8 +316,11 @@ class ShuttlingScanGenerator(FastScanGeneratorBase):
                     t += t_step
                     seg.reset_time()
 
-            t_compensate, v_compensate = compensation.get_compensation_pulses()
-            seg.add_block(0, t_compensate, list(v_compensate.keys()), list(v_compensate.values()))
+                t_compensate, v_compensate = compensation.get_compensation_pulses()
+                compensation.reset()
+                seg.add_block(0, t_compensate, list(v_compensate.keys()), list(v_compensate.values()))
+                seg.reset_time()
+                t += t_compensate
 
         n_lines = 1
         n_pts = int(n_pt1*n_pt2)
@@ -322,6 +331,9 @@ class ShuttlingScanGenerator(FastScanGeneratorBase):
             marker_ch.reset_time(0)
             marker_ch.add_marker(0, end_time)
 
+        if self.plot_first:
+            seg.plot()
+
         my_seq = self._create_sequence(
             seg,
             acquisition_period=int(loop_period),
@@ -330,9 +342,6 @@ class ShuttlingScanGenerator(FastScanGeneratorBase):
             start_delay=int(start_delay),
             line_delay=500, # minimum value
             )
-
-        if self.plot_first:
-            my_seq.plot()
 
         my_seq.upload()
 
@@ -424,7 +433,7 @@ def create_1D_scan_shuttling(
     Returns:
         Parameter that can be used as input in a scan/measurement functions.
     """
-    scan_generator = ShuttlingScanGenerator(
+    scan_generator = ShuttlingScanGeneratorKeysight(
             pulse_lib,
             shuttling_sequence,
             )
@@ -483,7 +492,7 @@ def create_2D_scan_shuttling(
     Returns:
         Parameter that can be used as input in a scan/measurement functions.
     """
-    scan_generator = ShuttlingScanGenerator(
+    scan_generator = ShuttlingScanGeneratorKeysight(
             pulse_lib,
             shuttling_sequence,
             )
