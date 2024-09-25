@@ -49,10 +49,11 @@ class sync_mgr_queries:
             meaurments <list<long>> : list of uuid's who's table entries need a sync
         '''
         res = select_elements_in_table(sync_agent.conn_local, "global_measurement_overview",
-            ('uuid', ), where=("table_synchronized",False), dict_cursor=False)
+            ('uuid', ), where=("table_synchronized", False), dict_cursor=False)
 
         uuid_entries = list(sum(res, ()))
         uuid_entries.sort()
+        sync_agent.conn_local.commit()
         return uuid_entries
 
     @staticmethod
@@ -135,10 +136,11 @@ class sync_mgr_queries:
             meaurments <list<long>> : list of uuid's where the data needs to be updated of.
         '''
         res = select_elements_in_table(sync_agent.conn_local, "global_measurement_overview",
-            ('uuid', ), where=('data_synchronized',False), dict_cursor=False)
+            ('uuid', ), where=('data_synchronized', False), dict_cursor=False)
 
         uuid_entries = list(sum(res, ()))
         uuid_entries.sort()
+        sync_agent.conn_local.commit()
         return uuid_entries
 
     @staticmethod
@@ -217,6 +219,7 @@ class sync_mgr_queries:
                         conn_dest, 'measurement_parameters',
                         result.keys(), result.values())
 
+        conn_src.commit()
         conn_dest.commit()
 
     @staticmethod
@@ -260,6 +263,7 @@ class sync_mgr_queries:
                     ('write_cursor', ), (src_cursor, ),
                     condition=('oid', dest_oid))
 
+        conn_src.commit()
         conn_dest.commit()
 
     @staticmethod
@@ -294,6 +298,7 @@ class sync_mgr_queries:
                 insert_row_in_table(conn_dest, raw_data_table_name,
                     result.keys(), result.values())
 
+        conn_src.commit()
         conn_dest.commit()
 
     @staticmethod
@@ -330,6 +335,7 @@ class sync_mgr_queries:
             update_table(conn_dest, raw_data_table_name,
                 ('write_cursor',), (src_cursor,), condition=('oid',dest_oid))
 
+        conn_src.commit()
         conn_dest.commit()
 
     @staticmethod

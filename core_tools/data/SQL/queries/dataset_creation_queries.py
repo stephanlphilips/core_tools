@@ -28,6 +28,7 @@ class sample_info_queries:
         statement += "sample text NOT NULL );"
 
         execute_statement(conn, statement)
+        conn.commit()
 
     @staticmethod
     def add_sample(conn, project=None, set_up=None, sample=None):
@@ -38,6 +39,7 @@ class sample_info_queries:
             var_values = (set_up+project+sample, sample, set_up, project)
             insert_row_in_table(conn, sample_info_queries.table_name, var_names, var_values,
                 custom_statement='ON CONFLICT DO NOTHING')
+            conn.commit()
 
 class measurement_overview_queries:
     '''
@@ -86,13 +88,15 @@ class measurement_overview_queries:
         statement += "CREATE INDEX IF NOT EXISTS table_synced_index ON {} USING BTREE (table_synchronized);".format(measurement_overview_queries.table_name)
 
         execute_statement(conn, statement)
+        conn.commit()
 
     @staticmethod
     def update_local_table(conn):
-        # Only do this on local database. 
+        # Only do this on local database.
         # The update of the table on the remote database takes very long and afterwards other clients with old SW crash.
         statement = "ALTER TABLE global_measurement_overview ADD COLUMN IF NOT EXISTS data_update_count int DEFAULT 0;"
         execute_statement(conn, statement)
+        conn.commit()
 
     @staticmethod
     def new_measurement(conn, exp_name, start_time):
@@ -210,6 +214,7 @@ class data_table_queries:
         statement += "synchronized BOOL DEFAULT False," # Note [SdS]: Column is not used
         statement += "sync_location text);"             # Note [SdS]: Column is not used
         execute_statement(conn, statement)
+        conn.commit()
 
     @staticmethod
     def insert_measurement_spec_in_meas_table(conn, table_name, data_item):
@@ -271,6 +276,7 @@ class measurement_parameters_queries:
         statement += "CREATE INDEX IF NOT EXISTS exp_uuid_index ON measurement_parameters USING BTREE (exp_uuid) ;"
         statement += "CREATE INDEX IF NOT EXISTS oid_index ON measurement_parameters USING BTREE (oid) ;"
         execute_statement(conn, statement)
+        conn.commit()
 
     @staticmethod
     def insert_measurement_params(conn, exp_uuid, data_items):
