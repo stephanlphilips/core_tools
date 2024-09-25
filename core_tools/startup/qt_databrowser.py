@@ -27,6 +27,13 @@ def databrowser_main():
     from qt_dataviewer.core_tools.data_browser import CoreToolsDataBrowser
 
     global _browser_instance
+
+    qt_app_started = qt_init()
+    if not qt_app_started:
+        logger.info("create Qt application")
+        QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+        _app = QtWidgets.QApplication([])
+
     cfg = get_configuration()
 
     # @@@ TODO
@@ -34,16 +41,9 @@ def databrowser_main():
     # size = cfg.get('qt_databrowser.size')
     # live_plotting = cfg.get('qt_databrowser.live_plotting', True)
 
-    qt_init()
-    _app = QtCore.QCoreApplication.instance()
-    if _app is None:
-        logger.info("create Qt application")
-        QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
-        _app = QtWidgets.QApplication([])
-        _browser_instance = CoreToolsDataBrowser()
+    _browser_instance = CoreToolsDataBrowser()
+    if not qt_app_started:
         _app.exec_()
-    else:
-        _browser_instance = CoreToolsDataBrowser()
 
 
 def _configure_sample(cfg):
