@@ -97,7 +97,7 @@ class FastScanGenerator(FastScanGeneratorBase):
         seg  = self.pulse_lib.mk_segment()
         g1 = seg[gate]
         pulse_channels = []
-        for ch,v in pulse_gates.items():
+        for ch, v in pulse_gates.items():
             pulse_channels.append((seg[ch], v))
 
         if not config.biasT_corr:
@@ -114,7 +114,7 @@ class FastScanGenerator(FastScanGeneratorBase):
                 for acq_ch in acq_channels:
                     seg[acq_ch].acquire(config.acquisition_delay_ns, t_measure)
 
-            for gp,v in pulse_channels:
+            for gp, v in pulse_channels:
                 gp.add_block(0, step_eff, v)
                 # compensation for pulse gates
                 if biasT_corr:
@@ -198,7 +198,7 @@ class FastScanGenerator(FastScanGeneratorBase):
         g1 = seg[gate1]
         g2 = seg[gate2]
         pulse_channels = []
-        for ch,v in pulse_gates.items():
+        for ch, v in pulse_gates.items():
             pulse_channels.append((seg[ch], v))
 
         if config.biasT_corr:
@@ -212,7 +212,7 @@ class FastScanGenerator(FastScanGeneratorBase):
             total_duration = 2 * prebias_pts + config.n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
             g2.add_block(0, -1, -(prebias_pts * config.vp2)/total_duration)
             g2.add_block(0, t_prebias, config.vp2)
-            for g,v in config.pulse_channels:
+            for g, v in pulse_channels:
                 g.add_block(0, t_prebias, -v)
             seg.reset_time()
 
@@ -222,7 +222,7 @@ class FastScanGenerator(FastScanGeneratorBase):
             g2.add_block(0, step_eff*config.n_ptx, v2)
             for acq_ch in acq_channels:
                 seg[acq_ch].acquire(step_eff*config.line_margin+config.acquisition_delay_ns, n_repeat=n_pt1, interval=step_eff)
-            for g,v in pulse_channels:
+            for g, v in pulse_channels:
                 g.add_block(0, step_eff*config.n_ptx, v)
             seg.reset_time()
 
@@ -231,7 +231,7 @@ class FastScanGenerator(FastScanGeneratorBase):
                 # sweep g1 onces more; best effect on bias-T
                 # keep g2 on 0
                 g1.add_ramp_ss(0, step_eff*config.n_ptx, -config.vpx, config.vpx)
-                for g,v in config.pulse_channels:
+                for g, v in pulse_channels:
                     g.add_block(0, step_eff*config.n_ptx, -v)
                 seg.reset_time()
 
@@ -239,7 +239,7 @@ class FastScanGenerator(FastScanGeneratorBase):
             # pulses to discharge bias-T
             # Note: g2 is already 0.0 V
             g1.add_block(0, t_prebias, -config.vpx*0.35)
-            for g, v in config.pulse_channels:
+            for g, v in pulse_channels:
                 g.add_block(0, t_prebias, +v)
             seg.reset_time()
 
