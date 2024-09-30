@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.65] - 2024-09-30
+
+- Fixed construct_1D_fast_scan and construct_2D_fast_scan (after v1.4.63 refactoring)
+
 ## \[1.4.64] - 2024-09-26
 
 - Fix Set DC voltages in Video Mode (broken in v1.4.63)
