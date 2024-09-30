@@ -288,7 +288,7 @@ class FastScanGeneratorBase:
                 If None defaults to "I".
         """
         self.iq_mode = iq_mode
-        if self.pulse_lib.digitizer_channels:
+        if self.digitizer is None:
             channel_map = get_channel_map(self.pulse_lib, iq_mode, channels)
         else:
             channel_map = get_channel_map_dig_4ch(iq_mode, channels)
