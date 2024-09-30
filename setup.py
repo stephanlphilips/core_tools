@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name="core_tools",
-    version="1.4.65",
+    version="1.4.66",
     packages = find_packages(),
     python_requires=">=3.10",
     install_requires=[
