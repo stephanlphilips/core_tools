@@ -302,7 +302,8 @@ def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-    scan_generator = FastScanGenerator(pulse_lib)
+    scan_generator = FastScanGenerator()
+    scan_generator.set_pulse_lib(pulse_lib)
     scan_generator.configure(acquisition_delay_ns, enabled_markers, line_margin)
     if channel_map:
         scan_generator.set_channel_map(channel_map)
@@ -352,7 +353,8 @@ def construct_2D_scan_fast(gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_step, b
     Returns:
         Parameter (QCODES multiparameter) : parameter that can be used as input in a conversional scan function.
     """
-    scan_generator = FastScanGenerator(pulse_lib)
+    scan_generator = FastScanGenerator()
+    scan_generator.set_pulse_lib(pulse_lib)
     scan_generator.configure(acquisition_delay_ns, enabled_markers, line_margin)
     if channel_map:
         scan_generator.set_channel_map(channel_map)
