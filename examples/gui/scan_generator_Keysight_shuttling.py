@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 class ShuttlingSequence:
-    action_step = "step"
     action_measure = "measure"
     action_scan = "scan"
 
@@ -34,6 +33,20 @@ class ShuttlingSequence:
             ):
         """Shuttling sequence definition using setpoints and lists with steps.
 
+        In the scan point the voltages of the 1D or 2D scan are added to
+        the setpoint voltages. The voltages will be kept on this level for
+        the time specified by t_scan.
+
+        In the read point the measurement is started after acquisition delay
+        and then acquisition is started with a duration of t_measure.
+        Both arguments are set on the scan generator (by video mode).
+
+        When the scan point and the read point use the same named setpoint,
+        then the scan voltages are set and the acquisition is performed as
+        described above, and the duration is determined only by acquisition
+        delay and t_measure. The argument t_scan is ignored.
+
+
         Args:
             v_setpoints: voltages for the steps in the sequence.
             sequence: sequence of setpoints that make a full scan cycle.
@@ -42,6 +55,7 @@ class ShuttlingSequence:
             t_scan: time to stay in scan point [ns]
             read_point: name of the setpoint used for readout.
             t_resolution: time resolution for sequence [ns]
+
         """
         self._v_setpoints = v_setpoints
         self._sequence = sequence
@@ -58,17 +72,16 @@ class ShuttlingSequence:
 
     def setpoints_loop(self):
         for point in self._sequence:
+            actions = []
+            t_point = self._t_shuttle_step
+            if point == self._scan_point:
+                t_point = self._t_scan
+                actions.append(self.action_scan)
             if point == self._read_point:
                 # Note: t_measure is set in 1D/2D scan
                 t_point = np.nan
-                action = self.action_measure
-            elif point == self._scan_point:
-                t_point = self._t_scan
-                action = self.action_scan
-            else:
-                t_point = self._t_shuttle_step
-                action = self.action_step
-            yield action, t_point, self._v_setpoints[point]
+                actions.append(self.action_measure)
+            yield actions, t_point, self._v_setpoints[point]
 
 
 class _CompensationCalculator:
@@ -110,17 +123,15 @@ class ShuttlingScanGeneratorKeysight(FastScanGeneratorBase):
 
     def __init__(
             self,
-            pulse_lib,
             shuttling_sequence: ShuttlingSequence,
             ):
         super().__init__()
-        self.set_pulse_lib(pulse_lib)
         self.shuttling_sequence = shuttling_sequence
-        self._set_compensation_limits()
         self.plot_first = False
 
-    def _set_compensation_limits(self):
-        self._compensation_limits = {}
+
+    def _get_compensation_calculator(self) -> _CompensationCalculator:
+        compensation_limits = {}
         for channel_name, awg_channel in self._pulse_lib.awg_channels.items():
             if awg_channel.compensation_limits == (0, 0):
                 continue
@@ -130,9 +141,8 @@ class ShuttlingScanGeneratorKeysight(FastScanGeneratorBase):
                 awg_channel.compensation_limits[1] * awg_channel.attenuation,
                 )
 
-    def _get_compensation_calculator(self) -> _CompensationCalculator:
         return _CompensationCalculator(
-            self._compensation_limits,
+            compensation_limits,
             self.shuttling_sequence.t_resolution
             )
 
@@ -178,13 +188,8 @@ class ShuttlingScanGeneratorKeysight(FastScanGeneratorBase):
         start_delay = None
         loop_period = None
         for v_scan in config.voltages:
-
-            for action, t_step, gate_voltages in self.shuttling_sequence.setpoints_loop():
-                if action == ShuttlingSequence.action_scan:
-                    seg[gate].add_block(0, t_step, v_scan)
-                    # Note: Ignore v_scan in compensation pulse. it's compensated by alternating voltagees.
-                    # compensation.add_pulse({gate: v_scan}, t_step)
-                elif action == ShuttlingSequence.action_measure:
+            for actions, t_step, gate_voltages in self.shuttling_sequence.setpoints_loop():
+                if ShuttlingSequence.action_measure in actions:
                     # Acquistion trigger is done via HVI using sequence parameters.
                     # Set start_delay for first measurement.
                     # Next set period between measurement starts.
@@ -197,9 +202,15 @@ class ShuttlingScanGeneratorKeysight(FastScanGeneratorBase):
                             raise Exception(f"Irregular acquisition period {loop_period}<>{t}")
                     t = 0
                     t_step = t_measure + config.acquisition_delay_ns
+
+                if ShuttlingSequence.action_scan in actions:
+                    seg[gate].add_block(0, t_step, v_scan)
+                    # Note: Ignore v_scan in compensation pulse. it's compensated by alternating voltagees.
+
                 if pulse_gates:
                     seg.add_block(0, t_step, list(pulse_gates.keys()), list(pulse_gates.values()))
                     compensation.add_pulse(pulse_gates, t_step)
+
                 seg.add_block(0, t_step, list(gate_voltages.keys()), list(gate_voltages.values()))
                 compensation.add_pulse(gate_voltages, t_step)
                 t += t_step
@@ -289,13 +300,8 @@ class ShuttlingScanGeneratorKeysight(FastScanGeneratorBase):
         loop_period = None
         for v_scan2 in config.voltages2:
             for v_scan1 in np.linspace(-swing1/2, +swing1/2, n_pt1):
-                for action, t_step, gate_voltages in self.shuttling_sequence.setpoints_loop():
-                    if action == ShuttlingSequence.action_scan:
-                        seg[gate1].add_block(0, t_step, v_scan1)
-                        seg[gate2].add_block(0, t_step, v_scan2)
-                        # Note: Ignore v_scan in compensation pulse. it's compensated by alternating voltagees.
-                        # compensation.add_pulse({gate: v_scan}, t_step)
-                    elif action == ShuttlingSequence.action_measure:
+                for actions, t_step, gate_voltages in self.shuttling_sequence.setpoints_loop():
+                    if ShuttlingSequence.action_measure in actions:
                         # Acquistion trigger is done via HVI using sequence parameters.
                         # Set start_delay for first measurement.
                         # Next set period between measurement starts.
@@ -308,9 +314,16 @@ class ShuttlingScanGeneratorKeysight(FastScanGeneratorBase):
                                 raise Exception(f"Irregular acquisition period {loop_period}<>{t}")
                         t = 0
                         t_step = t_measure + config.acquisition_delay_ns
+
+                    if ShuttlingSequence.action_scan in actions:
+                        seg[gate1].add_block(0, t_step, v_scan1)
+                        seg[gate2].add_block(0, t_step, v_scan2)
+                        # Note: Ignore v_scan in compensation pulse. it's compensated by alternating voltagees.
+
                     if pulse_gates:
                         seg.add_block(0, t_step, list(pulse_gates.keys()), list(pulse_gates.values()))
                         compensation.add_pulse(pulse_gates, t_step)
+
                     seg.add_block(0, t_step, list(gate_voltages.keys()), list(gate_voltages.values()))
                     compensation.add_pulse(gate_voltages, t_step)
                     t += t_step
