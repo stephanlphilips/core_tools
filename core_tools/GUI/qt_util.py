@@ -1,8 +1,10 @@
 import logging
 import os
 import threading
+import traceback
 
 from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 
 try:
     import IPython.lib.guisupport as gs
@@ -117,3 +119,31 @@ def install_qt_message_handler():
     if not _qt_message_handler_installed:
         QtCore.qInstallMessageHandler(_qt_message_handler)
         _qt_message_handler_installed = True
+
+
+def qt_show_exception(message, ex, extra_line: str = None):
+    # logger.error(message, exc_info=ex)
+    text = message
+    if extra_line:
+        text += "\n" + extra_line
+    text += f"\n{type(ex).__name__}: {ex}"
+    msg = QMessageBox(
+        QMessageBox.Critical,
+        "QT-DataViewer: " + message,
+        text,
+        QMessageBox.Ok,
+        )
+    msg.setDetailedText("\n".join(traceback.format_exception(ex)))
+    msg.setStyleSheet("QTextEdit{min-width:600px}")
+    msg.exec_()
+
+
+def qt_show_error(title, message):
+    # logger.error(message)
+    msg = QMessageBox(
+        QMessageBox.Critical,
+        "QT-DataViewer: " + title,
+        message,
+        QMessageBox.Ok,
+        )
+    msg.exec_()

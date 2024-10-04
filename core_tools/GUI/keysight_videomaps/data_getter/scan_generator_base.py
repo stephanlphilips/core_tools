@@ -20,6 +20,7 @@ class ScanConfigBase:
     line_margin: int
     enabled_markers: list[str]
 
+    # @@@ Add extra snapshot, e.g. from Shuttling...
     def snapshot(self):
         channel_map_snapshot = {}
         for name, mapping in self.channel_map.items():
@@ -217,6 +218,10 @@ class FastScanParameterBase(MultiParameter):
         snapshot = super().snapshot_base(update, params_to_skip_update)
         snapshot.update({"parameters": self.config.snapshot()})
         return snapshot
+
+    @abstractmethod
+    def recompile(self):
+        raise NotImplementedError("recompile is not implemented")
 
     def restart(self):
         pass

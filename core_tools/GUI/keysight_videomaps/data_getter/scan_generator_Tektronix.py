@@ -85,6 +85,10 @@ class M4iFastScanParameter(FastScanParameterBase):
         self.dig.trigger_or_mask(pyspcm.SPC_TMASK_EXT0)
         self.dig.setup_multi_recording(self.seg_size, n_triggers=1)
 
+    def recompile(self):
+        self.my_seq.recompile()
+        self.my_seq.upload()
+
     def get_channel_data(self) -> dict[str, np.ndarray]:
         start = time.perf_counter()
         logger.debug('Play')

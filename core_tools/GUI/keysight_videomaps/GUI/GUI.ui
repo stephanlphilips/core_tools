@@ -52,6 +52,7 @@
      <number>4</number>
     </property>
     <item row="0" column="0">
+
      <widget class="QTabWidget" name="tabWidget">
       <property name="tabPosition">
        <enum>QTabWidget::North</enum>
@@ -184,7 +185,7 @@
                     </size>
                    </property>
                    <property name="toolTip">
-                    <string>Refresh (F5)</string>
+                    <string>Refresh (Ctrl+F5)</string>
                    </property>
                   </widget>
                  </item>
@@ -740,7 +741,7 @@
                    </size>
                   </property>
                   <property name="toolTip">
-                    <string>Reload (F5)</string>
+                    <string>Reload (Ctrl+F5)</string>
                   </property>
                  </widget>
                 </item>
@@ -1408,6 +1409,7 @@
           <layout class="QGridLayout" name="_2D_plotter_layout"/>
          </widget>
         </item>
+
        </layout>
       </widget>
 
@@ -1453,7 +1455,7 @@
               <property name="sizeType">
                <enum>QSizePolicy::MinimumExpanding</enum>
               </property>
-              <property name="minimumSizeSize" stdset="0">
+              <property name="minimumSize" stdset="0">
                <size>
                 <width>20</width>
                 <height>16</height>
@@ -1479,7 +1481,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="label_9">
               <property name="text">
-               <string>Scan channel</string>
+               <string>Enabled channels</string>
               </property>
              </widget>
             </item>
@@ -1506,7 +1508,7 @@
             <item row="4" column="0">
              <widget class="QLabel" name="label_blank">
               <property name="text">
-               <string>Marker name</string>
+               <string></string>
               </property>
              </widget>
             </item>
@@ -1872,6 +1874,232 @@
         </widget>
        </widget>
       </widget>
+
+      <!-- Tab File -->
+      <widget class="QWidget" name="tab_favorites">
+       <attribute name="title">
+        <string>Favorites</string>
+       </attribute>
+       <layout class="QHBoxLayout">
+        <item>
+         <layout class="QVBoxLayout">
+          <item>
+           <layout class="QHBoxLayout">
+            <item>
+             <widget class="QListWidget" name="_favorites_names">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+                <horstretch>1</horstretch>
+                <verstretch>1</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>400</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+                <horstretch>2</horstretch>
+                <verstretch>1</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>200</width>
+                <height>400</height>
+               </size>
+              </property>
+              <layout class="QVBoxLayout">
+               <property name="leftMargin">
+                <number>8</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <layout class="QHBoxLayout">
+                 <item>
+                  <widget class="QLabel">
+                   <property name="text">
+                    <string>Name:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="_fav_name">
+                   <property name="minimumSize">
+                    <size>
+                     <width>100</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="_fav_check_1D">
+                 <property name="text">
+                  <string>1D</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTextEdit" name="_fav_settings_1D">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>100</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="_fav_check_2D">
+                 <property name="text">
+                  <string>2D</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTextEdit" name="_fav_settings_2D">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>250</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="_fav_check_gen">
+                 <property name="text">
+                  <string>general</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTextEdit" name="_fav_settings_gen">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>120</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <item>
+           <layout class="QHBoxLayout">
+            <item>
+              <spacer>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::MinimumExpanding</enum>
+               </property>
+               <property name="minimumSizeSize" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>10</height>
+                </size>
+               </property>
+              </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="_fav_apply">
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Apply</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="_fav_save">
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Save</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="_fav_save_default">
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Save Default</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTextEdit" name="_fav_help">
+          <property name="maximumWidth">
+           <number>450</number>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>400</height>
+           </size>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget> <!-- Favorites -->
+
      </widget>
     </item>
    </layout>

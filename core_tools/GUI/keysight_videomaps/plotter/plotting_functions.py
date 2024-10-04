@@ -65,7 +65,7 @@ class plot_param:
 
 class live_plot(QThread):
 
-    def __init__(self,  top_layout, parameter_getter, averaging, gradient,
+    def __init__(self,  top_layout, parameter_getter,
                  n_col, prog_bar=None, gate_values_label=None,
                  gates=None, refresh_rate_ms=100,
                  on_mouse_moved=None, on_mouse_clicked=None):
@@ -75,8 +75,6 @@ class live_plot(QThread):
         top_frame (QtWidgets.QFrame) : frame wherin to place the plots
         top_layout (QtWidgets.QGridLayout) : layout in the frame for the plots
         parameter_getter (QCoDeS multiparamter) : qCoDeS multiparamter that is used to get the data.
-        averaging (int) : number of times the plot needs to be averaged.
-        differentiate (bool) : differentiate plot - true/false
         n_col (int): max number of plots on a row
         '''
         super().__init__()
@@ -105,8 +103,8 @@ class live_plot(QThread):
         self.plot_widgets = []
 
         # plot properties
-        self._averaging = averaging
-        self._gradient = gradient
+        self._averaging = 1
+        self._gradient = False
 
         self.set_busy(True)
 

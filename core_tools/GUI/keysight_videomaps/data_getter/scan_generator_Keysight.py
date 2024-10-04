@@ -56,6 +56,10 @@ class KeysightFastScanParameter(FastScanParameterBase):
         self.acquisition_channels = set(channels)
         self._configure_digitizer()
 
+    def recompile(self):
+        self.my_seq.recompile()
+        self.my_seq.upload()
+
     def _configure_digitizer(self):
         npts = int(np.prod(self.config.shape))
         for digitizer, ch_nums in self.dig_channel_nums.items():
@@ -171,7 +175,7 @@ class FastScanGenerator(FastScanGeneratorBase):
         config = self.get_config1D(gate, swing, n_pt, t_measure, pulse_gates, biasT_corr)
 
         if biasT_corr and config.line_margin > 0:
-            print('Line margin is ignored with biasT_corr on')
+            print('Line margin is ignored with biasT_corr on') # @@@ change. Check acquisition_delays_ns.
             config.line_margin = 0
 
         add_line_delay = config.biasT_corr and len(config.pulse_gates) > 0

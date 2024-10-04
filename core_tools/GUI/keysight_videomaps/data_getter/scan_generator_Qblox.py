@@ -28,6 +28,10 @@ class QbloxFastScanParameter(FastScanParameterBase):
 
         super().__init__(scan_config)
 
+    def recompile(self):
+        self.my_seq.recompile()
+        self.my_seq.upload()
+
     def get_channel_data(self) -> dict[str, np.ndarray]:
         """Starts scan and retrieves data.
 
