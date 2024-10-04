@@ -136,7 +136,7 @@ class ShuttlingScanGeneratorKeysight(FastScanGeneratorBase):
             if awg_channel.compensation_limits == (0, 0):
                 continue
             # convert AWG level to device level.
-            self._compensation_limits[channel_name] = (
+            compensation_limits[channel_name] = (
                 awg_channel.compensation_limits[0] * awg_channel.attenuation,
                 awg_channel.compensation_limits[1] * awg_channel.attenuation,
                 )

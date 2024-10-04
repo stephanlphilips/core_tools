@@ -75,7 +75,7 @@ if __name__ == '__main__':
             read_point="read",
             t_resolution=100)
 
-    scan_generator = ShuttlingScanGeneratorKeysight(pulse, shuttling_sequence)
+    scan_generator = ShuttlingScanGeneratorKeysight(shuttling_sequence)
     # scan_generator.plot_first = True
 
     # Start the liveplotting
