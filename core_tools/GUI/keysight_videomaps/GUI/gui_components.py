@@ -5,7 +5,7 @@ import logging
 
 from PyQt5 import QtCore, QtWidgets
 
-from core_tools.GUI.qt_util import qt_show_error
+from core_tools.GUI.qt_util import qt_show_error, qt_log_exception
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,7 @@ class CheckboxElement(GuiElement):
         self._widget = widget
         widget.stateChanged.connect(self._changed)
 
+    @qt_log_exception
     def _changed(self, state: int):
         self._value_changed(bool(state))
 
@@ -109,6 +110,7 @@ class NumberElement(GuiElement):
         self._widget = widget
         widget.valueChanged.connect(self._changed)
 
+    @qt_log_exception
     def _changed(self, value: int | float):
         self._value_changed(value)
 
@@ -129,6 +131,7 @@ class TextElement(GuiElement):
         self._widget = widget
         widget.currentTextChanged.connect(self._changed)
 
+    @qt_log_exception
     def _changed(self, value: str):
         self._value_changed(value)
 
@@ -167,6 +170,7 @@ class CheckboxList(GuiElement):
             layout_check_boxes.addWidget(check_box, 0, QtCore.Qt.AlignHCenter)
             self._check_boxes[name] = check_box
 
+    @qt_log_exception
     def _changed(self, state: int, name: str):
         if state:
             self._checked.add(name)
@@ -217,14 +221,18 @@ class OffsetsList(GuiElement):
             cb_gate.addItem("<None>")
             for gate_name in gate_names:
                 cb_gate.addItem(gate_name)
+            cb_gate.currentTextChanged.connect(partial(self._gate_changed, index=i))
+            box_voltage.valueChanged.connect(partial(self._voltage_changed, index=i))
 
+    @qt_log_exception
     def _gate_changed(self, text: str, index: int):
         self._gates[index] = text
-        self._value_changed(self.get_value)
+        self._value_changed(self.get_value())
 
+    @qt_log_exception
     def _voltage_changed(self, value: float, index: int):
         self._voltages[index] = value
-        self._value_changed(self.get_value)
+        self._value_changed(self.get_value())
 
     def set_value(self, offsets: dict[str, float]):
         if len(offsets) >= len(self._gate_boxes):
