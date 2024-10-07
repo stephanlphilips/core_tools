@@ -666,6 +666,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def _start_1D(self):
+        if self.is_running == "1D":
+            self._stop_1D()
         logger.info('Starting 1D')
         try:
             self._1D_play.setEnabled(False)
@@ -729,6 +731,8 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @qt_log_exception
     def _start_2D(self):
+        if self.is_running == "2D":
+            self._stop_2D()
         logger.info('Starting 2D')
         try:
             self._2D_play.setEnabled(False)
