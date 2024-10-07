@@ -129,7 +129,7 @@ class Favorites:
         return result
 
     @qt_log_exception
-    def _save(self):
+    def save(self):
         name = self._ui_name.text()
         path = self._get_favorite_path(name)
         data = {}
@@ -145,9 +145,9 @@ class Favorites:
         self._load_favorites()
 
     @qt_log_exception
-    def _save_default(self):
+    def save_default(self):
         self._ui_name.setText("Default")
-        self._save_favorite()
+        self.save()
 
     def current_settings(self):
         settings = {}

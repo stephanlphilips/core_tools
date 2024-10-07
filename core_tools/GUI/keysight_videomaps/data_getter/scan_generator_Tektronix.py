@@ -41,6 +41,7 @@ class M4iFastScanParameter(FastScanParameterBase):
         self.n_lines = n_lines
         self.line_delay_pts = line_delay_pts
         self.n_points = np.prod(scan_config.shape)
+        self._recompile_requested = False
 
         super().__init__(scan_config)
 
@@ -86,10 +87,17 @@ class M4iFastScanParameter(FastScanParameterBase):
         self.dig.setup_multi_recording(self.seg_size, n_triggers=1)
 
     def recompile(self):
-        self.my_seq.recompile()
-        self.my_seq.upload()
+        self._recompile_requested = True
 
     def get_channel_data(self) -> dict[str, np.ndarray]:
+        if self._recompile_requested:
+            self._recompile_requested = False
+            start = time.perf_counter()
+            self.my_seq.recompile()
+            self.my_seq.upload()
+            duration = time.perf_counter() - start
+            logger.info(f"Recompiled in {duration*1000:.1f} ms")
+
         start = time.perf_counter()
         logger.debug('Play')
         # play sequence

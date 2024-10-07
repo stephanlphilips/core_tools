@@ -25,12 +25,12 @@ class QbloxFastScanParameter(FastScanParameterBase):
         """
         self.pulse_lib = pulse_lib
         self.my_seq = pulse_sequence
+        self._recompile_requested = False
 
         super().__init__(scan_config)
 
     def recompile(self):
-        self.my_seq.recompile()
-        self.my_seq.upload()
+        self._recompile_requested = True
 
     def get_channel_data(self) -> dict[str, np.ndarray]:
         """Starts scan and retrieves data.
@@ -38,6 +38,14 @@ class QbloxFastScanParameter(FastScanParameterBase):
         Returns:
             dictionary with per channel real or complex data in 1D ndarray.
         """
+        if self._recompile_requested:
+            self._recompile_requested = False
+            start = time.perf_counter()
+            self.my_seq.recompile()
+            self.my_seq.upload()
+            duration = time.perf_counter() - start
+            logger.info(f"Recompiled in {duration*1000:.1f} ms")
+
         start = time.perf_counter()
         # play sequence
         self.my_seq.play(release=False)

@@ -27,6 +27,7 @@ from core_tools.GUI.keysight_videomaps.GUI.gui_components import (
     Settings, CheckboxList, OffsetsList
     )
 
+
 logger = logging.getLogger(__name__)
 
 _data_saver: IDataSaver | None = None
@@ -293,6 +294,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._gen_settings.add("bias_T_RC", self._gen_bias_T_RC)
         self._gen_settings.add("enabled_channels", sensor_checkboxes)
         self._gen_settings.add("enabled_markers", marker_checkboxes)
+        self._gen_settings.add("virtual_matrix_auto_recompile", self._gen_vm_auto_recompile)
 
         offset_gate_voltages_1D = OffsetsList(
                 "offsets",
@@ -467,6 +469,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             'line_margin': 1,
             'max_V_swing': 1000.0,
             'bias_T_RC': 100,
+            'virtual_matrix_auto_recompile': False,
             }
 
         self._1D_settings.update(self.defaults_1D)
@@ -599,14 +602,18 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         style = 'QLabel {background-color : #F64; }' if biasTerror > 0.05 else ''
         self.bias_T_warning_label.setStyleSheet(style)
 
+    def _recompile_sequence(self, param) -> bool:
+        recompile = getattr(param, "recompile", None)
+        # Abstract methods have a property __isabstractmethod__ returning True
+        if recompile and not getattr(recompile, "__isabstractmethod__", False):
+            recompile()
+            return True
+        return False
+
     def _requires_build(self, param: FastScanParameterBase, settings: Settings):
         build = param is None or settings.update_scan
         if not build and self._pulselib_settings.has_changes():
-            recompile = getattr(param, "recompile", None)
-            # Abstract methods have a property __isabstractmethod__ returning True
-            if recompile and not getattr(recompile, "__isabstractmethod__", False):
-                recompile()
-            else:
+            if not self._recompile_sequence(param):
                 build = True
         return build
 
@@ -786,12 +793,31 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
             self._step_2D()
 
     def _update_active_state(self):
-        # Note: this is used to update the state after single step!
+        """Updates the state after single step and checks
+        whether recompile is required.
+        """
         state = self.is_running
         if state == '1D' and not self._plot1D.active:
             self._stop_1D()
         elif state == '2D' and not self._plot2D.active:
             self._stop_2D()
+
+        if (self._gen_settings["virtual_matrix_auto_recompile"]
+            and self._pulselib_settings.has_changes()):
+                state = self.is_running
+                param = None
+                if state == "1D":
+                    param = self._param1D
+                elif state == "2D":
+                    param = self._param2D
+                    self._recompile_sequence(self._param2D)
+                    self._pulselib_settings.store()
+                else:
+                    # not running
+                    pass
+                if param:
+                    if self._recompile_sequence(param):
+                        self._pulselib_settings.store()
 
     def _stop_other(self):
         if not liveplotting.auto_stop_other:

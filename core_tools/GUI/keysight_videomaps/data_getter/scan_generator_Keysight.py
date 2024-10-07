@@ -36,6 +36,7 @@ class KeysightFastScanParameter(FastScanParameterBase):
         self.digitizer = digitizer
         self.pulse_lib = pulse_lib
         self.my_seq = pulse_sequence
+        self._recompile_requested = False
 
         super().__init__(scan_config)
 
@@ -57,8 +58,7 @@ class KeysightFastScanParameter(FastScanParameterBase):
         self._configure_digitizer()
 
     def recompile(self):
-        self.my_seq.recompile()
-        self.my_seq.upload()
+        self._recompile_requested = True
 
     def _configure_digitizer(self):
         npts = int(np.prod(self.config.shape))
@@ -82,6 +82,14 @@ class KeysightFastScanParameter(FastScanParameterBase):
         Returns:
             dictionary with per channel real or complex data in 1D ndarray.
         """
+        if self._recompile_requested:
+            self._recompile_requested = False
+            start = time.perf_counter()
+            self.my_seq.recompile()
+            self.my_seq.upload()
+            duration = time.perf_counter() - start
+            logger.info(f"Recompiled in {duration*1000:.1f} ms")
+
         self._configure_digitizer()
 
         # Play sequence
