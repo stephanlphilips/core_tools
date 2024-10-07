@@ -121,7 +121,7 @@ def install_qt_message_handler():
         _qt_message_handler_installed = True
 
 
-def qt_show_exception(message, ex, extra_line: str = None):
+def qt_show_exception(message: str, ex: Exception, extra_line: str = None):
     # logger.error(message, exc_info=ex)
     text = message
     if extra_line:
@@ -129,7 +129,7 @@ def qt_show_exception(message, ex, extra_line: str = None):
     text += f"\n{type(ex).__name__}: {ex}"
     msg = QMessageBox(
         QMessageBox.Critical,
-        "QT-DataViewer: " + message,
+        message,
         text,
         QMessageBox.Ok,
         )
@@ -138,11 +138,11 @@ def qt_show_exception(message, ex, extra_line: str = None):
     msg.exec_()
 
 
-def qt_show_error(title, message):
+def qt_show_error(title: str, message: str):
     # logger.error(message)
     msg = QMessageBox(
         QMessageBox.Critical,
-        "QT-DataViewer: " + title,
+        title,
         message,
         QMessageBox.Ok,
         )

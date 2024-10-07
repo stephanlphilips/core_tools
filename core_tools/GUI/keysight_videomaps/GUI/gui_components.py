@@ -50,7 +50,7 @@ class Settings:
     def update(self, values: dict[str, any]):
         for name, value in values.items():
             if name not in self._values:
-                logger.warning(f"Setting {self.group}:{name} does not exist")
+                logger.warning(f"Setting {self._group_name}:{name} does not exist")
                 continue
             if self._values[name] != value:
                 self.set_value(name, value)
@@ -136,7 +136,7 @@ class TextElement(GuiElement):
         self._widget.setCurrentText(value)
         if self._widget.currentText() != value:
             qt_show_error(
-                "Invalid value",
+                "VideoMode: Invalid value",
                 f"{self._name} cannot be set to '{value}'")
 
     def get_value(self) -> str:

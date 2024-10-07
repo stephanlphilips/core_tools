@@ -109,7 +109,7 @@ class Favorites:
                 return {}
             else:
                 qt_show_error(
-                    "Parse error",
+                    "VideoMode: Parse error",
                     f"Stored favorite '{name}' cannot be parsed as YAML.\n"
                     f"Check file '{path}'.")
                 raise
@@ -124,7 +124,7 @@ class Favorites:
         try:
             result = yaml.load(stream)
         except Exception as ex:
-            qt_show_exception("Failed to parse YAML", ex, f"in group '{group}'")
+            qt_show_exception("VideoMode: Failed to parse YAML", ex, f"in group '{group}'")
             raise
         return result
 
@@ -186,7 +186,7 @@ class Favorites:
         pattern = re.compile(r"[a-zA-Z0-9_ -.]+")
         if not pattern.match(name):
             qt_show_error(
-                "Invalid name",
+                "VideoMode: Invalid name",
                 f"'{name}' is not a valid favorite name.\n"
                 "Valid characters are: a-zA-Z0-9_ -.")
 
