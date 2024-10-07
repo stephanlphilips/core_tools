@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.4.67] - 2024-10-07
+
+- Refactored Video Mode for new features
+- Added Favorites to Video Mode
+- Added automatic recompile in Video Mode if pulse-lib settings change.
+- Added extra title text to Video Mode
+- Performance improvement setting virtual gates
+
 ## \[1.4.66] - 2024-09-30
 
 - Reverted to old logic for Keysight for using digitizer channels from pulse_lib: use digitizer if specified.
