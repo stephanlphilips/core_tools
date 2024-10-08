@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.5.0] - 2024-10-07
+
+- "Official" release of new Video Mode.
+- Fixed Video Mode bugs of 1.4.67
+
 ## \[1.4.67] - 2024-10-07
 
 - Refactored Video Mode for new features
