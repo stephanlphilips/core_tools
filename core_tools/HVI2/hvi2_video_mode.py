@@ -193,6 +193,9 @@ class Hvi2VideoMode():
             if self._configuration[awg.name]['hvi_queue_control']:
                 awg.write_queue_mem()
 
+        # Always call stop before start. Seems to be required for HVI2/TSE 2023.
+        hvi_exec.stop()
+
         # use default values for backwards compatibility with old scripts
         start_delay = int(hvi_params.get('start_delay', 0))
         n_points = hvi_params['number_of_points']
