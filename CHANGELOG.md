@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## will be \[1.5.1]
+- Fixed bug where `QTextEdit` type hint was called in `core_tools.GUI.keysight_videomaps.GUI.favorites` 
+
 ## \[1.5.0] - 2024-10-07
 
 - "Official" release of new Video Mode.

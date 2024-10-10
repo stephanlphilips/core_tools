@@ -115,7 +115,7 @@ class Favorites:
                 raise
         return settings
 
-    def _parse_settings_text(self, text_edit: QtWidgets.QTextEdit(), group: str):
+    def _parse_settings_text(self, text_edit: QtWidgets.QTextEdit, group: str):
         text = text_edit.toPlainText()
         if text == "":
             return {}
