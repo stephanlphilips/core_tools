@@ -199,8 +199,10 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._update_timer.timeout.connect(self._update_active_state)
         self._update_timer.start(200)
 
-        pg.setConfigOption('background', 'w')
-        pg.setConfigOption('foreground', 'k')
+        # only change if still default
+        if pg.getConfigOption('foreground') == 'd' and pg.getConfigOption('background') == 'k':
+            pg.setConfigOption('background', None)
+            pg.setConfigOption('foreground', 'k')
 
         liveplotting.last_instance = self
         liveplotting._all_instances.append(self)
@@ -362,9 +364,9 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
         self._2D_copy.clicked.connect(lambda:self.copy_to_clipboard())
 
         self._1D_set_DC.setEnabled(self.gates is not None)
-        self._1D_set_DC.setStyleSheet("QPushButton:checked { background-color: yellow }")
+        self._1D_set_DC.setStyleSheet("QPushButton:checked { background-color: #ffc000; color: black }")
         self._2D_set_DC.setEnabled(self.gates is not None)
-        self._2D_set_DC.setStyleSheet("QPushButton:checked { background-color: yellow }")
+        self._2D_set_DC.setStyleSheet("QPushButton:checked { background-color: #ffc000; color: black }")
 
         self._shortcut_play = QtWidgets.QShortcut(QtGui.QKeySequence("F5"), self)
         self._shortcut_play.activated.connect(self._play)
@@ -814,8 +816,6 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
                     param = self._param1D
                 elif state == "2D":
                     param = self._param2D
-                    self._recompile_sequence(self._param2D)
-                    self._pulselib_settings.store()
                 else:
                     # not running
                     pass

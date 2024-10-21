@@ -30,8 +30,10 @@ class _2D_plot:
         self.value_unit_scaler = return_unit_scaler(self.ds.unit)
         self.logmode = {'x':False, 'y':False, 'z':False}
 
-        pg.setConfigOption('background', None)
-        pg.setConfigOption('foreground', 'k')
+        # only change if still default
+        if pg.getConfigOption('foreground') == 'd' and pg.getConfigOption('background') == 'k':
+            pg.setConfigOption('background', None)
+            pg.setConfigOption('foreground', 'k')
 
         self.widget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()

@@ -21,6 +21,9 @@ logging:
         matplotlib: WARNING
         pyvisa: INFO
 
+# gui:
+#     style: black
+
 databrowser:
     datasource: local # required value
     live_plotting: True

@@ -15,7 +15,12 @@ remote_database:
     database: veldhorst_data
     address: vanvliet.qutech.tudelft.nl:5432
 
+# gui:
+#     style: black
+
 databrowser:
     datasource: remote # required value
     live_plotting: False
 
+qt-databrowser:
+    datasource: remote # required value

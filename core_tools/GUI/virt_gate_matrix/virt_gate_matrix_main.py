@@ -346,9 +346,9 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
         if abs(value) > 99.0:
             spin_box.setStyleSheet("color: red; font-weight: bold;")
             return
-        spin_box.setStyleSheet("font-weight: normal;")
 
         if not self._coloring:
+            spin_box.setStyleSheet("font-weight: normal;")
             return
         if value == 0.0:
             r,g,b = 255,255,255
@@ -362,7 +362,7 @@ class virt_gate_matrix_GUI(QtWidgets.QMainWindow, Ui_MainWindow):
             r = 255
             b = max(150, int(255 - abs(value) * 200))
             g = b
-        spin_box.setStyleSheet(f'background-color:rgb({r},{g},{b});')
+        spin_box.setStyleSheet(f'background-color:rgb({r},{g},{b}); color:black; font-weight: normal;')
 
     @qt_log_exception
     def invert(self, virtual_gate_set, refresh, tableWidget, state):

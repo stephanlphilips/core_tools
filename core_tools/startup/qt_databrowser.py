@@ -1,12 +1,10 @@
 import logging
 
-from PyQt5 import QtCore, QtWidgets
-
 from core_tools.startup.config import get_configuration
 from core_tools.startup.db_connection import connect_local_db, connect_remote_db
 from core_tools.startup.sample_info import set_sample_info
 from core_tools.startup.app_wrapper import run_app
-from core_tools.GUI.qt_util import qt_init
+from core_tools.GUI.qt_util import qt_init, qt_create_app, qt_run_app, qt_set_darkstyle
 
 
 logger = logging.getLogger(__name__)
@@ -28,13 +26,14 @@ def databrowser_main():
 
     global _browser_instance
 
-    qt_app_started = qt_init()
-    if not qt_app_started:
-        logger.info("create Qt application")
-        QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
-        _app = QtWidgets.QApplication([])
-
     cfg = get_configuration()
+    qt_app_started = qt_init()
+
+    if not qt_app_started:
+        _app = qt_create_app()
+
+    if cfg.get('gui.style') == "dark":
+        qt_set_darkstyle()
 
     # @@@ TODO
     # location = cfg.get('qt_databrowser.location')
@@ -43,7 +42,7 @@ def databrowser_main():
 
     _browser_instance = CoreToolsDataBrowser()
     if not qt_app_started:
-        _app.exec_()
+        qt_run_app(_app)
 
 
 def _configure_sample(cfg):

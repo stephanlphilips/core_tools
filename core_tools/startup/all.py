@@ -87,7 +87,7 @@ def _configure_logging(cfg):
     logger.info('Start logging')
 
     old_files = []
-    pattern = re.compile("\d{4}-\d{2}-\d{2}\(\d{6,}\)\.log(\.\d{4}-\d{2}-\d{2})?")
+    pattern = re.compile(r"\d{4}-\d{2}-\d{2}\(\d{6,}\)\.log(\.\d{4}-\d{2}-\d{2})?")
     expiry_time = (datetime.now() - timedelta(max_age)).timestamp()
     for entry in os.scandir(path):
         if (entry.is_file()

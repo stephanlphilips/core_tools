@@ -28,8 +28,10 @@ class _1D_plot:
         self.ds_list = ds_list
         self.logmode = logmode
 
-        pg.setConfigOption('background', None)
-        pg.setConfigOption('foreground', 'k')
+        # only change if still default
+        if pg.getConfigOption('foreground') == 'd' and pg.getConfigOption('background') == 'k':
+            pg.setConfigOption('background', None)
+            pg.setConfigOption('foreground', 'k')
 
         self.widget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()

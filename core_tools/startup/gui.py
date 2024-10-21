@@ -18,7 +18,7 @@ def start_parameter_viewer(keysight_rf=None):
     global _pv_qt
     gates = _get_gates()
     cfg = get_configuration()
-    qt_init()
+    qt_init(style=cfg.get('gui.style'))
     _pv_qt = param_viewer(
             gates,
             max_diff=cfg.get('max_diff'),
@@ -47,7 +47,7 @@ def start_virtual_matrix_gui(pulse):
     global _vmg_qt
     gates = _get_gates()
     cfg = get_configuration()
-    qt_init()
+    qt_init(style=cfg.get('gui.style'))
     _vmg_qt = virt_gate_matrix_GUI(gates, pulse,
                                    coloring=cfg.get('virtual_matrix_gui.coloring', True))
     _set_window(_vmg_qt, cfg, 'virtual_matrix_gui')
@@ -70,7 +70,7 @@ def start_script_runner():
 
     global _script_runner
     cfg = get_configuration()
-    qt_init()
+    qt_init(style=cfg.get('gui.style'))
     _script_runner = ScriptRunner()
     _set_window(_script_runner, cfg, 'script_runner')
     return _script_runner

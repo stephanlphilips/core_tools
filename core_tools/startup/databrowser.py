@@ -2,7 +2,7 @@ from core_tools.startup.config import get_configuration
 from core_tools.startup.db_connection import connect_local_db, connect_remote_db
 from core_tools.startup.sample_info import set_sample_info
 from core_tools.startup.app_wrapper import run_app
-from core_tools.GUI.qt_util import qt_init
+from core_tools.GUI.qt_util import qt_init, qt_create_app, qt_run_app, qt_set_darkstyle
 
 
 # reference to running data_browser to avoid diposal and garbage collection
@@ -26,11 +26,18 @@ def databrowser_main():
     size = cfg.get('databrowser.size')
     live_plotting = cfg.get('databrowser.live_plotting', True)
 
-    qt_init()
+    qt_app_started = qt_init()
+
+    if not qt_app_started:
+        _app = qt_create_app()
     _browser_instance = data_browser(
             window_location=location,
             window_size=size,
             live_plotting_enabled=live_plotting)
+    if cfg.get('gui.style') == "dark":
+        qt_set_darkstyle()
+    if not qt_app_started:
+        qt_run_app(_app)
 
 
 def _configure_sample(cfg):
