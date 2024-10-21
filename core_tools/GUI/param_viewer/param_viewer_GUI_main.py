@@ -221,8 +221,11 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
     @qt_log_exception
     def _set_gate(self, gate, value, voltage_input):
         if self.locked:
-            logger.warning('Not changing voltage, ParameterViewer is locked!')
-            voltage_input.setValue(gate.get())
+            new_text = voltage_input.text()
+            current_value_text = voltage_input.textFromValue(gate())
+            if new_text != current_value_text:
+                logger.warning('ParameterViewer is locked! Voltage of {gate.name} not changed.')
+                voltage_input.setValue(gate())
             return
         if not voltage_input.isEnabled():
             logger.info(f"Ignoring out of range value {gate.name}: {value()}")
@@ -234,7 +237,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             return
 
         try:
-            last_value = gate.get()
+            last_value = gate()
             new_text = voltage_input.text()
             current_text = voltage_input.textFromValue(last_value)
             if new_text != current_text:
