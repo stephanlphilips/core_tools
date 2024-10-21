@@ -224,7 +224,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             new_text = voltage_input.text()
             current_value_text = voltage_input.textFromValue(gate())
             if new_text != current_value_text:
-                logger.warning('ParameterViewer is locked! Voltage of {gate.name} not changed.')
+                logger.warning(f"ParameterViewer is locked! Voltage of {gate.name} not changed.")
                 voltage_input.setValue(gate())
             return
         if not voltage_input.isEnabled():
@@ -232,8 +232,8 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         delta = abs(value() - gate())
         if self.max_diff is not None and delta > self.max_diff:
-            logger.warning(f'Not setting {gate} to {value():.1f}mV. '
-                           f'Difference {delta:.0f} mV > {self.max_diff:.0f} mV')
+            logger.warning(f"Not setting {gate} to {value():.1f}mV. "
+                           f"Difference {delta:.0f} mV > {self.max_diff:.0f} mV")
             return
 
         try:
@@ -241,14 +241,14 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             new_text = voltage_input.text()
             current_text = voltage_input.textFromValue(last_value)
             if new_text != current_text:
-                logger.info(f'GUI value changed: set gate {gate.name} {current_text} -> {new_text}')
+                logger.info(f"GUI value changed: set gate {gate.name} {current_text} -> {new_text}")
                 gate.set(value())
         except Exception as ex:
-            logger.error(f'Failed to set gate {gate} to {value()}: {ex}')
+            logger.error(f"Failed to set gate {gate} to {value()}: {ex}")
 
     @qt_log_exception
     def _set_set(self, setting, value, division):
-        logger.info(f'setting {setting} to {value():.1f} times {division:.1f}')
+        logger.info(f"setting {setting} to {value():.1f} times {division:.1f}")
         setting.set(value()*division)
         self.gates_object.hardware.RF_settings[setting.full_name] = value()*division
         self.gates_object.hardware.sync_data()
@@ -274,7 +274,7 @@ class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
             spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
             layout_widget.addItem(spacerItem1, 0, 3, 1, 1)
 
-        self.setWindowTitle(f'Parameter Viewer for {self.gates_object}')
+        self.setWindowTitle(f"Parameter Viewer for {self.gates_object}")
 
     @qt_log_exception
     def _update_parameters(self):
