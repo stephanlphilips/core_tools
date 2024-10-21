@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.5.2] - 2024-10-21
+
+- Support dark style GUI.
+- Updates for qcodes 0.49
+
+## \[1.5.1] - 2024-10-14
+
+- Fixed type annotation on VideoMode
+- Changes for new Keysight HVI2/PTSE release
+
 ## \[1.5.0] - 2024-10-07
 
 - "Official" release of new Video Mode.
