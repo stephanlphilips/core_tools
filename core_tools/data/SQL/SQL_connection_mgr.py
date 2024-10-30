@@ -22,10 +22,12 @@ class SQL_database_init:
 
         if self.conn_local is None:
             self.conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_info_local.user,
-                password=SQL_conn_info_local.passwd, host=SQL_conn_info_local.host, port=SQL_conn_info_local.port)
+                password=SQL_conn_info_local.passwd, host=SQL_conn_info_local.host, port=SQL_conn_info_local.port,
+                gssencmode="disable")
         if self.conn_remote is None:
             self.conn_remote = psycopg2.connect(dbname=SQL_conn_info_remote.dbname, user=SQL_conn_info_remote.user,
-                password=SQL_conn_info_remote.passwd, host=SQL_conn_info_remote.host, port=SQL_conn_info_remote.port)
+                password=SQL_conn_info_remote.passwd, host=SQL_conn_info_remote.host, port=SQL_conn_info_remote.port,
+                gssencmode="disable")
 
     def _disconnect(self):
         if self.conn_local is not None:
@@ -129,11 +131,11 @@ class SQL_sync_manager(SQL_database_init):
     def rebuild_sample_info(self, remote=True):
         conn = self.conn_remote if remote else self.conn_local
         sample_info_list = sync_mgr_queries.get_sample_info_from_measurements(conn)
-        sync_mgr_queries.delete_all_sample_info_overview(conn)
+        # sync_mgr_queries.delete_all_sample_info_overview(conn)
         self.log(f'Adding {len(sample_info_list)} entries to sample_info_overview')
         for entry in sample_info_list:
             project, set_up, sample = entry
-            self.log('  adding', entry)
+            self.log(f"  adding {entry}")
             sample_info_queries.add_sample(conn, project, set_up, sample)
         conn.commit()
 
