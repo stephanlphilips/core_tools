@@ -69,17 +69,19 @@ class SQL_conn_info_local:
     passwd = conn_info_descriptor()
     dbname = conn_info_descriptor()
     readonly = conn_info_descriptor()
+    is_sqlite = conn_info_descriptor()
 
-    def __init__(self, host, port, user, passwd, dbname, readonly=False):
+    def __init__(self, host, port, user, passwd, dbname, readonly=False, is_sqlite=False):
         self.host = host
         self.port = port
         self.user = user
         self.passwd = passwd
         self.dbname = dbname
         self.readonly = readonly
+        self.is_sqlite=is_sqlite
 
     def __repr__(self):
-        return f'{self.__class__}: host {self.host}, port {self.port}, user {self.user}, passwd *, dbname {self.dbname}, readonly {self.readonly}'
+        return f'{self.__class__}: host {self.host}, port {self.port}, user {self.user}, passwd *, dbname {self.dbname}, readonly {self.readonly}, is_sqlite {self.is_sqlite}'
 
 class SQL_conn_info_remote:
     host = conn_info_descriptor()
@@ -88,19 +90,21 @@ class SQL_conn_info_remote:
     passwd = conn_info_descriptor()
     dbname = conn_info_descriptor()
     readonly = conn_info_descriptor()
+    is_sqlite = conn_info_descriptor()
 
-    def __init__(self, host, port, user, passwd, dbname, readonly=False):
+    def __init__(self, host, port, user, passwd, dbname, readonly=False, is_sqlite=False):
         self.host = host
         self.port = port
         self.user = user
         self.passwd = passwd
         self.dbname = dbname
         self.readonly = readonly
+        self.is_sqlite = is_sqlite
 
     def __repr__(self):
-        return f'{self.__class__}: host {self.host}, port {self.port}, user {self.user}, passwd *, dbname {self.dbname}, readonly {self.readonly}'
+        return f'{self.__class__}: host {self.host}, port {self.port}, user {self.user}, passwd *, dbname {self.dbname}, readonly {self.readonly}, is_sqlite {self.is_sqlite}'
 
-def set_up_local_storage(user, passwd, dbname, project, set_up, sample, readonly=False):
+def set_up_local_storage(user, passwd, dbname, project, set_up, sample, readonly=False, is_sqlite=False):
     '''
     Set up the specification for the datastorage needed to store/retrieve measurements.
 
@@ -113,7 +117,7 @@ def set_up_local_storage(user, passwd, dbname, project, set_up, sample, readonly
         set_up (str) : set up at which the data has been measured
         sample (str) : sample name
     '''
-    SQL_conn_info_local('localhost', 5432, user, passwd, dbname, readonly)
+    SQL_conn_info_local('localhost', 5432, user, passwd, dbname, readonly, is_sqlite)
     sample_info(project, set_up, sample)
 
 def set_up_remote_storage(host, port, user, passwd, dbname, project, set_up, sample, readonly=False):

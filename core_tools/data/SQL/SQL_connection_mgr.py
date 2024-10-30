@@ -1,3 +1,4 @@
+import sqlite3
 from core_tools.data.SQL.connect import SQL_conn_info_local, SQL_conn_info_remote, sample_info
 from core_tools.data.SQL.queries.dataset_creation_queries import (
         sample_info_queries,
@@ -10,6 +11,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def to_bytes(x):
+    return bytes(x)
+
+def memory_from_blob(x):
+    return memoryview(x)
+
+sqlite3.register_converter("BYTEA", memory_from_blob)
+sqlite3.register_adapter("BYTEA", to_bytes)
+
 
 class SQL_database_init:
     conn_local = None
@@ -21,11 +31,35 @@ class SQL_database_init:
         self.sample_info = sample_info
 
         if self.conn_local is None:
-            self.conn_local = psycopg2.connect(dbname=SQL_conn_info_local.dbname, user=SQL_conn_info_local.user,
-                password=SQL_conn_info_local.passwd, host=SQL_conn_info_local.host, port=SQL_conn_info_local.port)
+            if not SQL_conn_info_local.is_sqlite:
+                self.conn_local = psycopg2.connect(
+                    dbname=SQL_conn_info_local.dbname,
+                    user=SQL_conn_info_local.user,
+                    password=SQL_conn_info_local.passwd,
+                    host=SQL_conn_info_local.host,
+                    port=SQL_conn_info_local.port,
+                )
+            else:
+                self.conn_local = sqlite3.connect(
+                    database=SQL_conn_info_local.dbname,
+                    detect_types=sqlite3.PARSE_DECLTYPES,
+                )
+                self.conn_local.isolation_level='DEFERRED'
         if self.conn_remote is None:
-            self.conn_remote = psycopg2.connect(dbname=SQL_conn_info_remote.dbname, user=SQL_conn_info_remote.user,
-                password=SQL_conn_info_remote.passwd, host=SQL_conn_info_remote.host, port=SQL_conn_info_remote.port)
+            if not SQL_conn_info_remote.is_sqlite:
+                self.conn_remote = psycopg2.connect(
+                    dbname=SQL_conn_info_remote.dbname,
+                    user=SQL_conn_info_remote.user,
+                    password=SQL_conn_info_remote.passwd,
+                    host=SQL_conn_info_remote.host,
+                    port=SQL_conn_info_remote.port,
+                )
+            else:
+                self.conn_remote = sqlite3.connect(
+                    database=SQL_conn_info_remote.dbname,
+                    detect_types=sqlite3.PARSE_DECLTYPES,
+                )
+                self.conn_local.isolation_level='DEFERRED'
 
     def _disconnect(self):
         if self.conn_local is not None:
@@ -52,11 +86,14 @@ class SQL_database_manager(SQL_database_init):
     __instance = None
 
     def __new__(cls):
+        def _closed(conn):
+            return getattr(conn, "closed", False)
+
         if SQL_database_manager.__instance is not None:
             db_mgr = SQL_database_manager.__instance
             # check connections not closed
-            if (db_mgr.conn_local is None or db_mgr.conn_local.closed
-                or db_mgr.conn_remote is None or db_mgr.conn_remote.closed):
+            if (db_mgr.conn_local is None or _closed(db_mgr.conn_local)
+                or db_mgr.conn_remote is None or _closed(db_mgr.conn_remote)):
                 db_mgr._disconnect()
                 SQL_database_manager.__instance = None
                 logger.warning('Closed connections. Retry connection.')

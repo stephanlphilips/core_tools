@@ -1,3 +1,4 @@
+import sqlite3
 from core_tools.data.SQL.SQL_common_commands import execute_statement, execute_query
 from core_tools.data.SQL.SQL_common_commands import insert_row_in_table, update_table
 
@@ -41,6 +42,9 @@ class sample_info_queries:
                 custom_statement='ON CONFLICT DO NOTHING')
             conn.commit()
 
+def _is_sqlite_conn(conn):
+    return isinstance(conn, sqlite3.Connection)
+
 class measurement_overview_queries:
     '''
     large-ish table that holds all the inforamtion of what measurements are done.
@@ -78,25 +82,38 @@ class measurement_overview_queries:
         statement += "data_synchronized BOOL DEFAULT False,"  # data + param table sync'd
         statement += "table_synchronized BOOL DEFAULT False," # global_measurements_overview sync'd
         statement += "sync_location text); "                  # Note [SdS]: Column is abused for migration to new measurement_parameters table
+        _USING_BTREE_ = " USING BTREE " if not _is_sqlite_conn(conn) else " "
+        statement += ("CREATE INDEX IF NOT EXISTS id_indexed ON {} " + _USING_BTREE_ + "(id) ;").format(measurement_overview_queries.table_name)
+        statement += ("CREATE INDEX IF NOT EXISTS uuid_indexed ON {} " + _USING_BTREE_ + "(uuid) ;").format(measurement_overview_queries.table_name)
+        statement += ("CREATE INDEX IF NOT EXISTS starred_indexed ON {} " + _USING_BTREE_ + "(starred) ;").format(measurement_overview_queries.table_name)
+        statement += ("CREATE INDEX IF NOT EXISTS date_day_index ON {} " + _USING_BTREE_ + "(project, set_up, sample) ;").format(measurement_overview_queries.table_name)
 
-        statement += "CREATE INDEX IF NOT EXISTS id_indexed ON {} USING BTREE (id) ;".format(measurement_overview_queries.table_name)
-        statement += "CREATE INDEX IF NOT EXISTS uuid_indexed ON {} USING BTREE (uuid) ;".format(measurement_overview_queries.table_name)
-        statement += "CREATE INDEX IF NOT EXISTS starred_indexed ON {} USING BTREE (starred) ;".format(measurement_overview_queries.table_name)
-        statement += "CREATE INDEX IF NOT EXISTS date_day_index ON {} USING BTREE (project, set_up, sample) ;".format(measurement_overview_queries.table_name)
-
-        statement += "CREATE INDEX IF NOT EXISTS data_synced_index ON {} USING BTREE (data_synchronized);".format(measurement_overview_queries.table_name)
-        statement += "CREATE INDEX IF NOT EXISTS table_synced_index ON {} USING BTREE (table_synchronized);".format(measurement_overview_queries.table_name)
+        statement += ("CREATE INDEX IF NOT EXISTS data_synced_index ON {} " + _USING_BTREE_ + "(data_synchronized);").format(measurement_overview_queries.table_name)
+        statement += ("CREATE INDEX IF NOT EXISTS table_synced_index ON {} " + _USING_BTREE_ + "(table_synchronized);").format(measurement_overview_queries.table_name)
 
         execute_statement(conn, statement)
         conn.commit()
 
+
     @staticmethod
     def update_local_table(conn):
+        if  _is_sqlite_conn(conn):
+            return measurement_overview_queries._update_local_table_sqlite(conn)
+
         # Only do this on local database.
         # The update of the table on the remote database takes very long and afterwards other clients with old SW crash.
         statement = "ALTER TABLE global_measurement_overview ADD COLUMN IF NOT EXISTS data_update_count int DEFAULT 0;"
         execute_statement(conn, statement)
         conn.commit()
+
+    @staticmethod
+    def _update_local_table_sqlite(conn):
+        statement = "ALTER TABLE global_measurement_overview ADD COLUMN data_update_count int DEFAULT 0"
+        try:
+            execute_statement(conn, statement, close_on_error=False)
+        except sqlite3.OperationalError as e:
+            if "duplicate" not in str(e):
+                raise e
 
     @staticmethod
     def new_measurement(conn, exp_name, start_time):
@@ -254,6 +271,7 @@ class measurement_parameters_queries:
     '''
     @staticmethod
     def generate_table(conn):
+
         statement = "CREATE TABLE if not EXISTS measurement_parameters ( "
         statement += "id SERIAL primary key, "
         statement += "exp_uuid BIGINT NOT NULL,"
@@ -273,8 +291,9 @@ class measurement_parameters_queries:
         statement += "write_cursor INT, "
         statement += "total_size INT, "
         statement += "oid INT); "
-        statement += "CREATE INDEX IF NOT EXISTS exp_uuid_index ON measurement_parameters USING BTREE (exp_uuid) ;"
-        statement += "CREATE INDEX IF NOT EXISTS oid_index ON measurement_parameters USING BTREE (oid) ;"
+        _USING_BTREE_ = " USING BTREE " if not _is_sqlite_conn(conn) else " "
+        statement += "CREATE INDEX IF NOT EXISTS exp_uuid_index ON measurement_parameters " + _USING_BTREE_ + " (exp_uuid) ;"
+        statement += "CREATE INDEX IF NOT EXISTS oid_index ON measurement_parameters " + _USING_BTREE_ + " (oid) ;"
         execute_statement(conn, statement)
         conn.commit()
 
