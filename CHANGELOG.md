@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.5.3] - 2024-10-30
+
+- Fixed slow database connection setup
+
 ## \[1.5.2] - 2024-10-21
 
 - Support dark style GUI.

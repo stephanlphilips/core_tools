@@ -201,7 +201,7 @@ class liveplotting(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # only change if still default
         if pg.getConfigOption('foreground') == 'd' and pg.getConfigOption('background') == 'k':
-            pg.setConfigOption('background', None)
+            pg.setConfigOption('background', 'w')
             pg.setConfigOption('foreground', 'k')
 
         liveplotting.last_instance = self

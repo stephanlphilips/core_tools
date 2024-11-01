@@ -38,6 +38,7 @@ class SQL_database_init:
                     password=SQL_conn_info_local.passwd,
                     host=SQL_conn_info_local.host,
                     port=SQL_conn_info_local.port,
+                    gssencmode="disable")
                 )
             else:
                 self.conn_local = sqlite3.connect(
@@ -53,6 +54,7 @@ class SQL_database_init:
                     password=SQL_conn_info_remote.passwd,
                     host=SQL_conn_info_remote.host,
                     port=SQL_conn_info_remote.port,
+                    gssencmode="disable"
                 )
             else:
                 self.conn_remote = sqlite3.connect(
@@ -166,11 +168,11 @@ class SQL_sync_manager(SQL_database_init):
     def rebuild_sample_info(self, remote=True):
         conn = self.conn_remote if remote else self.conn_local
         sample_info_list = sync_mgr_queries.get_sample_info_from_measurements(conn)
-        sync_mgr_queries.delete_all_sample_info_overview(conn)
+        # sync_mgr_queries.delete_all_sample_info_overview(conn)
         self.log(f'Adding {len(sample_info_list)} entries to sample_info_overview')
         for entry in sample_info_list:
             project, set_up, sample = entry
-            self.log('  adding', entry)
+            self.log(f"  adding {entry}")
             sample_info_queries.add_sample(conn, project, set_up, sample)
         conn.commit()
 
