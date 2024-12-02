@@ -18,11 +18,11 @@ def save_xr_hdf5(xds, fname):
     encoding = {var: comp for var in list(xds.data_vars)+list(xds.coords)}
     tmp_file = fname + '.tmp'
     xds.to_netcdf(tmp_file, engine='h5netcdf', encoding=encoding)
-    try:
-        os.rename(tmp_file, fname)
-    except FileExistsError:
+    # Note: os.rename without remove should also work according to posix spec,
+    # but it seems to cause irregular failures on NTFS.
+    if os.path.exists(fname):
         os.remove(fname)
-        os.rename(tmp_file, fname)
+    os.rename(tmp_file, fname)
 
 def save_hdf5(ds, fname):
     xds = ds2xarray(ds)

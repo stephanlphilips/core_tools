@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.5.4] - 2024-12-02
+
+= Attempt to fix irregular arbitrary file rename failure in save hdf5.
+
 ## \[1.5.3] - 2024-10-30
 
 - Fixed slow database connection setup
