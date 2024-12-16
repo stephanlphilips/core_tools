@@ -12,4 +12,4 @@ from core_tools.startup.gui import (
         start_script_runner,
         )
 
-__version__ = "1.5.4"
+__version__ = "1.5.5"
