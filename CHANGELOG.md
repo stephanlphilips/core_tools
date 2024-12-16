@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.5.5] - 2024-12-16
+
+- Fixed direct writing of measurements to remote server.
+
 ## \[1.5.4] - 2024-12-02
 
 = Attempt to fix irregular arbitrary file rename failure in save hdf5.
