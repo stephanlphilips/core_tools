@@ -1,3 +1,7 @@
+import time
+
+from core_tools.data.SQL.connect import SQL_conn_info_local
+from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
 from core_tools.data.SQL.queries.dataset_creation_queries import (
         sample_info_queries,
         measurement_overview_queries,
@@ -5,10 +9,6 @@ from core_tools.data.SQL.queries.dataset_creation_queries import (
         )
 from core_tools.data.SQL.queries.dataset_loading_queries import load_ds_queries
 from core_tools.data.SQL.queries.dataset_sync_queries import sync_mgr_queries
-
-from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
-
-import time
 
 
 class SQL_dataset_creator(object):
@@ -55,10 +55,16 @@ class SQL_dataset_creator(object):
         '''
         measurement_parameters_queries.update_cursors_in_meas_tab(self.conn, ds.exp_uuid,
                                                                   ds.measurement_parameters_raw)
-        ds.data_update_count += 1
+        # Update update count for synchronization process.
+        # Only needed for local connection. Not available on server.
+        if SQL_conn_info_local.host == 'localhost':
+            ds.data_update_count += 1
+            update_count = ds.data_update_count
+        else:
+            update_count = None
         measurement_overview_queries.update_measurement(self.conn, ds.exp_uuid,
                                                         data_synchronized=False,
-                                                        data_update_count=ds.data_update_count)
+                                                        data_update_count=update_count)
         self.conn.commit()
 
     def is_completed(self, exp_uuid):

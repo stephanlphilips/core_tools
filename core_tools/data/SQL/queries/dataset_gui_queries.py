@@ -142,12 +142,20 @@ class query_for_measurement_results:
         return res
 
     @staticmethod
-    def search_query(exp_id=None, uuid=None, name=None,
-                     date=None,
-                     start_time=None, end_time=None,
-                     project=None, set_up=None, sample=None,
-                     starred=False, keywords=None,
-                     remote=False):
+    def search_query(
+            exp_id=None,
+            uuid=None,
+            name=None,
+            date=None,
+            start_time=None,
+            end_time=None,
+            project=None,
+            set_up=None,
+            sample=None,
+            starred=False,
+            keywords=None,
+            remote=False,
+            ):
         statement = "SELECT id, uuid, exp_name, start_time, project, set_up, sample, starred, keywords "\
                     "FROM global_measurement_overview "
         statement += "WHERE 1=1 "
