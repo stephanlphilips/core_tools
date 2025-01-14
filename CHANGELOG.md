@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.5.6] - 2025-01-14
+
+- Always use package h5netcdf to load data from HDF5 file.
+- Removed support for QT-DataViewer < 0.3.10
+- Reduce station snapshot removing useless entries.
+
 ## \[1.5.5] - 2024-12-16
 
 - Fixed direct writing of measurements to remote server.
