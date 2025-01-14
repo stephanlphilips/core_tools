@@ -10,6 +10,8 @@ from core_tools.data.ds.data_set import load_by_uuid
 try:
     from qt_dataviewer.core_tools import CoreToolsDatasetViewer
     from qt_dataviewer import DatasetList
+    from packaging.version import Version
+    from qt_dataviewer import __version__ as qt_dataviewer_version
     use_qt_dataviewer = True
 except ImportError:
     from core_tools.data.gui.plot_mgr import data_plotter
@@ -278,6 +280,17 @@ class signale_handler(QtQuick.QQuickView):
             return
         try:
             if use_qt_dataviewer:
+                if Version(qt_dataviewer_version) < Version("0.3.10"):
+                    error_msg = "Update QT-DataViewer. Minimmum version 0.3.10"
+                    logger.error(error_msg)
+                    msg = QMessageBox()
+                    msg.setIcon(QMessageBox.Critical)
+                    msg.setText(error_msg)
+                    msg.setWindowTitle("Update QT-DataViewer")
+                    msg.setStandardButtons(QMessageBox.Ok)
+                    msg.exec_()
+                    raise Exception(error_msg)
+
                 datalist = DataList(self.data_overview_model, uuid)
                 p = CoreToolsDatasetViewer(ds, datalist=datalist)
                 datalist.viewer = p
@@ -389,27 +402,3 @@ if use_qt_dataviewer:
                 return self._load_ds(self.uuid)
             logger.info(f"No previous data (index = {index})")
             raise StopIteration('No more datasets') from None
-
-        # -------------------------------------
-        # OLD interface qt-dataviewer v0.2.x
-        # TODO remove after some releases.
-        def select_next(self):
-            index = self._get_index()
-            if index is not None and index > 0:
-                self.uuid = self.data_overview_model._data[index-1].uuid
-                self._set_ds(self.uuid)
-
-        def select_previous(self):
-            index = self._get_index()
-            if index is not None and index + 1 < len(self.data_overview_model._data):
-                self.uuid = self.data_overview_model._data[index+1].uuid
-                self._set_ds(self.uuid)
-
-        def _set_ds(self, uuid):
-            try:
-                ds = self._load_ds(uuid)
-                if ds is not None:
-                    self.viewer.set_ds(ds)
-            except Exception:
-                logger.error(f'Failed to set dataset {uuid}', exc_info=True)
-
