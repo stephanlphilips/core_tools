@@ -2,7 +2,6 @@ import logging
 import inspect
 import os
 from enum import Enum
-from typing import Union, Any
 from abc import ABC, abstractmethod
 
 from PyQt5 import QtCore, QtWidgets
@@ -12,7 +11,7 @@ from core_tools.GUI.keysight_videomaps.liveplotting import liveplotting
 
 try:
     from spyder_kernels.customize.spydercustomize import runcell
-except:
+except Exception:
     runcell = None
 
 logger = logging.getLogger(__name__)
@@ -34,6 +33,7 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
         script_gui.add_cell('Say Hi', path+'/test_script.py')
         script_gui.add_cell(2, path+'/test_script.py'),
     '''
+
     def __init__(self):
         # set graphical user interface
         self.app = QtCore.QCoreApplication.instance()
@@ -48,7 +48,7 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
         self.video_mode_running = False
         self.video_mode_label = QtWidgets.QLabel("VideoMode: <unknown")
         self.video_mode_label.setMargin(2)
-        self.statusbar.setContentsMargins(8,0,4,4)
+        self.statusbar.setContentsMargins(8, 0, 4, 4)
         self.statusbar.addWidget(self.video_mode_label)
         self.video_mode_paused = False
         self._update_video_mode_status()
@@ -57,14 +57,14 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
         self.commands = []
 
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(lambda:self._update_video_mode_status())
+        self.timer.timeout.connect(lambda: self._update_video_mode_status())
         self.timer.start(500)
 
         self.show()
-        if instance_ready == False:
+        if not instance_ready:
             self.app.exec()
 
-    def add_function(self, func:Any, command_name:str=None, **kwargs):
+    def add_function(self, func: any, command_name: str | None = None, **kwargs):
         '''
         Adds a function to be run as command in ScriptRunner.
 
@@ -85,7 +85,7 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
         '''
         self._add_command(Function(func, command_name, **kwargs))
 
-    def add_cell(self, cell: Union[str, int], python_file:str, command_name:str = None):
+    def add_cell(self, cell: str | int, python_file: str, command_name: str | None = None):
         '''
         Add an IPython cell with Python code to be run as command in ScriptRunner.
 
@@ -117,9 +117,9 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.app.processEvents()
 
             kwargs = {
-                    name:(inp.currentText() if isinstance(inp, QtWidgets.QComboBox) else inp.text())
-                    for name,inp in arg_inputs.items()
-                    }
+                name: (inp.currentText() if isinstance(inp, QtWidgets.QComboBox) else inp.text())
+                for name, inp in arg_inputs.items()
+            }
             command_result = command(**kwargs)
         except Exception as ex:
             command_result = ex
@@ -141,7 +141,7 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
         layout.addWidget(cmd_btn, i, 0, 1, 1)
 
         arg_inputs = {}
-        for j,(name,parameter) in enumerate(command.parameters.items()):
+        for j, (name, parameter) in enumerate(command.parameters.items()):
             _label = QtWidgets.QLabel(self.commands_widget)
             _label.setObjectName(f"{command.name}_label_{j}")
             _label.setMinimumSize(QtCore.QSize(20, 0))
@@ -161,11 +161,11 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
                     _input.addItem(e.name, e)
                 if name in command.defaults:
                     default = command.defaults[name]
-                    if isinstance(default,str):
+                    if isinstance(default, str):
                         try:
                             # try match on value
                             default = annotation(default)
-                        except:
+                        except Exception:
                             # try match on name
                             default = annotation[default]
                     _input.setCurrentText(default.name)
@@ -178,10 +178,10 @@ class ScriptRunner(QtWidgets.QMainWindow, Ui_MainWindow):
             layout.addWidget(_input, i, 2*j+2, 1, 1)
             arg_inputs[name] = _input
 
-        cmd_btn.clicked.connect(lambda:self._run_command(command, arg_inputs))
+        cmd_btn.clicked.connect(lambda: self._run_command(command, arg_inputs))
 
     def add_commands(self, commands):
-        for i,command in enumerate(commands):
+        for i, command in enumerate(commands):
             self._add_command(i, command)
 
     def _update_video_mode_status(self):
@@ -236,7 +236,8 @@ class Cell(Command):
         python_file: filename of Python file.
         command_name: Optional name to show for the command in ScriptRunner.
     '''
-    def __init__(self, cell: Union[str, int], python_file:str, command_name:str = None):
+
+    def __init__(self, cell: str | int, python_file: str, command_name: str | None = None):
         filename = os.path.basename(python_file)
         name = f'{cell} ({filename})' if command_name is None else command_name
         super().__init__(name, {})
@@ -271,13 +272,14 @@ class Function(Command):
         command_name: Optional name to show for the command in ScriptRunner.
         kwargs: default arguments to pass with function.
     '''
-    def __init__(self, func:Any, command_name:str=None, **kwargs):
+
+    def __init__(self, func: any, command_name: str | None = None, **kwargs):
         if command_name is None:
             command_name = func.__name__
         signature = inspect.signature(func)
-        parameters = {p.name:p for p in signature.parameters.values()}
+        parameters = {p.name: p for p in signature.parameters.values()}
         defaults = {}
-        for name,parameter in parameters.items():
+        for name, parameter in parameters.items():
             if parameter.default is not inspect._empty:
                 defaults[name] = parameter.default
             if parameter.annotation is inspect._empty:
@@ -304,11 +306,13 @@ class Function(Command):
         for name in self.parameters:
             try:
                 call_args[name] = self.defaults[name]
-            except KeyError: pass
+            except KeyError:
+                pass
             try:
                 call_args[name] = self._convert_arg(name, kwargs[name])
-            except KeyError: pass
-        args_list = [f'{name}={repr(value)}' for name,value in call_args.items()]
+            except KeyError:
+                pass
+        args_list = [f'{name}={repr(value)}' for name, value in call_args.items()]
         command = f'{self.func.__name__}({", ".join(args_list)})'
         print(command)
         logger.info(command)
@@ -317,7 +321,7 @@ class Function(Command):
 
 if __name__ == "__main__":
 
-    def sayHi(name:str, times:int=1):
+    def sayHi(name: str, times: int = 1):
         for _ in range(times):
             print(f'Hi {name}')
         return name
@@ -330,7 +334,7 @@ if __name__ == "__main__":
     def fit(x: float, mode: Mode):
         print(f'fit {x}, {mode}')
 
-    path  = os.path.dirname(__file__)
+    path = os.path.dirname(__file__)
 
     ui = ScriptRunner()
     ui.add_function(sayHi)

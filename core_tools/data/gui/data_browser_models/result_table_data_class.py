@@ -1,26 +1,26 @@
 from dataclasses import dataclass, asdict
-from typing import List
 import datetime
+
 
 @dataclass
 class m_result_item():
-    my_id : int
-    uuid : int
-    name : str
-    start_time : datetime
-    project :str
-    set_up : str
-    sample : str
-    starred : bool
-    _keywords : List[str] = None
+    my_id: int
+    uuid: int
+    name: str
+    start_time: datetime
+    project: str
+    set_up: str
+    sample: str
+    starred: bool
+    _keywords: list[str] = None
 
-    __attr_order = ["my_id","uuid","name","date","project","set_up","sample","starred","keywords"]
+    __attr_order = ["my_id", "uuid", "name", "date", "project", "set_up", "sample", "starred", "keywords"]
     __search_key_idx = 3
 
     @property
     def keywords(self):
         kw = ""
-        if isinstance(self._keywords, list) :
+        if isinstance(self._keywords, list):
             for i in self._keywords:
                 if 'raw' not in i:
                     kw += str(i) + ", "
@@ -46,13 +46,14 @@ class m_result_item():
         return getattr(self, self.__attr_order[i])
 
     def __len__(self):
-    	return len(self.__attr_order)
+        return len(self.__attr_order)
 
     def __eq__(self, other):
         return self[self.__search_key_idx] == other[self.__search_key_idx]
 
     def __lt__(self, other):
         return self[self.__search_key_idx] < other[self.__search_key_idx]
+
 
 class m_result_overview():
     def __init__(self, query_input_data):

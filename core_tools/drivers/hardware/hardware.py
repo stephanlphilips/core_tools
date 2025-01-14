@@ -6,7 +6,7 @@ from core_tools.data.SQL.SQL_connection_mgr import SQL_database_manager
 import qcodes as qc
 import numpy as np
 import json
-from typing import List, Optional
+
 
 class boundaries_mgr():
     def __init__(self, dac_gate_map):
@@ -27,12 +27,13 @@ class boundaries_mgr():
         else:
             raise ValueError(f'Gate {gate} is not defined')
 
+
 class virtual_gates_mgr():
     def __init__(self):
         self.virtual_gate_names = []
 
-    def add(self, name, gates : List[str], virtual_gates : Optional[List[str]] = None,
-            matrix = None, normalization = False):
+    def add(self, name, gates: list[str], virtual_gates: list[str] | None = None,
+            matrix=None, normalization=False):
         if name not in self.virtual_gate_names:
             self.virtual_gate_names += [name]
 
@@ -56,6 +57,7 @@ class virtual_gates_mgr():
             content += f'\tname :: {vg.name} \t(size = {vg.matrix.shape[0]}x{vg.matrix.shape[1]})'
 
         return content + '\n'
+
 
 class awg2dac_ratios_mgr():
     def __init__(self):
@@ -103,10 +105,11 @@ class awg2dac_ratios_mgr():
 
     def __repr__(self):
         doc = 'AWG to dac ratios :: \n\n'
-        for gate, val  in self._ratios.items():
+        for gate, val in self._ratios.items():
             doc += '{}\t:  {}\n'.format(gate, val)
 
         return doc
+
 
 class rf_source():
     def __init__(self, parameter):
@@ -116,6 +119,7 @@ class rf_source():
     def power(self):
         return self.source_param.power
 
+
 class rf_source_mgr():
     def __init__(self):
         self.rf_source_names = []
@@ -124,9 +128,10 @@ class rf_source_mgr():
         self.rf_source_names += [parameter.name]
         setattr(self, parameter.name, rf_source(parameter))
 
+
 class hardware(qc.Instrument):
 
-    def __init__(self, name : str = 'hardware'):
+    def __init__(self, name: str = 'hardware'):
         """ Collection of hardware related settings
 
         The `hardware` is effectively a singleton class. This is enforced by qcodes.
@@ -169,45 +174,14 @@ class hardware(qc.Instrument):
     def awg2dac_ratios(self):
         return self._awg2dac_ratios
 
-    def snapshot_base(self, update=False, params_to_skip_update =None):
+    def snapshot_base(self, update=False, params_to_skip_update=None):
         vg_snap = {}
         for vg in self.virtual_gates:
             vg_snap[vg.name] = {
-                    'real_gate_names' : vg.gates,
-                    'virtual_gate_names' : vg.v_gates,
-                    'virtual_gate_matrix' : json.dumps(np.asarray(vg.matrix).tolist())}
+                'real_gate_names': vg.gates,
+                'virtual_gate_names': vg.v_gates,
+                'virtual_gate_matrix': json.dumps(np.asarray(vg.matrix).tolist())}
 
         return {'awg2dac_ratios': self.awg2dac_ratios._ratios,
-                 'dac_gate_map': self.dac_gate_map,
-                 'virtual_gates': vg_snap                     }
-
-if __name__ == '__main__':
-    from core_tools.data.SQL.connect import set_up_local_storage, set_up_remote_storage, set_up_local_and_remote_storage
-    set_up_local_storage('stephan', 'magicc', 'test', 'test_project1', 'test_set_up', 'test_sample')
-
-    h = hardware('6dotHW')
-    h.dac_gate_map = {
-        # dacs for creating the quantum dots -- syntax, "gate name": (dac module number, dac index)
-        'B0': (0, 1), 'P1': (0, 2),
-        'B1': (0, 3), 'P2': (0, 4),
-        'B2': (0, 5), 'P3': (0, 6),
-        'B3': (0, 7), 'P4': (0, 8),
-        'B4': (0, 9), 'P5': (0, 10),
-        'B5': (0, 11),'P6': (0, 12),
-        'B6': (0, 13)}
-    print(h.dac_gate_map)
-
-    h.boundaries = {'B0' : (0, 2000), 'B1' : (0, 2500)}
-    h.virtual_gates.add('test', ['B0', 'B1', 'B2'])
-    h.awg2dac_ratios.add(['B0', 'B1', 'B2', 'B3'])
-
-    # h.rf_sources.add(param)
-
-    # h.awg2dac_ratios['B0'] = 0.78
-    # print(h.virtual_gates.test[0, 1])
-    print(h.awg2dac_ratios)
-    # h.virtual_gates.test[0, 1] = 0.1
-
-    print(h.virtual_gates)
-
-    # print(h.snapshot_base())
+                'dac_gate_map': self.dac_gate_map,
+                'virtual_gates': vg_snap}

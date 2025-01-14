@@ -2,7 +2,6 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
 
 import numpy as np
 from qcodes import Parameter
@@ -18,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class Break(Exception):
     """Stops a scan and closes the dataset"""
+
     def __init__(self, msg, resume_at_label=None):
         super().__init__(msg)
         self.resume_at_label = resume_at_label
@@ -36,7 +36,7 @@ class Action:
 
 class Setter(Action):
     def __init__(self, param, n_points, delay=0.0, resetable=True,
-                 value_after: Union[None, float]=None,
+                 value_after: float | None = None,
                  label=None):
         super().__init__(f'set {param.name}', delay, label=label)
         self._param = param
@@ -141,8 +141,8 @@ class SequenceFunction(Function):
             last parameter values are past as dictionary.
         '''
         super().__init__(
-                func, *args, delay=delay, add_dataset=add_dataset,
-                add_last_values=add_last_values, **kwargs)
+            func, *args, delay=delay, add_dataset=add_dataset,
+            add_last_values=add_last_values, **kwargs)
         if axis is None:
             raise ValueError('Argument axis must be specified')
         self.axis = axis
@@ -167,7 +167,7 @@ class ArraySetter(Setter):
     def __init__(self, param, data,
                  delay=0.0,
                  resetable=True,
-                 value_after: Union[None, str, float]=None,
+                 value_after: str | float | None = None,
                  label=None,
                  ):
         if isinstance(value_after, str):
@@ -186,7 +186,7 @@ class ArraySetter(Setter):
 
 def sweep(parameter, data, stop=None, n_points=None, delay=0.0,
           resetable=True,
-          value_after: Union[None, str, float]=None,
+          value_after: str | float | None = None,
           endpoint=True,
           label=None):
     """ Sweeps parameter over specified values.
@@ -232,14 +232,14 @@ class ActionStats:
 @dataclass
 class _MParam:
     param: Parameter
-    dependencies: List[Parameter]
+    dependencies: list[Parameter]
 
 
 @dataclass
 class _Block:
-    setter: Optional[Setter] = None
-    value: Optional[float] =  None
-    actions: List[any] = field(default_factory=list)
+    setter: Setter | None = None
+    value: float | None = None
+    actions: list[any] = field(default_factory=list)
 
     @property
     def loop_length(self):
@@ -260,11 +260,11 @@ class Scan:
         self.reset_param = reset_param
         self.silent = silent
 
-        self.set_params: List[Parameter] = []
-        self.m_params: List[_MParam] = []
+        self.set_params: list[Parameter] = []
+        self.m_params: list[_MParam] = []
 
         self._root = _Block()
-        self._block_stack: List[_Block] = [self._root]
+        self._block_stack: list[_Block] = [self._root]
 
         self._meas = Measurement(self.name, silent=silent)
         self._add_actions(args)
@@ -445,7 +445,7 @@ class Runner:
             last_index = {
                 param.name: data
                 for param, data in self._setpoints
-                }
+            }
             msg = f'Measurement stopped at {last_index}'
             if not silent:
                 print('\n'+msg, flush=True)
@@ -471,7 +471,7 @@ class Runner:
                         f"Parameter '{setter.param.name}' does not have a value "
                         "and thus cannot be reset after the scan. "
                         "Set its value before starting the scan."
-                        )
+                    )
                 result.append((setter.param, reset_value))
         return result
 
@@ -483,7 +483,7 @@ class Runner:
                 logger.error(f'Failed to reset parameter {param.name}', exc_info=True)
                 raise
 
-    def _loop(self, actions: List[Action]):
+    def _loop(self, actions: list[Action]):
         n_setters = 0
         for action in actions:
             try:
@@ -529,7 +529,7 @@ class Runner:
                         param.name: value
                         for param, value in self._setpoints
                         if param is not None
-                        }
+                    }
                     last_values.update(self._m_values)
                     action(self._measurement.dataset, last_values)
 
@@ -562,7 +562,7 @@ class Runner:
                 setter.param(value)
                 if setter._delay:
                     time.sleep(setter._delay)
-                value = setter.param() # @@@ Why retrieve the value that is just written?
+                value = setter.param()  # @@@ Why retrieve the value that is just written?
                 setpoint[1] = value
                 self._action_stats[setter.name].add_time(time.perf_counter()-t_start)
                 self._loop(block.actions)
@@ -597,7 +597,7 @@ class Runner:
         self._skip_action(action)
 
     def _handle_break(self, _break):
-        setpoint = {p.name:v for p,v in self._setpoints}
+        setpoint = {p.name: v for p, v in self._setpoints}
         logger.info(f"Break at {setpoint}, resume at '{_break.resume_at_label}' npt={self._n}")
         if _break.resume_at_label is not None:
             self._resume_at_label = _break.resume_at_label

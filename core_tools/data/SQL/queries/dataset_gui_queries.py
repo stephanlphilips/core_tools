@@ -1,4 +1,3 @@
-from typing import List
 from dataclasses import dataclass
 import datetime
 
@@ -64,7 +63,6 @@ class query_for_samples():
         cur.close()
         con.commit()
 
-
         con = SQL_database_manager().conn_remote
         cur = con.cursor()
         cur.execute(statement)
@@ -85,7 +83,7 @@ class measurement_results:
     set_up: str
     sample: str
     starred: bool
-    _keywords: List[str] = None
+    _keywords: list[str] | None = None
 
 
 class query_for_measurement_results:

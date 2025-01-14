@@ -1,6 +1,5 @@
 import logging
 from dataclasses import dataclass
-from typing import List, Union
 
 import numpy as np
 from numpy import ndarray
@@ -20,7 +19,7 @@ class Axis:
     name: str
     label: str
     unit: str
-    values: Union[ndarray, List[float]]
+    values: ndarray | list[float]
 
 
 @dataclass
@@ -31,14 +30,14 @@ class Data:
     name: str
     label: str
     unit: str
-    values: Union[ndarray, List[float]]
+    values: ndarray | list[float]
 
 
 @dataclass
 class _Action:
     action: str
     param: ManualParameter
-    values: Union[ndarray, List[float]]
+    values: ndarray | list[float]
 
 
 class DataWriter:
@@ -59,13 +58,13 @@ class DataWriter:
         self._measurement.add_snapshot('data_writer', {'message': 'Data written by data writer'})
 
     def _add_axis(self, axis):
-        param  = ManualParameter(axis.name, label=axis.label, unit=axis.unit)
+        param = ManualParameter(axis.name, label=axis.label, unit=axis.unit)
         self._measurement.register_set_parameter(param, len(axis.values))
         self._set_params.append(param)
         self._actions.append(_Action('set', param, np.asarray(axis.values)))
 
     def _add_data(self, data):
-        param  = ManualParameter(data.name, label=data.label, unit=data.unit)
+        param = ManualParameter(data.name, label=data.label, unit=data.unit)
         self._measurement.register_get_parameter(param, *self._set_params)
         self._actions.append(_Action('get', param, np.asarray(data.values)))
 
@@ -91,7 +90,7 @@ class DataWriter:
             return
         action = self._actions[iaction]
         if action.action == 'set':
-            for i,value in enumerate(action.values):
+            for i, value in enumerate(action.values):
                 self._setpoints[isetpoint][1] = value
                 self._index[isetpoint] = i
                 self._loop(iaction + 1, isetpoint + 1)
@@ -145,5 +144,3 @@ if __name__ == "__main__":
         Data('SD1', 'Sensor 1', 'mV', np.linspace(10, 20, 55).reshape((11, 5))),
         Data('SD1', 'Sensor 2', 'mV', np.linspace(0, -20, 55).reshape((11, 5))),
     )
-
-

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Any
 import time
 
 import threading
@@ -9,7 +8,7 @@ from queue import PriorityQueue
 @dataclass(order=True)
 class ExperimentJob:
     priority: float
-    job: Any = field(compare=False)
+    job: any = field(compare=False)
     seq_nr: int = 0
 
     def __post_init__(self):
@@ -19,6 +18,7 @@ class ExperimentJob:
 
     def kill(self):
         self.job.abort_measurement()
+
 
 # NOTE: use seq_cntr to keep insertion order for jobs with equal priority
 ExperimentJob.seq_cntr = 0
@@ -34,7 +34,7 @@ class queue_mgr():
         return queue_mgr.__instance
 
     def __init__(self):
-        if self.__init == False:
+        if self.__init is False:
             print('Starting job queue_mgr')
             self.q = PriorityQueue()
             # Note: We have to use a dict, because the ExperimentJob only compares on priority
@@ -55,7 +55,8 @@ class queue_mgr():
                             self.q.task_done()
                             try:
                                 del self.job_refs[id(job_object)]
-                            except: pass
+                            except KeyError:
+                                pass
                     else:
                         # 200ms sleep.
                         time.sleep(0.2)

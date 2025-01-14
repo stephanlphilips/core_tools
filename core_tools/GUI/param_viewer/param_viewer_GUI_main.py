@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from typing import Optional
 from core_tools.GUI.param_viewer.param_viewer_GUI_window import Ui_MainWindow
 from PyQt5 import QtCore, QtWidgets
 import qcodes as qc
@@ -21,9 +19,9 @@ class param_data_obj:
 
 class param_viewer(QtWidgets.QMainWindow, Ui_MainWindow):
 
-    def __init__(self, gates_object: Optional[object] = None,
+    def __init__(self, gates_object: object | None = None,
                  max_diff: float = 1000,
-                 keysight_rf: Optional[object] = None,
+                 keysight_rf: object | None = None,
                  locked=False):
         self.real_gates = list()
         self.virtual_gates = list()

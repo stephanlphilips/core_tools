@@ -1,12 +1,13 @@
-from typing import List, Callable
+from typing import Callable
 from dataclasses import dataclass
 import numpy as np
 
+
 @dataclass
 class VirtualGateMatrixData:
-    name:str
-    real_gate_names: List[str]
-    virtual_gate_names: List[str]
+    name: str
+    real_gate_names: list[str]
+    virtual_gate_names: list[str]
     r2v_matrix_no_norm: np.ndarray
     saver: Callable[['VirtualGateMatrixData'], None] = None
 

@@ -1,4 +1,3 @@
-from typing import Any, Tuple, Dict
 from abc import ABC, abstractmethod
 
 from qcodes import MultiParameter
@@ -8,7 +7,7 @@ class IDataSaver(ABC):
     """Specifies the interface data savers are to adhere to."""
 
     @abstractmethod
-    def save_data(self, vm_data_parameter: MultiParameter, label: str) -> Tuple[Any, Dict[str, str]]:
+    def save_data(self, vm_data_parameter: MultiParameter, label: str) -> tuple[any, dict[str, str]]:
         """
         Saves the data to disk.
 

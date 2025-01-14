@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Union
 from qcodes.instrument.parameter import MultiParameter
 import numpy as np
 import numbers
@@ -8,7 +7,7 @@ import pyspcm
 
 @dataclass
 class ChannelDemodulation:
-    channels: List[int]
+    channels: list[int]
     """ 1 or 2 channels to demodulate.
     1 channel will be be demodulated to I component only.
     2 channels will be demodulated to an I and a Q component.
@@ -17,7 +16,7 @@ class ChannelDemodulation:
     """ Demodulation frequency """
     phase: float
     """ Demodulation phase """
-    start_times: Union[None, float, List[float]] = None
+    start_times: float | list[float] | None = None
     """ start time(s) of acquisition """
 
 
@@ -62,15 +61,16 @@ class digitizer_param(MultiParameter):
         `start_func` can be used to (externally) trigger the digitizer acquisition.
         `start_func` is called in every get_raw() call.
     """
+
     def __init__(self, digitizer, t_measure, n_rep=None, n_triggers=None,
-                 channels=None, sample_rate = None, mV_range= None,
+                 channels=None, sample_rate=None, mV_range=None,
                  sw_trigger=False, start_func=None, box_averages=None,
                  average_time=False, average_repetitions=False,
                  name=None, names=None, labels=None, units=None,
                  demodulate=[]):
 
         if channels is not None:
-            if len(channels) not in [1,2,4]:
+            if len(channels) not in [1, 2, 4]:
                 raise Exception('Number of enabled channels on M4i must be 1, 2 or 4.')
             digitizer.enable_channels(sum(2**ch for ch in channels))
         else:
@@ -103,8 +103,8 @@ class digitizer_param(MultiParameter):
                 raise Exception('All channels must be present in demodulate specification')
 
         super().__init__(name=name,
-             names=tuple(names), labels=tuple(labels), units=tuple(units),
-             shapes = ((),)*len(channels))
+                         names=tuple(names), labels=tuple(labels), units=tuple(units),
+                         shapes=((),)*len(channels))
 
         self.digitizer = digitizer
         self.channels = channels
@@ -146,9 +146,9 @@ class digitizer_param(MultiParameter):
             if isinstance(mV_range, numbers.Number):
                 mV_range = [int(mV_range)]*self.num_ch
             try:
-                for i,ch in enumerate(channels):
+                for i, ch in enumerate(channels):
                     self.digitizer.set(f'range_channel_{ch}', mV_range[i])
-            except:
+            except Exception:
                 raise Exception('Failed to set mV_ranges. Array length same as channels?')
 
         self.derived_params = []
@@ -187,22 +187,21 @@ class digitizer_param(MultiParameter):
             sp_units = ('s',)
 
         if add_triggers:
-            setp_trigger = tuple(range(1,self.n_trigger+1))
+            setp_trigger = tuple(range(1, self.n_trigger+1))
             shape = (self.n_trigger,) + shape
-            setpoints =  (setp_trigger,) + ( (setpoints*self.n_trigger,) if setpoints else () )
+            setpoints = (setp_trigger,) + ((setpoints*self.n_trigger,) if setpoints else ())
             sp_names = ('trigger',) + sp_names
             sp_labels = ('trigger',) + sp_labels
             sp_units = ('',) + sp_units
 
         if add_repetitions:
-            setp_rep = tuple(range(1,self.n_rep+1))
+            setp_rep = tuple(range(1, self.n_rep+1))
             shape = (self.n_rep,) + shape
-            setpoints =  (setp_rep,) + ( (setpoints*self.n_rep,) if setpoints else () )
+            setpoints = (setp_rep,) + ((setpoints*self.n_rep,) if setpoints else ())
             sp_names = ('N',) + sp_names
             sp_labels = ('repetitions',) + sp_labels
             sp_units = ('',) + sp_units
         return shape, setpoints, sp_names, sp_labels, sp_units
-
 
     def add_derived_param(self, name, func, label=None, unit='mV',
                           reduce_time=False, reduce_triggers=False,
@@ -266,7 +265,6 @@ class digitizer_param(MultiParameter):
             else:
                 raise Exception('Please also supply setpoint names/units/labels')
 
-
     def get_raw(self):
         if self.start_func:
             self.start_func()
@@ -285,7 +283,7 @@ class digitizer_param(MultiParameter):
 #        print(f'data: {len(data_raw)} {memsize}, seg:{m4i_seg_size}, pre:{pretrigger}, n_seg:{n_seg}')
         # reshape and remove pretrigger
         data = np.reshape(data_raw, self.acq_shape)
-        data = data[...,pretrigger:pretrigger+self.seg_size]
+        data = data[..., pretrigger:pretrigger+self.seg_size]
 
         if self.demodulate:
             n_triggers = ifNone(self.n_trigger, 1)
@@ -298,7 +296,7 @@ class digitizer_param(MultiParameter):
                 else:
                     # time in [s]
                     start_times = np.array(start_times)*1e-9
-                t = start_times[:,None] + np.arange(self.seg_size) / self.eff_sample_rate
+                t = start_times[:, None] + np.arange(self.seg_size) / self.eff_sample_rate
                 channels = [self.channels.index(ch) for ch in demodulation.channels]
                 iq = np.exp(-1j*(2*np.pi*t*demodulation.frequency+demodulation.phase))
                 if len(channels) == 1:
@@ -325,4 +323,3 @@ class digitizer_param(MultiParameter):
 
 def ifNone(x, value):
     return x if x is not None else value
-

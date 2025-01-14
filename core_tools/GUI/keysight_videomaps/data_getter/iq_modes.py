@@ -1,4 +1,3 @@
-from typing import List, Optional
 import numpy as np
 
 
@@ -7,18 +6,18 @@ iq_mode2numpy = {
         'Q': [('', np.imag, 'mV')],
         'amplitude': [('', np.abs, 'mV')],
         'phase': [('', np.angle, 'rad')],
-        'phase_deg': [('', lambda x:np.angle(x, deg=True), 'deg')],
+        'phase_deg': [('', lambda x: np.angle(x, deg=True), 'deg')],
         'I+Q': [('_I', np.real, 'mV'), ('_Q', np.imag, 'mV')],
         'amplitude+phase': [('_amp', np.abs, 'mV'), ('_phase', np.angle, 'rad')],
         'abs': [('', np.abs, 'mV')],
         'angle': [('', np.angle, 'rad')],
-        'angle_deg': [('', lambda x:np.angle(x, deg=True), 'deg')],
+        'angle_deg': [('', lambda x: np.angle(x, deg=True), 'deg')],
         'abs+angle': [('_amp', np.abs, 'mV'), ('_phase', np.angle, 'rad')],
         }
 
 
 # TODO: Add to pulse-lib
-def get_channel_map(pulse, iq_mode: str | None, channels: Optional[List[str]] = None):
+def get_channel_map(pulse, iq_mode: str | None, channels: list[str] | None = None):
     if iq_mode is None:
         iq_mode = 'I'
     iq_func = iq_mode2numpy[iq_mode]
@@ -26,7 +25,7 @@ def get_channel_map(pulse, iq_mode: str | None, channels: Optional[List[str]] = 
     channel_map = {}
     for name, dig_ch in pulse.digitizer_channels.items():
         if channels and name not in channels:
-             continue
+            continue
         if dig_ch.iq_input or dig_ch.frequency or dig_ch.iq_out:
             # IQ data available
             for suffix, f, unit in iq_func:
@@ -39,14 +38,14 @@ def get_channel_map(pulse, iq_mode: str | None, channels: Optional[List[str]] = 
     return channel_map
 
 
-def get_channel_map_dig_4ch(iq_mode: str | None, channel_numbers: Optional[List[int]] = None):
+def get_channel_map_dig_4ch(iq_mode: str | None, channel_numbers: list[int] | None = None):
     # Old Keysight and Tektronix code.
     if iq_mode is None:
         iq_mode = 'I'
     iq_func = iq_mode2numpy[iq_mode]
 
     if not channel_numbers:
-        channel_numbers = range(1,5)
+        channel_numbers = range(1, 5)
     channels = [(f'ch{i}', i) for i in channel_numbers]
 
     channel_map = {}

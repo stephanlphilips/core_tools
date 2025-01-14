@@ -1,7 +1,6 @@
 """
 @author: sdesnoo
 """
-from typing import List, Union
 
 from pulse_lib.base_pulse import pulselib
 
@@ -10,14 +9,12 @@ from .hvi2_schedule_loader import Hvi2ScheduleLoader
 from core_tools.drivers.M3102A import SD_DIG
 
 
-
 class Hvi2Schedules:
 
-    def __init__(self, pulse_lib:pulselib, digitizers:Union[SD_DIG,List[SD_DIG]]):
+    def __init__(self, pulse_lib: pulselib, digitizers: SD_DIG | list[SD_DIG]):
         self.schedules = {}
         self._pulselib = pulse_lib
         self._digitizers = digitizers
-
 
     def get_single_shot(self, digitizer_mode=None, dig_channel_modes=None, awg_channel_los=[],
                         n_triggers=1, switch_los=False, enabled_los=None, hvi_queue_control=False,
@@ -38,10 +35,14 @@ class Hvi2Schedules:
             hvi_queue_control (bool): if True enables waveform queueing by hvi script.
         '''
         print('Hvi2Schedules is deprecated. Use Hvi2ScheduleLoader')
-        return Hvi2ScheduleLoader(self._pulselib, 'SingleShot', self._digitizers, acquisition_delay_ns=acquisition_delay_ns)
+        return Hvi2ScheduleLoader(
+            self._pulselib, 'SingleShot',
+            self._digitizers,
+            acquisition_delay_ns=acquisition_delay_ns,
+        )
 
-    def get_video_mode(self, digitizer_mode:int, awg_channel_los=None, acquisition_delay_ns=500, hvi_queue_control=False,
-                       trigger_out=False, enable_markers=[]):
+    def get_video_mode(self, digitizer_mode: int, awg_channel_los=None, acquisition_delay_ns=500,
+                       hvi_queue_control=False, trigger_out=False, enable_markers=[]):
         '''
         Return a (cached) video mode schedule.
         Args:
@@ -57,12 +58,15 @@ class Hvi2Schedules:
         For video mode the digitizer measurement should return 1 value per trigger.
         '''
         print('Hvi2Schedules is deprecated. Use Hvi2ScheduleLoader')
-        return Hvi2ScheduleLoader(self._pulselib, 'SingleShot', self._digitizers, acquisition_delay_ns=acquisition_delay_ns)
-
+        return Hvi2ScheduleLoader(
+            self._pulselib,
+            'SingleShot',
+            self._digitizers,
+            acquisition_delay_ns=acquisition_delay_ns
+        )
 
     def clear(self):
         Hvi2ScheduleLoader.close_all()
 
     def close(self):
         self.clear()
-
