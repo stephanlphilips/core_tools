@@ -10,7 +10,7 @@ def load_xr_hdf5(fname):
     # Check existence. xarray gives a very confusing error when the file does not exist.
     if not os.path.exists(fname):
         raise FileNotFoundError(fname)
-    xds = xr.load_dataset(fname)
+    xds = xr.load_dataset(fname, engine="h5netcdf")
     return xds
 
 def save_xr_hdf5(xds, fname):
