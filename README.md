@@ -1,6 +1,6 @@
-[![Documentation Status](https://readthedocs.org/projects/core-tools/badge/?version=latest)](https://core-tools.readthedocs.io/en/latest/?badge=latest)
 
 # core tools
 
+This GitHub repository is not maintained anymore.
 
-read the docs at [https://core-tools.readthedocs.io/en/latest/](https://core-tools.readthedocs.io/en/latest/):
+It has moved to https://gitlab.tudelft.nl/qutech-qdlabs/core_tools
