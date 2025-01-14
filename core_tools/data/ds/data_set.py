@@ -1,5 +1,5 @@
 import logging
-from core_tools.data.ds.data_set_core import  data_set
+from core_tools.data.ds.data_set_core import data_set
 from core_tools.data.ds.data_set_raw import data_set_raw
 from core_tools.data.SQL.SQL_dataset_creator import SQL_dataset_creator
 import json
@@ -12,6 +12,9 @@ DATA_POINTS_MAX = 20_000_000
 DATASET_SIZE_WARNING = 50_000_000
 DATASET_SIZE_MAX = 200_000_000
 
+REDUCE_SNAPSHOT = True
+
+
 def load_by_id(exp_id):
     '''
     load a dataset by specifying its id (search in local db)
@@ -21,6 +24,7 @@ def load_by_id(exp_id):
     '''
     SQL_mgr = SQL_dataset_creator()
     return data_set(SQL_mgr.fetch_raw_dataset_by_Id(exp_id))
+
 
 def load_by_uuid(exp_uuid, copy2localdb=False):
     '''
@@ -32,6 +36,7 @@ def load_by_uuid(exp_uuid, copy2localdb=False):
     '''
     SQL_mgr = SQL_dataset_creator()
     return data_set(SQL_mgr.fetch_raw_dataset_by_UUID(exp_uuid, copy2localdb))
+
 
 def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
     '''
@@ -51,6 +56,8 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
 
     if qc.Station.default is not None:
         station_snapshot = qc.Station.default.snapshot()
+        if REDUCE_SNAPSHOT:
+            station_snapshot = _reduce_snapshot(station_snapshot)
         snapshot = {'station': station_snapshot}
     else:
         logger.warning('No station configured. No snapshot will be stored.')
@@ -84,3 +91,31 @@ def create_new_data_set(experiment_name, measurement_snapshot, *m_params):
 
     return data_set(ds)
 
+
+def _reduce_snapshot(snapshot: dict[str, any]):
+    if "__class__" in snapshot:
+        exclude_keys = [
+            "__class__",
+            "full_name",
+            "functions",
+            "instrument",
+            "instrument_name",
+            "inter_delay",
+            "post_delay",
+            "raw_value",
+            "val_mapping",
+            "validators",
+            "vals",
+            ]
+    else:
+        exclude_keys = []
+
+    result = {}
+    for key, value in snapshot.items():
+        if key not in exclude_keys:
+            if isinstance(value, dict):
+                value = _reduce_snapshot(value)
+                if not value:
+                    continue
+            result[key] = value
+    return result
