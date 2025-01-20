@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to core_tools will be documented in this file.
 
+## \[1.5.7] - 2025-01-19
+
+- Fix update of general settings in VideoMode.
+
 ## \[1.5.6] - 2025-01-14
 
 - Always use package h5netcdf to load data from HDF5 file.
