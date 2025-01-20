@@ -17,7 +17,7 @@ class QbloxFastScanParameter(FastScanParameterBase):
             scan_config: ScanConfigBase,
             pulse_lib,
             pulse_sequence,
-            ):
+    ):
         """
         args:
             pulse_lib (pulselib): pulse library object
@@ -75,7 +75,7 @@ class FastScanGenerator(FastScanGeneratorBase):
             gate: str, swing: float, n_pt: int, t_measure: float,
             pulse_gates: dict[str, float] = {},
             biasT_corr: bool = False,
-            ) -> FastScanParameterBase:
+    ) -> FastScanParameterBase:
         """Creates 1D fast scan parameter.
 
         Args:
@@ -106,7 +106,7 @@ class FastScanGenerator(FastScanGeneratorBase):
 
         acq_channels = set(v[0] for v in config.channel_map.values())
 
-        seg  = self.pulse_lib.mk_segment()
+        seg = self.pulse_lib.mk_segment()
         g1 = seg[gate]
         pulse_channels = []
         for ch, v in pulse_gates.items():
@@ -158,15 +158,15 @@ class FastScanGenerator(FastScanGeneratorBase):
             config,
             pulse_lib=self.pulse_lib,
             pulse_sequence=my_seq,
-            )
+        )
 
     def create_2D_scan(self,
-            gate1: str, swing1: float, n_pt1: int,
-            gate2: str, swing2: float, n_pt2: int,
-            t_measure: float,
-            pulse_gates: dict[str, float] = {},
-            biasT_corr: bool = True,
-            ) -> FastScanParameterBase:
+                       gate1: str, swing1: float, n_pt1: int,
+                       gate2: str, swing2: float, n_pt2: int,
+                       t_measure: float,
+                       pulse_gates: dict[str, float] = {},
+                       biasT_corr: bool = True,
+                       ) -> FastScanParameterBase:
         """Creates 2D fast scan parameter.
 
         Args:
@@ -205,7 +205,7 @@ class FastScanGenerator(FastScanGeneratorBase):
 
         add_pulse_gate_correction = biasT_corr and len(pulse_gates) > 0
 
-        seg  = self.pulse_lib.mk_segment()
+        seg = self.pulse_lib.mk_segment()
 
         g1 = seg[gate1]
         g2 = seg[gate2]
@@ -233,7 +233,8 @@ class FastScanGenerator(FastScanGeneratorBase):
             g1.add_ramp_ss(0, step_eff*config.n_ptx, -config.vpx, config.vpx)
             g2.add_block(0, step_eff*config.n_ptx, v2)
             for acq_ch in acq_channels:
-                seg[acq_ch].acquire(step_eff*config.line_margin+config.acquisition_delay_ns, n_repeat=n_pt1, interval=step_eff)
+                seg[acq_ch].acquire(step_eff*config.line_margin+config.acquisition_delay_ns,
+                                    n_repeat=n_pt1, interval=step_eff)
             for g, v in pulse_channels:
                 g.add_block(0, step_eff*config.n_ptx, v)
             seg.reset_time()
@@ -273,7 +274,7 @@ class FastScanGenerator(FastScanGeneratorBase):
             config,
             pulse_lib=self.pulse_lib,
             pulse_sequence=my_seq
-            )
+        )
 
 
 def construct_1D_scan_fast(gate, swing, n_pt, t_step, biasT_corr, pulse_lib,
